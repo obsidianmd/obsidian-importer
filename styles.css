@@ -1,17 +1,21 @@
+.setting-secret-value:empty {
+	display: none;
+}
+
 .modal.mod-importer {
 	max-height: var(--modal-height);
 	padding: var(--size-4-4) 0 0 0;
 	position: relative;
 	overflow: hidden;
+	height: 630px;
 }
 .modal.mod-importer .modal-title {
 	padding: 0 var(--size-4-4);
 }
 .modal.mod-importer .modal-content {
 	overflow: auto;
-	padding: var(--size-4-4);
+	padding: var(--size-4-2) var(--size-4-4) var(--size-4-4) var(--size-4-4);
 	margin-bottom: calc(var(--input-height) + var(--size-4-8));
-	border-top: var(--border-width) solid var(--background-modifier-border);
 }
 .modal.mod-importer .modal-button-container {
 	margin: 0;
@@ -31,14 +35,103 @@
 	margin-bottom: 0;
 }
 
+body.is-mobile .modal.mod-importer .modal-content {
+	margin-bottom: 0;
+}
+
+body.is-mobile .modal.mod-importer .modal-button-container {
+	position: static;
+	width: auto;
+	margin-inline-start: 0;
+	padding-inline: 0;
+	border-top: none;
+}
+
+body:not(.is-mobile) .modal.mod-settings .setting-page.importer-flow.has-button-bar {
+	height: calc(100% - (var(--input-height) + var(--size-4-8)));
+	padding-bottom: var(--size-4-4);
+}
+
+/* Keep actions outside the scrolling, animated SettingPage. */
+.modal.mod-settings .importer-button-bar {
+	position: absolute;
+	margin: 0 auto;
+	bottom: 0;
+	left: 0;
+	right: 0;
+
+	z-index: 1;
+
+	padding-block: var(--size-4-4);
+	padding-inline: max(var(--size-4-8), var(--setting-group-center-offset, 0px));
+	background-color: var(--settings-background);
+	border-top: var(--border-width) solid var(--background-modifier-border);
+
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 100ms ease-out;
+
+	/* Follow Obsidian's bottom chrome while the mobile keyboard is open. */
+	transform: translateY(var(--keyboard-height, 0px));
+}
+
+.modal.mod-settings .importer-button-bar.is-shown {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.modal.mod-settings .importer-button-bar .modal-button-container {
+	margin: 0;
+}
+
+body.is-mobile .modal.mod-settings .importer-button-bar {
+	padding-left: max(var(--size-4-4), var(--safe-area-inset-left, 0px));
+	padding-right: max(var(--size-4-4), var(--safe-area-inset-right, 0px));
+}
+
+body.is-phone .modal.mod-settings .importer-button-bar {
+	padding-bottom: max(var(--size-4-4), var(--safe-area-inset-bottom, 0px));
+
+}
+
+/* A tablet has the width to read like the desktop: every screen's buttons in a
+   row, at the end of the bar. A phone only has the room on a step, where Back
+   is in the titlebar and what is left is Help and the way on. */
+body.is-mobile:not(.is-phone) .modal.mod-settings .importer-button-bar .modal-button-container {
+	flex-direction: row;
+}
+
+body.is-phone .modal.mod-settings .importer-button-bar .importer-step-buttons {
+	flex-direction: row;
+}
+
+body.is-phone .modal.mod-settings .importer-button-bar .importer-step-buttons button {
+	flex: 1;
+}
+
+body.is-phone .modal.mod-settings .importer-button-bar .modal-button-container .importer-help-button {
+	--icon-size: var(--icon-l);
+	flex: 0 0 auto;
+	width: var(--touch-size-m);
+	height: var(--touch-size-m);
+	margin-inline-end: auto;
+}
+
 /* Back and Help sit at the start of a step, and the primary button is pushed
    to the end by its own auto margin. Scoped like the rule above so it wins,
-   and only for a step: the progress and finish screens stay end-aligned. */
-.modal.mod-importer .importer-step-buttons {
+   and only for a step: the progress and finish screens stay end-aligned.
+
+   None of it on a phone, where the two buttons take half the bar each, and
+   none of it in the modal on mobile, where Obsidian stacks a button container
+   into a column and each button fills the width: an auto margin along what is
+   then the cross axis takes that width back off the primary one. */
+body:not(.is-mobile) .modal.mod-importer .importer-step-buttons,
+body:not(.is-phone) .modal.mod-settings .importer-button-bar .importer-step-buttons {
 	justify-content: flex-start;
 }
 
-.importer-step-buttons .mod-cta {
+body:not(.is-mobile) .modal.mod-importer .importer-step-buttons .mod-cta,
+body:not(.is-phone) .modal.mod-settings .importer-button-bar .importer-step-buttons .mod-cta {
 	margin-inline-start: auto;
 }
 
@@ -97,13 +190,33 @@
 	filter: brightness(1.7) saturate(0.7);
 }
 
-.importer-format-chevron {
-	display: flex;
-	color: var(--text-faint);
+@media (hover: hover) {
+	.setting-group.mod-list .setting-item.mod-navigable:hover {
+		background-color: var(--background-modifier-hover);
+	}
 }
 
-.setting-group.mod-list .setting-item.mod-navigable:hover {
-	background-color: var(--background-modifier-hover);
+.is-paused .setting-progress-bar-inner {
+	background-color: var(--text-faint);
+}
+
+.importer-progress {
+	flex-direction: column;
+	align-items: stretch;
+	gap: var(--size-4-2);
+}
+
+.importer-progress .setting-item-info,
+.importer-progress .setting-item-control {
+	width: 100%;
+	min-width: 0;
+}
+
+.importer-progress .setting-item-name {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-variant: tabular-nums;
 }
 
 .importer-progress-bar {
@@ -111,12 +224,12 @@
 	height: 8px;
 	background-color: var(--background-secondary);
 	overflow: hidden;
-	box-shadow: inset 0px 0px 0px 1px var(--background-modifier-border);
+	box-shadow: inset 0 0 0 1px var(--background-modifier-border);
 	border-radius: var(--radius-s);
 }
 
 .importer-progress-bar-inner {
-	width: 0;
+	width: var(--importer-progress, 0);
 	height: 100%;
 	background-color: var(--interactive-accent);
 }
@@ -125,46 +238,111 @@
 	background-color: var(--text-faint);
 }
 
-.importer-status {
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	padding: var(--size-4-2) 0;
-	font-variant: tabular-nums;
+.is-mobile .importer-flow .setting-page-content {
+	padding-bottom: 20vh;
 }
 
+body.is-phone .importer-flow .modal-button-container {
+	padding-inline: 0;
+}
+body.is-phone .modal-button-container.importer-step-buttons {
+	padding: 0;
+}
+body.is-phone .modal.mod-settings .importer-button-bar {
+	width: max(92%, calc(100% - var(--size-4-8)));
+	background-color: transparent;
+	background-image: linear-gradient(to bottom, transparent 0%, var(--settings-background) 80%);
+	border-top: none;
+	padding-left: 0;
+	padding-right: 0;
+	padding-top: var(--size-4-8);
+}
+
+.importer-file-input {
+	position: fixed;
+	inset-block-start: 0;
+	inset-inline-start: 0;
+	width: 1px;
+	height: 1px;
+	opacity: 0;
+	pointer-events: none;
+}
+
+/* Stacked, the buttons read down the screen, and stopping the import should
+   not be the one under the thumb. In a row it reads as it does anywhere else. */
+body.is-phone .importer-progress-buttons .mod-destructive {
+	order: -1;
+}
+
+/* In the card the progress row is in, under the divider that follows it. */
 .importer-stats-container {
+	container-type: inline-size;
 	display: flex;
+	flex-wrap: wrap;
 	justify-content: space-evenly;
-	margin-top: var(--size-4-5);
-	margin-bottom: var(--size-4-5);
+	gap: var(--size-4-2) var(--size-4-2) var(--size-4-4);
+	padding: var(--size-4-2) var(--setting-items-padding-x) var(--setting-items-padding-y) ;
+	border-top: var(--setting-items-border-width) solid var(--setting-items-border-color);
 }
 
 .importer-stat {
 	text-align: center;
-}
-
-.notice-message {
-	font-variant: tabular-nums;
+	min-width: 4em;
 }
 
 .importer-stat-count {
 	font-size: var(--font-ui-large);
 	font-variant: tabular-nums;
 }
+.importer-stat-name {
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
+
+/* Five counts side by side need the width of the longest word in each. Where
+   there is not enough, each reads as a row of its own: what it counts at the
+   start, how many at the end. */
+@container (max-width: 460px) {
+	.importer-stat {
+		flex: 1 0 100%;
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: var(--size-4-2);
+		text-align: start;
+		border-bottom: var(--setting-items-divider-width) solid var(--background-modifier-border);
+		padding: var(--size-4-2) 0;
+		&:last-child {
+			border-bottom: none;
+		}
+	}
+
+	.importer-stat-count {
+		order: 1;
+		font-size: var(--font-ui-small);
+		font-weight: var(--font-medium);
+	}
+}
+
+.notice-message {
+	font-variant: tabular-nums;
+}
 
 .importer-log {
 	overflow: auto;
 	flex-grow: 1;
+	margin-top: var(--size-4-3);
 	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 	color: var(--text-muted);
-	border: 1px solid var(--background-modifier-border);
 	padding: var(--size-4-4);
-	background-color: var(--background-secondary);
 	border-radius: var(--radius-s);
 	max-height: 300px;
 	user-select: text;
+	background-color: var(--setting-items-background);
+	border-radius: var(--setting-items-radius);
+	corner-shape: var(--corner-shape);
+	border: var(--setting-items-border-width) solid var(--setting-items-border-color);
 }
 
 .importer-log .list-item {
@@ -187,14 +365,11 @@
 }
 
 /* Template configuration styles */
-.importer-frontmatter-header {
-	display: flex;
-	flex-direction: column;
-	gap: var(--size-4-2);
-}
-
-.importer-frontmatter-header h4 {
-	margin: 0;
+.importer-screen-desc {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	margin-bottom: var(--size-4-4);
+	padding: 0 var(--size-4-4);
 }
 
 .importer-select-all-setting {
@@ -207,10 +382,10 @@
 }
 
 .importer-column-list {
-	display: flex;	
+	display: flex;
 	flex-direction: column;
 	gap: var(--size-4-1);
-	padding: var(--size-4-3) 0;
+	padding: var(--setting-items-padding-y) var(--setting-items-padding-x);
 }
 
 .importer-column-header-row {
@@ -226,7 +401,6 @@
 	display: flex;
 	align-items: center;
 	gap: var(--size-4-2);
-	background-color: var(--background-primary);
 	border-radius: var(--radius-s);
 }
 
@@ -272,16 +446,42 @@
 	min-width: 95px;
 }
 
+.import-section {
+	margin-top: var(--size-4-3);
+}
+
+.setting-items > .import-section {
+	margin: 0;
+}
+
+/* Undo Publish's icon nudge for these shorter rows. */
+.import-section .file-tree-item-icon {
+	top: 0;
+}
+
+.import-section .file-tree-item-icon svg {
+	display: block;
+}
+
 .import-section .tree-item-flair {
 	color: var(--text-faint);
 	padding: 0;
 }
 
+.import-section .importer-tree-filter {
+	padding: 0 var(--setting-items-padding-x);
+}
+
+.import-section .importer-tree-filter input {
+	width: 100%;
+}
+
+/* Tree redraws should not move the containing page. */
 .import-section .publish-change-list {
-	max-height: 200px;
-	height: 200px;
+	overflow-anchor: none;
+	min-height: 200px;
 	overflow-y: auto;
-	padding: var(--size-4-2);
+	padding: var(--setting-items-padding-y) var(--setting-items-padding-x);
 	background-color: var(--setting-items-background);
 	border-radius: var(--setting-items-radius);
 	corner-shape: var(--corner-shape);
@@ -293,7 +493,8 @@
 	font-size: var(--font-ui-small);
 	text-align: center;
 	padding: 30px 10px;
-	height: 100%;
+	height: 200px;
+	max-height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;

@@ -166,10 +166,6 @@ translation=Kembali
 original=Help
 translation=Bantuan
 
-[modal.button-cancel]
-original=Cancel
-translation=Batal
-
 [modal.button-pause]
 original=Pause
 translation=Jeda
@@ -291,7 +287,7 @@ original={{count}} notes imported
 translation={{count}} catatan diimpor
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}. Klik untuk menampilkan.
 
 [progress.status-waiting]
@@ -366,13 +362,13 @@ translation={{count}} item gagal
 original={{count}} items failed
 translation={{count}} item gagal
 
-[source.name]
-original=Files to import
-translation=File untuk diimpor
-
 [source.desc]
-original=Pick the files that you want to import.
-translation=Pilih file yang ingin Anda impor.
+original=Drag and drop, or choose files to import.
+translation=Seret dan lepas, atau pilih file untuk diimpor.
+
+[source.desc-choose]
+original=Choose files to import.
+translation=Pilih file untuk diimpor.
 
 [source.button-choose-file]
 original=Choose file
@@ -405,6 +401,18 @@ translation=Tidak ada yang bisa diimpor di sana. Pilih file {{extensions}}, atau
 [source.msg-will-import]
 original={{files}} will be imported: 
 translation={{files}} akan diimpor: 
+
+[source.msg-more-files]
+original=and {{count}} more file
+translation=dan {{count}} lainnya file
+
+[source.msg-more-files_plural]
+original=and {{count}} more files
+translation=dan {{count}} lainnya file
+
+[source.button-remove-file]
+original=Remove from the import
+translation=Hapus dari impor
 
 [output.label-source-id]
 original=source ID
@@ -512,7 +520,7 @@ translation=Pelajari lebih lanjut.
 
 [common.button-instructions]
 original=Instructions
-translation=Petunjuk
+translation=Instruksi
 
 [common.button-open]
 original=Open
@@ -573,6 +581,14 @@ translation=Memuat...
 [tree.button-refresh]
 original=Refresh
 translation=Segarkan
+
+[tree.placeholder-filter]
+original=Filter...
+translation=Saring...
+
+[tree.msg-no-matches]
+original=No results found.
+translation=Tidak ada hasil.
 
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
@@ -683,8 +699,8 @@ original=Airtable personal access token
 translation=Token akses personal Airtable
 
 [importer.airtable-api.desc-token]
-original=Create a personal access token in your Airtable account settings. 
-translation=Buat token akses personal di pengaturan akun Airtable Anda. 
+original=Create a personal access token in your Airtable account settings.
+translation=Buat token akses personal di pengaturan akun Airtable Anda.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1023,8 +1039,8 @@ original=Apple Journal
 translation=Apple Journal
 
 [importer.apple-journal.option-text]
-original=Apple Journal (HTML export)
-translation=Apple Journal (ekspor HTML)
+original=Apple Journal
+translation=Apple Journal
 
 [importer.apple-journal.file-type]
 original=Journal entries
@@ -1109,6 +1125,10 @@ translation=CSV (.csv)
 [importer.csv.file-type]
 original=CSV
 translation=CSV
+
+[importer.csv.desc-export]
+original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
+translation=Ekspor tabel Anda sebagai CSV dari aplikasi tempatnya berada, seperti Excel, Google Sheets, Numbers, Notion, atau Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1203,8 +1223,8 @@ original=Notes & attachments
 translation=Catatan & lampiran
 
 [importer.keep.desc-export]
-original=Get your Google Keep data from Google Takeout. 
-translation=Dapatkan data Google Keep Anda dari Google Takeout. 
+original=Get your Google Keep data from Google Takeout.
+translation=Dapatkan data Google Keep Anda dari Google Takeout.
 
 [importer.keep.name-archived]
 original=Import archived notes
@@ -1245,6 +1265,10 @@ translation=HTML (.html)
 [importer.html.file-type]
 original=HTML
 translation=HTML
+
+[importer.html.desc-export]
+original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
+translation=Simpan halaman yang ingin Anda simpan sebagai HTML. Jika aplikasi tempatnya berada memiliki importir tersendiri, gunakan itu: data Anda akan lebih lengkap.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1323,7 +1347,7 @@ original=An error occurred while trying to sign you in.
 translation=Terjadi kesalahan saat mencoba memasukkan Anda.
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=Klik di sini untuk menampilkan detail kesalahan
 
 [importer.onenote.msg-signed-out]
@@ -1531,11 +1555,11 @@ original=Notion API token
 translation=Token API Notion
 
 [importer.notion-api.desc-token]
-original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
-translation=Untuk mendapatkan token API, buat koneksi di Notion dan berikan akses ke halaman di ruang kerja Anda. 
+original=To get an API token create a connection in Notion and give it access to pages in your workspace.
+translation=Untuk mendapatkan token API, buat koneksi di Notion dan berikan akses ke halaman di ruang kerja Anda.
 
 [importer.notion-api.link-get-token]
-original=Get API token.
+original=Get API token
 translation=Dapatkan token API.
 
 [importer.notion-api.name-pages]
@@ -1543,11 +1567,11 @@ original=Pages to import
 translation=Halaman yang akan diimpor
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=Klik "Muat" untuk melihat data yang dapat Anda impor. Jika halaman atau basis data tidak muncul, periksa apakah koneksi Notion Anda memiliki akses ke sana.
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=Klik "Muat" untuk memuat halaman dan basis data Notion Anda.
 
 [importer.notion-api.msg-loading-pages]
@@ -2109,6 +2133,10 @@ translation=Textbundle (.textbundle, .textpack)
 [importer.textbundle.file-type]
 original=Textbundle
 translation=Textbundle
+
+[importer.textbundle.desc-export]
+original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
+translation=Ekspor catatan Anda sebagai textbundle atau textpack, yang dapat ditulis oleh Agenda, Craft, Taio, Ulysses, dan Zettlr.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

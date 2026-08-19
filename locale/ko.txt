@@ -166,10 +166,6 @@ translation=뒤로
 original=Help
 translation=도움말
 
-[modal.button-cancel]
-original=Cancel
-translation=취소
-
 [modal.button-pause]
 original=Pause
 translation=중지
@@ -291,7 +287,7 @@ original={{count}} notes imported
 translation={{count}}개 노트를 가져왔어요
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}. 클릭하면 표시돼요.
 
 [progress.status-waiting]
@@ -366,12 +362,12 @@ translation={{count}}개 항목이 실패했어요
 original={{count}} items failed
 translation={{count}}개 항목이 실패했어요
 
-[source.name]
-original=Files to import
-translation=가져올 파일
-
 [source.desc]
-original=Pick the files that you want to import.
+original=Drag and drop, or choose files to import.
+translation=드래그 앤 놓기하거나, 가져올 파일을 선택하세요.
+
+[source.desc-choose]
+original=Choose files to import.
 translation=가져올 파일을 선택하세요.
 
 [source.button-choose-file]
@@ -405,6 +401,18 @@ translation=가져올 항목이 없어요. {{extensions}} 파일이나 해당 �
 [source.msg-will-import]
 original={{files}} will be imported: 
 translation={{files}}개를 가져올 예정이에요: 
+
+[source.msg-more-files]
+original=and {{count}} more file
+translation=and {{count}}개 더 파일
+
+[source.msg-more-files_plural]
+original=and {{count}} more files
+translation=and {{count}}개 더 파일
+
+[source.button-remove-file]
+original=Remove from the import
+translation=가져오기에서 삭제
 
 [output.label-source-id]
 original=source ID
@@ -574,6 +582,14 @@ translation=로딩 중...
 original=Refresh
 translation=새로고침
 
+[tree.placeholder-filter]
+original=Filter...
+translation=필터...
+
+[tree.msg-no-matches]
+original=No results found.
+translation=결과를 찾지 못했습니다.
+
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
 translation={{service}}에서 {{subject}}에 대한 요청을 수락하지 않았어요. {{credential}}
@@ -683,8 +699,8 @@ original=Airtable personal access token
 translation=Airtable 개인 액세스 토큰
 
 [importer.airtable-api.desc-token]
-original=Create a personal access token in your Airtable account settings. 
-translation=Airtable 계정 설정에서 개인 액세스 토큰을 생성하세요. 
+original=Create a personal access token in your Airtable account settings.
+translation=Airtable 계정 설정에서 개인 액세스 토큰을 생성하세요.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1023,8 +1039,8 @@ original=Apple Journal
 translation=Apple Journal
 
 [importer.apple-journal.option-text]
-original=Apple Journal (HTML export)
-translation=Apple Journal (HTML 내보내기)
+original=Apple Journal
+translation=Apple Journal
 
 [importer.apple-journal.file-type]
 original=Journal entries
@@ -1109,6 +1125,10 @@ translation=CSV (.csv)
 [importer.csv.file-type]
 original=CSV
 translation=CSV
+
+[importer.csv.desc-export]
+original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
+translation=Excel, Google Sheets, Numbers, Notion, Airtable 등 사용 중인 앱에서 표를 CSV로 내보내세요.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1203,8 +1223,8 @@ original=Notes & attachments
 translation=노트 및 첨부파일
 
 [importer.keep.desc-export]
-original=Get your Google Keep data from Google Takeout. 
-translation=Google Takeout에서 Google Keep 데이터를 받으세요. 
+original=Get your Google Keep data from Google Takeout.
+translation=Google Takeout에서 Google Keep 데이터를 받으세요.
 
 [importer.keep.name-archived]
 original=Import archived notes
@@ -1245,6 +1265,10 @@ translation=HTML (.html)
 [importer.html.file-type]
 original=HTML
 translation=HTML
+
+[importer.html.desc-export]
+original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
+translation=보관하고 싶은 페이지를 HTML로 저장하세요. 해당 앱에 전용 가져오기 도구가 있다면 그것을 사용하는 편이 더 많은 데이터를 유지할 수 있어요.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1323,7 +1347,7 @@ original=An error occurred while trying to sign you in.
 translation=로그인하는 중 오류가 발생했어요.
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=여기를 클릭하면 오류 세부 정보를 볼 수 있어요
 
 [importer.onenote.msg-signed-out]
@@ -1531,11 +1555,11 @@ original=Notion API token
 translation=Notion API 토큰
 
 [importer.notion-api.desc-token]
-original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
-translation=API 토큰을 얻으려면 Notion에서 연결을 만들고 작업 공간의 페이지에 접근 권한을 부여하세요. 
+original=To get an API token create a connection in Notion and give it access to pages in your workspace.
+translation=API 토큰을 얻으려면 Notion에서 연결을 만들고 작업 공간의 페이지에 접근 권한을 부여하세요.
 
 [importer.notion-api.link-get-token]
-original=Get API token.
+original=Get API token
 translation=API 토큰 받기.
 
 [importer.notion-api.name-pages]
@@ -1543,11 +1567,11 @@ original=Pages to import
 translation=가져올 페이지
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation="불러오기"를 클릭하면 가져올 수 있는 데이터를 확인할 수 있어요. 페이지나 데이터베이스가 보이지 않으면 Notion 연결에 해당 항목의 접근 권한이 있는지 확인하세요.
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation="불러오기"를 클릭하여 Notion 페이지와 데이터베이스를 불러오세요.
 
 [importer.notion-api.msg-loading-pages]
@@ -2109,6 +2133,10 @@ translation=Textbundle (.textbundle, .textpack)
 [importer.textbundle.file-type]
 original=Textbundle
 translation=Textbundle
+
+[importer.textbundle.desc-export]
+original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
+translation=노트를 textbundle 또는 textpack으로 내보내세요. Agenda, Craft, Taio, Ulysses, Zettlr 모두 이 형식을 지원해요.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

@@ -166,10 +166,6 @@ translation=Назад
 original=Help
 translation=Довідка
 
-[modal.button-cancel]
-original=Cancel
-translation=Скасувати
-
 [modal.button-pause]
 original=Pause
 translation=Пауза
@@ -291,7 +287,7 @@ original={{count}} notes imported
 translation={{count}} нотаток імпортовано
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}. Натисніть, щоб показати.
 
 [progress.status-waiting]
@@ -366,13 +362,13 @@ translation={{count}} елемент не вдалося
 original={{count}} items failed
 translation={{count}} елементів не вдалося
 
-[source.name]
-original=Files to import
-translation=Файли для імпорту
-
 [source.desc]
-original=Pick the files that you want to import.
-translation=Оберіть файли, які ви хочете імпортувати.
+original=Drag and drop, or choose files to import.
+translation=Перетягнути й відпустити або обрати файли для імпорту.
+
+[source.desc-choose]
+original=Choose files to import.
+translation=Обрати файли для імпорту.
 
 [source.button-choose-file]
 original=Choose file
@@ -405,6 +401,18 @@ translation=Нічого імпортувати. Оберіть файли {{ext
 [source.msg-will-import]
 original={{files}} will be imported: 
 translation={{files}} буде імпортовано: 
+
+[source.msg-more-files]
+original=and {{count}} more file
+translation=і ще {{count}} файл
+
+[source.msg-more-files_plural]
+original=and {{count}} more files
+translation=і ще {{count}} файлів
+
+[source.button-remove-file]
+original=Remove from the import
+translation=Видалити з імпорту
 
 [output.label-source-id]
 original=source ID
@@ -574,6 +582,14 @@ translation=Завантаження...
 original=Refresh
 translation=Оновити
 
+[tree.placeholder-filter]
+original=Filter...
+translation=Фільтр...
+
+[tree.msg-no-matches]
+original=No results found.
+translation=Нічого не знайдено.
+
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
 translation={{service}} не прийняв запит на {{subject}}. {{credential}}
@@ -683,8 +699,8 @@ original=Airtable personal access token
 translation=Персональний токен доступу Airtable
 
 [importer.airtable-api.desc-token]
-original=Create a personal access token in your Airtable account settings. 
-translation=Створіть персональний токен доступу в налаштуваннях облікового запису Airtable. 
+original=Create a personal access token in your Airtable account settings.
+translation=Створіть персональний токен доступу в налаштуваннях облікового запису Airtable.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1023,8 +1039,8 @@ original=Apple Journal
 translation=Apple Journal
 
 [importer.apple-journal.option-text]
-original=Apple Journal (HTML export)
-translation=Apple Journal (HTML-експорт)
+original=Apple Journal
+translation=Apple Journal
 
 [importer.apple-journal.file-type]
 original=Journal entries
@@ -1109,6 +1125,10 @@ translation=CSV (.csv)
 [importer.csv.file-type]
 original=CSV
 translation=CSV
+
+[importer.csv.desc-export]
+original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
+translation=Експортуйте таблицю як CSV із застосунку, в якому вона зберігається, наприклад Excel, Google Sheets, Numbers, Notion або Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1203,8 +1223,8 @@ original=Notes & attachments
 translation=Нотатки та вкладення
 
 [importer.keep.desc-export]
-original=Get your Google Keep data from Google Takeout. 
-translation=Отримайте дані Google Keep через Google Takeout. 
+original=Get your Google Keep data from Google Takeout.
+translation=Отримайте дані Google Keep через Google Takeout.
 
 [importer.keep.name-archived]
 original=Import archived notes
@@ -1245,6 +1265,10 @@ translation=HTML (.html)
 [importer.html.file-type]
 original=HTML
 translation=HTML
+
+[importer.html.desc-export]
+original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
+translation=Збережіть потрібні сторінки як HTML. Якщо застосунок, у якому вони знаходяться, має власний імпортер, скористайтеся ним: він збереже більше ваших даних.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1323,7 +1347,7 @@ original=An error occurred while trying to sign you in.
 translation=Під час входу сталася помилка.
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=Натисніть тут, щоб переглянути деталі помилки
 
 [importer.onenote.msg-signed-out]
@@ -1531,11 +1555,11 @@ original=Notion API token
 translation=Токен API Notion
 
 [importer.notion-api.desc-token]
-original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
-translation=Щоб отримати токен API, створіть підключення в Notion і надайте йому доступ до сторінок у вашому робочому просторі. 
+original=To get an API token create a connection in Notion and give it access to pages in your workspace.
+translation=Щоб отримати токен API, створіть підключення в Notion і надайте йому доступ до сторінок у вашому робочому просторі.
 
 [importer.notion-api.link-get-token]
-original=Get API token.
+original=Get API token
 translation=Отримати токен API.
 
 [importer.notion-api.name-pages]
@@ -1543,11 +1567,11 @@ original=Pages to import
 translation=Сторінки для імпорту
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=Натисніть "Завантажити", щоб побачити дані, які можна імпортувати. Якщо сторінка або база даних відсутня, перевірте, чи ваше підключення Notion має до неї доступ.
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=Натисніть "Завантажити", щоб завантажити ваші сторінки та бази даних Notion.
 
 [importer.notion-api.msg-loading-pages]
@@ -2109,6 +2133,10 @@ translation=Textbundle (.textbundle, .textpack)
 [importer.textbundle.file-type]
 original=Textbundle
 translation=Textbundle
+
+[importer.textbundle.desc-export]
+original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
+translation=Експортуйте нотатки як textbundle або textpack — цей формат підтримують Agenda, Craft, Taio, Ulysses і Zettlr.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

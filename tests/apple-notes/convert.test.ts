@@ -332,7 +332,6 @@ test('a font is dropped, monospaced or not', async () => {
 					{ text: 'Set in Arial\n', font: { fontName: 'ArialMT', pointSize: 10 } },
 					{ text: 'Large heading\n', style: ANStyleType.Heading, font: { pointSize: 17 } },
 					{ text: 'a [link] to #nothing\n', font: { pointSize: 13 } },
-					// Code is the monospaced paragraph style, which fences; a monospaced font is a typeface.
 					{ text: 'npm run build\n', font: { fontName: 'Courier' } },
 					{ text: 'bold Menlo', font: { fontName: 'Menlo-Regular' }, bold: true },
 					{ text: ' and ' },

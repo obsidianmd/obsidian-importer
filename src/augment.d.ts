@@ -1,7 +1,39 @@
-import 'obsidian';
+import type { IconName, SettingTab } from 'obsidian';
 
 declare module 'obsidian' {
+	/** Obsidian 1.13 API missing from the published types. */
+	class SettingPage {
+		rootEl: HTMLElement;
+		titlebarEl: HTMLElement;
+		containerEl: HTMLElement;
+		title: string;
+		display(): void;
+		hide(): void;
+	}
+
+	/** Runtime fields missing from the published types. */
+	interface SettingGroup {
+		groupEl: HTMLElement;
+		listEl: HTMLElement;
+	}
+
+	/** Obsidian 1.13 methods missing from the published types. */
+	interface Setting {
+		setNavigable(onNavigate: () => void): this;
+		setAction(onAction: () => void): this;
+		setIcon(icon: IconName | null): this;
+	}
+
 	interface App {
+		setting: {
+			open(): void;
+			close(): void;
+			openTabById(id: string): void;
+			openPage(page: SettingPage): void;
+			closePage(): void;
+			activeTab: SettingTab | null;
+		};
+
 		metadataTypeManager: {
 			getAssignedWidget: (key: string) => string | null;
 			setType: (key: string, type: string) => void;

@@ -1,7 +1,7 @@
-import { App, DataWriteOptions, debounce, normalizePath, Platform, SecretComponent, Setting, TFile, TFolder, Vault } from 'obsidian';
+import { App, DataWriteOptions, debounce, normalizePath, Platform, SecretComponent, Setting, SettingGroup, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, parseFilePath, PickedFile, PickedFolder, WebPickedFile } from './filesystem';
 import { HostPlugin } from './plugin-data';
-import { AuthCallback } from './constants';
+import { AuthCallback, helpUrl } from './constants';
 import { FolderSuggest } from './folder-suggest';
 import { ImportContext } from './import-context';
 import { formatImportReport, importReportName } from './import-report';
@@ -9,7 +9,7 @@ import { createMarkdown, formatMarkdown, markdownOutputFor, modifyMarkdown, stan
 import { i18n } from './i18n';
 import { availableFileName, getUniqueFilePath, parseFrontMatterBlock, sanitizeFileName, sanitizeFilePath, serializeFrontMatter } from './util';
 
-const MAX_PATH_DESCRIPTION_LENGTH = 300;
+const MAX_FILES_LISTED = 5;
 
 export enum DuplicateHandling {
 	CreateCopy = 'create-copy',
@@ -150,6 +150,7 @@ export interface ImporterHost {
 	optionsEl: HTMLElement | null;
 	plugin: HostPlugin;
 	importerId: string;
+	helpPermalink?: string;
 	sourceChanged?(): void;
 	abortController: AbortController;
 }
@@ -264,7 +265,11 @@ export abstract class FormatImporter {
 	 * @param container The container element to show the configuration UI in
 	 * @returns true if configuration was successful, false if cancelled or failed, null if no configuration needed
 	 */
-	async showTemplateConfiguration(ctx: ImportContext, container: HTMLElement): Promise<boolean | null> {
+	get configures(): boolean {
+		return this.showTemplateConfiguration !== FormatImporter.prototype.showTemplateConfiguration;
+	}
+
+	async showTemplateConfiguration(ctx: ImportContext, container: HTMLElement, buttonsEl: HTMLElement): Promise<boolean | null> {
 		return null;
 	}
 
@@ -298,9 +303,50 @@ export abstract class FormatImporter {
 		}
 	}
 
+	protected addInstructions(setting: Setting | null): Setting | null {
+		const { helpPermalink } = this.host;
+		if (!setting || !helpPermalink) return setting;
+
+		return setting.addButton(button => button
+			.setButtonText(i18n.common.buttonInstructions())
+			.onClick(() => window.open(helpUrl(helpPermalink))));
+	}
+
+	protected addExportSetting(desc: string | DocumentFragment): Setting | null {
+		return this.addSetting('source')
+			?.setName(i18n.common.nameExport())
+			.setDesc(desc) ?? null;
+	}
+
+	private groups = new WeakMap<HTMLElement, SettingGroup>();
+
+	protected settingsIn(contentEl: HTMLElement): HTMLElement {
+		const group = this.groups.get(contentEl);
+		// Direct children end the current group.
+		if (group && contentEl.lastElementChild === group.groupEl) return group.listEl;
+
+		return this.startGroupIn(contentEl).listEl;
+	}
+
+	private endGroupIn(contentEl: HTMLElement): void {
+		this.groups.delete(contentEl);
+	}
+
+	private startGroupIn(contentEl: HTMLElement, heading?: string): SettingGroup {
+		const group = new SettingGroup(contentEl);
+		if (heading) group.setHeading(heading);
+		this.groups.set(contentEl, group);
+		return group;
+	}
+
+	protected startGroup(step: ImporterStep = 'options', heading?: string): SettingGroup | null {
+		const contentEl = this.stepEl(step);
+		return contentEl ? this.startGroupIn(contentEl, heading) : null;
+	}
+
 	protected addSetting(step: ImporterStep = 'options'): Setting | null {
 		const contentEl = this.stepEl(step);
-		return contentEl ? new Setting(contentEl) : null;
+		return contentEl ? new Setting(this.settingsIn(contentEl)) : null;
 	}
 
 	protected draw<T>(build: (contentEl: HTMLElement) => T, step: ImporterStep = 'options'): T | undefined {
@@ -317,7 +363,7 @@ export abstract class FormatImporter {
 	 *
 	 * Read the credential back with getSecret().
 	 */
-	addSecretSetting(name: string, description?: string | DocumentFragment): Setting | null {
+	addSecretSetting(name: string, description?: string | DocumentFragment, external?: { text: string, url: string }): Setting | null {
 		let setting = this.addSetting('source');
 
 		if (!setting) {
@@ -334,10 +380,31 @@ export abstract class FormatImporter {
 			setting.setDesc(description);
 		}
 
+		let externalEl: HTMLElement | null = null;
+
+		if (external) {
+			setting.addButton(button => {
+				externalEl = button.buttonEl;
+				button
+					.setButtonText(external.text)
+					.onClick(() => window.open(external.url));
+			});
+		}
+
+		const showLinking = (linked: boolean) => {
+			externalEl?.toggle(!linked);
+
+			for (const button of Array.from(setting.controlEl.querySelectorAll('button'))) {
+				if (button !== externalEl) button.toggleClass('mod-cta', !linked);
+			}
+		};
+
 		setting.addComponent(el => {
 			let component = new SecretComponent(this.app, el)
 				.onChange(async secretId => {
 					this.secretId = secretId || null;
+					showLinking(!!this.secretId);
+					this.secretChanged();
 					this.sourceChanged();
 					await this.saveSecretId(this.secretId);
 				});
@@ -346,6 +413,8 @@ export abstract class FormatImporter {
 				.then(secretId => {
 					this.secretId = secretId;
 					component.setValue(secretId ?? '');
+					showLinking(!!secretId);
+					this.secretChanged();
 					this.sourceChanged();
 				})
 				.catch(e => console.error('Could not read the linked secret', e));
@@ -354,6 +423,10 @@ export abstract class FormatImporter {
 		});
 
 		return setting;
+	}
+
+	/** Called after the linked secret changes or is restored. */
+	protected secretChanged(): void {
 	}
 
 	/**
@@ -439,96 +512,136 @@ export abstract class FormatImporter {
 		this.acceptedExtensions = extensions;
 		this.acceptsMultiple = allowMultiple;
 
-		const fileLocationSetting = this.addSetting('source');
-		if (!fileLocationSetting) return;
+		const contentEl = this.stepEl('source');
+		if (!contentEl) return;
 
-		fileLocationSetting
-			.setName(i18n.source.name())
-			.setDesc(description || i18n.source.desc())
-			.addButton(button => button
-				.setButtonText(allowMultiple ? i18n.source.buttonChooseFiles() : i18n.source.buttonChooseFile())
-				.onClick(async () => {
-					if (Platform.isDesktopApp) {
-						let properties = ['openFile', 'dontAddToRecent'];
-						if (allowMultiple) {
-							properties.push('multiSelections');
-						}
-						const filePaths = this.chooseFrom({
-							title: i18n.source.dialogPickFiles(), properties,
-							filters: [{ name, extensions }],
-						}, defaultPath);
+		const { listEl } = this.startGroupIn(contentEl).addClass('mod-list');
+		this.endGroupIn(contentEl);
 
-						if (filePaths.length > 0) {
-							this.files = filePaths.map((filepath: string) => new NodePickedFile(filepath));
-							updateFiles();
-						}
-					}
-					else {
-						let inputEl = createEl('input');
-						inputEl.type = 'file';
-						inputEl.accept = extensions.map(e => '.' + e.toLowerCase()).join(',');
-						inputEl.addEventListener('change', () => {
-							if (!inputEl.files) return;
-							let files = Array.from(inputEl.files);
-							if (files.length > 0) {
-								this.files = files.map(file => new WebPickedFile(file))
-									.filter(file => extensions.contains(file.extension));
-								updateFiles();
-							}
-						});
-						inputEl.click();
-					}
-				}));
+		const chooseFiles = async () => {
+			if (Platform.isDesktopApp) {
+				const properties = ['openFile', 'dontAddToRecent'];
+				if (allowMultiple) properties.push('multiSelections');
 
-		if (allowMultiple && Platform.isDesktopApp) {
-			fileLocationSetting.addButton(button => button
-				.setButtonText(i18n.source.buttonChooseFolders())
-				.onClick(async () => {
-					if (Platform.isDesktopApp) {
-						const filePaths = this.chooseFrom({
-							title: i18n.source.dialogPickFolders(),
-							properties: ['openDirectory', 'multiSelections', 'dontAddToRecent'],
-						}, defaultPath);
+				const filePaths = this.chooseFrom({
+					title: i18n.source.dialogPickFiles(), properties,
+					filters: [{ name, extensions }],
+				}, defaultPath);
 
-						if (filePaths.length > 0) {
-							fileLocationSetting.setDesc(i18n.source.msgReadingFolders());
-							let folders = filePaths.map((filepath: string) => new NodePickedFolder(filepath));
-							this.files = await getAllFiles(folders, (file: PickedFile) => extensions.contains(file.extension));
-							updateFiles();
-						}
-					}
-				}));
-		}
+				if (filePaths.length > 0) {
+					addFiles(filePaths.map((filepath: string) => new NodePickedFile(filepath)));
+				}
 
-		let updateFiles = () => {
+				return;
+			}
+
+			// iOS ignores clicks on detached file inputs.
+			const inputEl = contentEl.doc.body.createEl('input', { cls: 'importer-file-input' });
+			inputEl.type = 'file';
+			inputEl.multiple = allowMultiple;
+			inputEl.accept = extensions.map(e => '.' + e.toLowerCase()).join(',');
+
+			inputEl.addEventListener('change', () => {
+				const files = Array.from(inputEl.files ?? []);
+				inputEl.detach();
+
+				if (files.length === 0) return;
+
+				addFiles(files.map(file => new WebPickedFile(file))
+					.filter(file => extensions.contains(file.extension)));
+			});
+
+			inputEl.addEventListener('cancel', () => inputEl.detach());
+
+			inputEl.click();
+		};
+
+		const chooseFolders = async () => {
+			const filePaths = this.chooseFrom({
+				title: i18n.source.dialogPickFolders(),
+				properties: ['openDirectory', 'multiSelections', 'dontAddToRecent'],
+			}, defaultPath);
+
+			if (filePaths.length === 0) return;
+
+			drawState(i18n.source.msgReadingFolders());
+
+			const folders = filePaths.map((filepath: string) => new NodePickedFolder(filepath));
+			addFiles(await getAllFiles(folders, (file: PickedFile) => extensions.contains(file.extension)));
+		};
+
+		const addFiles = (picked: PickedFile[]) => {
+			if (!allowMultiple) {
+				this.files = picked.slice(0, 1);
+				updateFiles();
+				return;
+			}
+
+			const seen = new Set(this.files.map(file => file.toString()));
+			this.files = [...this.files, ...picked.filter(file => !seen.has(file.toString()))];
+			updateFiles();
+		};
+
+		const drawState = (text: string) => {
+			listEl.empty();
+			new Setting(listEl).setClass('mod-empty-state').setName(text);
+			drawPickers();
+		};
+
+		const drawPickers = () => {
+			const files = new Setting(listEl)
+				.setClass('mod-add-item')
+				.setName(allowMultiple ? i18n.source.buttonChooseFiles() : i18n.source.buttonChooseFile());
+
+			files.setIcon('lucide-plus');
+			files.setAction(() => void chooseFiles());
+
+			if (!allowMultiple || !Platform.isDesktopApp) return;
+
+			const folders = new Setting(listEl)
+				.setClass('mod-add-item')
+				.setName(i18n.source.buttonChooseFolders());
+
+			folders.setIcon('lucide-plus');
+			folders.setAction(() => void chooseFolders());
+		};
+
+		const updateFiles = () => {
 			this.sourceChanged();
 
 			if (this.files.length === 0) {
-				fileLocationSetting.setDesc(i18n.source.msgNothingToImport({
+				drawState(i18n.source.msgNothingToImport({
 					extensions: extensions.map(e => '.' + e).join(', '),
 				}));
 				return;
 			}
 
-			let pathText = this.files.map(f => f.name).join(', ');
-			if (pathText.length > MAX_PATH_DESCRIPTION_LENGTH) {
-				pathText = pathText.substring(0, MAX_PATH_DESCRIPTION_LENGTH) + '...';
+			listEl.empty();
+
+			for (const file of this.files.slice(0, MAX_FILES_LISTED)) {
+				new Setting(listEl)
+					.setName(file.name)
+					.setIcon('lucide-file')
+					.addExtraButton(button => button
+						.setIcon('lucide-x')
+						.setTooltip(i18n.source.buttonRemoveFile())
+						.onClick(() => {
+							this.files = this.files.filter(other => other !== file);
+							updateFiles();
+						}));
 			}
 
-			fileLocationSetting.setDesc(createFragment(frag => {
-				if (this.files.length > 1) {
-					frag.createSpan({
-						text: i18n.source.msgWillImport({
-							files: i18n.nouns.fileWithCount({ count: this.files.length }),
-						}),
-					});
-					frag.createEl('br');
-				}
+			const rest = this.files.length - MAX_FILES_LISTED;
+			if (rest > 0) {
+				new Setting(listEl)
+					.setClass('mod-empty-state')
+					.setName(i18n.source.msgMoreFiles({ count: rest }));
+			}
 
-				frag.createSpan({ cls: 'u-pop', text: pathText });
-			}));
+			drawPickers();
 		};
 
+		drawState(description || (Platform.isMobile ? i18n.source.descChoose() : i18n.source.desc()));
 		this.showPickedFiles = updateFiles;
 	}
 
@@ -570,6 +683,8 @@ export abstract class FormatImporter {
 	protected drawOutputSettings(contentEl: HTMLElement): void {
 		this.addOutputFolderSetting(contentEl);
 		this.addAttachmentLocationSetting(contentEl);
+
+		this.startGroupIn(contentEl);
 		this.addDuplicateHandlingSetting(contentEl);
 		this.addSaveSourceIdSetting(contentEl);
 	}
@@ -577,7 +692,7 @@ export abstract class FormatImporter {
 	private addSaveSourceIdSetting(contentEl: HTMLElement): void {
 		if (!this.idProperty) return;
 
-		new Setting(contentEl)
+		new Setting(this.settingsIn(contentEl))
 			.setName(i18n.output.nameSaveSourceId({ label: this.idLabel }))
 			.setDesc(i18n.output.descSaveSourceId({ label: this.idLabel }))
 			.addToggle(toggle => {
@@ -591,7 +706,7 @@ export abstract class FormatImporter {
 	}
 
 	protected addOutputFolderSetting(contentEl: HTMLElement): void {
-		new Setting(contentEl)
+		new Setting(this.settingsIn(contentEl))
 			.setName(i18n.output.nameFolder())
 			.setDesc(i18n.output.descFolder())
 			.addText(text => {
@@ -607,11 +722,11 @@ export abstract class FormatImporter {
 	}
 
 	private addAttachmentLocationSetting(contentEl: HTMLElement): void {
-		const setting = new Setting(contentEl)
+		const setting = new Setting(this.settingsIn(contentEl))
 			.setName(i18n.output.nameAttachments())
 			.setDesc(i18n.output.descAttachments());
 
-		const pathSetting = new Setting(contentEl);
+		const pathSetting = new Setting(this.settingsIn(contentEl));
 
 		const drawPathSetting = () => {
 			const { mode } = this.attachmentLocation;
@@ -652,7 +767,7 @@ export abstract class FormatImporter {
 		const modes = this.duplicateModes;
 		if (modes.length < 2) return;
 
-		new Setting(contentEl)
+		new Setting(this.settingsIn(contentEl))
 			.setName(i18n.output.nameDuplicates())
 			.setDesc(this.describeDuplicateHandling())
 			.addDropdown(dropdown => {

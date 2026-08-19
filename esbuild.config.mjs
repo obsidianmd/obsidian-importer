@@ -32,6 +32,24 @@ const stubInquirePlugin = {
 	},
 };
 
+// Keep optional protobufjs/sax Node probes on their browser paths. Obsidian logs
+// bare `fs`/`stream` probes before the libraries can catch the failed require.
+const PROBING_MODULE = /[\\/](@?protobufjs|sax)[\\/]/;
+
+const stubOptionalNodePlugin = {
+	name: 'stub-optional-node-requires',
+	setup(build) {
+		build.onResolve({ filter: /^(fs|stream)$/ }, args => {
+			if (!PROBING_MODULE.test(args.importer)) return null;
+			return { path: args.path, namespace: 'stub-node' };
+		});
+		build.onLoad({ filter: /.*/, namespace: 'stub-node' }, () => ({
+			contents: 'module.exports = {};',
+			loader: 'js',
+		}));
+	},
+};
+
 const PLUGIN_ID = JSON.parse(fs.readFileSync("manifest.json", "utf8")).id;
 
 // Load OBSIDIAN_PATH from .env (path to your vault's plugins folder, relative
@@ -101,10 +119,38 @@ function typeChecks() {
 	}
 }
 
+// Refresh CSS without reloading the plugin and closing its active screen.
+const STYLE_NEEDLE = 'mod-importer';
+
+function refreshStyles() {
+	const code = [
+		'(async () => {',
+		`const dir = app.plugins.plugins[${JSON.stringify(PLUGIN_ID)}]?.manifest.dir;`,
+		'if (!dir) return "no-plugin";',
+		'const styleEl = Array.from(document.head.querySelectorAll(\'style[type="text/css"]\'))',
+		`.find(el => el.textContent.includes(${JSON.stringify(STYLE_NEEDLE)}));`,
+		'if (!styleEl) return "no-style";',
+		'styleEl.textContent = await app.vault.readRaw(dir + "/styles.css");',
+		'return "ok";',
+		'})()',
+	].join(' ');
+
+	const vault = vaultName();
+	const args = vault ? [`vault=${vault}`, 'eval', `code=${code}`] : ['eval', `code=${code}`];
+
+	execFile('obsidian', args, (err, stdout) => {
+		if (err || !`${stdout}`.includes('ok')) {
+			reloadPlugin();
+			return;
+		}
+		console.log('Updated styles.css in place');
+	});
+}
+
 // Copy the built plugin files into the vault after each rebuild, then reload.
 // styles.css matters as much as main.js here: the importer's modal UI is
 // entirely styled from it.
-function copyToVault() {
+function copyToVault({ reload = true } = {}) {
 	if (!process.env.OBSIDIAN_PATH || !process.env.HOME) return;
 	const dest = path.join(process.env.HOME, process.env.OBSIDIAN_PATH, PLUGIN_ID);
 	try {
@@ -115,10 +161,33 @@ function copyToVault() {
 			}
 		}
 		console.log(`Copied plugin to ${dest}`);
-		reloadPlugin();
+		if (reload) reloadPlugin();
+		else refreshStyles();
 	} catch (e) {
 		console.warn(`Skipped vault copy: ${e.message}`);
 	}
+}
+
+// Watch the directory because styles.css is outside esbuild's dependency graph
+// and editors may replace the file when saving.
+function watchCopiedFiles() {
+	if (!process.env.OBSIDIAN_PATH || !process.env.HOME) return;
+
+	const copied = ["styles.css", "manifest.json"];
+	let queued;
+	let reload = false;
+
+	fs.watch(".", (event, filename) => {
+		if (!copied.includes(filename)) return;
+
+		if (filename !== "styles.css") reload = true;
+
+		clearTimeout(queued);
+		queued = setTimeout(() => {
+			copyToVault({ reload });
+			reload = false;
+		}, 100);
+	});
 }
 
 const copyPlugin = {
@@ -173,7 +242,9 @@ const context = await esbuild.context({
 	minify: prod,
 	platform: 'browser',
 	treeShaking: true,
-	plugins: prod ? [stubInquirePlugin] : [stubInquirePlugin, copyPlugin],
+	plugins: prod
+		? [stubInquirePlugin, stubOptionalNodePlugin]
+		: [stubInquirePlugin, stubOptionalNodePlugin, copyPlugin],
 	outfile,
 });
 
@@ -182,4 +253,5 @@ if (prod) {
 	process.exit(0);
 } else {
 	await context.watch();
+	watchCopiedFiles();
 }

@@ -99,9 +99,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		this.idLabel = i18n.importer.appleNotes.labelId();
 
 		if (!Platform.isMacOS || !Platform.isDesktop) {
-			this.draw(contentEl => contentEl.createEl('p', {
-				text: i18n.importer.appleNotes.msgPlatform(),
-			}));
+			this.addExportSetting(i18n.importer.appleNotes.msgPlatform());
 
 			this.notAvailable = true;
 			return;
@@ -187,6 +185,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	private drawFolderPicker(): void {
 		this.draw(contentEl => {
 			this.picker = new TreePicker<AppleNotesTreeNode>(contentEl, {
+				setting: this.addSetting('source'),
 				name: i18n.importer.appleNotes.nameFolders(),
 				desc: i18n.importer.appleNotes.descFolders(),
 				hint: noAccessHint(),

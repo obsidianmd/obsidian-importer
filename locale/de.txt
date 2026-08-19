@@ -166,10 +166,6 @@ translation=Zurück
 original=Help
 translation=Hilfe
 
-[modal.button-cancel]
-original=Cancel
-translation=Abbrechen
-
 [modal.button-pause]
 original=Pause
 translation=Anhalten
@@ -291,7 +287,7 @@ original={{count}} notes imported
 translation={{count}} Notizen importiert
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}. Klicke zum Anzeigen.
 
 [progress.status-waiting]
@@ -366,13 +362,13 @@ translation={{count}} Element fehlgeschlagen
 original={{count}} items failed
 translation={{count}} Elemente fehlgeschlagen
 
-[source.name]
-original=Files to import
-translation=Zu importierende Dateien
-
 [source.desc]
-original=Pick the files that you want to import.
-translation=Wähle die Dateien aus, die du importieren möchtest.
+original=Drag and drop, or choose files to import.
+translation=Ziehe Dateien hierher, lege sie ab oder wähle Dateien zum Importieren aus.
+
+[source.desc-choose]
+original=Choose files to import.
+translation=Wähle Dateien zum Importieren aus.
 
 [source.button-choose-file]
 original=Choose file
@@ -405,6 +401,18 @@ translation=Hier gibt es nichts zu importieren. Wähle {{extensions}}-Dateien od
 [source.msg-will-import]
 original={{files}} will be imported: 
 translation={{files}} werden importiert: 
+
+[source.msg-more-files]
+original=and {{count}} more file
+translation=und {{count}} weitere Datei
+
+[source.msg-more-files_plural]
+original=and {{count}} more files
+translation=und {{count}} weitere Dateien
+
+[source.button-remove-file]
+original=Remove from the import
+translation=Vom Import entfernen
 
 [output.label-source-id]
 original=source ID
@@ -574,6 +582,14 @@ translation=Wird geladen...
 original=Refresh
 translation=Aktualisieren
 
+[tree.placeholder-filter]
+original=Filter...
+translation=Filtern...
+
+[tree.msg-no-matches]
+original=No results found.
+translation=Keine Ergebnisse gefunden.
+
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
 translation={{service}} hat die Anfrage für {{subject}} nicht akzeptiert. {{credential}}
@@ -683,8 +699,8 @@ original=Airtable personal access token
 translation=Persönliches Airtable-Zugriffstoken
 
 [importer.airtable-api.desc-token]
-original=Create a personal access token in your Airtable account settings. 
-translation=Erstelle ein persönliches Zugriffstoken in deinen Airtable-Kontoeinstellungen. 
+original=Create a personal access token in your Airtable account settings.
+translation=Erstelle ein persönliches Zugriffstoken in deinen Airtable-Kontoeinstellungen.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1023,8 +1039,8 @@ original=Apple Journal
 translation=Apple Journal
 
 [importer.apple-journal.option-text]
-original=Apple Journal (HTML export)
-translation=Apple Journal (HTML-Export)
+original=Apple Journal
+translation=Apple Journal
 
 [importer.apple-journal.file-type]
 original=Journal entries
@@ -1109,6 +1125,10 @@ translation=CSV (.csv)
 [importer.csv.file-type]
 original=CSV
 translation=CSV
+
+[importer.csv.desc-export]
+original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
+translation=Exportiere deine Tabelle als CSV aus der App, in der sie sich befindet, z.\n B. Excel, Google Sheets, Numbers, Notion oder Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1203,8 +1223,8 @@ original=Notes & attachments
 translation=Notizen & Anhänge
 
 [importer.keep.desc-export]
-original=Get your Google Keep data from Google Takeout. 
-translation=Lade deine Google Keep-Daten über Google Takeout herunter. 
+original=Get your Google Keep data from Google Takeout.
+translation=Lade deine Google Keep-Daten über Google Takeout herunter.
 
 [importer.keep.name-archived]
 original=Import archived notes
@@ -1245,6 +1265,10 @@ translation=HTML (.html)
 [importer.html.file-type]
 original=HTML
 translation=HTML
+
+[importer.html.desc-export]
+original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
+translation=Speichere die Seiten, die du behalten möchtest, als HTML. Falls die App, in der sie sich befinden, einen eigenen Importer hat, verwende stattdessen diesen: Er übernimmt mehr deiner Daten.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1323,7 +1347,7 @@ original=An error occurred while trying to sign you in.
 translation=Beim Anmelden ist ein Fehler aufgetreten.
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=Klicke hier, um Fehlerdetails anzuzeigen
 
 [importer.onenote.msg-signed-out]
@@ -1531,11 +1555,11 @@ original=Notion API token
 translation=Notion-API-Token
 
 [importer.notion-api.desc-token]
-original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
-translation=Um ein API-Token zu erhalten, erstelle eine Verbindung in Notion und gewähre ihr Zugriff auf Seiten in deinem Workspace. 
+original=To get an API token create a connection in Notion and give it access to pages in your workspace.
+translation=Um ein API-Token zu erhalten, erstelle eine Verbindung in Notion und gewähre ihr Zugriff auf Seiten in deinem Workspace.
 
 [importer.notion-api.link-get-token]
-original=Get API token.
+original=Get API token
 translation=API-Token erhalten.
 
 [importer.notion-api.name-pages]
@@ -1543,11 +1567,11 @@ original=Pages to import
 translation=Zu importierende Seiten
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=Klicke auf "Laden", um importierbare Daten zu sehen. Wenn eine Seite oder Datenbank fehlt, überprüfe, ob deine Notion-Verbindung Zugriff darauf hat.
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=Klicke auf "Laden", um deine Notion-Seiten und -Datenbanken zu laden.
 
 [importer.notion-api.msg-loading-pages]
@@ -2109,6 +2133,10 @@ translation=Textbundle (.textbundle, .textpack)
 [importer.textbundle.file-type]
 original=Textbundle
 translation=Textbundle
+
+[importer.textbundle.desc-export]
+original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
+translation=Exportiere deine Notizen als Textbundle oder Textpack – dieses Format können Agenda, Craft, Taio, Ulysses und Zettlr alle erzeugen.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

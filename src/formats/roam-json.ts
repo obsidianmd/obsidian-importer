@@ -3,7 +3,6 @@ import { normalizePath, Notice, requestUrl } from 'obsidian';
 import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { i18n } from '../i18n';
-import { helpUrl } from '../constants';
 import { sanitizeFileName } from '../util';
 import { RoamPage } from './roam/models/roam-json';
 import { RoamGraphConverter } from './roam/graph';
@@ -14,7 +13,6 @@ const regex = /{{pdf:|{{\[\[pdf|{{\[\[audio|{{audio:|{{video:|{{\[\[video/;
 const imageRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)\)/;
 const binaryRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)/;
 
-const HELP_PERMALINK = 'import/roam';
 
 interface InternalPlugins {
 	getPluginById(id: string): { instance?: { options?: { format?: string } } } | null;
@@ -37,12 +35,7 @@ export class RoamJSONImporter extends FormatImporter {
 	tagsAsLinks: boolean = roamDefaults.tagsAsLinks;
 
 	init() {
-		this.addSetting('source')
-			?.setName(i18n.common.nameExport())
-			.setDesc(i18n.importer.roamJson.descExport())
-			.addButton(button => button
-				.setButtonText(i18n.common.buttonInstructions())
-				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
+		this.addInstructions(this.addExportSetting(i18n.importer.roamJson.descExport()));
 
 		this.addFileChooserSetting(i18n.importer.roamJson.fileType(), RoamJSONImporter.extensions, false,
 			i18n.importer.roamJson.descFiles());
@@ -58,6 +51,8 @@ export class RoamJSONImporter extends FormatImporter {
 				.setValue(this.deOutline)
 				.onChange(value => this.deOutline = value));
 
+		this.startGroup();
+
 		this.addSetting()
 			?.setName(i18n.importer.roamJson.nameEmbedBlockReferences())
 			.setDesc(i18n.importer.roamJson.descEmbedBlockReferences())
@@ -71,6 +66,8 @@ export class RoamJSONImporter extends FormatImporter {
 			.addToggle(toggle => toggle
 				.setValue(this.dropUnresolvedReferences)
 				.onChange(value => this.dropUnresolvedReferences = value));
+
+		this.startGroup();
 
 		this.addSetting()
 			?.setName(i18n.importer.roamJson.nameKeepAttributes())

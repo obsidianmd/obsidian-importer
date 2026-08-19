@@ -1,5 +1,4 @@
 import { Notice, Platform, TFile, TFolder, normalizePath } from 'obsidian';
-import { helpUrl } from '../constants';
 import { PickedFile, fs, os, path as nodePath } from '../filesystem';
 import { FormatImporter, leavesTheNoteAlone } from '../format-importer';
 import { ImportContext } from '../import-context';
@@ -13,7 +12,6 @@ import { OneNoteErrorKind, OneNoteFormatError } from './onenote-file/errors';
 import { isPackage, listSections, readSections } from './onenote-file/package';
 import { Page, Section } from './onenote-file/semantic/content';
 
-const HELP_PERMALINK = 'import/onenote';
 
 interface SectionNode extends ViewableNode<SectionNode> {
 	file: PickedFile;
@@ -38,12 +36,7 @@ export class OneNoteFileImporter extends FormatImporter {
 	private loadGeneration = 0;
 
 	init(): void {
-		this.addSetting('source')
-			?.setName(i18n.common.nameExport())
-			.setDesc(i18n.importer.onenoteFile.descExport())
-			.addButton(button => button
-				.setButtonText(i18n.common.buttonInstructions())
-				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
+		this.addInstructions(this.addExportSetting(i18n.importer.onenoteFile.descExport()));
 
 		const backup = windowsBackupFolder();
 		this.addFileChooserSetting(
@@ -62,6 +55,8 @@ export class OneNoteFileImporter extends FormatImporter {
 	protected sourceChanged(): void {
 		super.sourceChanged();
 
+		this.showSections();
+
 		const key = this.files.map(file => file.fullpath).join('\n');
 		if (key === this.loadedFrom) return;
 
@@ -69,9 +64,14 @@ export class OneNoteFileImporter extends FormatImporter {
 		if (this.picker) void this.loadSections();
 	}
 
+	private showSections(): void {
+		this.picker?.toggle(this.files.length > 0);
+	}
+
 	private drawSectionPicker(): void {
 		this.draw(contentEl => {
 			this.picker = new TreePicker<SectionNode>(contentEl, {
+				setting: this.addSetting('source'),
 				name: i18n.importer.onenoteFile.nameSections(),
 				desc: i18n.importer.onenoteFile.descSections(),
 				hint: i18n.importer.onenoteFile.msgPickFileFirst(),
@@ -83,6 +83,8 @@ export class OneNoteFileImporter extends FormatImporter {
 				},
 				loadsItself: true,
 			});
+
+			this.showSections();
 		}, 'source');
 	}
 

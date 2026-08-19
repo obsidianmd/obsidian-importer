@@ -166,10 +166,6 @@ translation=חזור
 original=Help
 translation=עזרה
 
-[modal.button-cancel]
-original=Cancel
-translation=ביטול
-
 [modal.button-pause]
 original=Pause
 translation=השהה
@@ -291,7 +287,7 @@ original={{count}} notes imported
 translation=יובאו {{count}} הערות
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}. לחץ להצגה.
 
 [progress.status-waiting]
@@ -366,13 +362,13 @@ translation=נכשל פריט {{count}}
 original={{count}} items failed
 translation=נכשלו {{count}} פריטים
 
-[source.name]
-original=Files to import
-translation=קבצים לייבוא
-
 [source.desc]
-original=Pick the files that you want to import.
-translation=בחר את הקבצים שברצונך לייבא.
+original=Drag and drop, or choose files to import.
+translation=גרירה ושחרר, או בחר קבצים לייבוא.
+
+[source.desc-choose]
+original=Choose files to import.
+translation=בחר קבצים לייבוא.
 
 [source.button-choose-file]
 original=Choose file
@@ -405,6 +401,18 @@ translation=אין מה לייבא משם. בחר קבצי {{extensions}}, או 
 [source.msg-will-import]
 original={{files}} will be imported: 
 translation={{files}} ייובאו: 
+
+[source.msg-more-files]
+original=and {{count}} more file
+translation=וגם עוד {{count}} קובץ
+
+[source.msg-more-files_plural]
+original=and {{count}} more files
+translation=וגם עוד {{count}} קבצים
+
+[source.button-remove-file]
+original=Remove from the import
+translation=הסר מהייבוא
 
 [output.label-source-id]
 original=source ID
@@ -574,6 +582,14 @@ translation=טוען...
 original=Refresh
 translation=רענון
 
+[tree.placeholder-filter]
+original=Filter...
+translation=סינון...
+
+[tree.msg-no-matches]
+original=No results found.
+translation=לא נמצאו תוצאות.
+
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
 translation={{service}} לא קיבל את הבקשה עבור {{subject}}. {{credential}}
@@ -683,8 +699,8 @@ original=Airtable personal access token
 translation=אסימון גישה אישי של Airtable
 
 [importer.airtable-api.desc-token]
-original=Create a personal access token in your Airtable account settings. 
-translation=צור אסימון גישה אישי בהגדרות חשבון ה-Airtable שלך. 
+original=Create a personal access token in your Airtable account settings.
+translation=צור אסימון גישה אישי בהגדרות חשבון ה-Airtable שלך.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1023,8 +1039,8 @@ original=Apple Journal
 translation=Apple Journal
 
 [importer.apple-journal.option-text]
-original=Apple Journal (HTML export)
-translation=Apple Journal (ייצוא HTML)
+original=Apple Journal
+translation=Apple Journal
 
 [importer.apple-journal.file-type]
 original=Journal entries
@@ -1109,6 +1125,10 @@ translation=CSV (.csv)
 [importer.csv.file-type]
 original=CSV
 translation=CSV
+
+[importer.csv.desc-export]
+original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
+translation=ייצא את הטבלה שלך כ-CSV מהאפליקציה שבה היא נמצאת, כגון Excel,‏ Google Sheets,‏ Numbers,‏ Notion או Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1203,8 +1223,8 @@ original=Notes & attachments
 translation=הערות וקבצים מצורפים
 
 [importer.keep.desc-export]
-original=Get your Google Keep data from Google Takeout. 
-translation=קבל את נתוני Google Keep שלך מ-Google Takeout. 
+original=Get your Google Keep data from Google Takeout.
+translation=קבל את נתוני Google Keep שלך מ-Google Takeout.
 
 [importer.keep.name-archived]
 original=Import archived notes
@@ -1245,6 +1265,10 @@ translation=HTML (.html)
 [importer.html.file-type]
 original=HTML
 translation=HTML
+
+[importer.html.desc-export]
+original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
+translation=שמור את הדפים שברצונך לשמור כ-HTML. אם לאפליקציה שבה הם נמצאים יש ייבוא משלה, השתמש בו במקום זאת: הוא שומר יותר מהנתונים שלך.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1323,7 +1347,7 @@ original=An error occurred while trying to sign you in.
 translation=אירעה שגיאה בניסיון להתחבר.
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=לחץ כאן כדי להציג פרטי שגיאה
 
 [importer.onenote.msg-signed-out]
@@ -1531,11 +1555,11 @@ original=Notion API token
 translation=אסימון API של Notion
 
 [importer.notion-api.desc-token]
-original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
-translation=כדי לקבל אסימון API, צור חיבור ב-Notion ותן לו גישה לדפים במרחב העבודה שלך. 
+original=To get an API token create a connection in Notion and give it access to pages in your workspace.
+translation=כדי לקבל אסימון API, צור חיבור ב-Notion ותן לו גישה לדפים במרחב העבודה שלך.
 
 [importer.notion-api.link-get-token]
-original=Get API token.
+original=Get API token
 translation=קבל אסימון API.
 
 [importer.notion-api.name-pages]
@@ -1543,11 +1567,11 @@ original=Pages to import
 translation=דפים לייבוא
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=לחץ על "טען" כדי לראות נתונים שניתן לייבא. אם דף או מסד נתונים חסרים, בדוק שלחיבור Notion שלך יש גישה אליהם.
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=לחץ על "טען" כדי לטעון את הדפים ומסדי הנתונים שלך מ-Notion.
 
 [importer.notion-api.msg-loading-pages]
@@ -2109,6 +2133,10 @@ translation=Textbundle (.textbundle, .textpack)
 [importer.textbundle.file-type]
 original=Textbundle
 translation=Textbundle
+
+[importer.textbundle.desc-export]
+original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
+translation=ייצא את ההערות שלך כ-textbundle או textpack, שאותם Agenda,‏ Craft,‏ Taio,‏ Ulysses ו-Zettlr יכולים לכתוב.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

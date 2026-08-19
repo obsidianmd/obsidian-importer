@@ -166,10 +166,6 @@ translation=بازگشت
 original=Help
 translation=راهنما
 
-[modal.button-cancel]
-original=Cancel
-translation=لغو
-
 [modal.button-pause]
 original=Pause
 translation=توقف موقت
@@ -291,7 +287,7 @@ original={{count}} notes imported
 translation={{count}} یادداشت وارد شد
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}. برای نمایش کلیک کنید.
 
 [progress.status-waiting]
@@ -366,13 +362,13 @@ translation={{count}} مورد ناموفق
 original={{count}} items failed
 translation={{count}} مورد ناموفق
 
-[source.name]
-original=Files to import
-translation=فایل‌ها برای وارد کردن
-
 [source.desc]
-original=Pick the files that you want to import.
-translation=فایل‌هایی که می‌خواهید وارد کنید را انتخاب کنید.
+original=Drag and drop, or choose files to import.
+translation=فایل‌ها را بکشید و رها کنید، یا فایل‌ها را برای درون‌ریزی انتخاب کنید.
+
+[source.desc-choose]
+original=Choose files to import.
+translation=فایل‌ها را برای درون‌ریزی انتخاب کنید.
 
 [source.button-choose-file]
 original=Choose file
@@ -405,6 +401,18 @@ translation=چیزی برای وارد کردن وجود ندارد. فایل‌
 [source.msg-will-import]
 original={{files}} will be imported: 
 translation={{files}} وارد خواهد شد: 
+
+[source.msg-more-files]
+original=and {{count}} more file
+translation=و {{count}} فایل دیگر
+
+[source.msg-more-files_plural]
+original=and {{count}} more files
+translation=و {{count}} فایل دیگر
+
+[source.button-remove-file]
+original=Remove from the import
+translation=حذف از درون‌ریزی
 
 [output.label-source-id]
 original=source ID
@@ -574,6 +582,14 @@ translation=در حال بارگذاری...
 original=Refresh
 translation=بازنوسازی
 
+[tree.placeholder-filter]
+original=Filter...
+translation=پالایش...
+
+[tree.msg-no-matches]
+original=No results found.
+translation=!نتیجه‌ای پیدا نشد
+
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
 translation={{service}} درخواست برای {{subject}} را نپذیرفت. {{credential}}
@@ -683,8 +699,8 @@ original=Airtable personal access token
 translation=توکن دسترسی شخصی Airtable
 
 [importer.airtable-api.desc-token]
-original=Create a personal access token in your Airtable account settings. 
-translation=یک توکن دسترسی شخصی در تنظیمات حساب Airtable خود بسازید. 
+original=Create a personal access token in your Airtable account settings.
+translation=یک توکن دسترسی شخصی در تنظیمات حساب Airtable خود بسازید.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1023,8 +1039,8 @@ original=Apple Journal
 translation=Apple Journal
 
 [importer.apple-journal.option-text]
-original=Apple Journal (HTML export)
-translation=Apple Journal (خروجی HTML)
+original=Apple Journal
+translation=Apple Journal
 
 [importer.apple-journal.file-type]
 original=Journal entries
@@ -1109,6 +1125,10 @@ translation=CSV (.csv)
 [importer.csv.file-type]
 original=CSV
 translation=CSV
+
+[importer.csv.desc-export]
+original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
+translation=جدول خود را به صورت CSV از اپلیکیشنی که در آن قرار دارد صادر کنید؛ مانند Excel، Google Sheets، Numbers، Notion یا Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1203,8 +1223,8 @@ original=Notes & attachments
 translation=یادداشت‌ها و پیوست‌ها
 
 [importer.keep.desc-export]
-original=Get your Google Keep data from Google Takeout. 
-translation=داده‌های Google Keep خود را از Google Takeout دریافت کنید. 
+original=Get your Google Keep data from Google Takeout.
+translation=داده‌های Google Keep خود را از Google Takeout دریافت کنید.
 
 [importer.keep.name-archived]
 original=Import archived notes
@@ -1245,6 +1265,10 @@ translation=HTML (.html)
 [importer.html.file-type]
 original=HTML
 translation=HTML
+
+[importer.html.desc-export]
+original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
+translation=صفحاتی را که می‌خواهید نگه دارید به صورت HTML ذخیره کنید. اگر اپلیکیشن مبدأ درون‌ریز اختصاصی خود را دارد، از آن استفاده کنید: داده‌های بیشتری حفظ می‌شود.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1323,7 +1347,7 @@ original=An error occurred while trying to sign you in.
 translation=هنگام ورود خطایی رخ داد.
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=برای مشاهده جزئیات خطا اینجا کلیک کنید
 
 [importer.onenote.msg-signed-out]
@@ -1531,11 +1555,11 @@ original=Notion API token
 translation=توکن API Notion
 
 [importer.notion-api.desc-token]
-original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
-translation=برای دریافت توکن API یک اتصال در Notion بسازید و به آن دسترسی به صفحات فضای کاری خود بدهید. 
+original=To get an API token create a connection in Notion and give it access to pages in your workspace.
+translation=برای دریافت توکن API یک اتصال در Notion بسازید و به آن دسترسی به صفحات فضای کاری خود بدهید.
 
 [importer.notion-api.link-get-token]
-original=Get API token.
+original=Get API token
 translation=دریافت توکن API.
 
 [importer.notion-api.name-pages]
@@ -1543,11 +1567,11 @@ original=Pages to import
 translation=صفحات برای وارد کردن
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=روی «بارگیری» کلیک کنید تا داده‌هایی که می‌توانید وارد کنید را ببینید. اگر صفحه یا پایگاه داده‌ای وجود ندارد، بررسی کنید که اتصال Notion شما به آن دسترسی دارد.
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=روی «بارگیری» کلیک کنید تا صفحات و پایگاه‌های داده Notion شما بارگیری شوند.
 
 [importer.notion-api.msg-loading-pages]
@@ -2109,6 +2133,10 @@ translation=Textbundle (.textbundle, .textpack)
 [importer.textbundle.file-type]
 original=Textbundle
 translation=Textbundle
+
+[importer.textbundle.desc-export]
+original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
+translation=یادداشت‌های خود را به صورت textbundle یا textpack صادر کنید؛ Agenda، Craft، Taio، Ulysses و Zettlr همگی قادر به ایجاد این فرمت هستند.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

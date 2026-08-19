@@ -166,10 +166,6 @@ translation=戻る
 original=Help
 translation=ヘルプ
 
-[modal.button-cancel]
-original=Cancel
-translation=キャンセル
-
 [modal.button-pause]
 original=Pause
 translation=停止
@@ -291,7 +287,7 @@ original={{count}} notes imported
 translation={{count}} 件のノートをインポートしました
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}。クリックして表示。
 
 [progress.status-waiting]
@@ -366,13 +362,13 @@ translation={{count}} 件のアイテムが失敗しました
 original={{count}} items failed
 translation={{count}} 件のアイテムが失敗しました
 
-[source.name]
-original=Files to import
-translation=インポートするファイル
-
 [source.desc]
-original=Pick the files that you want to import.
-translation=インポートしたいファイルを選択してください。
+original=Drag and drop, or choose files to import.
+translation=ドラッグ＆ドロップ、またはインポートするファイルを選択してください。
+
+[source.desc-choose]
+original=Choose files to import.
+translation=インポートするファイルを選択してください。
 
 [source.button-choose-file]
 original=Choose file
@@ -405,6 +401,18 @@ translation=インポートできるものがありません。{{extensions}} �
 [source.msg-will-import]
 original={{files}} will be imported: 
 translation={{files}} がインポートされます: 
+
+[source.msg-more-files]
+original=and {{count}} more file
+translation=かつ さらに {{count}} 件のファイル
+
+[source.msg-more-files_plural]
+original=and {{count}} more files
+translation=かつ さらに {{count}} 件のファイル
+
+[source.button-remove-file]
+original=Remove from the import
+translation=インポートから削除
 
 [output.label-source-id]
 original=source ID
@@ -574,6 +582,14 @@ translation=読み込み中…
 original=Refresh
 translation=更新
 
+[tree.placeholder-filter]
+original=Filter...
+translation=フィルタ…
+
+[tree.msg-no-matches]
+original=No results found.
+translation=結果が見つかりません。
+
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
 translation={{service}} が {{subject}} のリクエストを受け付けませんでした。{{credential}}
@@ -683,8 +699,8 @@ original=Airtable personal access token
 translation=Airtable パーソナルアクセストークン
 
 [importer.airtable-api.desc-token]
-original=Create a personal access token in your Airtable account settings. 
-translation=Airtable のアカウント設定でパーソナルアクセストークンを作成してください。 
+original=Create a personal access token in your Airtable account settings.
+translation=Airtable のアカウント設定でパーソナルアクセストークンを作成してください。
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1023,8 +1039,8 @@ original=Apple Journal
 translation=Apple Journal
 
 [importer.apple-journal.option-text]
-original=Apple Journal (HTML export)
-translation=Apple Journal (HTML エクスポート)
+original=Apple Journal
+translation=Apple Journal
 
 [importer.apple-journal.file-type]
 original=Journal entries
@@ -1109,6 +1125,10 @@ translation=CSV (.csv)
 [importer.csv.file-type]
 original=CSV
 translation=CSV
+
+[importer.csv.desc-export]
+original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
+translation=Excel、Google Sheets、Numbers、Notion、Airtable など、使用中のアプリから表を CSV としてエクスポートしてください。
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1203,8 +1223,8 @@ original=Notes & attachments
 translation=ノートと添付ファイル
 
 [importer.keep.desc-export]
-original=Get your Google Keep data from Google Takeout. 
-translation=Google Takeout から Google Keep のデータを取得してください。 
+original=Get your Google Keep data from Google Takeout.
+translation=Google Takeout から Google Keep のデータを取得してください。
 
 [importer.keep.name-archived]
 original=Import archived notes
@@ -1245,6 +1265,10 @@ translation=HTML (.html)
 [importer.html.file-type]
 original=HTML
 translation=HTML
+
+[importer.html.desc-export]
+original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
+translation=保存したいページを HTML として保存してください。使用中のアプリに専用のインポーターがある場合は、そちらを使うとより多くのデータを保持できます。
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1323,7 +1347,7 @@ original=An error occurred while trying to sign you in.
 translation=サインイン中にエラーが発生しました。
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=ここをクリックしてエラーの詳細を表示
 
 [importer.onenote.msg-signed-out]
@@ -1531,11 +1555,11 @@ original=Notion API token
 translation=Notion API トークン
 
 [importer.notion-api.desc-token]
-original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
-translation=API トークンを取得するには、Notion でコネクションを作成し、ワークスペース内のページへのアクセス権を付与してください。 
+original=To get an API token create a connection in Notion and give it access to pages in your workspace.
+translation=API トークンを取得するには、Notion でコネクションを作成し、ワークスペース内のページへのアクセス権を付与してください。
 
 [importer.notion-api.link-get-token]
-original=Get API token.
+original=Get API token
 translation=API トークンを取得する。
 
 [importer.notion-api.name-pages]
@@ -1543,11 +1567,11 @@ original=Pages to import
 translation=インポートするページ
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=「ロード」をクリックするとインポート可能なデータが表示されます。ページやデータベースが見つからない場合は、Notion コネクションにアクセス権があるか確認してください。
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=「ロード」をクリックして Notion のページとデータベースをロードしてください。
 
 [importer.notion-api.msg-loading-pages]
@@ -2109,6 +2133,10 @@ translation=Textbundle (.textbundle, .textpack)
 [importer.textbundle.file-type]
 original=Textbundle
 translation=Textbundle
+
+[importer.textbundle.desc-export]
+original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
+translation=ノートを textbundle または textpack としてエクスポートしてください。Agenda、Craft、Taio、Ulysses、Zettlr がこれらの形式に対応しています。
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

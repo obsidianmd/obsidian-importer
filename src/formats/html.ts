@@ -23,6 +23,7 @@ export class HtmlImporter extends FormatImporter {
 	minimumImageSize: number;
 
 	init() {
+		this.addExportSetting(i18n.importer.html.descExport());
 		this.addFileChooserSetting(i18n.importer.html.fileType(), HtmlImporter.extensions, true);
 		this.addAttachmentSizeLimit(0);
 		this.addMinimumImageSize(65); // 65 so that 64×64 are excluded

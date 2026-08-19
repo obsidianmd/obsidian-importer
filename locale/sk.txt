@@ -166,10 +166,6 @@ translation=Späť
 original=Help
 translation=Nápoveda
 
-[modal.button-cancel]
-original=Cancel
-translation=Zrušiť
-
 [modal.button-pause]
 original=Pause
 translation=Pozastaviť
@@ -291,7 +287,7 @@ original={{count}} notes imported
 translation={{count}} poznámok importovaných
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}. Kliknutím zobrazíte.
 
 [progress.status-waiting]
@@ -366,13 +362,13 @@ translation={{count}} položka zlyhala
 original={{count}} items failed
 translation={{count}} položiek zlyhalo
 
-[source.name]
-original=Files to import
-translation=Súbory na import
-
 [source.desc]
-original=Pick the files that you want to import.
-translation=Vyberte súbory, ktoré chcete importovať.
+original=Drag and drop, or choose files to import.
+translation=Presunúť a pustiť, alebo zvoliť súbory na import.
+
+[source.desc-choose]
+original=Choose files to import.
+translation=Zvoliť súbory na import.
 
 [source.button-choose-file]
 original=Choose file
@@ -405,6 +401,18 @@ translation=Nie je tu nič na import. Vyberte súbory {{extensions}} alebo prie�
 [source.msg-will-import]
 original={{files}} will be imported: 
 translation={{files}} bude importovaných: 
+
+[source.msg-more-files]
+original=and {{count}} more file
+translation=a ďalší {{count}} súbor
+
+[source.msg-more-files_plural]
+original=and {{count}} more files
+translation=a ďalších {{count}} súborov
+
+[source.button-remove-file]
+original=Remove from the import
+translation=Odobrať z importu
 
 [output.label-source-id]
 original=source ID
@@ -574,6 +582,14 @@ translation=Načítava sa...
 original=Refresh
 translation=Obnoviť
 
+[tree.placeholder-filter]
+original=Filter...
+translation=Filtrovať...
+
+[tree.msg-no-matches]
+original=No results found.
+translation=Žiadne výsledky hľadania.
+
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
 translation={{service}} neprijal požiadavku na {{subject}}. {{credential}}
@@ -683,8 +699,8 @@ original=Airtable personal access token
 translation=Osobný prístupový token Airtable
 
 [importer.airtable-api.desc-token]
-original=Create a personal access token in your Airtable account settings. 
-translation=Vytvorte si osobný prístupový token v nastaveniach svojho účtu Airtable. 
+original=Create a personal access token in your Airtable account settings.
+translation=Vytvorte si osobný prístupový token v nastaveniach svojho účtu Airtable.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1023,8 +1039,8 @@ original=Apple Journal
 translation=Apple Journal
 
 [importer.apple-journal.option-text]
-original=Apple Journal (HTML export)
-translation=Apple Journal (HTML export)
+original=Apple Journal
+translation=Apple Journal
 
 [importer.apple-journal.file-type]
 original=Journal entries
@@ -1109,6 +1125,10 @@ translation=CSV (.csv)
 [importer.csv.file-type]
 original=CSV
 translation=CSV
+
+[importer.csv.desc-export]
+original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
+translation=Exportujte svoju tabuľku ako CSV z aplikácie, v ktorej sa nachádza, napríklad Excel, Google Sheets, Numbers, Notion alebo Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1203,8 +1223,8 @@ original=Notes & attachments
 translation=Poznámky a prílohy
 
 [importer.keep.desc-export]
-original=Get your Google Keep data from Google Takeout. 
-translation=Získajte svoje dáta z Google Keep cez Google Takeout. 
+original=Get your Google Keep data from Google Takeout.
+translation=Získajte svoje dáta z Google Keep cez Google Takeout.
 
 [importer.keep.name-archived]
 original=Import archived notes
@@ -1245,6 +1265,10 @@ translation=HTML (.html)
 [importer.html.file-type]
 original=HTML
 translation=HTML
+
+[importer.html.desc-export]
+original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
+translation=Uložte stránky, ktoré si chcete ponechať, ako HTML. Ak má aplikácia, v ktorej sa nachádzajú, vlastný importér, použite radšej ten: uchová viac vašich dát.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1323,7 +1347,7 @@ original=An error occurred while trying to sign you in.
 translation=Pri pokuse o prihlásenie sa vyskytla chyba.
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=Kliknutím zobrazíte podrobnosti o chybe
 
 [importer.onenote.msg-signed-out]
@@ -1531,11 +1555,11 @@ original=Notion API token
 translation=Notion API token
 
 [importer.notion-api.desc-token]
-original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
-translation=Na získanie API tokenu vytvorte pripojenie v Notion a udeľte mu prístup k stránkam vo vašom pracovnom priestore. 
+original=To get an API token create a connection in Notion and give it access to pages in your workspace.
+translation=Na získanie API tokenu vytvorte pripojenie v Notion a udeľte mu prístup k stránkam vo vašom pracovnom priestore.
 
 [importer.notion-api.link-get-token]
-original=Get API token.
+original=Get API token
 translation=Získať API token.
 
 [importer.notion-api.name-pages]
@@ -1543,11 +1567,11 @@ original=Pages to import
 translation=Stránky na import
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=Kliknutím na "Načítať" zobrazíte dáta, ktoré môžete importovať. Ak stránka alebo databáza chýba, skontrolujte, či vaše pripojenie Notion má k nej prístup.
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=Kliknutím na "Načítať" načítate vaše stránky a databázy z Notion.
 
 [importer.notion-api.msg-loading-pages]
@@ -2109,6 +2133,10 @@ translation=Textbundle (.textbundle, .textpack)
 [importer.textbundle.file-type]
 original=Textbundle
 translation=Textbundle
+
+[importer.textbundle.desc-export]
+original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
+translation=Exportujte svoje poznámky ako textbundle alebo textpack, čo dokážu zapísať Agenda, Craft, Taio, Ulysses a Zettlr.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

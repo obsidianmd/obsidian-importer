@@ -1,4 +1,4 @@
-import { Notice, Setting, setIcon } from 'obsidian';
+import { Notice, Setting, SettingGroup, setIcon } from 'obsidian';
 import { i18n } from './i18n';
 
 /**
@@ -106,19 +106,25 @@ export class TemplateConfigurator {
 	/**
 	 * Shows the template configuration UI and returns the user's configuration.
 	 * @param container The container element to display the configuration UI in
+	 * @param buttonsEl Container for the continue action
 	 * @returns The template configuration if user clicked Continue, null if cancelled
 	 */
-	async show(container: HTMLElement): Promise<TemplateConfig | null> {
+	async show(container: HTMLElement, buttonsEl: HTMLElement): Promise<TemplateConfig | null> {
 		return new Promise((resolve) => {
 			container.empty();
 
-			container.createEl('p', {
+			container.createDiv({
+				cls: 'importer-screen-desc',
 				text: i18n.template.msgIntro({ syntax: this.placeholderSyntax }),
 			});
 
+			const templates = this.showTitleTemplate || this.showLocationTemplate
+				? new SettingGroup(container)
+				: null;
+
 			// Note title template (optional, based on configuration)
 			if (this.showTitleTemplate) {
-				new Setting(container)
+				new Setting(templates!.listEl)
 					.setName(i18n.template.nameTitle())
 					.setDesc(i18n.template.descTitle())
 					.addText(text => text
@@ -131,7 +137,7 @@ export class TemplateConfigurator {
 
 			// Note location template (optional, based on configuration)
 			if (this.showLocationTemplate) {
-				new Setting(container)
+				new Setting(templates!.listEl)
 					.setName(i18n.template.nameLocation())
 					.setDesc(i18n.template.descLocation())
 					.addText(text => text
@@ -142,11 +148,10 @@ export class TemplateConfigurator {
 						}));
 			}
 
-			// Column selection for frontmatter
-			const headerContainer = container.createDiv({ cls: 'importer-frontmatter-header' });
-			headerContainer.createEl('h4', { text: i18n.template.headingProperties() });
+			const properties = new SettingGroup(container);
+			properties.setHeading(i18n.template.headingProperties());
 
-			const columnContainer = container.createDiv('importer-column-list');
+			const columnContainer = properties.listEl.createDiv('importer-column-list');
 
 			// Add header row
 			const headerRow = columnContainer.createDiv('importer-column-header-row');
@@ -205,7 +210,8 @@ export class TemplateConfigurator {
 			}
 
 			// Note content template
-			new Setting(container)
+			const content = new SettingGroup(container);
+			new Setting(content.listEl)
 				.setName(i18n.template.nameContent())
 				.setDesc(i18n.template.descContent())
 				.addTextArea(text => {
@@ -218,9 +224,7 @@ export class TemplateConfigurator {
 					text.inputEl.rows = 6;
 				});
 
-			// Buttons
-			const buttonContainer = container.createDiv('modal-button-container');
-			buttonContainer.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonContinue() }, el => {
+			buttonsEl.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonImport() }, el => {
 				el.addEventListener('click', () => {
 					// Validate configuration (only if title template is shown)
 					if (this.showTitleTemplate && !this.config.titleTemplate.trim()) {
@@ -229,12 +233,6 @@ export class TemplateConfigurator {
 					}
 
 					resolve(this.config);
-				});
-			});
-
-			buttonContainer.createEl('button', { text: i18n.modal.buttonCancel() }, el => {
-				el.addEventListener('click', () => {
-					resolve(null);
 				});
 			});
 		});
@@ -332,4 +330,3 @@ export function generateFrontmatter(
 	lines.push('---');
 	return lines.join('\n');
 }
-

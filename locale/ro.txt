@@ -166,10 +166,6 @@ translation=Înapoi
 original=Help
 translation=Ajutor
 
-[modal.button-cancel]
-original=Cancel
-translation=Anulează
-
 [modal.button-pause]
 original=Pause
 translation=Pauză
@@ -291,7 +287,7 @@ original={{count}} notes imported
 translation={{count}} însemnări importate
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}. Apasă pentru a afișa.
 
 [progress.status-waiting]
@@ -366,13 +362,13 @@ translation={{count}} element eșuat
 original={{count}} items failed
 translation={{count}} elemente eșuate
 
-[source.name]
-original=Files to import
-translation=Fișiere de importat
-
 [source.desc]
-original=Pick the files that you want to import.
-translation=Alege fișierele pe care dorești să le imporți.
+original=Drag and drop, or choose files to import.
+translation=Trageți și plasați, sau alegeți fișierele de importat.
+
+[source.desc-choose]
+original=Choose files to import.
+translation=Alegeți fișierele de importat.
 
 [source.button-choose-file]
 original=Choose file
@@ -405,6 +401,18 @@ translation=Nimic de importat aici. Alegeți fișiere {{extensions}} sau un dire
 [source.msg-will-import]
 original={{files}} will be imported: 
 translation={{files}} vor fi importate: 
+
+[source.msg-more-files]
+original=and {{count}} more file
+translation=și încă {{count}} fișier
+
+[source.msg-more-files_plural]
+original=and {{count}} more files
+translation=și încă {{count}} fișiere
+
+[source.button-remove-file]
+original=Remove from the import
+translation=Ștergeți din import
 
 [output.label-source-id]
 original=source ID
@@ -574,6 +582,14 @@ translation=Se încarcă...
 original=Refresh
 translation=Reîmprospătare
 
+[tree.placeholder-filter]
+original=Filter...
+translation=Filtrează...
+
+[tree.msg-no-matches]
+original=No results found.
+translation=Nu am găsit niciun rezultat.
+
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
 translation={{service}} nu a acceptat cererea pentru {{subject}}. {{credential}}
@@ -683,8 +699,8 @@ original=Airtable personal access token
 translation=Token de acces personal Airtable
 
 [importer.airtable-api.desc-token]
-original=Create a personal access token in your Airtable account settings. 
-translation=Creați un token de acces personal în setările contului Airtable. 
+original=Create a personal access token in your Airtable account settings.
+translation=Creați un token de acces personal în setările contului Airtable.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1023,8 +1039,8 @@ original=Apple Journal
 translation=Apple Journal
 
 [importer.apple-journal.option-text]
-original=Apple Journal (HTML export)
-translation=Apple Journal (export HTML)
+original=Apple Journal
+translation=Apple Journal
 
 [importer.apple-journal.file-type]
 original=Journal entries
@@ -1109,6 +1125,10 @@ translation=CSV (.csv)
 [importer.csv.file-type]
 original=CSV
 translation=CSV
+
+[importer.csv.desc-export]
+original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
+translation=Exportați tabelul ca CSV din aplicația în care se află, cum ar fi Excel, Google Sheets, Numbers, Notion sau Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1203,8 +1223,8 @@ original=Notes & attachments
 translation=Însemnări și atașamente
 
 [importer.keep.desc-export]
-original=Get your Google Keep data from Google Takeout. 
-translation=Obțineți datele din Google Keep prin Google Takeout. 
+original=Get your Google Keep data from Google Takeout.
+translation=Obțineți datele din Google Keep prin Google Takeout.
 
 [importer.keep.name-archived]
 original=Import archived notes
@@ -1245,6 +1265,10 @@ translation=HTML (.html)
 [importer.html.file-type]
 original=HTML
 translation=HTML
+
+[importer.html.desc-export]
+original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
+translation=Salvați paginile pe care doriți să le păstrați ca HTML. Dacă aplicația în care se află are un importator propriu, folosiți-l pe acela: păstrează mai multe din datele dvs.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1323,7 +1347,7 @@ original=An error occurred while trying to sign you in.
 translation=A apărut o eroare la autentificare.
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=Faceți clic aici pentru a vedea detaliile erorii
 
 [importer.onenote.msg-signed-out]
@@ -1531,11 +1555,11 @@ original=Notion API token
 translation=Token API Notion
 
 [importer.notion-api.desc-token]
-original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
-translation=Pentru a obține un token API, creați o conexiune în Notion și acordați-i acces la paginile din spațiul de lucru. 
+original=To get an API token create a connection in Notion and give it access to pages in your workspace.
+translation=Pentru a obține un token API, creați o conexiune în Notion și acordați-i acces la paginile din spațiul de lucru.
 
 [importer.notion-api.link-get-token]
-original=Get API token.
+original=Get API token
 translation=Obține token API.
 
 [importer.notion-api.name-pages]
@@ -1543,11 +1567,11 @@ original=Pages to import
 translation=Pagini de importat
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=Faceți clic pe "Încarcă" pentru a vedea datele pe care le puteți importa. Dacă o pagină sau o bază de date lipsește, verificați că conexiunea Notion are acces la ea.
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=Faceți clic pe "Încarcă" pentru a încărca paginile și bazele de date Notion.
 
 [importer.notion-api.msg-loading-pages]
@@ -2109,6 +2133,10 @@ translation=Textbundle (.textbundle, .textpack)
 [importer.textbundle.file-type]
 original=Textbundle
 translation=Textbundle
+
+[importer.textbundle.desc-export]
+original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
+translation=Exportați însemnările ca textbundle sau textpack, format pe care Agenda, Craft, Taio, Ulysses și Zettlr îl pot genera.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

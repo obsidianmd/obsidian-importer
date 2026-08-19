@@ -42,12 +42,45 @@ export function selectedNodes<T extends SelectableNode>(nodes: T[], canImport: (
 	return into;
 }
 
+export interface NamedNode {
+	title: string;
+	children?: NamedNode[];
+}
+
+/** Returns matches, their descendants, and the ancestors needed to reach them. */
+export function nodesMatching<T extends NamedNode>(nodes: T[], query: string): Set<T> {
+	const wanted = query.trim().toLowerCase();
+	const kept = new Set<T>();
+	if (!wanted) return kept;
+
+	const walk = (node: T, underAMatch: boolean): boolean => {
+		const matches = underAMatch || node.title.toLowerCase().includes(wanted);
+		let keep = matches;
+
+		for (const child of (node.children ?? []) as T[]) {
+			if (walk(child, matches)) keep = true;
+		}
+
+		if (keep) kept.add(node);
+		return keep;
+	};
+
+	for (const node of nodes) walk(node, false);
+
+	return kept;
+}
+
 export function redrawTree(container: HTMLElement, draw: () => void): void {
-	const scrollTop = container.scrollTop;
+	// Preserve every scrolling ancestor while emptying collapses the tree.
+	const scrolled: [HTMLElement, number][] = [];
+	for (let el: HTMLElement | null = container; el; el = el.parentElement) {
+		if (el.scrollTop > 0) scrolled.push([el, el.scrollTop]);
+	}
 
 	container.empty();
 	draw();
 
-	// empty() resets the scroll position.
-	container.scrollTop = scrollTop;
+	for (const [el, scrollTop] of scrolled) {
+		if (el.scrollTop !== scrollTop) el.scrollTop = scrollTop;
+	}
 }

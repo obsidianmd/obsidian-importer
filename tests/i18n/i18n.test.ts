@@ -123,10 +123,9 @@ test('the French strings that sit next to other text still read as sentences', (
 		'Ignoré : « note »'
 	);
 
-	// A description runs straight into the link that follows it.
-	assert.match(i18n.importer.airtableApi.descToken(), /Airtable\. $/);
-	assert.match(i18n.importer.notionApi.descToken(), /travail\. $/);
-	assert.match(i18n.importer.keep.descExport(), /Takeout\. $/);
+	assert.doesNotMatch(i18n.importer.airtableApi.descToken(), / $/);
+	assert.doesNotMatch(i18n.importer.notionApi.descToken(), / $/);
+	assert.doesNotMatch(i18n.importer.keep.descExport(), / $/);
 
 	// One of something is singular.
 	assert.equal(i18n.progress.labelRemaining({ count: 1 }), '1 restante...');

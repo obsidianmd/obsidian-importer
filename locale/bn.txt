@@ -166,10 +166,6 @@ translation=ফিরে যান
 original=Help
 translation=সহায়তা
 
-[modal.button-cancel]
-original=Cancel
-translation=বাতিল
-
 [modal.button-pause]
 original=Pause
 translation=বিরতি দিন
@@ -291,7 +287,7 @@ original={{count}} notes imported
 translation={{count}}টি নোট ইম্পোর্ট হয়েছে
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}। দেখতে ক্লিক করুন।
 
 [progress.status-waiting]
@@ -366,13 +362,13 @@ translation={{count}}টি আইটেম ব্যর্থ হয়েছ�
 original={{count}} items failed
 translation={{count}}টি আইটেম ব্যর্থ হয়েছে
 
-[source.name]
-original=Files to import
-translation=ইম্পোর্ট করার ফাইল
-
 [source.desc]
-original=Pick the files that you want to import.
-translation=আপনি যে ফাইলগুলো ইম্পোর্ট করতে চান সেগুলো বেছে নিন।
+original=Drag and drop, or choose files to import.
+translation=টানুন এবং ছেড়ে দিন, অথবা ইম্পোর্ট করতে ফাইল নির্বাচন করুন।
+
+[source.desc-choose]
+original=Choose files to import.
+translation=ইম্পোর্ট করতে ফাইল নির্বাচন করুন।
 
 [source.button-choose-file]
 original=Choose file
@@ -405,6 +401,18 @@ translation=এখানে ইম্পোর্ট করার কিছু �
 [source.msg-will-import]
 original={{files}} will be imported: 
 translation={{files}} ইম্পোর্ট করা হবে: 
+
+[source.msg-more-files]
+original=and {{count}} more file
+translation=এবং আরও {{count}}টি ফাইল
+
+[source.msg-more-files_plural]
+original=and {{count}} more files
+translation=এবং আরও {{count}}টি ফাইল
+
+[source.button-remove-file]
+original=Remove from the import
+translation=ইম্পোর্ট থেকে সরান
 
 [output.label-source-id]
 original=source ID
@@ -574,6 +582,14 @@ translation=লোড হচ্ছে...
 original=Refresh
 translation=রিফ্রেশ
 
+[tree.placeholder-filter]
+original=Filter...
+translation=ফিল্টার...
+
+[tree.msg-no-matches]
+original=No results found.
+translation=কোন ফলাফল পাওয়া যায়নি।
+
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
 translation={{service}} {{subject}}-এর জন্য অনুরোধ গ্রহণ করেনি। {{credential}}
@@ -683,8 +699,8 @@ original=Airtable personal access token
 translation=Airtable ব্যক্তিগত অ্যাক্সেস টোকেন
 
 [importer.airtable-api.desc-token]
-original=Create a personal access token in your Airtable account settings. 
-translation=আপনার Airtable অ্যাকাউন্ট সেটিংসে একটি ব্যক্তিগত অ্যাক্সেস টোকেন তৈরি করুন। 
+original=Create a personal access token in your Airtable account settings.
+translation=আপনার Airtable অ্যাকাউন্ট সেটিংসে একটি ব্যক্তিগত অ্যাক্সেস টোকেন তৈরি করুন।
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1023,8 +1039,8 @@ original=Apple Journal
 translation=Apple Journal
 
 [importer.apple-journal.option-text]
-original=Apple Journal (HTML export)
-translation=Apple Journal (HTML এক্সপোর্ট)
+original=Apple Journal
+translation=Apple Journal
 
 [importer.apple-journal.file-type]
 original=Journal entries
@@ -1109,6 +1125,10 @@ translation=CSV (.csv)
 [importer.csv.file-type]
 original=CSV
 translation=CSV
+
+[importer.csv.desc-export]
+original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
+translation=আপনার টেবিল যে অ্যাপে আছে সেখান থেকে CSV হিসেবে এক্সপোর্ট করুন, যেমন Excel, Google Sheets, Numbers, Notion, বা Airtable।
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1203,8 +1223,8 @@ original=Notes & attachments
 translation=নোট ও আটাচমেন্ট
 
 [importer.keep.desc-export]
-original=Get your Google Keep data from Google Takeout. 
-translation=Google Takeout থেকে আপনার Google Keep ডেটা সংগ্রহ করুন। 
+original=Get your Google Keep data from Google Takeout.
+translation=Google Takeout থেকে আপনার Google Keep ডেটা সংগ্রহ করুন।
 
 [importer.keep.name-archived]
 original=Import archived notes
@@ -1245,6 +1265,10 @@ translation=HTML (.html)
 [importer.html.file-type]
 original=HTML
 translation=HTML
+
+[importer.html.desc-export]
+original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
+translation=যে পৃষ্ঠাগুলো রাখতে চান সেগুলো HTML হিসেবে সংরক্ষণ করুন। সেগুলো যে অ্যাপে আছে তার নিজস্ব ইম্পোর্টার থাকলে সেটি ব্যবহার করুন: এতে আপনার বেশি ডেটা সংরক্ষিত থাকে।
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1323,7 +1347,7 @@ original=An error occurred while trying to sign you in.
 translation=সাইন ইন করার সময় একটি ত্রুটি ঘটেছে।
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=ত্রুটির বিস্তারিত দেখতে এখানে ক্লিক করুন
 
 [importer.onenote.msg-signed-out]
@@ -1531,11 +1555,11 @@ original=Notion API token
 translation=Notion API টোকেন
 
 [importer.notion-api.desc-token]
-original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
-translation=API টোকেন পেতে Notion-এ একটি সংযোগ তৈরি করুন এবং আপনার কর্মক্ষেত্রের পৃষ্ঠাগুলোতে এটিকে অ্যাক্সেস দিন। 
+original=To get an API token create a connection in Notion and give it access to pages in your workspace.
+translation=API টোকেন পেতে Notion-এ একটি সংযোগ তৈরি করুন এবং আপনার কর্মক্ষেত্রের পৃষ্ঠাগুলোতে এটিকে অ্যাক্সেস দিন।
 
 [importer.notion-api.link-get-token]
-original=Get API token.
+original=Get API token
 translation=API টোকেন নিন।
 
 [importer.notion-api.name-pages]
@@ -1543,11 +1567,11 @@ original=Pages to import
 translation=ইম্পোর্ট করার পৃষ্ঠা
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=ইম্পোর্টযোগ্য ডেটা দেখতে "লোড" ক্লিক করুন। কোনো পৃষ্ঠা বা ডেটাবেস না থাকলে, আপনার Notion সংযোগের সেটিতে অ্যাক্সেস আছে কিনা পরীক্ষা করুন।
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=আপনার Notion পৃষ্ঠা এবং ডেটাবেস লোড করতে "লোড" ক্লিক করুন।
 
 [importer.notion-api.msg-loading-pages]
@@ -2109,6 +2133,10 @@ translation=Textbundle (.textbundle, .textpack)
 [importer.textbundle.file-type]
 original=Textbundle
 translation=Textbundle
+
+[importer.textbundle.desc-export]
+original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
+translation=আপনার নোট textbundle বা textpack হিসেবে এক্সপোর্ট করুন, যা Agenda, Craft, Taio, Ulysses এবং Zettlr সবগুলোই লিখতে পারে।
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

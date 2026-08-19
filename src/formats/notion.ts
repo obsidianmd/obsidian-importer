@@ -1,7 +1,7 @@
 import { normalizePath, Notice, DataWriteOptions } from 'obsidian';
 import { PickedFile } from '../filesystem';
 import { attachmentLocationAsSetting, FormatImporter } from '../format-importer';
-import { helpUrl, NOTION_ID_PROPERTY } from '../constants';
+import { NOTION_ID_PROPERTY } from '../constants';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { extractErrorMessage } from '../util';
@@ -12,7 +12,6 @@ import { NotionResolverInfo } from './notion/notion-types';
 import { getNotionId } from './notion/notion-utils';
 import { parseFileInfo } from './notion/parse-info';
 
-const HELP_PERMALINK = 'import/notion';
 
 export class NotionImporter extends FormatImporter {
 	static extensions = ['zip'];
@@ -25,12 +24,7 @@ export class NotionImporter extends FormatImporter {
 	init() {
 		this.parentsInSubfolders = true;
 
-		this.addSetting('source')
-			?.setName(i18n.common.nameExport())
-			.setDesc(i18n.importer.notion.descExport())
-			.addButton(button => button
-				.setButtonText(i18n.common.buttonInstructions())
-				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
+		this.addInstructions(this.addExportSetting(i18n.importer.notion.descExport()));
 
 		this.addFileChooserSetting(i18n.importer.notion.fileType(), NotionImporter.extensions, false,
 			i18n.importer.notion.descFiles());

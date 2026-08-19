@@ -133,12 +133,16 @@ export class NotionAPIImporter extends FormatImporter {
 		this.idProperty = NOTION_ID_PROPERTY;
 		this.idLabel = i18n.importer.notionApi.labelId();
 
-		this.addSecretSetting(i18n.importer.notionApi.nameToken(), this.createTokenDescription());
+		this.addSecretSetting(i18n.importer.notionApi.nameToken(), i18n.importer.notionApi.descToken(), {
+			text: i18n.importer.notionApi.linkGetToken(),
+			url: 'https://app.notion.com/developers/connections',
+		});
 
 		const contentEl = this.host.sourceEl;
 		if (!contentEl) return;
 
 		this.picker = new TreePicker<NotionTreeNode>(contentEl, {
+			setting: this.addSetting('source'),
 			name: i18n.importer.notionApi.namePages(),
 			desc: i18n.importer.notionApi.descPages(),
 			hint: i18n.importer.notionApi.hintPages(),
@@ -197,6 +201,8 @@ export class NotionAPIImporter extends FormatImporter {
 					});
 			});
 
+		this.startGroup();
+
 		// Cover property name
 		this.addSetting()
 			?.setName(i18n.importer.notionApi.nameCoverProperty())
@@ -229,15 +235,6 @@ export class NotionAPIImporter extends FormatImporter {
 				}));
 	}
 
-	private createTokenDescription(): DocumentFragment {
-		const frag = createFragment();
-		frag.appendText(i18n.importer.notionApi.descToken());
-		frag.createEl('a', {
-			text: i18n.importer.notionApi.linkGetToken(),
-			href: 'https://app.notion.com/developers/connections',
-		});
-		return frag;
-	}
 
 	private createFormulaStrategyDescription(): DocumentFragment {
 		const frag = createFragment();
@@ -285,6 +282,11 @@ export class NotionAPIImporter extends FormatImporter {
 				}
 			},
 		});
+	}
+
+	protected secretChanged(): void {
+		if (this.notionToken) void this.loadPageTree();
+		else this.picker.reset();
 	}
 
 	private async loadPageTree(): Promise<void> {

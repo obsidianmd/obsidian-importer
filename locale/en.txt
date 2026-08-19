@@ -166,10 +166,6 @@ translation=
 original=Help
 translation=
 
-[modal.button-cancel]
-original=Cancel
-translation=
-
 [modal.button-pause]
 original=Pause
 translation=
@@ -291,7 +287,7 @@ original={{count}} notes imported
 translation=
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation=
 
 [progress.status-waiting]
@@ -366,12 +362,12 @@ translation=
 original={{count}} items failed
 translation=
 
-[source.name]
-original=Files to import
+[source.desc]
+original=Drag and drop, or choose files to import.
 translation=
 
-[source.desc]
-original=Pick the files that you want to import.
+[source.desc-choose]
+original=Choose files to import.
 translation=
 
 [source.button-choose-file]
@@ -404,6 +400,18 @@ translation=
 
 [source.msg-will-import]
 original={{files}} will be imported: 
+translation=
+
+[source.msg-more-files]
+original=and {{count}} more file
+translation=
+
+[source.msg-more-files_plural]
+original=and {{count}} more files
+translation=
+
+[source.button-remove-file]
+original=Remove from the import
 translation=
 
 [output.label-source-id]
@@ -574,6 +582,14 @@ translation=
 original=Refresh
 translation=
 
+[tree.placeholder-filter]
+original=Filter...
+translation=
+
+[tree.msg-no-matches]
+original=No results found.
+translation=
+
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
 translation=
@@ -683,7 +699,7 @@ original=Airtable personal access token
 translation=
 
 [importer.airtable-api.desc-token]
-original=Create a personal access token in your Airtable account settings. 
+original=Create a personal access token in your Airtable account settings.
 translation=
 
 [importer.airtable-api.link-get-token]
@@ -1023,7 +1039,7 @@ original=Apple Journal
 translation=
 
 [importer.apple-journal.option-text]
-original=Apple Journal (HTML export)
+original=Apple Journal
 translation=
 
 [importer.apple-journal.file-type]
@@ -1108,6 +1124,10 @@ translation=
 
 [importer.csv.file-type]
 original=CSV
+translation=
+
+[importer.csv.desc-export]
+original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
 translation=
 
 [importer.csv.name-header-row]
@@ -1203,7 +1223,7 @@ original=Notes & attachments
 translation=
 
 [importer.keep.desc-export]
-original=Get your Google Keep data from Google Takeout. 
+original=Get your Google Keep data from Google Takeout.
 translation=
 
 [importer.keep.name-archived]
@@ -1244,6 +1264,10 @@ translation=
 
 [importer.html.file-type]
 original=HTML
+translation=
+
+[importer.html.desc-export]
+original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
 translation=
 
 [importer.html.name-size-limit]
@@ -1323,7 +1347,7 @@ original=An error occurred while trying to sign you in.
 translation=
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=
 
 [importer.onenote.msg-signed-out]
@@ -1531,11 +1555,11 @@ original=Notion API token
 translation=
 
 [importer.notion-api.desc-token]
-original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
+original=To get an API token create a connection in Notion and give it access to pages in your workspace.
 translation=
 
 [importer.notion-api.link-get-token]
-original=Get API token.
+original=Get API token
 translation=
 
 [importer.notion-api.name-pages]
@@ -1543,11 +1567,11 @@ original=Pages to import
 translation=
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=
 
 [importer.notion-api.msg-loading-pages]
@@ -2108,6 +2132,10 @@ translation=
 
 [importer.textbundle.file-type]
 original=Textbundle
+translation=
+
+[importer.textbundle.desc-export]
+original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
 translation=
 
 [importer.textbundle.msg-platform]

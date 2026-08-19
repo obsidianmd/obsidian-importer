@@ -147,12 +147,16 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		// Airtable Personal Access Token, held in Obsidian's keychain so it is
 		// remembered between sessions
-		this.addSecretSetting(i18n.importer.airtableApi.nameToken(), this.createTokenDescription());
+		this.addSecretSetting(i18n.importer.airtableApi.nameToken(), i18n.importer.airtableApi.descToken(), {
+			text: i18n.importer.airtableApi.linkGetToken(),
+			url: 'https://airtable.com/create/tokens',
+		});
 
 		const contentEl = this.host.sourceEl;
 		if (!contentEl) return;
 
 		this.picker = new TreePicker<AirtableTreeNode>(contentEl, {
+			setting: this.addSetting('source'),
 			name: i18n.importer.airtableApi.nameTables(),
 			desc: i18n.importer.airtableApi.descTables(),
 			hint: i18n.importer.airtableApi.hintTables(),
@@ -217,14 +221,10 @@ export class AirtableAPIImporter extends FormatImporter {
 		});
 	}
 
-	private createTokenDescription(): DocumentFragment {
-		const frag = createFragment();
-		frag.appendText(i18n.importer.airtableApi.descToken());
-		frag.createEl('a', {
-			text: i18n.importer.airtableApi.linkGetToken(),
-			href: 'https://airtable.com/create/tokens',
-		});
-		return frag;
+
+	protected secretChanged(): void {
+		if (this.airtableToken) void this.loadTree();
+		else this.picker.reset();
 	}
 
 	/**
@@ -360,7 +360,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	/**
 	 * Show template configuration UI before import (similar to CSV importer)
 	 */
-	async showTemplateConfiguration(_ctx: ImportContext, container: HTMLElement): Promise<boolean> {
+	async showTemplateConfiguration(_ctx: ImportContext, container: HTMLElement, buttonsEl: HTMLElement): Promise<boolean> {
 		if (this.getSelectedNodes().length === 0) {
 			new Notice(i18n.importer.airtableApi.msgPickTable());
 			return false;
@@ -444,7 +444,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			showLocationTemplate: false, // Records go to table folders automatically
 		});
 
-		this.templateConfig = await configurator.show(container);
+		this.templateConfig = await configurator.show(container, buttonsEl);
 
 		// Return false if user cancelled
 		return this.templateConfig !== null;

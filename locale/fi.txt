@@ -166,10 +166,6 @@ translation=Takaisin
 original=Help
 translation=Apua
 
-[modal.button-cancel]
-original=Cancel
-translation=Peruuta
-
 [modal.button-pause]
 original=Pause
 translation=Keskeytä
@@ -291,7 +287,7 @@ original={{count}} notes imported
 translation={{count}} muistiinpanoa tuotu
 
 [progress.msg-click-to-show]
-original={{counts}}. Click to show.
+original={{counts}}. Select to show.
 translation={{counts}}. Näytä napsauttamalla.
 
 [progress.status-waiting]
@@ -366,13 +362,13 @@ translation={{count}} kohde epäonnistui
 original={{count}} items failed
 translation={{count}} kohdetta epäonnistui
 
-[source.name]
-original=Files to import
-translation=Tuotavat tiedostot
-
 [source.desc]
-original=Pick the files that you want to import.
-translation=Valitse tiedostot, jotka haluat tuoda.
+original=Drag and drop, or choose files to import.
+translation=Raahaa ja pudota tai valitse tuotavat tiedostot.
+
+[source.desc-choose]
+original=Choose files to import.
+translation=Valitse tuotavat tiedostot.
 
 [source.button-choose-file]
 original=Choose file
@@ -405,6 +401,18 @@ translation=Ei mitään tuotavaa. Valitse {{extensions}}-tiedostoja tai kansio, 
 [source.msg-will-import]
 original={{files}} will be imported: 
 translation={{files}} tuodaan: 
+
+[source.msg-more-files]
+original=and {{count}} more file
+translation=ja {{count}} lisää tiedosto
+
+[source.msg-more-files_plural]
+original=and {{count}} more files
+translation=ja {{count}} lisää tiedostoa
+
+[source.button-remove-file]
+original=Remove from the import
+translation=Poista tuonnista
 
 [output.label-source-id]
 original=source ID
@@ -574,6 +582,14 @@ translation=Ladataan...
 original=Refresh
 translation=Päivitä
 
+[tree.placeholder-filter]
+original=Filter...
+translation=Suodata...
+
+[tree.msg-no-matches]
+original=No results found.
+translation=Ei tuloksia.
+
 [request.msg-unauthorized]
 original={{service}} did not accept the request for {{subject}}. {{credential}}
 translation={{service}} ei hyväksynyt pyyntöä kohteelle {{subject}}. {{credential}}
@@ -683,8 +699,8 @@ original=Airtable personal access token
 translation=Airtable-henkilökohtainen käyttöoikeustunniste
 
 [importer.airtable-api.desc-token]
-original=Create a personal access token in your Airtable account settings. 
-translation=Luo henkilökohtainen käyttöoikeustunniste Airtable-tilisi asetuksissa. 
+original=Create a personal access token in your Airtable account settings.
+translation=Luo henkilökohtainen käyttöoikeustunniste Airtable-tilisi asetuksissa.
 
 [importer.airtable-api.link-get-token]
 original=Get token
@@ -1023,8 +1039,8 @@ original=Apple Journal
 translation=Apple Journal
 
 [importer.apple-journal.option-text]
-original=Apple Journal (HTML export)
-translation=Apple Journal (HTML-vienti)
+original=Apple Journal
+translation=Apple Journal
 
 [importer.apple-journal.file-type]
 original=Journal entries
@@ -1109,6 +1125,10 @@ translation=CSV (.csv)
 [importer.csv.file-type]
 original=CSV
 translation=CSV
+
+[importer.csv.desc-export]
+original=Export your table as CSV from the app it lives in, such as Excel, Google Sheets, Numbers, Notion, or Airtable.
+translation=Vie taulukko CSV-muodossa sovelluksesta, jossa se sijaitsee, kuten Excel, Google Sheets, Numbers, Notion tai Airtable.
 
 [importer.csv.name-header-row]
 original=CSV has header row
@@ -1203,8 +1223,8 @@ original=Notes & attachments
 translation=Muistiinpanot ja liitteet
 
 [importer.keep.desc-export]
-original=Get your Google Keep data from Google Takeout. 
-translation=Hae Google Keep ‑tietosi Google Takeout ‑palvelusta. 
+original=Get your Google Keep data from Google Takeout.
+translation=Hae Google Keep ‑tietosi Google Takeout ‑palvelusta.
 
 [importer.keep.name-archived]
 original=Import archived notes
@@ -1245,6 +1265,10 @@ translation=HTML (.html)
 [importer.html.file-type]
 original=HTML
 translation=HTML
+
+[importer.html.desc-export]
+original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
+translation=Tallenna säilytettävät sivut HTML-muodossa. Jos sovelluksella, jossa ne ovat, on oma tuontitoiminto, käytä sitä: se säilyttää enemmän tietojasi.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1323,7 +1347,7 @@ original=An error occurred while trying to sign you in.
 translation=Kirjautumisen aikana tapahtui virhe.
 
 [importer.onenote.msg-sign-in-details]
-original=Click here to show error details
+original=Show error details
 translation=Napsauta tätä nähdäksesi virhetiedot
 
 [importer.onenote.msg-signed-out]
@@ -1531,11 +1555,11 @@ original=Notion API token
 translation=Notion API -token
 
 [importer.notion-api.desc-token]
-original=To get an API token create a connection in Notion and give it access to pages in your workspace. 
-translation=Saadaksesi API-tokenin luo yhteys Notionissa ja anna sille pääsy työtilasi sivuihin. 
+original=To get an API token create a connection in Notion and give it access to pages in your workspace.
+translation=Saadaksesi API-tokenin luo yhteys Notionissa ja anna sille pääsy työtilasi sivuihin.
 
 [importer.notion-api.link-get-token]
-original=Get API token.
+original=Get API token
 translation=Hanki API-token.
 
 [importer.notion-api.name-pages]
@@ -1543,11 +1567,11 @@ original=Pages to import
 translation=Tuotavat sivut
 
 [importer.notion-api.desc-pages]
-original=Click "Load" to see data you can import. If a page or database is missing, check that your Notion connection has access to it.
+original=Load your Notion pages and databases, then choose what to import. If a page or database is missing, check that your Notion connection has access to it.
 translation=Napsauta "Lataa" nähdäksesi tuotavissa olevat tiedot. Jos sivu tai tietokanta puuttuu, tarkista, että Notion-yhteydellä on pääsy siihen.
 
 [importer.notion-api.hint-pages]
-original=Click "Load" to load your Notion pages and databases.
+original=Load your Notion pages and databases to get started.
 translation=Napsauta "Lataa" ladataksesi Notion-sivut ja -tietokannat.
 
 [importer.notion-api.msg-loading-pages]
@@ -2109,6 +2133,10 @@ translation=Textbundle (.textbundle, .textpack)
 [importer.textbundle.file-type]
 original=Textbundle
 translation=Textbundle
+
+[importer.textbundle.desc-export]
+original=Export your notes as textbundle or textpack, which Agenda, Craft, Taio, Ulysses and Zettlr can all write.
+translation=Vie muistiinpanosi textbundle- tai textpack-muodossa. Agenda, Craft, Taio, Ulysses ja Zettlr voivat kaikki tuottaa näitä.
 
 [importer.textbundle.msg-platform]
 original=Due to platform limitations, only textpack and zip files can be imported from this device. Open your vault on a Mac to import textbundle files.

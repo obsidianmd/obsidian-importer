@@ -1,5 +1,4 @@
 import { DataWriteOptions, normalizePath, Notice, TFile, TFolder } from 'obsidian';
-import { helpUrl } from '../constants';
 import { parseFilePath } from '../filesystem';
 import { FormatImporter } from '../format-importer';
 import { ImportContext } from '../import-context';
@@ -7,7 +6,6 @@ import { i18n } from '../i18n';
 import { readZip, ZipEntryFile } from '../zip';
 import { BearTagPlacement, convertBearNote } from './bear/convert';
 
-const HELP_PERMALINK = 'import/bear';
 
 type Metadata = {
 	id: string;
@@ -34,12 +32,7 @@ export class Bear2bkImporter extends FormatImporter {
 	private tagPlacement: BearTagPlacement = 'inline';
 
 	init() {
-		this.addSetting('source')
-			?.setName(i18n.common.nameExport())
-			.setDesc(i18n.importer.bear.descExport())
-			.addButton(button => button
-				.setButtonText(i18n.common.buttonInstructions())
-				.onClick(() => window.open(helpUrl(HELP_PERMALINK))));
+		this.addInstructions(this.addExportSetting(i18n.importer.bear.descExport()));
 
 		this.addFileChooserSetting(i18n.importer.bear.fileType(), Bear2bkImporter.extensions);
 		this.defaultOutputFolder = 'Bear';
