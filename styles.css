@@ -268,17 +268,37 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 
 /* In the card the progress row is in, under the divider that follows it. */
 .importer-stats-container {
+	container-type: inline-size;
 	display: flex;
 	flex-wrap: wrap;
 	justify-content: space-evenly;
 	gap: var(--size-4-2) var(--size-4-2) var(--size-4-4);
-	padding: var(--setting-items-padding-y) var(--setting-items-padding-x);
+	padding: var(--size-4-2) var(--setting-items-padding-x) var(--setting-items-padding-y) ;
 	border-top: var(--setting-items-border-width) solid var(--setting-items-border-color);
 }
 
 .importer-stat {
 	text-align: center;
 	min-width: 4em;
+}
+
+/* Five counts side by side need the width of the longest word in each. Where
+   there is not enough, each reads as a row of its own: what it counts at the
+   start, how many at the end. */
+@container (max-width: 460px) {
+	.importer-stat {
+		flex: 1 0 100%;
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: var(--size-4-2);
+		text-align: start;
+	}
+
+	.importer-stat-count {
+		order: 1;
+		font-size: var(--font-ui-medium);
+	}
 }
 .importer-stat-count {
 	font-size: var(--font-ui-large);
