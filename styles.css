@@ -109,6 +109,19 @@ body.is-phone .modal.mod-settings .importer-button-bar .importer-step-buttons bu
 	flex: 1;
 }
 
+/* Help is a circle the width of a thumb, and takes no more of the row than
+   that: the button beside it is the one being aimed at. */
+body.is-phone .modal.mod-settings .importer-button-bar .modal-button-container .importer-help-button {
+	--icon-size: var(--icon-l);
+	--icon-stroke: var(--icon-l-stroke-width);
+	flex: 0 0 auto;
+	width: var(--touch-size-m);
+	height: var(--touch-size-m);
+	padding: 0;
+	border-radius: var(--touch-size-m);
+	box-shadow: none;
+}
+
 /* Back and Help sit at the start of a step, and the primary button is pushed
    to the end by its own auto margin. Scoped like the rule above so it wins,
    and only for a step: the progress and finish screens stay end-aligned.

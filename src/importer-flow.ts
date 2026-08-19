@@ -1,4 +1,4 @@
-import { App, Notice, prepareFuzzySearch, renderMatches, SearchComponent, SearchResult, Setting, SettingGroup, setIcon, TFile } from 'obsidian';
+import { App, Notice, Platform, prepareFuzzySearch, renderMatches, SearchComponent, SearchResult, Setting, SettingGroup, setIcon, TFile } from 'obsidian';
 import { FormatImporter, ImporterHost } from './format-importer';
 import { dataTransferHasFiles, droppedItems, expandDropped, PickedFile, PickedFolder } from './filesystem';
 import { ImporterFileTypes, importersForFiles, readableFiles } from './importer-match';
@@ -284,8 +284,24 @@ export class ImporterFlow implements ImporterHost {
 	private addHelpButton(buttonsEl: HTMLElement, permalink: string | undefined): void {
 		if (!permalink) return;
 
+		const open = () => window.open(helpUrl(permalink));
+
+		// A phone's bar is only as wide as the screen, and the way on has to fit
+		// in it, so Help is the icon it is elsewhere in Obsidian rather than a
+		// button's width of text.
+		if (Platform.isPhone) {
+			buttonsEl.createEl('button', {
+				cls: 'clickable-icon mod-raised importer-help-button',
+				attr: { 'aria-label': i18n.modal.buttonHelp() },
+			}, el => {
+				setIcon(el, 'help');
+				el.addEventListener('click', open);
+			});
+			return;
+		}
+
 		buttonsEl.createEl('button', { text: i18n.modal.buttonHelp() }, el => {
-			el.addEventListener('click', () => window.open(helpUrl(permalink)));
+			el.addEventListener('click', open);
 		});
 	}
 
