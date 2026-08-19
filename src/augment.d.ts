@@ -1,4 +1,4 @@
-import 'obsidian';
+import type { IconName, SettingTab } from 'obsidian';
 
 declare module 'obsidian' {
 	/** Obsidian 1.13 API missing from the published types. */
