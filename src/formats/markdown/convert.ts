@@ -16,6 +16,7 @@ const TAG = new RegExp(`(?<!\\S)#(${TAG_EDGE}${TAG_BODY}*${TAG_EDGE}|${TAG_EDGE}
 const FENCE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
 const INDENTED_CODE = /^(?: {4}|\t)/;
 const BLANK = /^\s*$/;
+const SPACE = /[ \t]/;
 
 export interface MarkdownConversionOptions {
 	/** Move inline #tags out of the body and into the note's tags property. */
@@ -158,16 +159,23 @@ function stripTags(line: string, masked: string): { line: string, tags: string[]
 		if (!isTag(match[1])) continue;
 
 		tags.push(match[1]);
-		stripped += line.slice(at, match.index);
-		at = match.index + match[0].length;
+
+		let start = match.index;
+		let end = start + match[0].length;
+
+		// The space that held the tag apart goes with it, or the words around
+		// it are left doubly spaced. Which of the two spaces it can spare is
+		// the one that is not holding the line's indent.
+		if (start > at && SPACE.test(line[start - 1]) && /\S/u.test(line.slice(at, start))) start -= 1;
+		else if (SPACE.test(line[end] ?? '')) end += 1;
+
+		stripped += line.slice(at, start);
+		at = end;
 	}
 
 	if (tags.length === 0) return { line, tags };
 
-	stripped += line.slice(at);
-
-	// Whatever held the tags apart is left doubled up where they were.
-	stripped = stripped.replace(/[ \t]{2,}/gu, ' ').trimEnd();
+	stripped = (stripped + line.slice(at)).trimEnd();
 
 	return { line: BLANK.test(stripped) ? '' : stripped, tags };
 }

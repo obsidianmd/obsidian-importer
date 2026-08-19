@@ -1,12 +1,10 @@
 import { normalizePath, Notice, Platform, TFile } from 'obsidian';
-import { fsPromises, NodePickedFile, NodePickedFolder, PickedFile, PickedFolder, WebPickedFile } from '../filesystem';
+import { fsPromises, NodePickedFile, PickedFile, PickedFolder } from '../filesystem';
 import { DuplicateHandling, FormatImporter, leavesTheNoteAlone } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { sanitizeFileName } from '../util';
 import { convertMarkdownNote } from './markdown/convert';
-
-const MAX_NAME_LIST_LENGTH = 300;
 
 const MARKDOWN_EXTS = ['md', 'markdown'];
 
@@ -31,7 +29,13 @@ async function fileTimes(file: PickedFile): Promise<FileTimes | undefined> {
 
 	try {
 		const stat = await fsPromises.stat(file.filepath);
-		return { ctime: stat.birthtimeMs || stat.ctimeMs, mtime: stat.mtimeMs };
+
+		// Obsidian's write options take whole milliseconds, and a filesystem
+		// reports fractions of one.
+		return {
+			ctime: Math.round(stat.birthtimeMs || stat.ctimeMs),
+			mtime: Math.round(stat.mtimeMs),
+		};
 	}
 	catch {
 		return undefined;
@@ -45,14 +49,16 @@ export class MarkdownImporter extends FormatImporter {
 
 	// No initializers: the base constructor calls init() first.
 	tagsAsProperties: boolean;
-	private picked: (PickedFile | PickedFolder)[] | undefined;
-	private showPicked: (() => void) | undefined;
 
 	init(): void {
 		this.defaultOutputFolder = 'Markdown';
 		this.tagsAsProperties = false;
 
-		this.addSourceSetting();
+		// A folder is what the structure is read from, so it is kept as one.
+		this.keepsFolders = true;
+		this.addFileChooserSetting(
+			i18n.importer.markdown.fileType(), MARKDOWN_EXTS, true,
+			Platform.isDesktopApp ? i18n.importer.markdown.descSource() : undefined);
 
 		this.addSetting()
 			?.setName(i18n.importer.markdown.nameTagsAsProperties())
@@ -62,108 +68,17 @@ export class MarkdownImporter extends FormatImporter {
 				.onChange(value => this.tagsAsProperties = value));
 	}
 
-	private addSourceSetting(): void {
-		const setting = this.addSetting('source')
-			?.setName(i18n.source.name())
-			.setDesc(i18n.importer.markdown.descSource());
-
-		if (!setting) return;
-
-		this.showPicked = () => {
-			const source = this.source();
-			if (source.length === 0) {
-				setting.setDesc(i18n.importer.markdown.descSource());
-				return;
-			}
-
-			let names = source.map(item => item.name).join(', ');
-			if (names.length > MAX_NAME_LIST_LENGTH) names = names.substring(0, MAX_NAME_LIST_LENGTH) + '...';
-
-			setting.setDesc(createFragment(frag => {
-				if (source.length > 1) {
-					frag.createSpan({
-						text: i18n.source.msgWillImport({
-							files: i18n.nouns.itemWithCount({ count: source.length }),
-						}),
-					});
-					frag.createEl('br');
-				}
-
-				frag.createSpan({ cls: 'u-pop', text: names });
-			}));
-		};
-
-		setting.addButton(button => button
-			.setButtonText(i18n.source.buttonChooseFiles())
-			.onClick(() => this.chooseFiles()));
-
-		if (Platform.isDesktopApp) {
-			setting.addButton(button => button
-				.setButtonText(i18n.source.buttonChooseFolders())
-				.onClick(() => this.chooseFolders()));
-		}
-
-		this.showPicked();
-	}
-
-	private chooseFiles(): void {
-		if (!Platform.isDesktopApp) {
-			const inputEl = createEl('input');
-			inputEl.type = 'file';
-			inputEl.multiple = true;
-			inputEl.accept = MARKDOWN_EXTS.map(extension => '.' + extension).join(',');
-			inputEl.addEventListener('change', () => {
-				const chosen = Array.from(inputEl.files ?? [])
-					.map(file => new WebPickedFile(file))
-					.filter(isMarkdown);
-
-				if (chosen.length > 0) this.take(chosen);
-			});
-			inputEl.click();
-			return;
-		}
-
-		const filepaths = this.chooseFrom({
-			title: i18n.source.dialogPickFiles(),
-			properties: ['openFile', 'multiSelections', 'dontAddToRecent'],
-			filters: [{ name: i18n.importer.markdown.fileType(), extensions: MARKDOWN_EXTS }],
-		});
-
-		if (filepaths.length > 0) this.take(filepaths.map(filepath => new NodePickedFile(filepath)));
-	}
-
-	private chooseFolders(): void {
-		const filepaths = this.chooseFrom({
-			title: i18n.source.dialogPickFolders(),
-			properties: ['openDirectory', 'multiSelections', 'dontAddToRecent'],
-		});
-
-		if (filepaths.length > 0) this.take(filepaths.map(filepath => new NodePickedFolder(filepath)));
-	}
-
-	private take(source: (PickedFile | PickedFolder)[]): void {
-		this.picked = source;
-		this.showPicked?.();
-		this.sourceChanged();
-	}
-
-	/** What was picked or dropped, or the files a scripted import was handed. */
+	/** What was chosen or dropped, or the files a scripted import was handed. */
 	private source(): (PickedFile | PickedFolder)[] {
-		return this.picked ?? this.files;
+		return this.chosen.length > 0 ? this.chosen : this.files;
 	}
 
-	get sourceReady(): boolean {
-		return this.source().length > 0;
-	}
-
+	/**
+	 * A folder comes whole, so what is dropped with a note in it is all taken:
+	 * the files beside a note are what its links point at.
+	 */
 	wouldTake(_dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): number {
-		return files.filter(isMarkdown).length;
-	}
-
-	takeDropped(dropped: (PickedFile | PickedFolder)[]): number {
-		this.take(dropped);
-
-		return dropped.length;
+		return files.some(isMarkdown) ? files.length : 0;
 	}
 
 	protected drawOutputSettings(contentEl: HTMLElement): void {
@@ -208,9 +123,9 @@ export class MarkdownImporter extends FormatImporter {
 	}
 
 	/**
-	 * Where every picked item is going, with the folders it came in preserved.
+	 * Where every chosen item is going, with the folders it came in preserved.
 	 *
-	 * A picked folder keeps the name it had, so that importing it a second time
+	 * A chosen folder keeps the name it had, so that importing it a second time
 	 * lands on the same notes and can update them. Only asking for a copy each
 	 * time numbers the folder instead - which is also what keeps two sources
 	 * that happen to share a folder name apart.
@@ -219,7 +134,7 @@ export class MarkdownImporter extends FormatImporter {
 		ctx: ImportContext,
 		items: (PickedFile | PickedFolder)[],
 		into: string,
-		picked = true,
+		chosen = true,
 	): Promise<PlannedItem[]> {
 		const planned: PlannedItem[] = [];
 
@@ -232,10 +147,10 @@ export class MarkdownImporter extends FormatImporter {
 
 				const name = sanitizeFileName(item.name, into);
 
-				const at = picked && this.duplicateHandling === DuplicateHandling.CreateCopy
+				const at = chosen && this.duplicateHandling === DuplicateHandling.CreateCopy
 					? this.freeFilePath(into, name)
 					: normalizePath(into ? `${into}/${name}` : name);
-				if (picked) this.claimPath(at);
+				if (chosen) this.claimPath(at);
 
 				const inside = await this.plan(ctx, await item.list(), at, false);
 
