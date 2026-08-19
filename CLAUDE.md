@@ -32,20 +32,18 @@ Imports notes from other apps into an Obsidian vault.
 
 ## Where the flow is shown
 
-`ImporterFlow` owns every screen and knows nothing about what surrounds it.
-A shell supplies the elements it draws into and answers what a window has an
-opinion about: the title and how deep the screen is, what Done does, and how
-to come back to an import the user has left.
+`ImporterFlow` owns every screen and knows nothing about what surrounds it. A
+shell supplies the elements it draws into and answers what a window has an
+opinion about: the title, how deep the screen is, what Done does, and how to
+come back to an import the user has left.
 
-Two shells implement it. `ImporterModal` is the ribbon and the command on
-the desktop, and draws its own Back beside Continue; on mobile both open the
-setting tab instead, where the platform's own screens fit the flow better.
-Every screen in `ImporterSettingTab` is a page opened over the tab, and
-Settings puts the way back in each page's titlebar — which on a phone is
-where one is expected and all there is room for, so the tab sets
-`ownsBackButton` there and the flow draws none of its own. Anything larger
-gets Back in the bar as well, beside Help, as the modal has always had it.
-`back()` is what either reaches, and it is one step, to the screen behind.
+Two shells implement it. `ImporterModal` is the ribbon and the command on the
+desktop; on mobile both open the setting tab instead. Every screen in
+`ImporterSettingTab` is a page opened over the tab, and Settings puts the way
+back in each page's titlebar — on a phone that is where one is expected and
+all there is room for, so the tab sets `ownsBackButton` there and the flow
+draws none of its own. Anything larger gets Back in the bar beside Help, as
+the modal has. Either reaches `back()`: one step, to the screen behind.
 
 Which is why a screen says how deep it is. The format list is 0, the method
 picker 1, and a step counts on from there; the tab opens and closes pages
@@ -53,61 +51,54 @@ until it has one for each. Only the screen the flow is on draws: pages
 beneath are covered, and one deep enough to have opened several at once
 leaves those it passed empty.
 
-A running import is the exception with nothing behind it. Its back leaves
-the flow altogether, and unwinds however many pages that takes.
+A running import is the exception with nothing behind it. Its back leaves the
+flow altogether, and unwinds however many pages that takes.
 
-A screen's buttons are a bar over the bottom — Continue on a step, Done and
-Import more at the end of an import, the way the modal has always drawn them.
-The screen makes the row and hands it to `adoptButtonBar`, which is what
-decides where it goes: the end of the modal's content, or, in Settings, the
-box the pages sit in rather than the page itself. The list is the one screen
-that ends in nothing, and adopts `null`.
+A screen's buttons are a bar over the bottom. The screen makes the row and
+hands it to `adoptButtonBar`, which decides where it goes: the end of the
+modal's content, or, in Settings, the box the pages sit in. The list is the
+one screen that ends in nothing, and adopts `null`.
 
-A page cannot hold it. A page is the scroller, so a bar positioned inside one
-scrolls away with the step; and a page carries a transform for as long as it
-is sliding, which makes it the containing block for that while — so a bar
-that answers to the box outside would jump to the page's own bottom mid-slide
-and back again. Outside, it holds still while the pages move under it.
-
-The bar outlives the screens: the tab makes one and refills it, rather than
-taking it out and putting it back per screen, which would leave it missing
-for as long as a page takes to slide. It sits above the pages on `z-index`
-rather than at the end of them, so it does not have to be moved when one
-opens, and arriving and leaving is a fade.
+A page cannot hold it. A page is the scroller, so a bar inside one scrolls
+away with the step; and a page carries a transform while it slides, which
+makes it the containing block for that while — so a bar answering to the box
+outside would jump to the page's own bottom mid-slide and back again. The tab
+therefore keeps one bar and refills it, rather than taking it out and putting
+it back per screen, which would leave it missing for the length of a slide.
 
 The page is still told it has one: `has-button-bar` is what shortens it, so
 its scrollbar ends where the bar begins. **Obsidian's CSS may not use
 `:has()`**, which is why the shell puts the class on rather than the
 stylesheet asking what is inside.
 
-Settings are drawn in cards, one per group: `addSetting` keeps to the group
-its step is on, and `startGroup` breaks it where two settings are not read
-together. A group takes a heading only where one was already being shown —
-the cards are the grouping.
+A format that configures itself on a screen of its own says so with
+`configures`, which decides whether the last step ends in Continue or in
+Import. That screen is a page over the step, and the run stays on it rather
+than closing it to draw one behind. Its context is built loose: an
+`ImportProgressUI` draws itself where it is made, and the run draws it again
+when it starts — made in the screen's own container it is the progress bar
+flashing up under the configuration.
 
 A format you export from starts its source step with `addExportSetting`: what
-to ask that app for. A format you connect to starts with the thing it
-connects with — a token, an account, a folder on disk — since a row naming
-the service and saying nothing else only repeats the title above it. The way
-to the format's documentation is Help, in the bar at the bottom of every
-screen, in both shells; a format whose export takes some finding says so
-twice, and calls `addInstructions` on its export row as well. The permalink
-comes from the registry, through `ImporterHost`, so a format names its
-documentation once.
+to ask that app for. A format you connect to starts with the thing it connects
+with — a token, an account, a folder on disk — since a row naming the service
+and saying nothing else only repeats the title above it. The way to the
+format's documentation is Help, in the bar on every screen, in both shells; a
+format whose export takes some finding says so twice, and calls
+`addInstructions` on its export row as well. The permalink comes from the
+registry, through `ImporterHost`, so a format names its documentation once.
 
 Settings pages are why the plugin asks for Obsidian 1.13. The published
 `obsidian` types are still 1.12, so `SettingPage` is declared in
 `src/augment.d.ts` rather than imported from types that have it.
 
 A shell that goes away calls `flow.detach()`, and one that comes back calls
-`flow.attach()`. Between those an import keeps running with only the notice
-to report it, and the flow redraws the screen it was on when the shell
-returns — so the settings window can be closed mid-import and reopened onto
-the same progress, pages and all. `flow.leave()` is the other way out: the
-user walked back past a running import rather than closing the window, so
-the format list is what they get, and `awayFrom` remembers the screen the
-notice returns them to. Closing the modal is different again: it calls
-`dispose()`, which cancels.
+`flow.attach()`. Between those an import keeps running with only the notice to
+report it, and the flow redraws the screen it was on — so the settings window
+can be closed mid-import and reopened onto the same progress, pages and all.
+`flow.leave()` is the other way out: the user walked back past a running
+import, so they get the format list and `awayFrom` remembers where the notice
+returns them to. Closing the modal calls `dispose()`, which cancels.
 
 Settings closing a whole stack of pages looks like a back button pressed
 several times, so `pageClosed` answers a beat later, and does nothing if the
@@ -115,11 +106,11 @@ rest of the stack — or the tab — went with it. A teardown leaves the flow
 where it stood, which is what it is reopened on.
 
 Leaving a running import puts the list back in reach, and Import with it, so
-one import can be asked for while another is still going. Stopping is
-cooperative — the run ends at its next checkpoint, and is writing until it
-does — so a second import waits on `importRun` before it starts. An import
-the user has walked out of also finishes where they left it: `awayFrom`
-becomes the finished screen rather than drawing it over the list.
+one import can be asked for while another runs. Stopping is cooperative — the
+run ends at its next checkpoint, and writes until it does — so a second import
+waits on `importRun` first. An import walked out of finishes where it was
+left: `awayFrom` becomes the finished screen rather than drawing over the
+list.
 
 ## The conversion seam
 
