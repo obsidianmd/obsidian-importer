@@ -34,7 +34,6 @@ export default class ImporterPlugin extends Plugin {
 
 	private modal: ImporterModal | null = null;
 
-	/** Set in onload(), where the tab is registered. */
 	private settingTab: ImporterSettingTab;
 
 	async onload() {
@@ -74,9 +73,6 @@ export default class ImporterPlugin extends Plugin {
 	}
 
 	openImporter(): void {
-		// A modal on a phone is a screen inside a screen, and Settings is
-		// already the shape this flow wants there: full width, one page at a
-		// time, with the way back where the platform puts it.
 		if (Platform.isMobile) {
 			this.settingTab.open();
 			return;
@@ -173,12 +169,10 @@ export default class ImporterPlugin extends Plugin {
 	}
 }
 
-/** The import flow in a modal of its own. */
 export class ImporterModal extends Modal implements ImporterShell {
 	plugin: ImporterPlugin;
 	flow: ImporterFlow;
 
-	/** A modal has no chrome to go back with: the flow draws Back itself. */
 	readonly ownsBackButton: boolean = false;
 
 	readonly ownsFocus: boolean = true;
@@ -201,7 +195,6 @@ export class ImporterModal extends Modal implements ImporterShell {
 		this.modalEl.toggleClass('is-picking-format', picking);
 	}
 
-	/** The modal pins its own bar, wherever in the content it is drawn. */
 	adoptButtonBar(barEl: HTMLElement | null): void {
 		if (barEl) this.contentEl.append(barEl);
 	}

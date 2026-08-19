@@ -15,16 +15,7 @@ export interface TreeView<T extends ViewableNode<T>> {
 	flair?(node: T): string;
 	onExpand?(node: T, rowEl: HTMLElement): Promise<boolean>;
 	redraw(): void;
-	/**
-	 * A selection has changed, and the rows it changed have been brought up to
-	 * date where they stand. Only what is drawn around them is left to answer.
-	 */
 	selectionChanged(): void;
-	/**
-	 * What a filter left, when one is on: everything else is left out, and what
-	 * is drawn is drawn open, since a match found inside a closed branch is the
-	 * whole point of having found it.
-	 */
 	filtered?: Set<T> | null;
 }
 
@@ -45,12 +36,7 @@ export interface TreePickerOptions<T extends ViewableNode<T>> {
 	failed(error: unknown): string;
 	view: Omit<TreeView<T>, 'redraw' | 'selectionChanged'>;
 	onChange?(): void;
-	/** Hides the load button when selection loads the tree. */
 	loadsItself?: boolean;
-	/**
-	 * The row the picker draws itself in. Given one, it joins the group of
-	 * settings it was made in; without, it stands on its own above the tree.
-	 */
 	setting?: Setting | null;
 }
 
@@ -86,13 +72,11 @@ export class TreePicker<T extends ViewableNode<T>> {
 				if (options.loadsItself) button.buttonEl.hide();
 			});
 
-		// Beside the row it belongs to, in the card that row is in.
 		this.rowEl = setting.settingEl;
 		const treeParentEl = options.setting?.settingEl.parentElement ?? containerEl;
 		this.sectionEl = treeParentEl.createDiv('import-section file-tree publish-section');
 		const sectionEl = this.sectionEl;
 
-		// Above what it narrows, and only once there is something to narrow.
 		this.filterEl = sectionEl.createDiv('importer-tree-filter');
 		this.filterEl.hide();
 
@@ -112,10 +96,6 @@ export class TreePicker<T extends ViewableNode<T>> {
 		this.loadButton.onClick(action);
 	}
 
-	/**
-	 * Whether the picker is shown at all: its row and what it lists, which now
-	 * share a card with the settings above rather than having one to hide.
-	 */
 	toggle(shown: boolean): void {
 		this.rowEl.toggle(shown);
 		this.sectionEl.toggle(shown);
@@ -156,7 +136,6 @@ export class TreePicker<T extends ViewableNode<T>> {
 		this.options.onChange?.();
 	}
 
-	/** A filter outlives nothing: what it narrowed is gone. */
 	private clearFilter(): void {
 		this.query = '';
 		this.search.setValue('');
@@ -189,7 +168,6 @@ export class TreePicker<T extends ViewableNode<T>> {
 		this.selectionChanged();
 	}
 
-	/** What is drawn around the tree, once what is in it has changed. */
 	private selectionChanged(): void {
 		this.toggleButton.setButtonText(areAllSelected(this.nodes) ? i18n.tree.buttonDeselectAll() : i18n.tree.buttonSelectAll());
 		this.options.onChange?.();
@@ -204,14 +182,8 @@ export function renderTreeNodes<T extends ViewableNode<T>>(container: HTMLElemen
 	}
 }
 
-/**
- * The boxes a selection just changed, in the rows they were drawn in. A node
- * only ever carries its own descendants with it, so the row it was ticked in is
- * as far up as this has to go.
- */
 function refreshSelection<T extends ViewableNode<T>>(treeItem: HTMLElement, node: T, view: TreeView<T>): void {
-	// Not `instanceof`: Settings can be a window of its own, and a constructor
-	// from this one is not the constructor of what is in it.
+	// Avoid instanceof across a separate Settings window.
 	const selfEl = treeItem.firstElementChild as HTMLElement | null;
 	const checkbox = selfEl?.querySelector<HTMLInputElement>('input.file-tree-item-checkbox');
 
@@ -225,7 +197,6 @@ function refreshSelection<T extends ViewableNode<T>>(treeItem: HTMLElement, node
 	const childrenEl = treeItem.lastElementChild;
 	if (!childrenEl || childrenEl === selfEl) return;
 
-	// The rows that were drawn, which is what a filter left of the children.
 	const drawn = (node.children ?? []).filter(child => !view.filtered || view.filtered.has(child));
 	const rows = Array.from(childrenEl.children) as HTMLElement[];
 
@@ -238,9 +209,7 @@ function renderTreeNode<T extends ViewableNode<T>>(container: HTMLElement, node:
 	const children = node.children ?? [];
 	const collapsible = view.isCollapsible?.(node) ?? children.length > 0;
 
-	// A filter draws what it left open, whatever the branch was closed to
-	// before. Only how it is drawn: what the user closed is still recorded, and
-	// is what the tree goes back to once the filter is gone.
+	// Filtering expands matches without changing the saved collapsed state.
 	let folded = view.filtered ? false : !!node.collapsed;
 
 	const treeItem = container.createDiv('tree-item');
@@ -265,16 +234,11 @@ function renderTreeNode<T extends ViewableNode<T>>(container: HTMLElement, node:
 	checkbox.checked = node.selected;
 	checkbox.disabled = node.disabled;
 
-	// Always listened for, since a row disabled by the selection above it is
-	// enabled again by the same box being unticked, without being drawn afresh.
 	checkbox.addEventListener('change', () => {
 		if (node.disabled) return;
 
 		setNodeSelection(node, checkbox.checked);
 
-		// A tick changes the boxes under it and nothing else, so the rows are
-		// brought up to date where they are. Redrawing the tree around the box
-		// being tapped is what takes the scroll with it.
 		refreshSelection(treeItem, node, view);
 		view.selectionChanged();
 	});

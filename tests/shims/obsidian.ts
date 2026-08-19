@@ -32,12 +32,7 @@ export function getLanguage(): string {
 	return 'en';
 }
 
-/**
- * The elements a setting row is made of. An importer never draws one headless
- * — addSetting returns null without a dialog — but the progress UI does, and
- * a test reads what it drew. The structure is all this reproduces: a control
- * beyond the progress bar is the app's to build.
- */
+/** Minimal DOM-backed Setting used by progress UI tests. */
 export class Setting {
 	settingEl: HTMLElement;
 	infoEl: HTMLElement;
@@ -74,7 +69,6 @@ export class Setting {
 	}
 }
 
-/** The card a group of settings is drawn in. */
 export class SettingGroup {
 	groupEl: HTMLElement;
 	listEl: HTMLElement;

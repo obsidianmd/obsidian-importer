@@ -37,57 +37,26 @@ type ConfigurationResult =
 	| { kind: 'configured', result: boolean | null }
 	| { kind: 'cancelled', redraw: boolean };
 
-/** The list of formats: the screen every other one is reached from. */
 const FORMAT_LIST = 0;
 
-/**
- * What the flow needs from whatever is showing it: a modal has a title bar and
- * closes, a setting tab has a heading and a window of its own to close.
- */
+/** Host-specific chrome for the shared import flow. */
 export interface ImporterShell {
-	/** Where a screen is drawn. The flow empties it between screens. */
 	readonly contentEl: HTMLElement;
-	/** What the drop overlay covers, and the window a file is dropped into. */
 	readonly containerEl: HTMLElement;
-	/**
-	 * The shell draws the way back itself, as Settings does in the titlebar of
-	 * every page it opens on a phone, and calls `back()` when it is used. The
-	 * flow draws no Back button of its own then: a second one would say less.
-	 */
+	/** True when the host supplies navigation chrome. */
 	readonly ownsBackButton: boolean;
-	/**
-	 * Whether the flow is what moves the focus here. A modal opens for this
-	 * and nothing else, so its search is ready to type into and its rows
-	 * answer the arrow keys. Settings does both for itself, around a search
-	 * of its own, and a screen that grabbed the focus would take it from
-	 * there — or raise a phone's keyboard as the pane opened.
-	 */
+	/** False when the host manages focus, as Settings does. */
 	readonly ownsFocus: boolean;
-	/**
-	 * The flow moved: `depth` counts screens in from the format list, which is
-	 * what a shell showing pages needs in order to open and close them.
-	 */
+	/** Depth is the number of screens beyond the format list. */
 	setScreen(depth: number, title: string): void;
-	/** The format list fills the shell; every other screen ends in a button bar. */
 	setPickingFormat(picking: boolean): void;
-	/**
-	 * The row of buttons a screen ends in, handed over as it is made so the
-	 * shell can put it where the screen cannot reach — or `null` for a screen
-	 * that ends in nothing. Only the screen showing one lays itself out
-	 * around it.
-	 */
+	/** Lets the host place actions outside a scrolling screen. */
 	adoptButtonBar(barEl: HTMLElement | null): void;
-	/** Done: the modal closes, the setting tab closes the settings window. */
 	finish(): void;
-	/** Show a shell the user has left, to return to the import in it. */
 	foreground(): void;
 }
 
-/**
- * The import flow: pick a format, choose a source, choose where it lands, watch
- * it run. Everything a shell has no opinion about lives here, so the modal and
- * the setting tab are the same screens shown in two places.
- */
+/** Import screens shared by the modal and Settings tab. */
 export class ImporterFlow implements ImporterHost {
 	app: App;
 	plugin: ImporterPlugin;
@@ -114,34 +83,23 @@ export class ImporterFlow implements ImporterHost {
 	private hiddenNotice: Notice | null = null;
 	private hiddenInterval: number | null = null;
 
-	/** Resolves the configuration screen that is waiting for its own buttons. */
 	private configurationCancel: ((redraw: boolean) => void) | null = null;
 
-	/** The screen showing now, so a shell that was taken away can draw it again. */
 	private drawCurrent: () => unknown = () => this.showFormatPicker();
 
-	/** Where the screen showing now goes back to, if anywhere. */
 	private goBack: (() => unknown) | null = null;
 
-	/** How deep the screen showing now is, for the ones that replace it. */
 	private depth: number = FORMAT_LIST;
 
-	/** Set while drawing, so a shell redrawing in response cannot recurse. */
+	/** Prevents host callbacks from recursively redrawing. */
 	private drawing: boolean = false;
 
-	/**
-	 * The screen a running import is on, when the user has navigated away from
-	 * it: what the notice takes them back to.
-	 */
+	/** Restores a background import when its notice is clicked. */
 	private awayFrom: (() => unknown) | null = null;
 
-	/** The import running now, until the last of its writing is done. */
 	private importRun: Promise<void> | null = null;
 
-	/**
-	 * Set from the moment Import is pressed until there is a run to point at.
-	 * A press during the run is a different matter: it stops that one first.
-	 */
+	/** Closes the gap before importRun is assigned. */
 	private starting: boolean = false;
 
 	get importerId(): string {
@@ -167,33 +125,19 @@ export class ImporterFlow implements ImporterHost {
 		this.abortController = new AbortController();
 	}
 
-	/** The shell is on screen: draw where the flow got to, and catch drops. */
 	attach(): void {
-		// An import the user navigated away from stays away, and stays on the
-		// notice, even though the shell showing the format list is on screen.
 		this.hidden = this.awayFrom !== null;
 		if (!this.hidden) this.clearHiddenNotice();
 		this.catchFileDrop(this.shell.containerEl.win);
 		this.redraw();
 	}
 
-	/**
-	 * Draw the screen the flow is on, once. A shell redraws in answer to the
-	 * flow — a page fills itself when it opens — so a draw already under way,
-	 * including one waiting on an importer, is left to finish on its own.
-	 */
+	/** Redraws unless a host callback is already doing so. */
 	redraw(): void {
 		this.draw(this.drawCurrent);
 	}
 
-	/**
-	 * The way back from the screen showing now, for a shell that draws it: a
-	 * step at a time, and out of a running import altogether, which is the one
-	 * screen there is no going back from.
-	 */
 	back(): void {
-		// The list is as far back as it goes: a shell unwinding several pages
-		// at once asks each of them, and only the first has anywhere to go.
 		if (!this.goBack && this.depth === FORMAT_LIST) return;
 
 		this.draw(this.goBack ?? (() => this.leave()));
@@ -223,17 +167,12 @@ export class ImporterFlow implements ImporterHost {
 		this.drawing = false;
 	}
 
-	/**
-	 * The shell has gone away. An import already running carries on with only
-	 * the notice to report it, and clicking that notice brings the shell back.
-	 */
+	/** Detaches the UI while allowing a running import to continue. */
 	detach(): void {
 		this.hideDropOverlay();
 		this.forgetFileDrop();
 
-		// Configuration has no work to carry on in the background, and its
-		// controls belong to the shell that is going away. Return to the step it
-		// came from without trying to draw into a shell being torn down.
+		// Configuration controls cannot survive their shell.
 		if (this.configurationCancel) {
 			this.configurationCancel(false);
 			this.hidden = false;
@@ -247,16 +186,10 @@ export class ImporterFlow implements ImporterHost {
 		this.showHiddenNotice();
 	}
 
-	/**
-	 * The user went back past the import itself — the way out of a settings
-	 * page. The list is what they asked for; an import already running keeps
-	 * going, and the notice is what leads back to it.
-	 */
+	/** Leaves the import screen while preserving any background run. */
 	leave(): void {
 		if (this.current) {
 			this.hidden = true;
-			// Keep the screen the import is on, not whatever was left behind
-			// on the way out of it.
 			this.awayFrom ??= this.drawCurrent;
 			this.showHiddenNotice();
 		}
@@ -264,7 +197,7 @@ export class ImporterFlow implements ImporterHost {
 		this.showFormatPicker();
 	}
 
-	/** The shell is gone for good, and takes the import with it. */
+	/** Permanently tears down the flow and cancels its work. */
 	dispose(): void {
 		this.hideDropOverlay();
 		this.forgetFileDrop();
@@ -276,11 +209,6 @@ export class ImporterFlow implements ImporterHost {
 		this.current?.cancel();
 	}
 
-	/**
-	 * Tell the shell where the flow is before drawing: it may answer with a
-	 * screen of its own to draw into — Settings opens a page — and the flow
-	 * fills whichever element it is left with.
-	 */
 	private showScreen(depth: number, title: string, back: (() => unknown) | null): void {
 		this.depth = depth;
 		this.goBack = back;
@@ -292,7 +220,6 @@ export class ImporterFlow implements ImporterHost {
 		this.pickingFormat = true;
 		this.shell.setPickingFormat(true);
 
-		// The list is the one screen that ends in nothing.
 		this.shell.adoptButtonBar(null);
 		this.showScreen(FORMAT_LIST, i18n.modal.titlePickFormat(), null);
 
@@ -347,12 +274,6 @@ export class ImporterFlow implements ImporterHost {
 		if (this.shell.ownsFocus) search.inputEl.focus();
 	}
 
-	/**
-	 * The row a screen ends in. Made loose and handed to the shell, which knows
-	 * where a bar belongs: in the modal, the end of its content; in Settings,
-	 * outside the page altogether, where the page's scrolling and sliding
-	 * cannot take it along.
-	 */
 	private buttonBar(cls: string): HTMLElement {
 		const barEl = createDiv(cls);
 		this.shell.adoptButtonBar(barEl);
@@ -360,7 +281,6 @@ export class ImporterFlow implements ImporterHost {
 		return barEl;
 	}
 
-	/** The way to this format's documentation, for a format that has one. */
 	private addHelpButton(buttonsEl: HTMLElement, permalink: string | undefined): void {
 		if (!permalink) return;
 
@@ -369,7 +289,6 @@ export class ImporterFlow implements ImporterHost {
 		});
 	}
 
-	/** The way back out of the screen showing now, unless the shell has one. */
 	private addBackButton(buttonsEl: HTMLElement): void {
 		if (this.shell.ownsBackButton || !this.goBack) return;
 
@@ -384,16 +303,13 @@ export class ImporterFlow implements ImporterHost {
 		choose: () => void,
 		focus: (index: number) => void = index => rows[Math.min(Math.max(index, 0), rows.length - 1)]?.focus(),
 	): Setting {
-		// setNavigable draws the chevron, takes the click, and marks the row
-		// tappable, which is what keeps a phone from waiting on a second tap.
 		const setting = new Setting(itemsEl).setNavigable(choose);
 		const { settingEl } = setting;
 		const index = rows.length;
 
 		settingEl.tabIndex = 0;
 
-		// Settings walks these rows itself and activates the focused one, so a
-		// second listener would choose the same format twice.
+		// Settings activates focused rows itself.
 		if (this.shell.ownsFocus) {
 			settingEl.addEventListener('keydown', (evt: KeyboardEvent) => {
 				switch (evt.key) {
@@ -464,7 +380,6 @@ export class ImporterFlow implements ImporterHost {
 		for (const id of ids) {
 			const match = search(this.rowText(id));
 
-			// Match group rows against each import method too.
 			const searchable = id in IMPORTER_GROUPS
 				? IMPORTER_GROUPS[id].flatMap(member => [importerName(member), importerOptionText(member)])
 				: [importerName(id)];
@@ -509,8 +424,6 @@ export class ImporterFlow implements ImporterHost {
 		this.addBackButton(buttonsEl);
 		this.addHelpButton(buttonsEl, groupHelpPermalink(this.plugin.importers, group));
 
-		// Both belong to the shell in Settings, where the row would be empty,
-		// and the space it still takes reads as a gap under the list.
 		this.shell.adoptButtonBar(buttonsEl.childElementCount > 0 ? buttonsEl : null);
 
 		if (this.shell.ownsFocus) rows[0]?.focus();
@@ -519,9 +432,7 @@ export class ImporterFlow implements ImporterHost {
 	selectFormat(id: string) {
 		if (!Object.prototype.hasOwnProperty.call(this.plugin.importers, id)) return;
 
-		// A running import keeps its importer until its last write is done. The
-		// format list can be reached while that happens, so returning to the same
-		// format must configure a new instance rather than expose the live one.
+		// Never expose an importer still owned by a background run.
 		if (id === this.selectedId && this.importer
 			&& !this.current && !this.importRun && !this.awayFrom) {
 			this.showFirstStep();
@@ -559,21 +470,15 @@ export class ImporterFlow implements ImporterHost {
 		this.showSourceStep();
 	}
 
-	/**
-	 * A format that cannot be imported from this device still says so, and
-	 * still says where to read about it: what it drew into its source step.
-	 */
 	private showUnavailable() {
 		this.drawCurrent = () => this.showUnavailable();
 		this.drawStep(this.sourceDepth(), this.sourceEl, () => this.showPreviousScreen(), () => {});
 	}
 
-	/** The source comes after the method picker, for a format that has one. */
 	private sourceDepth(): number {
 		return groupOf(this.selectedId) ? FORMAT_LIST + 2 : FORMAT_LIST + 1;
 	}
 
-	/** Keep grouped importers under the app name. */
 	private importTitle(importerId: string = this.selectedId): string {
 		const group = groupOf(importerId);
 		return i18n.modal.titleImportFrom({
@@ -630,8 +535,6 @@ export class ImporterFlow implements ImporterHost {
 	}
 
 	private addImportButton(buttonsEl: HTMLElement, importer: FormatImporter): HTMLButtonElement {
-		// A format with a screen of its own between here and the run is not
-		// importing yet, whatever this button is pressed for.
 		const text = importer.configures ? i18n.modal.buttonContinue() : i18n.modal.buttonImport();
 
 		return buttonsEl.createEl('button', { cls: 'mod-cta', text }, el => {
@@ -710,7 +613,6 @@ export class ImporterFlow implements ImporterHost {
 	private async takeDropped(items: (PickedFile | PickedFolder)[]): Promise<void> {
 		const files = await expandDropped(items);
 
-		// Probe before mutating so partial matches can remain choices.
 		if (!this.pickingFormat && this.importer) {
 			const taken = this.importer.wouldTake(items, files);
 			if (taken > 0 && taken === files.length) {
@@ -742,7 +644,6 @@ export class ImporterFlow implements ImporterHost {
 
 		importer.takeDropped(drop.items, drop.files);
 
-		// Redraw controls created during async init().
 		this.showSourceStep();
 	}
 
@@ -775,7 +676,6 @@ export class ImporterFlow implements ImporterHost {
 	private onDragOver = (evt: DragEvent) => {
 		if (!this.acceptsDrop() || !evt.dataTransfer || !dataTransferHasFiles(evt.dataTransfer)) return;
 
-		// preventDefault enables the drop.
 		evt.preventDefault();
 		evt.stopPropagation();
 		evt.dataTransfer.dropEffect = 'copy';
@@ -784,7 +684,6 @@ export class ImporterFlow implements ImporterHost {
 	};
 
 	private onDragLeave = (evt: DragEvent) => {
-		// Ignore moves within the window.
 		if (evt.type === 'dragleave' && evt.relatedTarget) return;
 
 		this.hideDropOverlay();
@@ -836,8 +735,7 @@ export class ImporterFlow implements ImporterHost {
 	}
 
 	private async startImport(importer: FormatImporter) {
-		// Two presses before either has a run to its name would both get past
-		// the stop below, and import at once.
+		// Guard the async gap before importRun is assigned.
 		if (this.starting) return;
 		this.starting = true;
 
@@ -850,8 +748,7 @@ export class ImporterFlow implements ImporterHost {
 	}
 
 	private async startImportRun(importer: FormatImporter) {
-		// These belong to the Import button that was pressed. The previous run
-		// may take time to stop, and the format list remains usable meanwhile.
+		// Capture state before waiting for a previous run to stop.
 		const importerId = this.selectedId;
 		const setupScreen = this.drawCurrent;
 		const depth = this.depth;
@@ -888,16 +785,12 @@ export class ImporterFlow implements ImporterHost {
 		this.configurationCancel = cancelConfiguration;
 		this.showConfigurationScreen(depth, importerId, cancelConfiguration);
 
-		// setScreen() above may have opened a Settings page of its own, so ask
-		// the shell for the element only after it has moved to the captured step.
+		// Settings may replace contentEl while setScreen opens a page.
 		const { contentEl } = this.shell;
 		contentEl.empty();
 		const configEl = contentEl.createDiv();
 		const ctx = configurationContext = this.current = new ImportProgressUI(configEl);
 
-		// The screen reads as any other step: the way back and the way to the
-		// documentation at the start, and the way on added to the end by whoever
-		// draws the configuration.
 		const buttonsEl = this.buttonBar('modal-button-container importer-step-buttons');
 		this.addBackButton(buttonsEl);
 		this.addHelpButton(buttonsEl, this.plugin.importers[importerId]?.helpPermalink);
@@ -941,7 +834,6 @@ export class ImporterFlow implements ImporterHost {
 
 		const run = this.runImport(state);
 		this.importRun = run;
-		// The run is what a later press waits on from here.
 		this.starting = false;
 
 		try {
@@ -952,11 +844,7 @@ export class ImporterFlow implements ImporterHost {
 		}
 	}
 
-	/**
-	 * The temporary screen owned by showTemplateConfiguration(). Back resolves
-	 * the race above; the way on is the importer's own, added to the bar the
-	 * step draws for it.
-	 */
+	/** Back resolves the pending configuration as cancelled. */
 	private showConfigurationScreen(
 		depth: number,
 		importerId: string,
@@ -968,11 +856,7 @@ export class ImporterFlow implements ImporterHost {
 		this.showScreen(depth, this.importTitle(importerId), () => cancel(true));
 	}
 
-	/**
-	 * Stop the import running now, and wait for it to have stopped. Stopping
-	 * is cooperative: until the run reaches its next checkpoint it is still
-	 * writing to the vault, and still has a screen of its own to finish on.
-	 */
+	/** Waits for cooperative cancellation to reach a checkpoint. */
 	private async stopRunningImport(): Promise<void> {
 		const running = this.importRun;
 		if (!running) return;
@@ -993,9 +877,7 @@ export class ImporterFlow implements ImporterHost {
 			await importer.import(ctx);
 		}
 		catch (e) {
-			// An importer is meant to report a bad note and carry on, but one that
-			// throws instead would otherwise finish on a summary of all zeros, with
-			// the reason only in the console.
+			// Surface importer-level failures in the report, not only the console.
 			threw = true;
 			ctx.reportFailed(name, e);
 		}
@@ -1008,8 +890,6 @@ export class ImporterFlow implements ImporterHost {
 			ctx.status(ctx.isCancelled() ? '' : outcomeText(ctx));
 			ctx.finish();
 
-			// An import that threw never got as far as its checkpoints, which is
-			// no evidence that the importer neglects them.
 			const reported = ctx.notes + ctx.attachments + ctx.skipped.length + ctx.failed.length;
 			if (!threw && importer.interruption !== 'none' && ctx.checkpoints === 0 && reported > 0) {
 				console.warn(
@@ -1022,9 +902,7 @@ export class ImporterFlow implements ImporterHost {
 				this.finishHiddenNotice(ctx);
 			}
 
-			// An import the user walked out of finishes where they left it, not
-			// over the list they went back to: the notice is the way in, and
-			// what it leads to is how the import ended.
+			// Keep a detached import's notice pointed at its final state.
 			if (this.awayFrom) this.awayFrom = () => this.showFinished(state);
 			else this.showFinished(state);
 		}
@@ -1034,7 +912,6 @@ export class ImporterFlow implements ImporterHost {
 		const { ctx, depth, importerId } = state;
 		const { interruption } = state.importer;
 		this.drawCurrent = () => this.showProgress(state);
-		// An import cannot be stepped back into; leaving it is the way out.
 		this.showScreen(depth, this.importTitle(importerId), null);
 
 		const { contentEl } = this.shell;
@@ -1068,7 +945,6 @@ export class ImporterFlow implements ImporterHost {
 				pauseButtonEl?.detach();
 				cancelButtonEl.detach();
 
-				// Show disabled finish actions while cancellation completes.
 				this.drawFinishButtons(buttonsEl, state, false);
 			});
 		});
@@ -1100,7 +976,6 @@ export class ImporterFlow implements ImporterHost {
 		buttonEl.disabled = true;
 
 		try {
-			// Reuse a report already saved from this run.
 			state.reportFile ??= await state.importer.writeImportReport(
 				state.ctx,
 				importerName(state.importerId),
@@ -1135,8 +1010,7 @@ export class ImporterFlow implements ImporterHost {
 		this.drawFinishButtons(this.buttonBar('modal-button-container'), state, true);
 	}
 
-	/** Done means the next opening starts a new import; closing the shell by its
-	 * own controls still detaches and preserves the screen it was on. */
+	/** Completes this flow so the next opening starts fresh. */
 	private finish(): void {
 		this.startOver();
 		this.shell.finish();
@@ -1158,7 +1032,6 @@ export class ImporterFlow implements ImporterHost {
 		}), 0);
 
 		notice.containerEl.addEventListener('click', () => {
-			// Back to the import itself, not to the list the user left it for.
 			if (this.awayFrom) {
 				this.drawCurrent = this.awayFrom;
 				this.awayFrom = null;
@@ -1203,8 +1076,6 @@ export class ImporterFlow implements ImporterHost {
 
 		this.clearHiddenInterval();
 
-		// The notice is all there is to go on while the modal is hidden, so it has
-		// to say which of the three ways the import ended it took.
 		const headline = ctx.isCancelled() ? i18n.progress.msgStopped() : outcomeText(ctx);
 
 		const counts = i18n.progress.msgImportedCount({ count: ctx.notes })

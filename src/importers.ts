@@ -125,7 +125,6 @@ export function groupName(group: string): string {
 	return i18n.group(`${group}.name`);
 }
 
-/** The format's own name, and the longer line it is listed under. */
 export function importerName(id: string): string {
 	return i18n.importer(`${id}.name`);
 }

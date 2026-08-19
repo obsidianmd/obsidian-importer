@@ -34,9 +34,6 @@
 	margin-bottom: 0;
 }
 
-/* Stacked, the buttons are three rows deep, and a bar pinned to the bottom of
-   the modal would cover the end of the step it belongs to. It scrolls with
-   the step instead. */
 body.is-mobile .modal.mod-importer .modal-content {
 	margin-bottom: 0;
 }
@@ -49,27 +46,12 @@ body.is-mobile .modal.mod-importer .modal-button-container {
 	border-top: none;
 }
 
-/* The scroller ends where the bar begins, so its scrollbar ends there too
-   rather than running on behind it. The modal takes the same measurement off
-   its own content for the same reason; here it has to be the height, since a
-   page is `height: 100%` in a box that clips, and a margin would only hang
-   past the bottom of it.
-
-   A phone stacks the buttons into a column, and the page there already keeps a
-   phone's worth of room below its content. */
 body:not(.is-mobile) .modal.mod-settings .setting-page.importer-flow.has-button-bar {
 	height: calc(100% - (var(--input-height) + var(--size-4-8)));
 	padding-bottom: var(--size-4-4);
 }
 
-/* A screen's buttons are a bar over the bottom of the pane — Continue on a
-   step, Done and Import more at the end of an import — the way the modal's
-   are. The pane is what holds it, not the page that drew it: a page is the
-   scroller, and carries a transform while it slides, either of which would
-   take the bar along.
-
-   The buttons keep the inset the cards above them have, so Continue ends where
-   the card ends rather than at the edge of the pane. */
+/* Keep actions outside the scrolling, animated SettingPage. */
 .modal.mod-settings .importer-button-bar {
 	position: absolute;
 	margin: 0 auto;
@@ -77,8 +59,6 @@ body:not(.is-mobile) .modal.mod-settings .setting-page.importer-flow.has-button-
 	left: 0;
 	right: 0;
 
-	/* Above the pages rather than after them, so one opening over another
-	   passes under it without the bar having to be moved to the end. */
 	z-index: 1;
 
 	padding-block: var(--size-4-4);
@@ -86,17 +66,11 @@ body:not(.is-mobile) .modal.mod-settings .setting-page.importer-flow.has-button-
 	background-color: var(--settings-background);
 	border-top: var(--border-width) solid var(--background-modifier-border);
 
-	/* The bar outlives the screens, so arriving and leaving is a fade rather
-	   than the pop of an element the page took with it. */
 	opacity: 0;
 	pointer-events: none;
 	transition: opacity 100ms ease-out;
 
-	/* Out of the way while a keyboard is up. Typing into the filter, or into a
-	   folder name, is not a moment anyone is reaching for Continue, and the bar
-	   would otherwise sit on top of what is being typed about. Obsidian's own
-	   bottom chrome moves by --keyboard-height the same way; the box the pages
-	   sit in clips what leaves it. */
+	/* Follow Obsidian's bottom chrome while the mobile keyboard is open. */
 	transform: translateY(var(--keyboard-height, 0px));
 }
 
@@ -109,32 +83,20 @@ body:not(.is-mobile) .modal.mod-settings .setting-page.importer-flow.has-button-
 	margin: 0;
 }
 
-/* A page on a phone or tablet is inset by its own padding rather than by a
-   column down the middle of it. */
 body.is-mobile .modal.mod-settings .importer-button-bar {
 	padding-left: max(var(--size-4-4), var(--safe-area-inset-left, 0px));
 	padding-right: max(var(--size-4-4), var(--safe-area-inset-right, 0px));
 }
 
-/* Only a phone fills the screen, so only a phone has anything below the bar to
-   keep clear of. The safe area is the bar's own padding rather than a margin
-   under it, so the background reaches the bottom of the screen; a tablet, whose
-   settings float in a window, would only be left with a gap. */
 body.is-phone .modal.mod-settings .importer-button-bar {
 	padding-bottom: max(var(--size-4-4), var(--safe-area-inset-bottom, 0px));
 
 }
 
-/* Obsidian stacks a button container into a column on mobile, which a step in
-   Settings has no need of: Back is in the page's own titlebar, so what is left
-   is Help and Continue, and two buttons fit across even a phone. Only a step —
-   an import that has finished has three, and the progress screen puts stopping
-   where a thumb will not find it by accident. */
 body.is-mobile .modal.mod-settings .importer-button-bar .importer-step-buttons {
 	flex-direction: row;
 }
 
-/* Half the bar each, rather than as wide as the words in them. */
 body.is-phone .modal.mod-settings .importer-button-bar .importer-step-buttons button {
 	flex: 1;
 }
@@ -212,9 +174,6 @@ body:not(.is-phone) .modal.mod-settings .importer-button-bar .importer-step-butt
 	filter: brightness(1.7) saturate(0.7);
 }
 
-/* Obsidian marks a row that leads somewhere, but leaves what it looks like
-   under the pointer to whoever is showing it. Only where there is one: on a
-   touch screen the highlight would stay behind after the tap. */
 @media (hover: hover) {
 	.setting-group.mod-list .setting-item.mod-navigable:hover {
 		background-color: var(--background-modifier-hover);
@@ -225,23 +184,18 @@ body:not(.is-phone) .modal.mod-settings .importer-button-bar .importer-step-butt
 	background-color: var(--text-faint);
 }
 
-/* The row is nothing but a status and its bar, so it reads as a screen rather
-   than a setting: the status above, the bar with the width to itself. */
 .importer-progress {
 	flex-direction: column;
 	align-items: stretch;
 	gap: var(--size-4-2);
 }
 
-/* Both halves take the row's width, and neither the name nor the status in
-   it may grow past it: a flex item is free to, unless it is told not to. */
 .importer-progress .setting-item-info,
 .importer-progress .setting-item-control {
 	width: 100%;
 	min-width: 0;
 }
 
-/* The status is a file name, often longer than the room for it. */
 .importer-progress .setting-item-name {
 	white-space: nowrap;
 	overflow: hidden;
@@ -249,8 +203,6 @@ body:not(.is-phone) .modal.mod-settings .importer-button-bar .importer-step-butt
 	font-variant: tabular-nums;
 }
 
-/* A phone pads a button container, which would set the button in from the
-   cards it follows. The step's button lines up with them instead. */
 body.is-phone .importer-flow .modal-button-container {
 	padding-inline: 0;
 }
@@ -267,8 +219,6 @@ body.is-phone .modal.mod-settings .importer-button-bar {
 	padding-top: var(--size-4-8);
 }
 
-/* The file picker's input has to be in the document for iOS to open it, and
-   out of the way while it is. */
 .importer-file-input {
 	position: fixed;
 	inset-block-start: 0;
@@ -279,14 +229,10 @@ body.is-phone .modal.mod-settings .importer-button-bar {
 	pointer-events: none;
 }
 
-/* Stacked, the buttons read down the screen, and stopping the import should
-   not be the one under the thumb. */
 body.is-mobile .importer-progress-buttons .mod-destructive {
 	order: -1;
 }
 
-/* Five counts side by side is more than a phone has room for, so they wrap
-   into as many rows as it takes. */
 .importer-stats-container {
 	display: flex;
 	flex-wrap: wrap;
@@ -344,8 +290,6 @@ body.is-mobile .importer-progress-buttons .mod-destructive {
 }
 
 /* Template configuration styles */
-/* What a screen is for, where that is more than a row's description can say.
-   Reads as one, above the cards it explains. */
 .importer-screen-desc {
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
@@ -430,15 +374,11 @@ body.is-mobile .importer-progress-buttons .mod-destructive {
 	margin-top: var(--size-4-3);
 }
 
-/* Drawn in the card of the row that loads it: the row's own divider above it,
-   and no card of its own inside one. */
 .setting-items > .import-section {
 	margin: 0;
 }
 
-/* A file tree's icon is nudged 2px down for the taller rows Publish draws.
-   These rows are the height of the text and clip what leaves them, so the
-   nudge was taking the bottom of every icon with it. */
+/* Undo Publish's icon nudge for these shorter rows. */
 .import-section .file-tree-item-icon {
 	top: 0;
 }
@@ -452,7 +392,6 @@ body.is-mobile .importer-progress-buttons .mod-destructive {
 	padding: 0;
 }
 
-/* Above what it narrows, and the width of it. */
 .import-section .importer-tree-filter {
 	padding: 0 var(--setting-items-padding-x);
 }
@@ -461,8 +400,7 @@ body.is-mobile .importer-progress-buttons .mod-destructive {
 	width: 100%;
 }
 
-/* Ticking a box rebuilds the tree, which scroll anchoring reads as the page
-   having moved, and it shifts the scroll to compensate. */
+/* Tree redraws should not move the containing page. */
 .import-section .publish-change-list {
 	overflow-anchor: none;
 	min-height: 200px;

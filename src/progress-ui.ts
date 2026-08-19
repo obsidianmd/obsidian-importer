@@ -31,7 +31,6 @@ export class ImportProgressUI extends ImportContext {
 	skippedCountEl: HTMLElement;
 	failedCountEl: HTMLElement;
 	statusEl: HTMLElement;
-	/** Where the flow draws what can be done about the import. */
 	actionsEl: HTMLElement;
 	importLogEl: HTMLElement;
 
@@ -49,9 +48,6 @@ export class ImportProgressUI extends ImportContext {
 
 		this.el = container;
 
-		// What an import is doing and how far along it is, as Settings shows
-		// any measure of something filling up: the row stacks on a phone, and
-		// the bar has the width to itself there.
 		const progress = new Setting(new SettingGroup(container).listEl)
 			.setClass('importer-progress')
 			.addProgressBar(bar => this.progressBar = bar);
@@ -82,8 +78,6 @@ export class ImportProgressUI extends ImportContext {
 			});
 		});
 
-		// Above the log, which grows as the import goes on: buttons under it
-		// would walk down the screen away from the thumb.
 		this.actionsEl = container.createDiv('importer-actions');
 
 		this.importLogEl = container.createDiv('importer-log');
@@ -132,19 +126,17 @@ export class ImportProgressUI extends ImportContext {
 		this.scrollLogToEnd();
 	}
 
-	// Progress includes skipped and failed items; onNoteSuccess updates imported count.
 	protected onProgress(current: number, total: number): void {
 		this.remainingCountEl.setText((total - current).toString());
 		this.progressBar.setValue(100 * current / total);
 	}
 
-	// Preserve final progress, but hide a bar that never had a total.
 	protected onFinish(): void {
 		this.finished = true;
 		if (this.progressTotal <= 0) this.progressBarEl.hide();
 	}
 
-	// Batch scroll measurements to avoid a forced layout per log entry.
+	// Batch layout reads when several log entries arrive together.
 	private scrollLogToEnd(): void {
 		if (this.scrollQueued) return;
 

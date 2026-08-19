@@ -1,10 +1,3 @@
-/**
- * What the filter bar over a tree leaves standing.
- *
- * The shape follows Obsidian's own Publish modal, which filters its tree with a
- * trimmed, lowercased `contains` and keeps a folder only as the way down to
- * something that matched.
- */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -15,7 +8,6 @@ interface Node {
 	children?: Node[];
 }
 
-/** A base with tables under it, which is the shape every one of these has. */
 function tree(): Node[] {
 	return [
 		{ title: '2024 Taxes', children: [{ title: 'Receipts' }, { title: 'Mileage' }] },
@@ -24,7 +16,6 @@ function tree(): Node[] {
 	];
 }
 
-/** The titles kept, in the order the tree holds them. */
 function kept(nodes: Node[], query: string): string[] {
 	const matching = nodesMatching(nodes, query);
 	const titles: string[] = [];

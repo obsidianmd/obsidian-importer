@@ -106,23 +106,18 @@ export class TemplateConfigurator {
 	/**
 	 * Shows the template configuration UI and returns the user's configuration.
 	 * @param container The container element to display the configuration UI in
-	 * @param buttonsEl The screen's own row of buttons, which the way on is added
-	 *   to. The way back is the screen's, and belongs to whoever showed it.
+	 * @param buttonsEl Container for the continue action
 	 * @returns The template configuration if user clicked Continue, null if cancelled
 	 */
 	async show(container: HTMLElement, buttonsEl: HTMLElement): Promise<TemplateConfig | null> {
 		return new Promise((resolve) => {
 			container.empty();
 
-			// The same shape as the steps before it: what the screen is for, and
-			// then its settings in cards.
 			container.createDiv({
 				cls: 'importer-screen-desc',
 				text: i18n.template.msgIntro({ syntax: this.placeholderSyntax }),
 			});
 
-			// A format that names its notes for itself leaves both of these out,
-			// and is left with no card to put them in.
 			const templates = this.showTitleTemplate || this.showLocationTemplate
 				? new SettingGroup(container)
 				: null;
@@ -153,8 +148,6 @@ export class TemplateConfigurator {
 						}));
 			}
 
-			// What each field becomes, in a card of its own: the heading, and the
-			// table it heads.
 			const properties = new SettingGroup(container);
 			properties.setHeading(i18n.template.headingProperties());
 
@@ -337,4 +330,3 @@ export function generateFrontmatter(
 	lines.push('---');
 	return lines.join('\n');
 }
-

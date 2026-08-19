@@ -32,14 +32,8 @@ const stubInquirePlugin = {
 	},
 };
 
-// protobufjs and sax probe for `fs` and `stream` with a bare require, each
-// guarded by a try/catch and a fallback for when the module is absent. Obsidian
-// logs "Attempting to load NodeJS package" before that catch runs, so loading
-// the plugin printed a stack trace per probe for features neither library is
-// used for here (reading a .proto off disk; sax's stream API). Answering with an
-// empty module leaves each library on the browser path it already has. Our own
-// node access goes through src/filesystem.ts, which asks for `node:fs` and is
-// not what this matches.
+// Keep optional protobufjs/sax Node probes on their browser paths. Obsidian logs
+// bare `fs`/`stream` probes before the libraries can catch the failed require.
 const PROBING_MODULE = /[\\/](@?protobufjs|sax)[\\/]/;
 
 const stubOptionalNodePlugin = {
@@ -125,11 +119,7 @@ function typeChecks() {
 	}
 }
 
-// A style is read when the plugin loads and never again, so a copied
-// styles.css sits in the vault unseen until something reloads. Swapping the
-// text of the <style> element the plugin made gets there without one, which is
-// what a CSS change wants: a reload closes whatever screen is being styled.
-// Told there is nothing to swap, fall back to reloading.
+// Refresh CSS without reloading the plugin and closing its active screen.
 const STYLE_NEEDLE = 'mod-importer';
 
 function refreshStyles() {
@@ -178,10 +168,8 @@ function copyToVault({ reload = true } = {}) {
 	}
 }
 
-// esbuild rebuilds on a change to something it bundles, and styles.css is not
-// bundled: without this, editing it in a watch session never reaches the vault,
-// and the change reads as a rule that had no effect. Watch the directory rather
-// than the file, so a save that replaces the file keeps being noticed.
+// Watch the directory because styles.css is outside esbuild's dependency graph
+// and editors may replace the file when saving.
 function watchCopiedFiles() {
 	if (!process.env.OBSIDIAN_PATH || !process.env.HOME) return;
 
@@ -192,10 +180,8 @@ function watchCopiedFiles() {
 	fs.watch(".", (event, filename) => {
 		if (!copied.includes(filename)) return;
 
-		// A style can be pushed into the running app; a manifest cannot.
 		if (filename !== "styles.css") reload = true;
 
-		// An editor saves in more than one step; copy once it has settled.
 		clearTimeout(queued);
 		queued = setTimeout(() => {
 			copyToVault({ reload });

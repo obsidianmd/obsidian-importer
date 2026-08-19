@@ -64,11 +64,6 @@ export class OneNoteFileImporter extends FormatImporter {
 		if (this.picker) void this.loadSections();
 	}
 
-	/**
-	 * The sections are what a file turned out to hold, so there is nothing to
-	 * say about them until there is a file: a row telling the user to pick one
-	 * repeats the row above it.
-	 */
 	private showSections(): void {
 		this.picker?.toggle(this.files.length > 0);
 	}
@@ -89,8 +84,6 @@ export class OneNoteFileImporter extends FormatImporter {
 				loadsItself: true,
 			});
 
-			// Drawn again with files already picked: the step is redrawn every
-			// time it is returned to.
 			this.showSections();
 		}, 'source');
 	}

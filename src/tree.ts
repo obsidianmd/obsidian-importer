@@ -42,20 +42,12 @@ export function selectedNodes<T extends SelectableNode>(nodes: T[], canImport: (
 	return into;
 }
 
-/** A node a filter can read: what it is called, and what is under it. */
 export interface NamedNode {
 	title: string;
 	children?: NamedNode[];
 }
 
-/**
- * Which nodes a query leaves standing: the ones it names, everything under one
- * of those, and the branch that leads down to it — a match whose path is hidden
- * is an answer nobody can reach.
- *
- * An empty query is nobody asking, and is answered with nothing rather than
- * with everything: whether to filter at all is the caller's to decide.
- */
+/** Returns matches, their descendants, and the ancestors needed to reach them. */
 export function nodesMatching<T extends NamedNode>(nodes: T[], query: string): Set<T> {
 	const wanted = query.trim().toLowerCase();
 	const kept = new Set<T>();
@@ -79,9 +71,7 @@ export function nodesMatching<T extends NamedNode>(nodes: T[], query: string): S
 }
 
 export function redrawTree(container: HTMLElement, draw: () => void): void {
-	// Emptying the tree takes the height out from under whatever was scrolling
-	// it, and the scroll goes with it — the box itself where that is what
-	// scrolls, the page it sits on where the box is as tall as its contents.
+	// Preserve every scrolling ancestor while emptying collapses the tree.
 	const scrolled: [HTMLElement, number][] = [];
 	for (let el: HTMLElement | null = container; el; el = el.parentElement) {
 		if (el.scrollTop > 0) scrolled.push([el, el.scrollTop]);

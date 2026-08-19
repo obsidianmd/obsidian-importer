@@ -171,7 +171,6 @@ export class NoteConverter extends ANConverter {
 		return converted;
 	}
 
-	/** A heading is already bold, so bold covering the whole line says nothing. */
 	omitRedundantHeadingBold(fragments: ANFragmentPair[]): ANFragmentPair[] {
 		let lineStart = 0;
 

@@ -51,7 +51,6 @@ export class RoamJSONImporter extends FormatImporter {
 				.setValue(this.deOutline)
 				.onChange(value => this.deOutline = value));
 
-		// What becomes of a reference to another block.
 		this.startGroup();
 
 		this.addSetting()
@@ -68,7 +67,6 @@ export class RoamJSONImporter extends FormatImporter {
 				.setValue(this.dropUnresolvedReferences)
 				.onChange(value => this.dropUnresolvedReferences = value));
 
-		// What becomes of the markup Roam writes into a block.
 		this.startGroup();
 
 		this.addSetting()

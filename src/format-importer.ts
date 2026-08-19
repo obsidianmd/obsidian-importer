@@ -9,7 +9,6 @@ import { createMarkdown, formatMarkdown, markdownOutputFor, modifyMarkdown, stan
 import { i18n } from './i18n';
 import { availableFileName, getUniqueFilePath, parseFrontMatterBlock, sanitizeFileName, sanitizeFilePath, serializeFrontMatter } from './util';
 
-/** How many of the picked files the list names before it counts the rest. */
 const MAX_FILES_LISTED = 5;
 
 export enum DuplicateHandling {
@@ -151,7 +150,6 @@ export interface ImporterHost {
 	optionsEl: HTMLElement | null;
 	plugin: HostPlugin;
 	importerId: string;
-	/** The format's page in the documentation, where it has one. */
 	helpPermalink?: string;
 	sourceChanged?(): void;
 	abortController: AbortController;
@@ -267,11 +265,6 @@ export abstract class FormatImporter {
 	 * @param container The container element to show the configuration UI in
 	 * @returns true if configuration was successful, false if cancelled or failed, null if no configuration needed
 	 */
-	/**
-	 * Whether there is a screen of this importer's own between the steps and the
-	 * run — which is what decides whether the last step ends in Import or in
-	 * Continue, since a button should say what pressing it does.
-	 */
 	get configures(): boolean {
 		return this.showTemplateConfiguration !== FormatImporter.prototype.showTemplateConfiguration;
 	}
@@ -310,11 +303,6 @@ export abstract class FormatImporter {
 		}
 	}
 
-	/**
-	 * The way to the format's documentation, on the row that says what to
-	 * export. Help, in the bar at the bottom, is the other way to the same
-	 * page; a format whose export takes some finding says so twice.
-	 */
 	protected addInstructions(setting: Setting | null): Setting | null {
 		const { helpPermalink } = this.host;
 		if (!setting || !helpPermalink) return setting;
@@ -324,31 +312,22 @@ export abstract class FormatImporter {
 			.onClick(() => window.open(helpUrl(helpPermalink))));
 	}
 
-	/** The row a format you export from starts with: what to ask that app for. */
 	protected addExportSetting(desc: string | DocumentFragment): Setting | null {
 		return this.addSetting('source')
 			?.setName(i18n.common.nameExport())
 			.setDesc(desc) ?? null;
 	}
 
-	/**
-	 * Settings are drawn in cards, one per group, so settings that are read
-	 * together look it. A step keeps to one group until something else is
-	 * drawn into it or startGroup() breaks it.
-	 */
 	private groups = new WeakMap<HTMLElement, SettingGroup>();
 
-	/** Where a setting drawn into this container goes: its group's card. */
 	protected settingsIn(contentEl: HTMLElement): HTMLElement {
 		const group = this.groups.get(contentEl);
-		// Anything drawn straight into the step lands after the group, so a
-		// setting added next belongs to a new one rather than jumping back.
+		// Direct children end the current group.
 		if (group && contentEl.lastElementChild === group.groupEl) return group.listEl;
 
 		return this.startGroupIn(contentEl).listEl;
 	}
 
-	/** The next setting drawn here starts a card of its own. */
 	private endGroupIn(contentEl: HTMLElement): void {
 		this.groups.delete(contentEl);
 	}
@@ -360,10 +339,6 @@ export abstract class FormatImporter {
 		return group;
 	}
 
-	/**
-	 * Start a card of its own for the settings that follow, for a group that
-	 * is not read with the one before it.
-	 */
 	protected startGroup(step: ImporterStep = 'options', heading?: string): SettingGroup | null {
 		const contentEl = this.stepEl(step);
 		return contentEl ? this.startGroupIn(contentEl, heading) : null;
@@ -405,7 +380,6 @@ export abstract class FormatImporter {
 			setting.setDesc(description);
 		}
 
-		// Where to go and get one, for as long as there is none to link.
 		let externalEl: HTMLElement | null = null;
 
 		if (external) {
@@ -417,15 +391,9 @@ export abstract class FormatImporter {
 			});
 		}
 
-		/**
-		 * Linking is what the step is waiting on until something is linked,
-		 * and fetching one is only worth offering until then.
-		 */
 		const showLinking = (linked: boolean) => {
 			externalEl?.toggle(!linked);
 
-			// The button the component draws for itself, which is every button
-			// in the row but the one added above it.
 			for (const button of Array.from(setting.controlEl.querySelectorAll('button'))) {
 				if (button !== externalEl) button.toggleClass('mod-cta', !linked);
 			}
@@ -457,15 +425,7 @@ export abstract class FormatImporter {
 		return setting;
 	}
 
-	/**
-	 * What getSecret() answers has changed.
-	 *
-	 * A format that lists what the credential reaches reads it here, so the list
-	 * arrives with the token rather than waiting to be asked for a second time.
-	 * Linking one says this, and so does arriving on the step with one already
-	 * remembered from a previous session. Nothing here was asked for, so nothing
-	 * here has anything to say about a credential that is missing.
-	 */
+	/** Called after the linked secret changes or is restored. */
 	protected secretChanged(): void {
 	}
 
@@ -547,10 +507,6 @@ export abstract class FormatImporter {
 		})();
 	}, 1000, true);
 
-	/**
-	 * What is going to be imported, drawn the way Settings draws a list you add
-	 * to: a card of what has been picked, and a row at the end that picks more.
-	 */
 	addFileChooserSetting(name: string, extensions: string[], allowMultiple: boolean = false, description?: string, defaultPath?: string) {
 		// Headless importers still need their accepted file types.
 		this.acceptedExtensions = extensions;
@@ -559,9 +515,6 @@ export abstract class FormatImporter {
 		const contentEl = this.stepEl('source');
 		if (!contentEl) return;
 
-		// A card of its own: what follows it is about the import, not the files.
-		// A list, so that a row stays a row on a phone rather than stacking
-		// its icon, its name and its button down the screen.
 		const { listEl } = this.startGroupIn(contentEl).addClass('mod-list');
 		this.endGroupIn(contentEl);
 
@@ -582,8 +535,7 @@ export abstract class FormatImporter {
 				return;
 			}
 
-			// Attached, because WebKit ignores a click on an input that is not
-			// in the document: on iOS the picker simply never opened.
+			// iOS ignores clicks on detached file inputs.
 			const inputEl = contentEl.doc.body.createEl('input', { cls: 'importer-file-input' });
 			inputEl.type = 'file';
 			inputEl.multiple = allowMultiple;
@@ -599,7 +551,6 @@ export abstract class FormatImporter {
 					.filter(file => extensions.contains(file.extension)));
 			});
 
-			// Dismissing the picker leaves the input behind otherwise.
 			inputEl.addEventListener('cancel', () => inputEl.detach());
 
 			inputEl.click();
@@ -619,11 +570,6 @@ export abstract class FormatImporter {
 			addFiles(await getAllFiles(folders, (file: PickedFile) => extensions.contains(file.extension)));
 		};
 
-		/**
-		 * What was picked joins what is already there, which is what a row
-		 * with a plus on it says it will do. An importer taking one file has
-		 * the last pick replace it instead.
-		 */
 		const addFiles = (picked: PickedFile[]) => {
 			if (!allowMultiple) {
 				this.files = picked.slice(0, 1);
@@ -636,7 +582,6 @@ export abstract class FormatImporter {
 			updateFiles();
 		};
 
-		/** One row saying where the list stands, in place of the list. */
 		const drawState = (text: string) => {
 			listEl.empty();
 			new Setting(listEl).setClass('mod-empty-state').setName(text);
@@ -673,8 +618,6 @@ export abstract class FormatImporter {
 
 			listEl.empty();
 
-			// A folder of notes is thousands of rows nobody reads: enough of
-			// them to recognise the pick, and a count for the rest.
 			for (const file of this.files.slice(0, MAX_FILES_LISTED)) {
 				new Setting(listEl)
 					.setName(file.name)
@@ -698,7 +641,6 @@ export abstract class FormatImporter {
 			drawPickers();
 		};
 
-		// Nothing is dragged into a phone, so nothing there is told it can be.
 		drawState(description || (Platform.isMobile ? i18n.source.descChoose() : i18n.source.desc()));
 		this.showPickedFiles = updateFiles;
 	}
@@ -742,8 +684,6 @@ export abstract class FormatImporter {
 		this.addOutputFolderSetting(contentEl);
 		this.addAttachmentLocationSetting(contentEl);
 
-		// Where an import lands is one question; what it does about what is
-		// already there is another.
 		this.startGroupIn(contentEl);
 		this.addDuplicateHandlingSetting(contentEl);
 		this.addSaveSourceIdSetting(contentEl);

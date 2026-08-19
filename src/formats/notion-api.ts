@@ -201,7 +201,6 @@ export class NotionAPIImporter extends FormatImporter {
 					});
 			});
 
-		// The properties an imported note carries, and where they come from.
 		this.startGroup();
 
 		// Cover property name

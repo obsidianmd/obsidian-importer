@@ -1,11 +1,7 @@
 import 'obsidian';
 
 declare module 'obsidian' {
-	/**
-	 * A page opened over a setting tab, with a back button of its own. Added in
-	 * Obsidian 1.13, which is what this plugin asks for, and declared here
-	 * because the published types are still 1.12.
-	 */
+	/** Obsidian 1.13 API missing from the published types. */
 	class SettingPage {
 		rootEl: HTMLElement;
 		titlebarEl: HTMLElement;
@@ -15,31 +11,20 @@ declare module 'obsidian' {
 		hide(): void;
 	}
 
-	/**
-	 * The elements of a setting group: the card its settings are drawn in, and
-	 * the group around it. Both are there in 1.11 and later; the published
-	 * types describe the group only by the methods that add to it.
-	 */
+	/** Runtime fields missing from the published types. */
 	interface SettingGroup {
 		groupEl: HTMLElement;
 		listEl: HTMLElement;
 	}
 
-	/**
-	 * A row that leads somewhere: the chevron, the click, and the classes that
-	 * go with it, including `tappable` for the tap it should answer at once.
-	 * In the app since 1.13 and not in the published types.
-	 */
+	/** Obsidian 1.13 methods missing from the published types. */
 	interface Setting {
 		setNavigable(onNavigate: () => void): this;
-		/** The row is an action: accent text, and the whole of it clickable. */
 		setAction(onAction: () => void): this;
-		/** The icon a list row is drawn with, at the start of the row. */
 		setIcon(icon: IconName | null): this;
 	}
 
 	interface App {
-		// The settings window, which a setting tab has to open and close itself.
 		setting: {
 			open(): void;
 			close(): void;

@@ -2,13 +2,11 @@ import { App, Platform, PluginSettingTab, Setting, SettingPage } from 'obsidian'
 import { ImporterFlow, ImporterShell } from './importer-flow';
 import type ImporterPlugin from './main';
 
-/** One screen of an import, with the back button that leads out of it. */
 class ImportPage extends SettingPage {
 	constructor(private tab: ImporterSettingTab, title: string) {
 		super();
 
-		// The page is a sibling of the tab, not a child, so it needs the class
-		// the flow's own styles hang off in its own right.
+		// Setting pages are siblings of their tab.
 		this.rootEl.addClass('importer-flow');
 		this.title = title;
 	}
@@ -22,57 +20,31 @@ class ImportPage extends SettingPage {
 	}
 }
 
-/**
- * The import flow as a settings tab: the format list is the tab itself, and
- * every screen from there is a page opened over it, the way Settings shows
- * anything with more behind it. Its back button walks them one at a time.
- */
+/** Settings host for the shared import flow. */
 export class ImporterSettingTab extends PluginSettingTab implements ImporterShell {
 	plugin: ImporterPlugin;
 	flow: ImporterFlow;
 
-	/**
-	 * A phone has the way back where it expects one, in the titlebar of every
-	 * page Settings opens, and a second one under it would only say less. There
-	 * is room for it beside the other buttons on anything larger, which is
-	 * where the modal has always kept it.
-	 */
 	get ownsBackButton(): boolean {
 		return Platform.isPhone;
 	}
 
 	readonly ownsFocus: boolean = false;
 
-	/** Built by display(), under the heading the flow retitles per screen. */
 	private rootContentEl: HTMLElement;
 
-	/** Set in display(), not in a field initializer. */
 	private heading: Setting | null;
 
-	/**
-	 * The heading is rebuilt every time the tab is opened, and a screen only
-	 * titles itself when it is drawn: the import it comes back to would
-	 * otherwise sit under a blank heading.
-	 */
 	private title: string = '';
 
-	/** The pages open over the tab, one for each screen in front of it. */
 	private pages: ImportPage[] = [];
 
-	/** How deep the flow says it is, which is how many pages there should be. */
 	private depth: number = 0;
 
-	/** Whether the tab is the one Settings is showing. */
 	private visible: boolean = false;
 
-	/** Set between a page closing and the flow being told to step back. */
 	private pendingBack: boolean = false;
 
-	/**
-	 * The bar the screen's buttons are put in, which lives in the pane and
-	 * outlives the screens: taken out and put back for each of them, it would
-	 * be missing for as long as a page takes to slide.
-	 */
 	private barEl: HTMLElement | null = null;
 
 	constructor(app: App, plugin: ImporterPlugin) {
@@ -81,7 +53,6 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 		this.flow = new ImporterFlow(app, plugin, this);
 	}
 
-	/** Whichever is showing: the topmost page, or the tab under them all. */
 	get contentEl(): HTMLElement {
 		return this.topPage()?.containerEl ?? this.rootContentEl;
 	}
@@ -96,35 +67,25 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 		this.rootContentEl = containerEl.createDiv();
 		this.visible = true;
 
-		// A page just closed draws itself once the flow has stepped back to
-		// what is behind it; drawing here would put the screen that closed
-		// straight back on top.
+		// pageClosed redraws after the flow steps back.
 		if (!this.pendingBack) this.flow.attach();
 	}
 
 	hide(): void {
 		this.visible = false;
 
-		// The bar is the one thing the flow leaves outside the tab's own
-		// element, so it is the one thing emptying that element does not take.
 		this.barEl?.detach();
 		this.barEl = null;
 
 		this.flow.detach();
 	}
 
-	/**
-	 * Settings drew a page. Only the page the flow is on has anything to put
-	 * in it: the ones beneath are covered, and a screen that opened more than
-	 * one page at once left those it passed empty on the way.
-	 */
 	drawInPage(page: ImportPage): void {
 		if (page !== this.topPage() || this.pages.length !== this.depth) return;
 
 		this.flow.redraw();
 	}
 
-	/** A page was closed. By its back button, unless the flow closed it. */
 	pageClosed(page: ImportPage): void {
 		if (page !== this.topPage()) return;
 
@@ -132,15 +93,11 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 		const behind = this.pages.length;
 		this.pendingBack = true;
 
-		// Answered once Settings has finished with the page, both because
-		// stepping back closes pages of its own and because what else went
-		// with this one is how a step back is told from a teardown.
+		// Wait for Settings to finish updating the page stack.
 		queueMicrotask(() => {
 			this.pendingBack = false;
 
-			// The rest of the stack went too, or the tab did: Settings is
-			// putting the whole thing away rather than going back through it,
-			// and the flow keeps the screen it was on to be returned to.
+			// Stack changes beyond this page indicate teardown, not Back.
 			if (this.pages.length !== behind || !this.visible) return;
 
 			this.flow.back();
@@ -157,24 +114,13 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 		this.containerEl.toggleClass('is-picking-format', picking);
 	}
 
-	/**
-	 * The buttons belong to the pane rather than to the page that drew them. A
-	 * page is the scroller, and carries a transform for as long as it is
-	 * sliding; either would take a bar positioned inside it along, up the
-	 * screen and back down again. Moved out, it holds still while the pages
-	 * move under it.
-	 *
-	 * The page is still told it has one, since what it makes room for is its
-	 * own: the scroller ends where the bar begins.
-	 */
+	/** Keeps actions outside the scrolling, animated SettingPage. */
 	adoptButtonBar(barEl: HTMLElement | null): void {
 		(this.topPage()?.rootEl ?? this.containerEl).toggleClass('has-button-bar', !!barEl);
 
 		const hostEl = this.buttonBarHost();
 		if (!hostEl) return;
 
-		// What is on the way out is left to fade with the bar rather than
-		// disappearing from under it.
 		if (barEl) {
 			hostEl.empty();
 			hostEl.append(barEl);
@@ -183,12 +129,7 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 		hostEl.toggleClass('is-shown', !!barEl);
 	}
 
-	/**
-	 * The bar, made once. Found through the document rather than up from the
-	 * page, which may not be in one yet: a page fills itself on the way to
-	 * being opened. Settings can be a window of its own, and `ownerDocument` is
-	 * which one — an element detached between screens still answers.
-	 */
+	/** Uses the Settings window's document, which may differ from window.document. */
 	private buttonBarHost(): HTMLElement | null {
 		if (this.barEl?.isConnected) return this.barEl;
 
@@ -203,15 +144,12 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 		this.app.setting.close();
 	}
 
-	/** Show this tab, opening the settings window if it is not already open. */
 	open(): void {
 		const { setting } = this.app;
 
 		setting.open();
 
-		// Opening a tab clears the page stack, so a tab already showing is
-		// drawn again where it stands: asking for it would close the page the
-		// flow is about to draw into.
+		// Reopening the active tab would clear its SettingPage stack.
 		if (setting.activeTab === this) this.flow.attach();
 		else setting.openTabById(this.plugin.manifest.id);
 	}
@@ -220,11 +158,9 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 		this.open();
 	}
 
-	/** Open and close pages until there is one for every screen so far. */
 	private showPages(title: string): void {
 		while (this.pages.length > this.depth) {
-			// Popped first: closing calls back into pageClosed, which is for
-			// the back button, and this is the flow having moved by itself.
+			// Pop before close() re-enters pageClosed().
 			this.pages.pop();
 			this.app.setting.closePage();
 		}
@@ -240,7 +176,6 @@ export class ImporterSettingTab extends PluginSettingTab implements ImporterShel
 		else this.heading?.setName(title);
 	}
 
-	/** A page outlives the screen in it: choosing a method retitles it. */
 	private retitle(page: ImportPage, title: string): void {
 		page.title = title;
 		page.titlebarEl.querySelector('.setting-page-title')?.setText(title);
