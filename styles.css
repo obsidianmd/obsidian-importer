@@ -302,11 +302,17 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 		justify-content: space-between;
 		gap: var(--size-4-2);
 		text-align: start;
+		border-bottom: var(--setting-items-divider-width) solid var(--background-modifier-border);
+		padding: var(--size-4-2) 0;
+		&:last-child {
+			border-bottom: none;
+		}
 	}
 
 	.importer-stat-count {
 		order: 1;
-		font-size: var(--font-ui-medium);
+		font-size: var(--font-ui-small);
+		font-weight: var(--font-medium);
 	}
 }
 
