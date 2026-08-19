@@ -93,7 +93,14 @@ body.is-phone .modal.mod-settings .importer-button-bar {
 
 }
 
-body.is-mobile .modal.mod-settings .importer-button-bar .importer-step-buttons {
+/* A tablet has the width to read like the desktop: every screen's buttons in a
+   row, at the end of the bar. A phone only has the room on a step, where Back
+   is in the titlebar and what is left is Help and the way on. */
+body.is-mobile:not(.is-phone) .modal.mod-settings .importer-button-bar .modal-button-container {
+	flex-direction: row;
+}
+
+body.is-phone .modal.mod-settings .importer-button-bar .importer-step-buttons {
 	flex-direction: row;
 }
 
@@ -229,7 +236,9 @@ body.is-phone .modal.mod-settings .importer-button-bar {
 	pointer-events: none;
 }
 
-body.is-mobile .importer-progress-buttons .mod-destructive {
+/* Stacked, the buttons read down the screen, and stopping the import should
+   not be the one under the thumb. In a row it reads as it does anywhere else. */
+body.is-phone .importer-progress-buttons .mod-destructive {
 	order: -1;
 }
 
