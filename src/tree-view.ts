@@ -16,6 +16,11 @@ export interface TreeView<T extends ViewableNode<T>> {
 	onExpand?(node: T, rowEl: HTMLElement): Promise<boolean>;
 	redraw(): void;
 	/**
+	 * A selection has changed, and the rows it changed have been brought up to
+	 * date where they stand. Only what is drawn around them is left to answer.
+	 */
+	selectionChanged(): void;
+	/**
 	 * What a filter left, when one is on: everything else is left out, and what
 	 * is drawn is drawn open, since a match found inside a closed branch is the
 	 * whole point of having found it.
@@ -38,7 +43,7 @@ export interface TreePickerOptions<T extends ViewableNode<T>> {
 	loading: string;
 	empty: string;
 	failed(error: unknown): string;
-	view: Omit<TreeView<T>, 'redraw'>;
+	view: Omit<TreeView<T>, 'redraw' | 'selectionChanged'>;
 	onChange?(): void;
 	/** Hides the load button when selection loads the tree. */
 	loadsItself?: boolean;
@@ -176,10 +181,16 @@ export class TreePicker<T extends ViewableNode<T>> {
 				...this.options.view,
 				filtered,
 				redraw: () => this.render(),
+				selectionChanged: () => this.selectionChanged(),
 			});
 		});
 
 		this.filterEl.toggle(this.nodes.length > 0);
+		this.selectionChanged();
+	}
+
+	/** What is drawn around the tree, once what is in it has changed. */
+	private selectionChanged(): void {
 		this.toggleButton.setButtonText(areAllSelected(this.nodes) ? i18n.tree.buttonDeselectAll() : i18n.tree.buttonSelectAll());
 		this.options.onChange?.();
 	}
@@ -191,6 +202,36 @@ export function renderTreeNodes<T extends ViewableNode<T>>(container: HTMLElemen
 
 		renderTreeNode(container, node, view);
 	}
+}
+
+/**
+ * The boxes a selection just changed, in the rows they were drawn in. A node
+ * only ever carries its own descendants with it, so the row it was ticked in is
+ * as far up as this has to go.
+ */
+function refreshSelection<T extends ViewableNode<T>>(treeItem: HTMLElement, node: T, view: TreeView<T>): void {
+	// Not `instanceof`: Settings can be a window of its own, and a constructor
+	// from this one is not the constructor of what is in it.
+	const selfEl = treeItem.firstElementChild as HTMLElement | null;
+	const checkbox = selfEl?.querySelector<HTMLInputElement>('input.file-tree-item-checkbox');
+
+	if (checkbox) {
+		checkbox.checked = node.selected;
+		checkbox.disabled = node.disabled;
+	}
+
+	selfEl?.toggleClass('is-disabled', node.disabled);
+
+	const childrenEl = treeItem.lastElementChild;
+	if (!childrenEl || childrenEl === selfEl) return;
+
+	// The rows that were drawn, which is what a filter left of the children.
+	const drawn = (node.children ?? []).filter(child => !view.filtered || view.filtered.has(child));
+	const rows = Array.from(childrenEl.children) as HTMLElement[];
+
+	drawn.forEach((child, index) => {
+		if (rows[index]) refreshSelection(rows[index], child, view);
+	});
 }
 
 function renderTreeNode<T extends ViewableNode<T>>(container: HTMLElement, node: T, view: TreeView<T>): void {
@@ -224,12 +265,19 @@ function renderTreeNode<T extends ViewableNode<T>>(container: HTMLElement, node:
 	checkbox.checked = node.selected;
 	checkbox.disabled = node.disabled;
 
-	if (!node.disabled) {
-		checkbox.addEventListener('change', () => {
-			setNodeSelection(node, checkbox.checked);
-			view.redraw();
-		});
-	}
+	// Always listened for, since a row disabled by the selection above it is
+	// enabled again by the same box being unticked, without being drawn afresh.
+	checkbox.addEventListener('change', () => {
+		if (node.disabled) return;
+
+		setNodeSelection(node, checkbox.checked);
+
+		// A tick changes the boxes under it and nothing else, so the rows are
+		// brought up to date where they are. Redrawing the tree around the box
+		// being tapped is what takes the scroll with it.
+		refreshSelection(treeItem, node, view);
+		view.selectionChanged();
+	});
 
 	const iconEl = treeItemInner.createDiv('file-tree-item-icon');
 	setIcon(iconEl, view.icon(node));

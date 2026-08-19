@@ -79,11 +79,18 @@ export function nodesMatching<T extends NamedNode>(nodes: T[], query: string): S
 }
 
 export function redrawTree(container: HTMLElement, draw: () => void): void {
-	const scrollTop = container.scrollTop;
+	// Emptying the tree takes the height out from under whatever was scrolling
+	// it, and the scroll goes with it — the box itself where that is what
+	// scrolls, the page it sits on where the box is as tall as its contents.
+	const scrolled: [HTMLElement, number][] = [];
+	for (let el: HTMLElement | null = container; el; el = el.parentElement) {
+		if (el.scrollTop > 0) scrolled.push([el, el.scrollTop]);
+	}
 
 	container.empty();
 	draw();
 
-	// empty() resets the scroll position.
-	container.scrollTop = scrollTop;
+	for (const [el, scrollTop] of scrolled) {
+		if (el.scrollTop !== scrollTop) el.scrollTop = scrollTop;
+	}
 }
