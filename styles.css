@@ -210,6 +210,10 @@ body:not(.is-phone) .modal.mod-settings .importer-button-bar .importer-step-butt
 	font-variant: tabular-nums;
 }
 
+.is-mobile .importer-flow .setting-page-content {
+	padding-bottom: 20vh;
+}
+
 body.is-phone .importer-flow .modal-button-container {
 	padding-inline: 0;
 }
