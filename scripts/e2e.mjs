@@ -31,6 +31,26 @@ const CASES = [
 		note: 'entry-complex-metadata.md',
 	},
 	{
+		importer: 'markdown',
+		fixture: 'tests/markdown/frontmatter.md',
+		expected: 'tests/markdown/expected/frontmatter/tags-as-properties.md',
+		note: 'frontmatter.md',
+		options: { tagsAsProperties: true },
+	},
+	{
+		importer: 'markdown',
+		fixture: 'tests/markdown/tags.md',
+		expected: 'tests/markdown/tags.md',
+		note: 'tags.md',
+	},
+	{
+		importer: 'markdown',
+		fixture: 'tests/markdown/lists.md',
+		expected: 'tests/markdown/lists.md',
+		note: 'lists.md',
+		options: { standardizeFormatting: false },
+	},
+	{
 		// The one importer that writes into a folder of its own, which is what
 		// makes it worth running here: nothing creates the notebook's folder
 		// until a note goes into it, and Vault will not create a file inside a
@@ -107,7 +127,7 @@ const script = `
 			testCase.importer,
 			[repo + '/' + testCase.fixture],
 			folder,
-			importer => { importer.saveSourceId = false; });
+			importer => { importer.saveSourceId = false; Object.assign(importer, testCase.options || {}); });
 
 		const file = app.vault.getAbstractFileByPath(folder + '/' + testCase.note);
 		const produced = file ? await app.vault.read(file) : null;

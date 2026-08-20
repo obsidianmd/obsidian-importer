@@ -1286,6 +1286,58 @@ translation=Đặt 0 để Vô hiệu hóa.
 original=Downloading attachment for {{name}}
 translation=Đang tải tệp đính kèm cho {{name}}
 
+[importer.markdown.name]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.option-text]
+original=Markdown (.md, .zip)
+translation=Markdown (.md)
+
+[importer.markdown.file-type]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.desc-source]
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=Chọn từng tệp Markdown riêng lẻ, toàn bộ thư mục hoặc tệp zip. Mọi thứ trong thư mục được giữ nguyên cấu trúc.
+
+[importer.markdown.name-folders]
+original=Folders to import
+translation=Thư mục để nhập
+
+[importer.markdown.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=Mọi thứ trong các thư mục được chọn sẽ được nhập. Bỏ chọn thư mục để loại trừ chúng.
+
+[importer.markdown.msg-pick-source-first]
+original=Choose files or folders first.
+translation=Chọn tệp hoặc thư mục trước.
+
+[importer.markdown.msg-reading-folders]
+original=Reading folders...
+translation=Đang đọc thư mục...
+
+[importer.markdown.msg-no-folders]
+original=No folders found.
+translation=Không tìm thấy thư mục nào.
+
+[importer.markdown.name-standardize-formatting]
+original=Standardize formatting
+translation=Chuẩn hóa định dạng
+
+[importer.markdown.desc-standardize-formatting]
+original=Use this vault's settings for lists, indentation, and links.
+translation=Sử dụng cài đặt của kho này cho danh sách, thụt lề và liên kết.
+
+[importer.markdown.name-tags-as-properties]
+original=Convert inline tags to properties
+translation=Chuyển thẻ nội tuyến thành thuộc tính
+
+[importer.markdown.desc-tags-as-properties]
+original=Move tags written in the body of a note into its tags property.
+translation=Di chuyển các thẻ được viết trong nội dung của ghi chú vào thuộc tính thẻ của nó.
+
 [importer.onenote.name]
 original=Microsoft OneNote
 translation=Microsoft OneNote

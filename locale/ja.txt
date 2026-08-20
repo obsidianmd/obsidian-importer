@@ -1286,6 +1286,58 @@ translation=0 に設定すると無効化されます。
 original=Downloading attachment for {{name}}
 translation={{name}} の添付ファイルをダウンロード中
 
+[importer.markdown.name]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.option-text]
+original=Markdown (.md, .zip)
+translation=Markdown (.md)
+
+[importer.markdown.file-type]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.desc-source]
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=個別の Markdown ファイル、フォルダ全体、または zip ファイルを選択してください。フォルダ内の構造はそのまま維持されます。
+
+[importer.markdown.name-folders]
+original=Folders to import
+translation=インポートするフォルダ
+
+[importer.markdown.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=チェックされたフォルダ内のすべてがインポートされます。除外するにはフォルダのチェックを外してください。
+
+[importer.markdown.msg-pick-source-first]
+original=Choose files or folders first.
+translation=まずファイルまたはフォルダを選択してください。
+
+[importer.markdown.msg-reading-folders]
+original=Reading folders...
+translation=フォルダをリーディング中...
+
+[importer.markdown.msg-no-folders]
+original=No folders found.
+translation=フォルダが見つかりませんでした。
+
+[importer.markdown.name-standardize-formatting]
+original=Standardize formatting
+translation=書式を統一する
+
+[importer.markdown.desc-standardize-formatting]
+original=Use this vault's settings for lists, indentation, and links.
+translation=この保管庫の設定をリスト、インデント、かつリンクに使用します。
+
+[importer.markdown.name-tags-as-properties]
+original=Convert inline tags to properties
+translation=インラインタグをプロパティに変換
+
+[importer.markdown.desc-tags-as-properties]
+original=Move tags written in the body of a note into its tags property.
+translation=ノートの見出し解除に記述されたタグをタグプロパティに移動します。
+
 [importer.onenote.name]
 original=Microsoft OneNote
 translation=Microsoft OneNote

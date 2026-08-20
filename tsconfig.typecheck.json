@@ -2,6 +2,7 @@
 	"extends": "./tsconfig.json",
 	"compilerOptions": {
 		"rootDir": ".",
+		"target": "ES2018",
 		"skipLibCheck": true
 	},
 	"include": ["src/**/*.ts", "tests/**/*.ts"]

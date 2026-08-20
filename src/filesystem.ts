@@ -195,10 +195,10 @@ export class WebPickedFile implements PickedFile {
 	readonly basename: string;
 	readonly extension: string;
 
-	constructor(file: File) {
+	constructor(file: File, fullpath: string = file.name) {
 		this.file = file;
 		let name = this.name = file.name;
-		this.fullpath = name;
+		this.fullpath = fullpath;
 
 		let { basename, extension } = parseFilePath(name);
 
@@ -239,8 +239,61 @@ export class WebPickedFile implements PickedFile {
 	}
 
 	toString(): string {
-		return this.file.name;
+		return this.fullpath;
 	}
+}
+
+export class ListedFolder implements PickedFolder {
+	readonly type = 'folder' as const;
+
+	constructor(
+		readonly name: string,
+		readonly fullpath: string,
+		private readonly items: (PickedFile | PickedFolder)[],
+	) {}
+
+	async list(): Promise<(PickedFile | PickedFolder)[]> {
+		return this.items;
+	}
+
+	toString(): string {
+		return this.fullpath;
+	}
+}
+
+/** Rebuild a folder tree from paths attached to a flat file list. */
+export function pickedTree(entries: { path: string, file: PickedFile }[]): (PickedFile | PickedFolder)[] {
+	const top: (PickedFile | PickedFolder)[] = [];
+	const inside = new Map<string, (PickedFile | PickedFolder)[]>();
+
+	const folderAt = (path: string): (PickedFile | PickedFolder)[] => {
+		const existing = inside.get(path);
+		if (existing) return existing;
+
+		const items: (PickedFile | PickedFolder)[] = [];
+		inside.set(path, items);
+
+		const cut = path.lastIndexOf('/');
+		const parent = cut < 0 ? top : folderAt(path.slice(0, cut));
+		parent.push(new ListedFolder(path.slice(cut + 1), path, items));
+
+		return items;
+	};
+
+	for (const { path, file } of entries) {
+		const cut = path.lastIndexOf('/');
+		const into = cut < 0 ? top : folderAt(path.slice(0, cut));
+		into.push(file);
+	}
+
+	return top;
+}
+
+export function webPickedTree(files: File[]): (PickedFile | PickedFolder)[] {
+	return pickedTree(files.map(file => {
+		const path = file.webkitRelativePath || file.name;
+		return { path, file: new WebPickedFile(file, path) };
+	}));
 }
 
 export function dataTransferHasFiles(dataTransfer: DataTransfer): boolean {

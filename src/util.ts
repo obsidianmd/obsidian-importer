@@ -1,4 +1,4 @@
-import { App, FrontMatterCache, parseYaml, Platform, stringifyYaml, Vault, normalizePath } from 'obsidian';
+import { App, FrontMatterCache, getLanguage, parseYaml, Platform, stringifyYaml, Vault, normalizePath } from 'obsidian';
 
 const FRONT_MATTER_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 
@@ -214,6 +214,23 @@ export function serializeFrontMatter(frontMatter: FrontMatterCache): string {
 	}
 
 	return '';
+}
+
+/** Format a standalone count in the selected language. */
+export function countText(value: number): string {
+	return value.toLocaleString(getLanguage());
+}
+
+export function sameBytes(left: ArrayBuffer, right: ArrayBuffer): boolean {
+	if (left.byteLength !== right.byteLength) return false;
+
+	const a = new Uint8Array(left);
+	const b = new Uint8Array(right);
+	for (let at = 0; at < a.length; at++) {
+		if (a[at] !== b[at]) return false;
+	}
+
+	return true;
 }
 
 export function describeReason(reason: unknown): string {

@@ -1286,6 +1286,58 @@ translation=اضبط القيمة على 0 للتعطيل.
 original=Downloading attachment for {{name}}
 translation=جارٍ تنزيل المرفق لـ {{name}}
 
+[importer.markdown.name]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.option-text]
+original=Markdown (.md, .zip)
+translation=Markdown (.md)
+
+[importer.markdown.file-type]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.desc-source]
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=اختر ملفات Markdown فردية، أو مجلدات كاملة، أو ملفات مضغوطة. كل شيء في المجلدات يبقى منظمًا بنفس الطريقة.
+
+[importer.markdown.name-folders]
+original=Folders to import
+translation=المجلدات المراد استيرادها
+
+[importer.markdown.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=يتم استيراد كل شيء في المجلدات المحددة. ألغِ تحديد المجلدات لاستبعادها.
+
+[importer.markdown.msg-pick-source-first]
+original=Choose files or folders first.
+translation=اختر الملفات أو المجلدات أولاً.
+
+[importer.markdown.msg-reading-folders]
+original=Reading folders...
+translation=جارٍ قراءة المجلدات...
+
+[importer.markdown.msg-no-folders]
+original=No folders found.
+translation=لم يتم العثور على مجلدات.
+
+[importer.markdown.name-standardize-formatting]
+original=Standardize formatting
+translation=توحيد التنسيق
+
+[importer.markdown.desc-standardize-formatting]
+original=Use this vault's settings for lists, indentation, and links.
+translation=استخدم الإعدادات الخاصة بهذه الخزنة للقوائم و المسافات البادئة و الروابط.
+
+[importer.markdown.name-tags-as-properties]
+original=Convert inline tags to properties
+translation=تحويل الوسوم المضمّنة إلى خصائص
+
+[importer.markdown.desc-tags-as-properties]
+original=Move tags written in the body of a note into its tags property.
+translation=نقل الوسوم المكتوبة في الجسم الخاص بالملاحظة إلى خاصية الوسوم.
+
 [importer.onenote.name]
 original=Microsoft OneNote
 translation=Microsoft OneNote

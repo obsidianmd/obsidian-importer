@@ -12,6 +12,12 @@ export interface MarkdownOutput {
 	indentUnit: string;
 }
 
+/** Vault formatting, or null to preserve source Markdown. */
+export type MarkdownFormatting = MarkdownOutput | null;
+
+/** Resolve a source link whose imported destination no longer has the same path. */
+export type MarkdownLinkResolver = (path: string, sourcePath: string) => TFile | null;
+
 /** The step a conversion indents by before this runs. A tab counts as one too. */
 const CONVERSION_STEP = 4;
 
@@ -39,16 +45,16 @@ export function markdownOutputFor(vault: Vault): MarkdownOutput {
  * Compare against this rather than the converter's own output, or a note that
  * was formatted on the way in never matches and is rewritten every import.
  */
-export function formattedMarkdown(vault: Vault, content: string): string {
-	return formatMarkdown(content, markdownOutputFor(vault));
+export function formattedMarkdown(vault: Vault, content: string, formatting: MarkdownFormatting = markdownOutputFor(vault)): string {
+	return formatting ? formatMarkdown(content, formatting) : content;
 }
 
-export async function createMarkdown(vault: Vault, path: string, content: string, options?: DataWriteOptions): Promise<TFile> {
-	return await vault.create(path, formattedMarkdown(vault, content), options);
+export async function createMarkdown(vault: Vault, path: string, content: string, options?: DataWriteOptions, formatting?: MarkdownFormatting): Promise<TFile> {
+	return await vault.create(path, formattedMarkdown(vault, content, formatting), options);
 }
 
-export async function modifyMarkdown(vault: Vault, file: TFile, content: string, options?: DataWriteOptions): Promise<void> {
-	return await vault.modify(file, formattedMarkdown(vault, content), options);
+export async function modifyMarkdown(vault: Vault, file: TFile, content: string, options?: DataWriteOptions, formatting?: MarkdownFormatting): Promise<void> {
+	return await vault.modify(file, formattedMarkdown(vault, content, formatting), options);
 }
 
 type MarkdownChange = { from: number, to: number, text: string };
@@ -66,12 +72,27 @@ function escapePipes(text: string): string {
  * apply both `useMarkdownLinks` and `newLinkFormat` without each converter
  * having to reproduce link resolution itself.
  */
-export async function standardizedMarkdown(app: App, sourcePath: string, content: string): Promise<string> {
-	content = formattedMarkdown(app.vault, content);
-	return await standardizeLinks(app, sourcePath, content);
+export async function standardizedMarkdown(
+	app: App,
+	sourcePath: string,
+	content: string,
+	formatting?: MarkdownFormatting,
+	resolveLink?: MarkdownLinkResolver,
+): Promise<string> {
+	content = formattedMarkdown(app.vault, content, formatting);
+	return await standardizeLinks(app, sourcePath, content, formatting, resolveLink);
 }
 
-async function standardizeLinks(app: App, sourcePath: string, content: string): Promise<string> {
+async function standardizeLinks(
+	app: App,
+	sourcePath: string,
+	content: string,
+	formatting?: MarkdownFormatting,
+	resolveLink?: MarkdownLinkResolver,
+): Promise<string> {
+	const preserveStyle = formatting === null;
+	if (preserveStyle && !resolveLink) return content;
+
 	const cache = await computeMetadata(app, content);
 	if (!cache) return content;
 
@@ -85,11 +106,14 @@ async function standardizeLinks(app: App, sourcePath: string, content: string): 
 		...(cache.embeds ?? []).map(reference => ({ reference, embed: true })),
 	]) {
 		const { path, subpath } = parseLinktext(reference.link);
-		const target = app.metadataCache.getFirstLinkpathDest(path, sourcePath);
+		const mapped = resolveLink?.(path, sourcePath) ?? null;
+		const target = mapped ?? (preserveStyle ? null : app.metadataCache.getFirstLinkpathDest(path, sourcePath));
 		if (!target) continue;
 
-		let text = app.fileManager.generateMarkdownLink(target, sourcePath, subpath, reference.displayText);
-		if (embed) text = '!' + text;
+		let text = preserveStyle
+			? repairedLink(app, reference.original, target, sourcePath, subpath)
+			: app.fileManager.generateMarkdownLink(target, sourcePath, subpath, reference.displayText);
+		if (embed && !text.startsWith('!')) text = '!' + text;
 		if (inTable(reference.position.start.offset)) text = escapePipes(text);
 		changes.push({ from: reference.position.start.offset, to: reference.position.end.offset, text });
 	}
@@ -102,10 +126,59 @@ async function standardizeLinks(app: App, sourcePath: string, content: string): 
 	return content;
 }
 
-/** Standardize an imported file without changing its imported timestamps. */
-export async function standardizeMarkdownFile(app: App, file: TFile): Promise<void> {
+/** Replace a mapped target without changing link syntax. */
+function repairedLink(app: App, original: string, target: TFile, sourcePath: string, subpath: string): string {
+	const wikiStart = original.indexOf('[[');
+	if (wikiStart >= 0) {
+		const from = wikiStart + 2;
+		const alias = original.indexOf('|', from);
+		const to = alias >= 0 ? alias : original.length - 2;
+		const path = app.metadataCache.fileToLinktext(target, sourcePath, true) + subpath;
+		return original.slice(0, from) + path + original.slice(to);
+	}
+
+	const from = original.indexOf('](') + 2;
+	if (from < 2) return original;
+
+	const to = original.length - 1;
+	const raw = original.slice(from, to);
+	const angled = raw.startsWith('<') && raw.endsWith('>');
+	const relative = relativePath(sourcePath, target.path);
+	const path = (angled ? relative : encodeURI(relative)) + subpath;
+	const written = angled || /[\s()<>]/u.test(path) ? `<${path}>` : path;
+
+	return original.slice(0, from) + written + original.slice(to);
+}
+
+function relativePath(fromFile: string, toFile: string): string {
+	const from = fromFile.split('/').slice(0, -1);
+	const to = toFile.split('/');
+
+	while (from.length > 0 && to.length > 0 && from[0].toLowerCase() === to[0].toLowerCase()) {
+		from.shift();
+		to.shift();
+	}
+
+	return [...from.map(() => '..'), ...to].join('/');
+}
+
+/** Standardize links while preserving imported timestamps. */
+export async function standardizeMarkdownFile(
+	app: App,
+	file: TFile,
+	formatting?: MarkdownFormatting,
+	resolveLink?: MarkdownLinkResolver,
+): Promise<void> {
+	if (formatting === null && !resolveLink) return;
+
 	const original = await app.vault.read(file);
-	const standardized = await standardizeLinks(app, file.path, formattedMarkdown(app.vault, original));
+	const standardized = await standardizeLinks(
+		app,
+		file.path,
+		formattedMarkdown(app.vault, original, formatting),
+		formatting,
+		resolveLink,
+	);
 	if (standardized === original) return;
 
 	await app.vault.modify(file, standardized, { ctime: file.stat.ctime, mtime: file.stat.mtime });

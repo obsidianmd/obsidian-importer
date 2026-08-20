@@ -4,7 +4,7 @@ import { ANAccount, ANAttachment, ANContext, ANConverter, ANConverterType, ANFol
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../import-context';
 import { fs, fsPromises, nodeBufferToArrayBuffer, os, path, splitext, zlib } from '../filesystem';
-import { extensionFromBytes, extractErrorMessage, sanitizeFileName } from '../util';
+import { countText, extensionFromBytes, extractErrorMessage, sanitizeFileName } from '../util';
 import { describeFolderFailure, noAccessHint } from './apple-notes/errors';
 import { i18n } from '../i18n';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
@@ -194,7 +194,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				failed: describeFolderFailure,
 				view: {
 					icon: node => node.type === 'account' ? 'user' : 'folder',
-					flair: node => node.type === 'account' ? '' : String(node.notes),
+					flair: node => node.type === 'account' ? '' : countText(node.notes),
 				},
 				onChange: () => {
 					this.selectedFolders = selectedNodes(this.picker.nodes, node => node.type === 'folder').map(node => node.id);

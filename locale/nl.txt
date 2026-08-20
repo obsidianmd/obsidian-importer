@@ -1286,6 +1286,58 @@ translation=Stel 0 in om te deactiveren.
 original=Downloading attachment for {{name}}
 translation=Bijlage downloaden voor {{name}}
 
+[importer.markdown.name]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.option-text]
+original=Markdown (.md, .zip)
+translation=Markdown (.md)
+
+[importer.markdown.file-type]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.desc-source]
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=Kies individuele Markdown-bestanden, hele mappen of zip-bestanden. Alles in mappen behoudt dezelfde structuur.
+
+[importer.markdown.name-folders]
+original=Folders to import
+translation=Te importeren mappen
+
+[importer.markdown.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=Alles in aangevinkte mappen wordt geïmporteerd. Vink mappen uit om ze over te slaan.
+
+[importer.markdown.msg-pick-source-first]
+original=Choose files or folders first.
+translation=Kies eerst bestanden of mappen.
+
+[importer.markdown.msg-reading-folders]
+original=Reading folders...
+translation=Mappen worden gelezen...
+
+[importer.markdown.msg-no-folders]
+original=No folders found.
+translation=Geen mappen gevonden.
+
+[importer.markdown.name-standardize-formatting]
+original=Standardize formatting
+translation=Opmaak standaardiseren
+
+[importer.markdown.desc-standardize-formatting]
+original=Use this vault's settings for lists, indentation, and links.
+translation=Gebruik de instellingen van deze kluis voor lijsten, inspringen en links.
+
+[importer.markdown.name-tags-as-properties]
+original=Convert inline tags to properties
+translation=Inline Labels omzetten naar Eigenschappen
+
+[importer.markdown.desc-tags-as-properties]
+original=Move tags written in the body of a note into its tags property.
+translation=Verplaats Labels die in de Hoofdtekst van een notitie staan naar de eigenschap Labels.
+
 [importer.onenote.name]
 original=Microsoft OneNote
 translation=Microsoft OneNote

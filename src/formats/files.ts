@@ -72,12 +72,10 @@ export class FilesImporter extends FormatImporter {
 		return files.length;
 	}
 
-	takeDropped(dropped: (PickedFile | PickedFolder)[]): number {
+	takeDropped(dropped: (PickedFile | PickedFolder)[]): void {
 		this.dropped = dropped;
 		this.showDropped?.();
 		this.sourceChanged();
-
-		return dropped.length;
 	}
 
 	protected drawOutputSettings(contentEl: HTMLElement): void {

@@ -33,7 +33,6 @@ export class OneNoteFileImporter extends FormatImporter {
 	// Field initializers would overwrite values set by base-constructor init().
 	private picker: TreePicker<SectionNode>;
 	private loadedFrom = '';
-	private loadGeneration = 0;
 
 	init(): void {
 		this.addInstructions(this.addExportSetting(i18n.importer.onenoteFile.descExport()));
@@ -94,16 +93,13 @@ export class OneNoteFileImporter extends FormatImporter {
 			return;
 		}
 
-		const generation = ++this.loadGeneration;
-
-		await this.picker.load(async () => {
+		await this.picker.load(async isCurrent => {
 			const nodes: SectionNode[] = [];
 
 			for (const file of this.files) {
 				const data = new Uint8Array(await file.read());
 
-				// Ignore a read superseded while it was in progress.
-				if (generation !== this.loadGeneration) return this.picker.nodes;
+				if (!isCurrent()) return [];
 
 				const sections = listSections(data, file.name);
 
@@ -127,7 +123,7 @@ export class OneNoteFileImporter extends FormatImporter {
 				});
 			}
 
-			return generation === this.loadGeneration ? nodes : this.picker.nodes;
+			return nodes;
 		});
 	}
 

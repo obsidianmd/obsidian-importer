@@ -305,6 +305,47 @@ test('writes resolved links with Obsidian link settings after targets exist', as
 		'See [label](Folder/Target.md#Heading) and ![](assets/image.png).');
 });
 
+test('repairs mapped links without baking in the import folder or encoding angled spaces', async () => {
+	const wiki = '[[Journal?/A day: one|day]]';
+	const markdownLink = '[d](<Journal?/A day: one.md>)';
+	const markdown = `${wiki} and ${markdownLink}`;
+	const at = (text: string) => {
+		const start = markdown.indexOf(text);
+		return { start: { offset: start }, end: { offset: start + text.length } };
+	};
+	const target = { path: 'Import/Notes/Journal/A day one.md' };
+	const app = {
+		vault: { getConfig: () => false },
+		metadataCache: {
+			computeMetadataAsync: async () => ({
+				links: [
+					{ link: 'Journal?/A day: one', original: wiki, position: at(wiki) },
+					{ link: 'Journal?/A day: one.md', original: markdownLink, position: at(markdownLink) },
+				],
+			}),
+			fileToLinktext: () => 'A day one',
+		},
+		fileManager: {},
+	} as never;
+
+	assert.equal(
+		await standardizedMarkdown(app, 'Import/Notes/Index.md', markdown, null, () => target as never),
+		'[[A day one|day]] and [d](<Journal/A day one.md>)',
+	);
+});
+
+test('does not parse source-formatted Markdown when no paths need repair', async () => {
+	const markdown = 'Left [[alone]].';
+	const app = {
+		vault: { getConfig: () => false },
+		metadataCache: {
+			computeMetadataAsync: async () => { throw new Error('metadata should not be computed'); },
+		},
+	} as never;
+
+	assert.equal(await standardizedMarkdown(app, 'Note.md', markdown, null), markdown);
+});
+
 test('an alias written into a table cell does not end the cell', async () => {
 	const markdown = [
 		'| Col |',

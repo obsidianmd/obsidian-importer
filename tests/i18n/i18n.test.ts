@@ -11,10 +11,6 @@ import { availableLanguages, bundleFor, i18n, setLanguage } from '../../src/i18n
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
-/**
- * Every translated language, read the way the plugin reads it, so these checks
- * cover the reconstruction from the shared key order as well as the strings.
- */
 function bundles(): Array<[string, Bundle]> {
 	return availableLanguages()
 		.filter(language => language !== 'en')
@@ -127,13 +123,11 @@ test('the French strings that sit next to other text still read as sentences', (
 	assert.doesNotMatch(i18n.importer.notionApi.descToken(), / $/);
 	assert.doesNotMatch(i18n.importer.keep.descExport(), / $/);
 
-	// One of something is singular.
+	// Singular and plural forms.
 	assert.equal(i18n.progress.labelRemaining({ count: 1 }), '1 restante...');
 	assert.equal(i18n.progress.labelRemaining({ count: 4 }), '4 restantes...');
 	assert.equal(i18n.progress.labelPausedRemaining({ count: 1 }), 'En pause - 1 restante');
 
-	// A Notion block kind and an attachment kind are French too, and the label
-	// carries the article the sentence around it cannot know to use.
 	const children = (context: string) => i18n.importer.notionApi.labelFetchChildren({ context, id: 'abc' });
 	assert.equal(children(i18n.importer.notionApi.blockParagraph()), 'Récupération des enfants du paragraphe abc');
 	assert.equal(children(i18n.importer.notionApi.blockColumn()), 'Récupération des enfants de la colonne abc');

@@ -6,3 +6,5 @@
  * back are the same thing. Nothing about its behaviour changed here.
  */
 export { MemoryVault, memoryApp } from '../../web/obsidian/vault';
+
+export { browserApp as indexedApp } from '../../web/obsidian/metadata';

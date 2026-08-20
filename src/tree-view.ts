@@ -1,6 +1,6 @@
 import { ButtonComponent, IconName, SearchComponent, setIcon, Setting } from 'obsidian';
 import { i18n } from './i18n';
-import { areAllSelected, nodesMatching, redrawTree, SelectableNode, setAllSelection, setNodeSelection } from './tree';
+import { areAllSelected, areAnySelected, nodesMatching, redrawTree, SelectableNode, setAllSelection, setNodeSelection } from './tree';
 
 
 export interface ViewableNode<T extends SelectableNode> extends SelectableNode {
@@ -51,6 +51,7 @@ export class TreePicker<T extends ViewableNode<T>> {
 	private filterEl: HTMLElement;
 	private search: SearchComponent;
 	private query: string = '';
+	private loadGeneration: number = 0;
 
 	constructor(containerEl: HTMLElement, private options: TreePickerOptions<T>) {
 		const setting = (options.setting ?? new Setting(containerEl))
@@ -101,7 +102,10 @@ export class TreePicker<T extends ViewableNode<T>> {
 		this.sectionEl.toggle(shown);
 	}
 
-	async load(load: () => Promise<T[]>): Promise<void> {
+	async load(load: (isCurrent: () => boolean) => Promise<T[]>): Promise<void> {
+		const generation = ++this.loadGeneration;
+		const isCurrent = () => generation === this.loadGeneration;
+
 		this.nodes = [];
 		this.clearFilter();
 		this.toggleButton.buttonEl.hide();
@@ -109,17 +113,22 @@ export class TreePicker<T extends ViewableNode<T>> {
 		this.setStatus(this.options.loading);
 
 		try {
-			this.nodes = await load();
+			const nodes = await load(isCurrent);
+			if (!isCurrent()) return;
+
+			this.nodes = nodes;
 			this.render();
 			if (this.nodes.length > 0) this.toggleButton.buttonEl.show();
 		}
 		catch (e) {
+			if (!isCurrent()) return;
+
 			this.setStatus(this.options.failed(e));
 			this.options.onChange?.();
 			throw e;
 		}
 		finally {
-			this.loadButton.setDisabled(false).setButtonText(i18n.tree.buttonRefresh());
+			if (isCurrent()) this.loadButton.setDisabled(false).setButtonText(i18n.tree.buttonRefresh());
 		}
 	}
 
@@ -128,9 +137,10 @@ export class TreePicker<T extends ViewableNode<T>> {
 	}
 
 	reset(): void {
+		this.loadGeneration++;
 		this.nodes = [];
 		this.toggleButton.buttonEl.hide();
-		this.loadButton.setButtonText(i18n.tree.buttonLoad());
+		this.loadButton.setDisabled(false).setButtonText(i18n.tree.buttonLoad());
 		this.clearFilter();
 		this.setStatus(this.options.hint);
 		this.options.onChange?.();
@@ -174,12 +184,27 @@ export class TreePicker<T extends ViewableNode<T>> {
 	}
 }
 
-export function renderTreeNodes<T extends ViewableNode<T>>(container: HTMLElement, nodes: T[], view: TreeView<T>): void {
+export function renderTreeNodes<T extends ViewableNode<T>>(container: HTMLElement, nodes: T[], view: TreeView<T>, above: Ancestor<T>[] = []): void {
 	for (const node of nodes) {
 		if (view.filtered && !view.filtered.has(node)) continue;
 
-		renderTreeNode(container, node, view);
+		renderTreeNode(container, node, view, above);
 	}
+}
+
+interface Ancestor<T extends ViewableNode<T>> {
+	checkbox: HTMLInputElement;
+	node: T;
+}
+
+/** Obsidian styles indeterminate checkboxes through this data attribute. */
+function setSelectionState<T extends ViewableNode<T>>(checkbox: HTMLInputElement, node: T): void {
+	const children = node.children ?? [];
+	const all = node.selected && areAllSelected(children);
+	const some = !all && (node.selected || areAnySelected(children));
+
+	checkbox.checked = all;
+	checkbox.setAttr('data-indeterminate', some);
 }
 
 function refreshSelection<T extends ViewableNode<T>>(treeItem: HTMLElement, node: T, view: TreeView<T>): void {
@@ -188,8 +213,8 @@ function refreshSelection<T extends ViewableNode<T>>(treeItem: HTMLElement, node
 	const checkbox = selfEl?.querySelector<HTMLInputElement>('input.file-tree-item-checkbox');
 
 	if (checkbox) {
-		checkbox.checked = node.selected;
 		checkbox.disabled = node.disabled;
+		setSelectionState(checkbox, node);
 	}
 
 	selfEl?.toggleClass('is-disabled', node.disabled);
@@ -205,7 +230,7 @@ function refreshSelection<T extends ViewableNode<T>>(treeItem: HTMLElement, node
 	});
 }
 
-function renderTreeNode<T extends ViewableNode<T>>(container: HTMLElement, node: T, view: TreeView<T>): void {
+function renderTreeNode<T extends ViewableNode<T>>(container: HTMLElement, node: T, view: TreeView<T>, above: Ancestor<T>[] = []): void {
 	const children = node.children ?? [];
 	const collapsible = view.isCollapsible?.(node) ?? children.length > 0;
 
@@ -231,8 +256,8 @@ function renderTreeNode<T extends ViewableNode<T>>(container: HTMLElement, node:
 	const treeItemInner = treeItemSelf.createDiv('tree-item-inner file-tree-item');
 
 	const checkbox = treeItemInner.createEl('input', { type: 'checkbox', cls: 'file-tree-item-checkbox' });
-	checkbox.checked = node.selected;
 	checkbox.disabled = node.disabled;
+	setSelectionState(checkbox, node);
 
 	checkbox.addEventListener('change', () => {
 		if (node.disabled) return;
@@ -240,6 +265,7 @@ function renderTreeNode<T extends ViewableNode<T>>(container: HTMLElement, node:
 		setNodeSelection(node, checkbox.checked);
 
 		refreshSelection(treeItem, node, view);
+		for (const ancestor of above) setSelectionState(ancestor.checkbox, ancestor.node);
 		view.selectionChanged();
 	});
 
@@ -256,7 +282,7 @@ function renderTreeNode<T extends ViewableNode<T>>(container: HTMLElement, node:
 	const childrenContainer = treeItem.createDiv('tree-item-children');
 	if (folded) childrenContainer.hide();
 
-	renderTreeNodes(childrenContainer, children, view);
+	renderTreeNodes(childrenContainer, children, view, [...above, { checkbox, node }]);
 
 	if (collapseIcon) {
 		const fold = () => {

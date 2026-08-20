@@ -1286,6 +1286,58 @@ translation=Mettre 0 pour désactiver.
 original=Downloading attachment for {{name}}
 translation=Téléchargement d'une pièce jointe pour {{name}}
 
+[importer.markdown.name]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.option-text]
+original=Markdown (.md, .zip)
+translation=Markdown (.md)
+
+[importer.markdown.file-type]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.desc-source]
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=Choisir des fichiers Markdown individuels, des dossiers entiers ou des fichiers zip. L'arborescence des dossiers est préservée.
+
+[importer.markdown.name-folders]
+original=Folders to import
+translation=Dossiers à importer
+
+[importer.markdown.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=Tout le contenu des dossiers cochés est importé. Décochez les dossiers pour les exclure.
+
+[importer.markdown.msg-pick-source-first]
+original=Choose files or folders first.
+translation=Choisir d'abord des fichiers ou des dossiers.
+
+[importer.markdown.msg-reading-folders]
+original=Reading folders...
+translation=Lecture des dossiers…
+
+[importer.markdown.msg-no-folders]
+original=No folders found.
+translation=Aucun dossier trouvé.
+
+[importer.markdown.name-standardize-formatting]
+original=Standardize formatting
+translation=Standardiser le formatage
+
+[importer.markdown.desc-standardize-formatting]
+original=Use this vault's settings for lists, indentation, and links.
+translation=Utiliser les paramètres de ce coffre pour les listes, l'indentation et les liens.
+
+[importer.markdown.name-tags-as-properties]
+original=Convert inline tags to properties
+translation=Convertir les mots-clés en ligne en propriétés
+
+[importer.markdown.desc-tags-as-properties]
+original=Move tags written in the body of a note into its tags property.
+translation=Déplacer les mots-clés écrits dans le Corps d'une note vers sa propriété Mots-clés.
+
 [importer.onenote.name]
 original=Microsoft OneNote
 translation=Microsoft OneNote

@@ -1286,6 +1286,58 @@ translation=設為 0 以停用。
 original=Downloading attachment for {{name}}
 translation=正在下載 {{name}} 的附件
 
+[importer.markdown.name]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.option-text]
+original=Markdown (.md, .zip)
+translation=Markdown (.md)
+
+[importer.markdown.file-type]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.desc-source]
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=選擇個別 Markdown 檔案、整個資料夾或 zip 檔案。資料夾中的所有內容將保持相同的組織結構。
+
+[importer.markdown.name-folders]
+original=Folders to import
+translation=要匯入的資料夾
+
+[importer.markdown.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=已勾選資料夾中的所有內容都會被匯入。取消勾選資料夾以排除它們。
+
+[importer.markdown.msg-pick-source-first]
+original=Choose files or folders first.
+translation=請先選擇檔案或資料夾。
+
+[importer.markdown.msg-reading-folders]
+original=Reading folders...
+translation=正在閱讀資料夾...
+
+[importer.markdown.msg-no-folders]
+original=No folders found.
+translation=未找到資料夾。
+
+[importer.markdown.name-standardize-formatting]
+original=Standardize formatting
+translation=標準化格式
+
+[importer.markdown.desc-standardize-formatting]
+original=Use this vault's settings for lists, indentation, and links.
+translation=使用此保管庫的設定來處理列表、縮排且連結。
+
+[importer.markdown.name-tags-as-properties]
+original=Convert inline tags to properties
+translation=將行內標籤轉換為屬性
+
+[importer.markdown.desc-tags-as-properties]
+original=Move tags written in the body of a note into its tags property.
+translation=將寫在筆記內容中的標籤移至其標籤屬性中。
+
 [importer.onenote.name]
 original=Microsoft OneNote
 translation=Microsoft OneNote

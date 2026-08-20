@@ -1286,6 +1286,58 @@ translation=Sätt 0 för att inaktivera.
 original=Downloading attachment for {{name}}
 translation=Laddar ner bilaga för {{name}}
 
+[importer.markdown.name]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.option-text]
+original=Markdown (.md, .zip)
+translation=Markdown (.md)
+
+[importer.markdown.file-type]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.desc-source]
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=Välj enskilda Markdown-filer, hela mappar eller zip-filer. Allt i mappar behåller sin ursprungliga struktur.
+
+[importer.markdown.name-folders]
+original=Folders to import
+translation=Mappar att importera
+
+[importer.markdown.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=Allt i markerade mappar importeras. Avmarkera mappar för att exkludera dem.
+
+[importer.markdown.msg-pick-source-first]
+original=Choose files or folders first.
+translation=Välj filer eller mappar först.
+
+[importer.markdown.msg-reading-folders]
+original=Reading folders...
+translation=Läsning av mappar...
+
+[importer.markdown.msg-no-folders]
+original=No folders found.
+translation=Inga mappar hittades.
+
+[importer.markdown.name-standardize-formatting]
+original=Standardize formatting
+translation=Standardisera formatering
+
+[importer.markdown.desc-standardize-formatting]
+original=Use this vault's settings for lists, indentation, and links.
+translation=Använd det här valvets inställningar för listor, indrag och Länkar.
+
+[importer.markdown.name-tags-as-properties]
+original=Convert inline tags to properties
+translation=Konvertera inline-taggar till Egenskaper
+
+[importer.markdown.desc-tags-as-properties]
+original=Move tags written in the body of a note into its tags property.
+translation=Flytta Taggar skrivna i Brödtext till anteckningens taggar-egenskap.
+
 [importer.onenote.name]
 original=Microsoft OneNote
 translation=Microsoft OneNote

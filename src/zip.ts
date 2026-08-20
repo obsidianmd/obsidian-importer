@@ -1,6 +1,6 @@
 import { BlobReader, BlobWriter, Entry, Uint8ArrayWriter, ZipReader } from '@zip.js/zip.js';
 import { decodeText } from './encoding';
-import { parseFilePath, PickedFile } from './filesystem';
+import { parseFilePath, PickedFile, PickedFolder, pickedTree } from './filesystem';
 
 interface FileEntry extends Entry {
 	directory: false;
@@ -69,4 +69,14 @@ export async function readZip(file: PickedFile, callback: (zip: ZipReader<unknow
 
 		return callback(zip, files);
 	});
+}
+
+/** macOS metadata and other hidden paths. */
+const HIDDEN = /(?:^|\/)(?:__MACOSX\/|\.)/;
+
+/** Build the source tree while the archive backing its entries remains open. */
+export function zipContents(entries: ZipEntryFile[]): (PickedFile | PickedFolder)[] {
+	return pickedTree(entries
+		.filter(entry => !HIDDEN.test(entry.filepath))
+		.map(entry => ({ path: entry.filepath, file: entry })));
 }

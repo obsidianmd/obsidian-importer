@@ -1286,6 +1286,58 @@ translation=Установите 0, чтобы отключить.
 original=Downloading attachment for {{name}}
 translation=Загрузка вложения для {{name}}
 
+[importer.markdown.name]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.option-text]
+original=Markdown (.md, .zip)
+translation=Markdown (.md)
+
+[importer.markdown.file-type]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.desc-source]
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=Выберите отдельные файлы Markdown, целые папки или zip-архивы. Структура папок сохраняется без изменений.
+
+[importer.markdown.name-folders]
+original=Folders to import
+translation=Папки для импорта
+
+[importer.markdown.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=Всё содержимое отмеченных папок будет импортировано. Снимите флажок, чтобы исключить папки.
+
+[importer.markdown.msg-pick-source-first]
+original=Choose files or folders first.
+translation=Сначала выберите файлы или папки.
+
+[importer.markdown.msg-reading-folders]
+original=Reading folders...
+translation=Чтение папок...
+
+[importer.markdown.msg-no-folders]
+original=No folders found.
+translation=Папки не найдены.
+
+[importer.markdown.name-standardize-formatting]
+original=Standardize formatting
+translation=Стандартизировать форматирование
+
+[importer.markdown.desc-standardize-formatting]
+original=Use this vault's settings for lists, indentation, and links.
+translation=Использовать настройки этого хранилища для списков, отступов и ссылок.
+
+[importer.markdown.name-tags-as-properties]
+original=Convert inline tags to properties
+translation=Преобразовать встроенные теги в свойства
+
+[importer.markdown.desc-tags-as-properties]
+original=Move tags written in the body of a note into its tags property.
+translation=Перенести теги, написанные в теле заметки, в её свойство тегов.
+
 [importer.onenote.name]
 original=Microsoft OneNote
 translation=Microsoft OneNote

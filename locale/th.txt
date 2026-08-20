@@ -1286,6 +1286,58 @@ translation=ตั้งค่า 0 เพื่อปิดใช้งาน
 original=Downloading attachment for {{name}}
 translation=กำลังดาวน์โหลดไฟล์แนบสำหรับ {{name}}
 
+[importer.markdown.name]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.option-text]
+original=Markdown (.md, .zip)
+translation=Markdown (.md)
+
+[importer.markdown.file-type]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.desc-source]
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=เลือกไฟล์ Markdown แต่ละไฟล์ โฟลเดอร์ทั้งหมด หรือไฟล์ zip ทุกอย่างในโฟลเดอร์จะถูกจัดเรียงในรูปแบบเดิม
+
+[importer.markdown.name-folders]
+original=Folders to import
+translation=โฟลเดอร์ที่จะนำเข้า
+
+[importer.markdown.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=ทุกอย่างในโฟลเดอร์ที่เลือกไว้จะถูกนำเข้า ยกเลิกการเลือกโฟลเดอร์เพื่อไม่รวมโฟลเดอร์นั้น
+
+[importer.markdown.msg-pick-source-first]
+original=Choose files or folders first.
+translation=เลือกไฟล์หรือโฟลเดอร์ก่อน
+
+[importer.markdown.msg-reading-folders]
+original=Reading folders...
+translation=กำลังอ่านโฟลเดอร์...
+
+[importer.markdown.msg-no-folders]
+original=No folders found.
+translation=ไม่พบโฟลเดอร์
+
+[importer.markdown.name-standardize-formatting]
+original=Standardize formatting
+translation=ปรับรูปแบบให้เป็นมาตรฐาน
+
+[importer.markdown.desc-standardize-formatting]
+original=Use this vault's settings for lists, indentation, and links.
+translation=ใช้การตั้งค่าของห้องนิรภัยนี้สำหรับรายการ การเยื้อง และลิงก์
+
+[importer.markdown.name-tags-as-properties]
+original=Convert inline tags to properties
+translation=แปลงแท็กในบรรทัดเป็นคุณสมบัติ
+
+[importer.markdown.desc-tags-as-properties]
+original=Move tags written in the body of a note into its tags property.
+translation=ย้ายแท็กที่เขียนในเนื้อหาของโน้ตไปยังคุณสมบัติแท็ก
+
 [importer.onenote.name]
 original=Microsoft OneNote
 translation=Microsoft OneNote

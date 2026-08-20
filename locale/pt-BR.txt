@@ -1286,6 +1286,58 @@ translation=Defina 0 para desativar.
 original=Downloading attachment for {{name}}
 translation=Baixando anexo para {{name}}
 
+[importer.markdown.name]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.option-text]
+original=Markdown (.md, .zip)
+translation=Markdown (.md)
+
+[importer.markdown.file-type]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.desc-source]
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=Escolher arquivos Markdown individuais, pastas inteiras ou arquivos zip. Tudo nas pastas mantém a mesma organização.
+
+[importer.markdown.name-folders]
+original=Folders to import
+translation=Pastas para importar
+
+[importer.markdown.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=Tudo nas pastas marcadas será importado. Desmarque pastas para excluí-las.
+
+[importer.markdown.msg-pick-source-first]
+original=Choose files or folders first.
+translation=Escolher arquivos ou pastas primeiro.
+
+[importer.markdown.msg-reading-folders]
+original=Reading folders...
+translation=Leitura de pastas...
+
+[importer.markdown.msg-no-folders]
+original=No folders found.
+translation=Nenhuma pasta encontrada.
+
+[importer.markdown.name-standardize-formatting]
+original=Standardize formatting
+translation=Padronizar formatação
+
+[importer.markdown.desc-standardize-formatting]
+original=Use this vault's settings for lists, indentation, and links.
+translation=Usar as configurações deste cofre para listas, indentação e links.
+
+[importer.markdown.name-tags-as-properties]
+original=Convert inline tags to properties
+translation=Converter etiquetas inline em Propriedades
+
+[importer.markdown.desc-tags-as-properties]
+original=Move tags written in the body of a note into its tags property.
+translation=Mover as etiquetas escritas no Texto de uma nota para sua propriedade de Etiquetas.
+
 [importer.onenote.name]
 original=Microsoft OneNote
 translation=Microsoft OneNote

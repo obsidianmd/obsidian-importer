@@ -1286,6 +1286,58 @@ translation=Nastavte 0 pro vypnutí.
 original=Downloading attachment for {{name}}
 translation=Stahování přílohy pro {{name}}
 
+[importer.markdown.name]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.option-text]
+original=Markdown (.md, .zip)
+translation=Markdown (.md)
+
+[importer.markdown.file-type]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.desc-source]
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=Vyberte jednotlivé Markdown soubory, celé složky nebo zip soubory. Vše ve složkách zůstane uspořádáno stejným způsobem.
+
+[importer.markdown.name-folders]
+original=Folders to import
+translation=Složky k importu
+
+[importer.markdown.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=Vše v zaškrtnutých složkách bude importováno. Odškrtněte složky, které chcete vyloučit.
+
+[importer.markdown.msg-pick-source-first]
+original=Choose files or folders first.
+translation=Nejprve vyberte soubory nebo složky.
+
+[importer.markdown.msg-reading-folders]
+original=Reading folders...
+translation=Čtení složek...
+
+[importer.markdown.msg-no-folders]
+original=No folders found.
+translation=Nebyly nalezeny žádné složky.
+
+[importer.markdown.name-standardize-formatting]
+original=Standardize formatting
+translation=Standardizovat formátování
+
+[importer.markdown.desc-standardize-formatting]
+original=Use this vault's settings for lists, indentation, and links.
+translation=Použít nastavení tohoto trezoru pro seznamy, odsazení a Odkazy.
+
+[importer.markdown.name-tags-as-properties]
+original=Convert inline tags to properties
+translation=Převést vložené tagy na vlastnosti
+
+[importer.markdown.desc-tags-as-properties]
+original=Move tags written in the body of a note into its tags property.
+translation=Přesunout tagy zapsané v textu poznámky do její vlastnosti tagy.
+
 [importer.onenote.name]
 original=Microsoft OneNote
 translation=Microsoft OneNote

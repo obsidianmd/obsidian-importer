@@ -1,11 +1,11 @@
 import { App, DataWriteOptions, debounce, normalizePath, Platform, SecretComponent, Setting, SettingGroup, TFile, TFolder, Vault } from 'obsidian';
-import { getAllFiles, NodePickedFile, NodePickedFolder, parseFilePath, PickedFile, PickedFolder, WebPickedFile } from './filesystem';
+import { getAllFiles, NodePickedFile, NodePickedFolder, parseFilePath, PickedFile, PickedFolder, WebPickedFile, webPickedTree } from './filesystem';
 import { HostPlugin } from './plugin-data';
 import { AuthCallback, helpUrl } from './constants';
 import { FolderSuggest } from './folder-suggest';
 import { ImportContext } from './import-context';
 import { formatImportReport, importReportName } from './import-report';
-import { createMarkdown, formatMarkdown, markdownOutputFor, modifyMarkdown, standardizedMarkdown, standardizeMarkdownFile } from './markdown-output';
+import { createMarkdown, formattedMarkdown, MarkdownFormatting, MarkdownLinkResolver, modifyMarkdown, standardizedMarkdown, standardizeMarkdownFile } from './markdown-output';
 import { i18n } from './i18n';
 import { availableFileName, getUniqueFilePath, parseFrontMatterBlock, sanitizeFileName, sanitizeFilePath, serializeFrontMatter } from './util';
 
@@ -163,6 +163,9 @@ export abstract class FormatImporter {
 	host: ImporterHost;
 
 	files: PickedFile[] = [];
+
+	chosen: (PickedFile | PickedFolder)[] = [];
+
 	outputLocation: string = '';
 	notAvailable: boolean = false;
 
@@ -190,6 +193,9 @@ export abstract class FormatImporter {
 
 	// Controls which interruption buttons the importer supports.
 	interruption: 'none' | 'stop' | 'pause' = 'none';
+
+	/** Preserve picked folders instead of flattening them to accepted files. */
+	protected keepsFolders: boolean = false;
 
 	/** Cached value for getOutputFolder. Do not use directly. */
 	private outputFolder: TFolder | null = null;
@@ -518,6 +524,10 @@ export abstract class FormatImporter {
 		const { listEl } = this.startGroupIn(contentEl).addClass('mod-list');
 		this.endGroupIn(contentEl);
 
+		const win = contentEl.doc.defaultView;
+		const canChooseFolders = Platform.isDesktopApp
+			|| (!!win && 'webkitdirectory' in win.HTMLInputElement.prototype);
+
 		const chooseFiles = async () => {
 			if (Platform.isDesktopApp) {
 				const properties = ['openFile', 'dontAddToRecent'];
@@ -529,17 +539,23 @@ export abstract class FormatImporter {
 				}, defaultPath);
 
 				if (filePaths.length > 0) {
-					addFiles(filePaths.map((filepath: string) => new NodePickedFile(filepath)));
+					void addChosen(filePaths.map((filepath: string) => new NodePickedFile(filepath)));
 				}
 
 				return;
 			}
 
-			// iOS ignores clicks on detached file inputs.
+			chooseFromWeb(false);
+		};
+
+		// iOS ignores clicks on detached file inputs.
+		const chooseFromWeb = (folder: boolean) => {
 			const inputEl = contentEl.doc.body.createEl('input', { cls: 'importer-file-input' });
 			inputEl.type = 'file';
 			inputEl.multiple = allowMultiple;
-			inputEl.accept = extensions.map(e => '.' + e.toLowerCase()).join(',');
+
+			if (folder) inputEl.webkitdirectory = true;
+			else inputEl.accept = extensions.map(e => '.' + e.toLowerCase()).join(',');
 
 			inputEl.addEventListener('change', () => {
 				const files = Array.from(inputEl.files ?? []);
@@ -547,8 +563,11 @@ export abstract class FormatImporter {
 
 				if (files.length === 0) return;
 
-				addFiles(files.map(file => new WebPickedFile(file))
-					.filter(file => extensions.contains(file.extension)));
+				if (folder) void addFolders(webPickedTree(files));
+				else {
+					void addChosen(files.map(file => new WebPickedFile(file))
+						.filter(file => extensions.contains(file.extension)));
+				}
 			});
 
 			inputEl.addEventListener('cancel', () => inputEl.detach());
@@ -557,6 +576,11 @@ export abstract class FormatImporter {
 		};
 
 		const chooseFolders = async () => {
+			if (!Platform.isDesktopApp) {
+				chooseFromWeb(true);
+				return;
+			}
+
 			const filePaths = this.chooseFrom({
 				title: i18n.source.dialogPickFolders(),
 				properties: ['openDirectory', 'multiSelections', 'dontAddToRecent'],
@@ -564,23 +588,24 @@ export abstract class FormatImporter {
 
 			if (filePaths.length === 0) return;
 
+			await addFolders(filePaths.map((filepath: string) => new NodePickedFolder(filepath)));
+		};
+
+		const addFolders = async (folders: (PickedFile | PickedFolder)[]) => {
 			drawState(i18n.source.msgReadingFolders());
 
-			const folders = filePaths.map((filepath: string) => new NodePickedFolder(filepath));
-			addFiles(await getAllFiles(folders, (file: PickedFile) => extensions.contains(file.extension)));
+			await addChosen(this.keepsFolders ? folders : await this.filesInside(folders));
 		};
 
-		const addFiles = (picked: PickedFile[]) => {
-			if (!allowMultiple) {
-				this.files = picked.slice(0, 1);
-				updateFiles();
-				return;
-			}
+		const setChosen = async (chosen: (PickedFile | PickedFolder)[]) => {
+			this.chosen = chosen;
 
-			const seen = new Set(this.files.map(file => file.toString()));
-			this.files = [...this.files, ...picked.filter(file => !seen.has(file.toString()))];
-			updateFiles();
+			if (await this.readChosen()) updateFiles();
 		};
+
+		const addChosen = (arriving: (PickedFile | PickedFolder)[]) => setChosen(this.joining(this.chosen, arriving));
+		const removeChosen = (item: PickedFile | PickedFolder) =>
+			void setChosen(this.chosen.filter(other => other !== item));
 
 		const drawState = (text: string) => {
 			listEl.empty();
@@ -596,7 +621,7 @@ export abstract class FormatImporter {
 			files.setIcon('lucide-plus');
 			files.setAction(() => void chooseFiles());
 
-			if (!allowMultiple || !Platform.isDesktopApp) return;
+			if (!allowMultiple || !canChooseFolders) return;
 
 			const folders = new Setting(listEl)
 				.setClass('mod-add-item')
@@ -607,31 +632,30 @@ export abstract class FormatImporter {
 		};
 
 		const updateFiles = () => {
-			this.sourceChanged();
-
 			if (this.files.length === 0) {
+				this.chosen = [];
+				this.sourceChanged();
 				drawState(i18n.source.msgNothingToImport({
 					extensions: extensions.map(e => '.' + e).join(', '),
 				}));
 				return;
 			}
 
+			this.sourceChanged();
+
 			listEl.empty();
 
-			for (const file of this.files.slice(0, MAX_FILES_LISTED)) {
+			for (const item of this.chosen.slice(0, MAX_FILES_LISTED)) {
 				new Setting(listEl)
-					.setName(file.name)
-					.setIcon('lucide-file')
+					.setName(item.name)
+					.setIcon(item.type === 'folder' ? 'lucide-folder' : 'lucide-file')
 					.addExtraButton(button => button
 						.setIcon('lucide-x')
 						.setTooltip(i18n.source.buttonRemoveFile())
-						.onClick(() => {
-							this.files = this.files.filter(other => other !== file);
-							updateFiles();
-						}));
+						.onClick(() => removeChosen(item)));
 			}
 
-			const rest = this.files.length - MAX_FILES_LISTED;
+			const rest = this.chosen.length - MAX_FILES_LISTED;
 			if (rest > 0) {
 				new Setting(listEl)
 					.setClass('mod-empty-state')
@@ -653,8 +677,37 @@ export abstract class FormatImporter {
 		return this.acceptsMultiple ? accepted : accepted.slice(0, 1);
 	}
 
-	takeDropped(_dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): number {
-		return this.takeFiles(files);
+	protected async filesInside(items: (PickedFile | PickedFolder)[]): Promise<PickedFile[]> {
+		const extensions = this.acceptedExtensions;
+		if (!extensions) return [];
+
+		return await getAllFiles(items, file => extensions.includes(file.extension));
+	}
+
+	private async readChosen(): Promise<boolean> {
+		const chosen = this.chosen;
+		const files = chosen.every(item => item.type === 'file')
+			? chosen
+			: await this.filesInside(chosen);
+
+		// Ignore a folder read superseded by another selection.
+		if (chosen !== this.chosen) return false;
+
+		this.files = files;
+		return true;
+	}
+
+	takeDropped(dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): void {
+		if (!this.keepsFolders) {
+			this.takeFiles(files);
+			return;
+		}
+
+		const accepted = this.acceptableFiles(files);
+		if (accepted.length === 0) return;
+
+		const kept = dropped.filter(item => item.type === 'folder' || accepted.includes(item));
+		this.takeChosen(kept, accepted);
 	}
 
 	wouldTake(_dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): number {
@@ -665,11 +718,24 @@ export abstract class FormatImporter {
 		const accepted = this.acceptableFiles(files);
 		if (accepted.length === 0) return 0;
 
-		this.files = accepted;
-		if (this.showPickedFiles) this.showPickedFiles();
-		else this.sourceChanged();
+		this.takeChosen(accepted, accepted);
 
 		return accepted.length;
+	}
+
+	private joining<T extends PickedFile | PickedFolder>(existing: T[], arriving: T[]): T[] {
+		if (!this.acceptsMultiple) return arriving.slice(0, 1);
+
+		const seen = new Set(existing.map(item => item.toString()));
+		return [...existing, ...arriving.filter(item => !seen.has(item.toString()))];
+	}
+
+	private takeChosen(chosen: (PickedFile | PickedFolder)[], files: PickedFile[]): void {
+		this.files = this.joining(this.files, files);
+		this.chosen = this.joining(this.chosen, chosen);
+
+		if (this.showPickedFiles) this.showPickedFiles();
+		else this.sourceChanged();
 	}
 
 	drawOutputStep(): void {
@@ -763,7 +829,7 @@ export abstract class FormatImporter {
 		drawPathSetting();
 	}
 
-	private addDuplicateHandlingSetting(contentEl: HTMLElement): void {
+	protected addDuplicateHandlingSetting(contentEl: HTMLElement): void {
 		const modes = this.duplicateModes;
 		if (modes.length < 2) return;
 
@@ -902,8 +968,12 @@ export abstract class FormatImporter {
 	/** How an attachment is named in its folder, and how collisions are numbered. */
 	private async attachmentNaming(filename: string, sourcePath?: string): Promise<(nth: number) => string> {
 		const folder = await this.createFolders(await this.attachmentFolderPath(sourcePath));
-		const parent = folder.path === '/' ? '' : folder.path;
 
+		return this.namingIn(folder.path === '/' ? '' : folder.path, filename);
+	}
+
+	/** Build attachment names in an importer-selected folder. */
+	protected namingIn(parent: string, filename: string): (nth: number) => string {
 		const { basename, extension } = parseFilePath(filename);
 		const name = sanitizeFileName(basename, parent);
 		const fullExt = extension ? '.' + extension : '';
@@ -926,13 +996,22 @@ export abstract class FormatImporter {
 		recognise: (existing: TFile) => AttachmentVerdict | Promise<AttachmentVerdict>,
 	): Promise<{ path: string, reuse: TFile | null }> {
 		const at = await this.attachmentNaming(filename, sourcePath);
+		return await this.placeAttachmentAt(at, recognise);
+	}
+
+	/** Place an attachment using importer-selected candidate paths. */
+	protected async placeAttachmentAt(
+		at: (nth: number) => string,
+		recognise: (existing: TFile) => AttachmentVerdict | Promise<AttachmentVerdict>,
+	): Promise<{ path: string, reuse: TFile | null }> {
 		const reusing = this.duplicateHandling !== DuplicateHandling.CreateCopy;
 
 		for (let nth = 0; ; nth++) {
 			const candidate = at(nth);
 			if (this.hasClaimed(candidate)) continue;
 
-			const existing = this.vault.getAbstractFileByPath(candidate);
+			const existing = this.vault.getAbstractFileByPath(candidate)
+				?? this.vault.getAbstractFileByPathInsensitive(candidate);
 			if (existing === null) {
 				this.claimPath(candidate);
 				return { path: candidate, reuse: null };
@@ -944,11 +1023,11 @@ export abstract class FormatImporter {
 			const verdict = await recognise(existing);
 			if (verdict === 'another') continue;
 
-			this.claimPath(candidate);
+			this.claimPath(existing.path);
 
 			// Skip leaves what is there even when the source has moved on.
 			const stale = verdict === 'stale' && this.duplicateHandling !== DuplicateHandling.Skip;
-			return { path: candidate, reuse: stale ? null : existing };
+			return { path: existing.path, reuse: stale ? null : existing };
 		}
 	}
 
@@ -1000,6 +1079,16 @@ export abstract class FormatImporter {
 
 	abstract import(ctx: ImportContext): Promise<void>;
 
+	/** Use the vault's Markdown formatting unless an importer opts out. */
+	protected get markdownFormatting(): MarkdownFormatting | undefined {
+		return undefined;
+	}
+
+	/** Repair links to source paths that an importer had to rename. */
+	protected get markdownLinkResolver(): MarkdownLinkResolver | undefined {
+		return undefined;
+	}
+
 	/**
 	 * Apply settings that need the whole import to exist, notably shortest and
 	 * relative links. Called by both interactive and scripted import entrypoints.
@@ -1019,7 +1108,7 @@ export abstract class FormatImporter {
 					continue;
 				}
 				try {
-					await standardizeMarkdownFile(this.app, file);
+					await standardizeMarkdownFile(this.app, file, this.markdownFormatting, this.markdownLinkResolver);
 				}
 				catch (error) {
 					if (ctx) ctx.reportFailed(file.path, error);
@@ -1234,7 +1323,9 @@ export abstract class FormatImporter {
 	private async unchangedContent(ctx: ImportContext, file: TFile, title: string, content: string): Promise<boolean> {
 		try {
 			const current = await this.vault.read(file);
-			if (current !== await standardizedMarkdown(this.app, file.path, content)) return false;
+			if (current !== await standardizedMarkdown(
+				this.app, file.path, content, this.markdownFormatting, this.markdownLinkResolver,
+			)) return false;
 		}
 		catch (error) {
 			console.error(`Could not read the note already at: ${file.path}`, error);
@@ -1259,13 +1350,13 @@ export abstract class FormatImporter {
 	}
 
 	async createMarkdown(path: string, content: string, options?: DataWriteOptions): Promise<TFile> {
-		const file = await createMarkdown(this.vault, path, content, options);
+		const file = await createMarkdown(this.vault, path, content, options, this.markdownFormatting);
 		this.trackMarkdownFile(file);
 		return file;
 	}
 
 	async modifyMarkdown(file: TFile, content: string, options?: DataWriteOptions): Promise<void> {
-		await modifyMarkdown(this.vault, file, content, options);
+		await modifyMarkdown(this.vault, file, content, options, this.markdownFormatting);
 		this.trackMarkdownFile(file);
 	}
 
@@ -1299,9 +1390,7 @@ export abstract class FormatImporter {
 	async createFile(folder: TFolder, fileName: string, content: string, options?: DataWriteOptions): Promise<TFile> {
 		const path = getUniqueFilePath(this.vault, folder.path, fileName);
 
-		if (path.toLowerCase().endsWith('.md')) {
-			content = formatMarkdown(content, markdownOutputFor(this.vault));
-		}
+		if (path.toLowerCase().endsWith('.md')) content = formattedMarkdown(this.vault, content, this.markdownFormatting);
 
 		const file = await this.vault.create(path, content, options);
 		this.trackMarkdownFile(file);

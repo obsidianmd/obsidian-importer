@@ -1286,6 +1286,58 @@ translation=Auf 0 setzen zum Deaktivieren.
 original=Downloading attachment for {{name}}
 translation=Anhang für {{name}} wird heruntergeladen
 
+[importer.markdown.name]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.option-text]
+original=Markdown (.md, .zip)
+translation=Markdown (.md)
+
+[importer.markdown.file-type]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.desc-source]
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=Wähle einzelne Markdown-Dateien, ganze Ordner oder ZIP-Dateien aus. Alles in Ordnern behält die gleiche Struktur bei.
+
+[importer.markdown.name-folders]
+original=Folders to import
+translation=Zu importierende Ordner
+
+[importer.markdown.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=Alles in markierten Ordnern wird importiert. Deaktiviere Ordner, um sie auszuschließen.
+
+[importer.markdown.msg-pick-source-first]
+original=Choose files or folders first.
+translation=Wähle zuerst Dateien oder Ordner aus.
+
+[importer.markdown.msg-reading-folders]
+original=Reading folders...
+translation=Lesen der Ordner …
+
+[importer.markdown.msg-no-folders]
+original=No folders found.
+translation=Keine Ordner gefunden.
+
+[importer.markdown.name-standardize-formatting]
+original=Standardize formatting
+translation=Formatierung standardisieren
+
+[importer.markdown.desc-standardize-formatting]
+original=Use this vault's settings for lists, indentation, and links.
+translation=Verwende die Einstellungen dieses Vaults für Listen, Einrückungen und Links.
+
+[importer.markdown.name-tags-as-properties]
+original=Convert inline tags to properties
+translation=Inline-Tags in Eigenschaften umwandeln
+
+[importer.markdown.desc-tags-as-properties]
+original=Move tags written in the body of a note into its tags property.
+translation=Verschiebe Tags, die im Textkörper einer Notiz stehen, in deren Tags-Eigenschaft.
+
 [importer.onenote.name]
 original=Microsoft OneNote
 translation=Microsoft OneNote

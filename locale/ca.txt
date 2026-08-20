@@ -1286,6 +1286,58 @@ translation=Establiu 0 per desactivar.
 original=Downloading attachment for {{name}}
 translation=Descarregant adjunt per a {{name}}
 
+[importer.markdown.name]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.option-text]
+original=Markdown (.md, .zip)
+translation=Markdown (.md)
+
+[importer.markdown.file-type]
+original=Markdown
+translation=Markdown
+
+[importer.markdown.desc-source]
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=Tria fitxers Markdown individuals, carpetes senceres o fitxers zip. Tot el contingut de les carpetes manté la mateixa organització.
+
+[importer.markdown.name-folders]
+original=Folders to import
+translation=Carpetes per importar
+
+[importer.markdown.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=Tot el contingut de les carpetes marcades s'importa. Desmarca les carpetes per excloure-les.
+
+[importer.markdown.msg-pick-source-first]
+original=Choose files or folders first.
+translation=Tria primer fitxers o carpetes.
+
+[importer.markdown.msg-reading-folders]
+original=Reading folders...
+translation=Llegint carpetes...
+
+[importer.markdown.msg-no-folders]
+original=No folders found.
+translation=No s'han trobat carpetes.
+
+[importer.markdown.name-standardize-formatting]
+original=Standardize formatting
+translation=Estandarditza el format
+
+[importer.markdown.desc-standardize-formatting]
+original=Use this vault's settings for lists, indentation, and links.
+translation=Utilitza la configuració d'aquesta cambra forta per a llistes, sagnat i enllaços.
+
+[importer.markdown.name-tags-as-properties]
+original=Convert inline tags to properties
+translation=Converteix les etiquetes en línia en propietats
+
+[importer.markdown.desc-tags-as-properties]
+original=Move tags written in the body of a note into its tags property.
+translation=Mou les etiquetes escrites al cos d'una nota a la seva propietat d'etiquetes.
+
 [importer.onenote.name]
 original=Microsoft OneNote
 translation=Microsoft OneNote
