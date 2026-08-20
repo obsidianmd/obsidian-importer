@@ -65,6 +65,7 @@ export const IMPORTERS: Record<string, ImporterDefinition> = {
 	},
 	'markdown': {
 		importer: MarkdownImporter,
+		helpPermalink: 'import/markdown',
 	},
 	'onenote': {
 		importer: OneNoteImporter,
