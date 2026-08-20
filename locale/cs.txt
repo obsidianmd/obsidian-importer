@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1300,7 +1300,7 @@ translation=Markdown
 
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
-translation=Vyberte jednotlivé Markdown soubory, celé složky nebo zip soubory. Vše ve složkách zůstane uspořádáno stejným způsobem.
+translation=Vyberte jednotlivé soubory Markdown, celé složky nebo soubory zip. Vše ve složkách zůstane uspořádáno stejným způsobem.
 
 [importer.markdown.name-folders]
 original=Folders to import
@@ -1308,11 +1308,11 @@ translation=Složky k importu
 
 [importer.markdown.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Vše v zaškrtnutých složkách bude importováno. Odškrtněte složky, které chcete vyloučit.
+translation=Vše v zaškrtnutých složkách se importuje. Odškrtněte složky, které chcete vynechat.
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
-translation=Nejprve vyberte soubory nebo složky.
+translation=Nejdříve vyberte soubory nebo složky.
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
@@ -1328,11 +1328,11 @@ translation=Standardizovat formátování
 
 [importer.markdown.desc-standardize-formatting]
 original=Use this vault's settings for lists, indentation, and links.
-translation=Použít nastavení tohoto trezoru pro seznamy, odsazení a Odkazy.
+translation=Použít nastavení tohoto trezoru pro seznamy, odsazení a odkazy.
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties
-translation=Převést vložené tagy na vlastnosti
+translation=Převést inline tagy na vlastnosti
 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.

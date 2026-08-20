@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1312,7 +1312,7 @@ translation=チェックされたフォルダ内のすべてがインポート�
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
-translation=まずファイルまたはフォルダを選択してください。
+translation=先にファイルまたはフォルダを選択してください。
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
@@ -1324,11 +1324,11 @@ translation=フォルダが見つかりませんでした。
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting
-translation=書式を統一する
+translation=フォーマットを標準化
 
 [importer.markdown.desc-standardize-formatting]
 original=Use this vault's settings for lists, indentation, and links.
-translation=この保管庫の設定をリスト、インデント、かつリンクに使用します。
+translation=リスト、インデント、リンクにこの保管庫の設定を使用します。
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties

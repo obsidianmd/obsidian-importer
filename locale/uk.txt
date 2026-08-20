@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1300,27 +1300,27 @@ translation=Markdown
 
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
-translation=Оберіть окремі Markdown-файли, цілі папки або zip-архіви. Структура папок зберігається без змін.
+translation=Оберіть окремі файли Markdown, цілі теки або zip-файли. Структура тек зберігається.
 
 [importer.markdown.name-folders]
 original=Folders to import
-translation=Папки для імпорту
+translation=Теки для імпорту
 
 [importer.markdown.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Увесь вміст позначених папок буде імпортовано. Зніміть позначку, щоб виключити папку.
+translation=Усе у позначених теках буде імпортовано. Зніміть позначку з тек, щоб виключити їх.
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
-translation=Спочатку оберіть файли або папки.
+translation=Спочатку оберіть файли або теки.
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
-translation=Читання папок...
+translation=Читання тек...
 
 [importer.markdown.msg-no-folders]
 original=No folders found.
-translation=Папок не знайдено.
+translation=Тек не знайдено.
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting
@@ -1336,7 +1336,7 @@ translation=Перетворити вбудовані мітки на власт
 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
-translation=Перемістити мітки, написані в тексті нотатки, у її властивість міток.
+translation=Перемістити мітки з тексту нотатки до її властивості міток.
 
 [importer.onenote.name]
 original=Microsoft OneNote

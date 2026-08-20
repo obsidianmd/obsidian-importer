@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1300,7 +1300,7 @@ translation=Markdown
 
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
-translation=اختر ملفات Markdown فردية، أو مجلدات كاملة، أو ملفات مضغوطة. كل شيء في المجلدات يبقى منظمًا بنفس الطريقة.
+translation=اختر ملفات Markdown فردية، أو مجلدات كاملة، أو ملفات zip. يبقى كل شيء في المجلدات منظمًا بنفس الطريقة.
 
 [importer.markdown.name-folders]
 original=Folders to import
@@ -1308,7 +1308,7 @@ translation=المجلدات المراد استيرادها
 
 [importer.markdown.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=يتم استيراد كل شيء في المجلدات المحددة. ألغِ تحديد المجلدات لاستبعادها.
+translation=يتم استيراد كل شيء في المجلدات المحددة. ألغِ تحديد المجلدات لاستثنائها.
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.

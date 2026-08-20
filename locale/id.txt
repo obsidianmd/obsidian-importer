@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1300,7 +1300,7 @@ translation=Markdown
 
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
-translation=Pilih file Markdown individual, seluruh folder, atau file zip. Semua isi folder tetap terorganisir dengan cara yang sama.
+translation=Pilih file Markdown individual, seluruh folder, atau file zip. Semua yang ada di dalam folder tetap terorganisir dengan cara yang sama.
 
 [importer.markdown.name-folders]
 original=Folders to import
@@ -1308,7 +1308,7 @@ translation=Folder untuk diimpor
 
 [importer.markdown.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Semua isi folder yang dicentang akan diimpor. Hapus centang folder untuk mengecualikannya.
+translation=Semua yang ada di folder yang dicentang akan diimpor. Hapus centang folder untuk mengecualikannya.
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1328,11 +1328,11 @@ translation=Standarkan pemformatan
 
 [importer.markdown.desc-standardize-formatting]
 original=Use this vault's settings for lists, indentation, and links.
-translation=Gunakan pengaturan brankas ini untuk daftar, indentasi, dan Tautan.
+translation=Gunakan pengaturan brankas ini untuk daftar, indentasi, dan tautan.
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties
-translation=Ubah tag sebaris menjadi properti
+translation=Ubah tag inline menjadi properti
 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.

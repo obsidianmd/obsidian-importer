@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1300,7 +1300,7 @@ translation=Markdown
 
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
-translation=選擇個別 Markdown 檔案、整個資料夾或 zip 檔案。資料夾中的所有內容將保持相同的組織結構。
+translation=選擇個別 Markdown 檔案、整個資料夾或 zip 檔案。資料夾中的內容會保持相同的組織結構。
 
 [importer.markdown.name-folders]
 original=Folders to import
@@ -1316,11 +1316,11 @@ translation=請先選擇檔案或資料夾。
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
-translation=正在閱讀資料夾...
+translation=正在閱讀資料夾…
 
 [importer.markdown.msg-no-folders]
 original=No folders found.
-translation=未找到資料夾。
+translation=找不到資料夾。
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting
@@ -1332,7 +1332,7 @@ translation=使用此保管庫的設定來處理列表、縮排且連結。
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties
-translation=將行內標籤轉換為屬性
+translation=將內嵌標籤轉換為屬性
 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.

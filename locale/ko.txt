@@ -1292,7 +1292,7 @@ translation=마크다운
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=마크다운 (.md)
+translation=마크다운 (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1300,7 +1300,7 @@ translation=마크다운
 
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
-translation=개별 마크다운 파일, 전체 폴더 또는 zip 파일을 선택하세요. 폴더 안의 구조는 그대로 유지돼요.
+translation=개별 마크다운 파일, 전체 폴더 또는 zip 파일을 선택하세요. 폴더 내 구조는 그대로 유지돼요.
 
 [importer.markdown.name-folders]
 original=Folders to import
@@ -1308,7 +1308,7 @@ translation=가져올 폴더
 
 [importer.markdown.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=체크된 폴더의 모든 항목을 가져와요. 제외하려면 체크를 해제하세요.
+translation=체크된 폴더의 모든 항목이 가져와져요. 제외하려면 체크를 해제하세요.
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1328,7 +1328,7 @@ translation=서식 표준화
 
 [importer.markdown.desc-standardize-formatting]
 original=Use this vault's settings for lists, indentation, and links.
-translation=이 보관함의 설정에 맞춰 목록, 들여쓰기 and 링크 서식을 통일해요.
+translation=이 보관함의 설정에 따라 목록, 들여쓰기, 링크를 적용해요.
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties

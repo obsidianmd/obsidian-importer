@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1308,11 +1308,11 @@ translation=要导入的文件夹
 
 [importer.markdown.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=已勾选的文件夹中的所有内容将被导入。取消勾选文件夹以排除它们。
+translation=勾选的文件夹中的所有内容都会被导入。取消勾选以排除对应文件夹。
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
-translation=请先选择文件列表或文件夹。
+translation=请先选择文件或文件夹。
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
@@ -1328,15 +1328,15 @@ translation=标准化格式
 
 [importer.markdown.desc-standardize-formatting]
 original=Use this vault's settings for lists, indentation, and links.
-translation=使用此仓库的设置来处理列表、缩进且链接。
+translation=使用此仓库的设置来处理列表、缩进且链接的格式。
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties
-translation=将内联标签转换为属性
+translation=将行内标签转换为属性
 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
-translation=将笔记正文中的标签移至其标签属性中。
+translation=将笔记正文中的标签移动到其标签属性中。
 
 [importer.onenote.name]
 original=Microsoft OneNote

@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1300,7 +1300,7 @@ translation=Markdown
 
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
-translation=পৃথক Markdown ফাইল, সম্পূর্ণ ফোল্ডার, বা zip ফাইল নির্বাচন করুন। ফোল্ডারের সবকিছু একই কাঠামোতে সংগঠিত থাকবে।
+translation=পৃথক Markdown ফাইল, সম্পূর্ণ ফোল্ডার বা zip ফাইল নির্বাচন করুন। ফোল্ডারের সবকিছু একই কাঠামোতে সংগঠিত থাকবে।
 
 [importer.markdown.name-folders]
 original=Folders to import
@@ -1316,7 +1316,7 @@ translation=প্রথমে ফাইল বা ফোল্ডার নি�
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
-translation=ফোল্ডার পঠন করা হচ্ছে...
+translation=ফোল্ডার পঠন হচ্ছে...
 
 [importer.markdown.msg-no-folders]
 original=No folders found.
@@ -1324,11 +1324,11 @@ translation=কোনো ফোল্ডার পাওয়া যায়�
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting
-translation=ফরম্যাটিং প্রমিতকরণ
+translation=ফরম্যাটিং মানসম্মত করুন
 
 [importer.markdown.desc-standardize-formatting]
 original=Use this vault's settings for lists, indentation, and links.
-translation=তালিকা, ইন্ডেন্টেশন এবং লিঙ্ক-এর জন্য এই ভল্টের সেটিংস ব্যবহার করুন।
+translation=তালিকা, ইন্ডেন্টেশন এবং লিঙ্ক-এর জন্য এই ভল্ট-এর সেটিংস ব্যবহার করুন।
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties
@@ -1336,7 +1336,7 @@ translation=ইনলাইন ট্যাগ প্রপার্টিতে
 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
-translation=নোটের বডিতে লেখা ট্যাগ তার ট্যাগ প্রপার্টিতে সরান।
+translation=নোটের বডিতে লেখা ট্যাগ তার ট্যাগ প্রপার্টিতে স্থানান্তর করুন।
 
 [importer.onenote.name]
 original=Microsoft OneNote

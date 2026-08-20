@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1300,7 +1300,7 @@ translation=Markdown
 
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
-translation=Elige archivos Markdown individuales, carpetas completas o archivos zip. Todo en las carpetas se mantiene organizado de la misma manera.
+translation=Elige archivos Markdown individuales, carpetas completas o archivos zip. Todo en las carpetas mantiene la misma organización.
 
 [importer.markdown.name-folders]
 original=Folders to import
@@ -1328,15 +1328,15 @@ translation=Estandarizar formato
 
 [importer.markdown.desc-standardize-formatting]
 original=Use this vault's settings for lists, indentation, and links.
-translation=Usa los ajustes de esta bóveda para listas, sangría y enlaces.
+translation=Usar los ajustes de esta bóveda para listas, sangría y enlaces.
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties
-translation=Convertir etiquetas en línea en Propiedades
+translation=Convertir etiquetas en línea a propiedades
 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
-translation=Mueve las etiquetas escritas en el Cuerpo de una nota a su propiedad de Etiquetas.
+translation=Mover las etiquetas escritas en el Cuerpo de una nota a su propiedad de etiquetas.
 
 [importer.onenote.name]
 original=Microsoft OneNote

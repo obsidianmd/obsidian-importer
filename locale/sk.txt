@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1300,7 +1300,7 @@ translation=Markdown
 
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
-translation=Zvoľte jednotlivé Markdown súbory, celé priečinky alebo zip súbory. Obsah priečinkov si zachová rovnakú štruktúru.
+translation=Zvoľte jednotlivé Markdown súbory, celé priečinky alebo zip súbory. Všetko v priečinkoch zostane usporiadané rovnako.
 
 [importer.markdown.name-folders]
 original=Folders to import
@@ -1308,15 +1308,15 @@ translation=Priečinky na import
 
 [importer.markdown.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Všetko v označených priečinkoch sa importuje. Odznačte priečinky, ktoré chcete vynechať.
+translation=Všetko v zaškrtnutých priečinkoch sa importuje. Odškrtnutím priečinky vylúčite.
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
-translation=Najskôr zvoľte súbory alebo priečinky.
+translation=Najprv zvoľte súbory alebo priečinky.
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
-translation=Čítanie priečinkov...
+translation=Načítavanie priečinkov...
 
 [importer.markdown.msg-no-folders]
 original=No folders found.
@@ -1328,11 +1328,11 @@ translation=Štandardizovať formátovanie
 
 [importer.markdown.desc-standardize-formatting]
 original=Use this vault's settings for lists, indentation, and links.
-translation=Použiť nastavenia tohto trezoru pre zoznamy, odsadenie a odkazy.
+translation=Použiť nastavenia tohto trezoru pre zoznamy, odsadenie a Odkazy.
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties
-translation=Previesť inline značky na vlastnosti
+translation=Konvertovať inline značky na vlastnosti
 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.

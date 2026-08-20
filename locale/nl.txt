@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1300,7 +1300,7 @@ translation=Markdown
 
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
-translation=Kies individuele Markdown-bestanden, hele mappen of zip-bestanden. Alles in mappen behoudt dezelfde structuur.
+translation=Kies afzonderlijke Markdown-bestanden, volledige mappen of zipbestanden. Alles in mappen behoudt dezelfde structuur.
 
 [importer.markdown.name-folders]
 original=Folders to import
@@ -1328,15 +1328,15 @@ translation=Opmaak standaardiseren
 
 [importer.markdown.desc-standardize-formatting]
 original=Use this vault's settings for lists, indentation, and links.
-translation=Gebruik de instellingen van deze kluis voor lijsten, inspringen en links.
+translation=Gebruik de instellingen van deze kluis voor lijsten, inspringen en Links.
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties
-translation=Inline Labels omzetten naar Eigenschappen
+translation=Inline labels naar Eigenschappen converteren
 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
-translation=Verplaats Labels die in de Hoofdtekst van een notitie staan naar de eigenschap Labels.
+translation=Verplaats labels in de Hoofdtekst van een notitie naar de labels-eigenschap.
 
 [importer.onenote.name]
 original=Microsoft OneNote

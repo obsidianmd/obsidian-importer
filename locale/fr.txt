@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1300,7 +1300,7 @@ translation=Markdown
 
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
-translation=Choisir des fichiers Markdown individuels, des dossiers entiers ou des fichiers zip. L'arborescence des dossiers est préservée.
+translation=Choisissez des fichiers Markdown individuels, des dossiers entiers ou des fichiers zip. L'arborescence des dossiers est conservée.
 
 [importer.markdown.name-folders]
 original=Folders to import
@@ -1312,7 +1312,7 @@ translation=Tout le contenu des dossiers cochés est importé. Décochez les dos
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
-translation=Choisir d'abord des fichiers ou des dossiers.
+translation=Choisissez d'abord des fichiers ou des dossiers.
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
@@ -1336,7 +1336,7 @@ translation=Convertir les mots-clés en ligne en propriétés
 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
-translation=Déplacer les mots-clés écrits dans le Corps d'une note vers sa propriété Mots-clés.
+translation=Déplacer les mots-clés écrits dans le corps d'une note vers sa propriété mots-clés.
 
 [importer.onenote.name]
 original=Microsoft OneNote

@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1312,7 +1312,7 @@ translation=כל מה שבתיקיות המסומנות מיובא. בטל סי�
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
-translation=בחר קבצים או תיקיות קודם.
+translation=בחר קבצים או תיקיות תחילה.
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
@@ -1336,7 +1336,7 @@ translation=המרת תגיות מוטבעות למאפיינים
 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
-translation=העברת תגיות שנכתבו בטקסט רגיל של הערה אל מאפיין התגיות שלה.
+translation=העבר תגיות שנכתבו בטקסט רגיל של הערה אל מאפיין תגיות שלה.
 
 [importer.onenote.name]
 original=Microsoft OneNote

@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1300,7 +1300,7 @@ translation=Markdown
 
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
-translation=Wybierz pojedyncze pliki Markdown, całe foldery lub pliki zip. Struktura folderów zostanie zachowana.
+translation=Wybierz pojedyncze pliki Markdown, całe foldery lub pliki zip. Zawartość folderów zachowuje tę samą strukturę.
 
 [importer.markdown.name-folders]
 original=Folders to import
@@ -1308,7 +1308,7 @@ translation=Foldery do zaimportowania
 
 [importer.markdown.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Wszystko w zaznaczonych folderach zostanie zaimportowane. Odznacz foldery, aby je wykluczyć.
+translation=Importowana jest zawartość zaznaczonych folderów. Odznacz foldery, aby je wykluczyć.
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1324,7 +1324,7 @@ translation=Nie znaleziono folderów.
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting
-translation=Ustandaryzuj formatowanie
+translation=Ujednolicenie formatowania
 
 [importer.markdown.desc-standardize-formatting]
 original=Use this vault's settings for lists, indentation, and links.
@@ -1332,7 +1332,7 @@ translation=Użyj ustawień tego skarbca dla list, wcięć i łączy.
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties
-translation=Konwertuj tagi wbudowane na atrybuty
+translation=Konwertuj tagi w treści na atrybuty
 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.

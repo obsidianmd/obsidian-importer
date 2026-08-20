@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1300,31 +1300,31 @@ translation=Markdown
 
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
-translation=Alege fișiere Markdown individuale, foldere întregi sau arhive zip. Tot conținutul folderelor își păstrează aceeași organizare.
+translation=Alege fișiere Markdown individuale, dosare întregi sau fișiere zip. Tot ce se află în dosare rămâne organizat în același mod.
 
 [importer.markdown.name-folders]
 original=Folders to import
-translation=Foldere de importat
+translation=Dosare de importat
 
 [importer.markdown.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Tot conținutul folderelor bifate este importat. Debifează folderele pe care vrei să le excluzi.
+translation=Tot ce se află în dosarele bifate este importat. Debifează dosarele pentru a le exclude.
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
-translation=Alege mai întâi fișiere sau foldere.
+translation=Alege mai întâi fișiere sau dosare.
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
-translation=Se citesc folderele...
+translation=Se citesc dosarele...
 
 [importer.markdown.msg-no-folders]
 original=No folders found.
-translation=Nu s-au găsit foldere.
+translation=Nu s-au găsit dosare.
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting
-translation=Standardizare formatare
+translation=Standardizează formatarea
 
 [importer.markdown.desc-standardize-formatting]
 original=Use this vault's settings for lists, indentation, and links.
@@ -1332,11 +1332,11 @@ translation=Folosește setările acestui seif pentru liste, indentare și legăt
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties
-translation=Convertire etichete inline în proprietăți
+translation=Convertește etichetele inline în proprietăți
 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
-translation=Mută etichetele scrise în corpul unei însemnări în proprietatea sa de etichete.
+translation=Mută etichetele scrise în corpul unei însemnări în proprietatea de etichete a acesteia.
 
 [importer.onenote.name]
 original=Microsoft OneNote

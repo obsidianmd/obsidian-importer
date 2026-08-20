@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1300,7 +1300,7 @@ translation=Markdown
 
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
-translation=Επιλέξτε μεμονωμένα αρχεία Markdown, ολόκληρους φακέλους ή αρχεία zip. Τα περιεχόμενα των φακέλων διατηρούν την ίδια οργάνωση.
+translation=Επιλέξτε μεμονωμένα αρχεία Markdown, ολόκληρους φακέλους ή αρχεία zip. Τα περιεχόμενα των φακέλων διατηρούν την ίδια δομή.
 
 [importer.markdown.name-folders]
 original=Folders to import
@@ -1308,7 +1308,7 @@ translation=Φάκελοι για εισαγωγή
 
 [importer.markdown.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Όλα τα περιεχόμενα των επιλεγμένων φακέλων εισάγονται. Αποεπιλέξτε φακέλους για να τους εξαιρέσετε.
+translation=Τα περιεχόμενα των επιλεγμένων φακέλων εισάγονται. Αποεπιλέξτε φακέλους για να τους εξαιρέσετε.
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1328,7 +1328,7 @@ translation=Τυποποίηση μορφοποίησης
 
 [importer.markdown.desc-standardize-formatting]
 original=Use this vault's settings for lists, indentation, and links.
-translation=Χρησιμοποιήστε τις ρυθμίσεις αυτού του θησαυροφυλακίου για λίστες, εσοχές και Σύνδεσμοι.
+translation=Χρησιμοποιήστε τις ρυθμίσεις αυτού του θησαυροφυλακίου για λίστες, εσοχές και συνδέσμους.
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties
@@ -1336,7 +1336,7 @@ translation=Μετατροπή ενσωματωμένων ετικετών σε 
 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
-translation=Μετακινήστε τις ετικέτες που είναι γραμμένες στο κυρίως κείμενο μιας σημείωσης στην ιδιότητα ετικετών της.
+translation=Μετακίνηση ετικετών που βρίσκονται στο κυρίως κείμενο μιας σημείωσης στην ιδιότητα ετικετών της.
 
 [importer.onenote.name]
 original=Microsoft OneNote

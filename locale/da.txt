@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1304,11 +1304,11 @@ translation=Vælg individuelle Markdown-filer, hele mapper eller zip-filer. Alt 
 
 [importer.markdown.name-folders]
 original=Folders to import
-translation=Mapper at importere
+translation=Mapper til import
 
 [importer.markdown.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Alt i markerede mapper importeres. Fjern markeringen af mapper for at udelukke dem.
+translation=Alt i markerede mapper importeres. Fjern markeringen fra mapper for at udelukke dem.
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1316,7 +1316,7 @@ translation=Vælg filer eller mapper først.
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
-translation=Læsning af mapper...
+translation=Læser mapper...
 
 [importer.markdown.msg-no-folders]
 original=No folders found.
@@ -1328,15 +1328,15 @@ translation=Standardisér formatering
 
 [importer.markdown.desc-standardize-formatting]
 original=Use this vault's settings for lists, indentation, and links.
-translation=Brug denne boks' indstillinger for lister, indrykning og links.
+translation=Brug denne boks' indstillinger for lister, indrykning og Links.
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties
-translation=Konvertér inline-Tags til Egenskaber
+translation=Konvertér inline-tags til Egenskaber
 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
-translation=Flyt Tags skrevet i Brødteksten af en note til dens Tags-egenskab.
+translation=Flyt Tags skrevet i Brødteksten af en note til dens tags-egenskab.
 
 [importer.onenote.name]
 original=Microsoft OneNote

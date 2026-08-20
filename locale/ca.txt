@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1300,7 +1300,7 @@ translation=Markdown
 
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
-translation=Tria fitxers Markdown individuals, carpetes senceres o fitxers zip. Tot el contingut de les carpetes manté la mateixa organització.
+translation=Tria fitxers Markdown individuals, carpetes senceres o fitxers zip. Tot el que hi ha a les carpetes es manté organitzat de la mateixa manera.
 
 [importer.markdown.name-folders]
 original=Folders to import
@@ -1308,7 +1308,7 @@ translation=Carpetes per importar
 
 [importer.markdown.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Tot el contingut de les carpetes marcades s'importa. Desmarca les carpetes per excloure-les.
+translation=Tot el que hi ha a les carpetes marcades s'importa. Desmarca les carpetes per excloure-les.
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1316,7 +1316,7 @@ translation=Tria primer fitxers o carpetes.
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
-translation=Llegint carpetes...
+translation=Lectura de carpetes...
 
 [importer.markdown.msg-no-folders]
 original=No folders found.

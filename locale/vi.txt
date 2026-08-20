@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1300,11 +1300,11 @@ translation=Markdown
 
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
-translation=Chọn từng tệp Markdown riêng lẻ, toàn bộ thư mục hoặc tệp zip. Mọi thứ trong thư mục được giữ nguyên cấu trúc.
+translation=Chọn từng tệp Markdown, toàn bộ thư mục hoặc tệp zip. Mọi thứ trong thư mục sẽ được giữ nguyên cấu trúc.
 
 [importer.markdown.name-folders]
 original=Folders to import
-translation=Thư mục để nhập
+translation=Thư mục cần nhập
 
 [importer.markdown.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
@@ -1336,7 +1336,7 @@ translation=Chuyển thẻ nội tuyến thành thuộc tính
 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
-translation=Di chuyển các thẻ được viết trong nội dung của ghi chú vào thuộc tính thẻ của nó.
+translation=Di chuyển các thẻ viết trong nội dung của ghi chú vào thuộc tính thẻ của nó.
 
 [importer.onenote.name]
 original=Microsoft OneNote

@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1324,7 +1324,7 @@ translation=Nenhuma pasta encontrada.
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting
-translation=Padronizar formatação
+translation=Uniformizar formatação
 
 [importer.markdown.desc-standardize-formatting]
 original=Use this vault's settings for lists, indentation, and links.
@@ -1336,7 +1336,7 @@ translation=Converter etiquetas inline em propriedades
 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
-translation=Mover as etiquetas escritas no corpo de uma nota para a sua propriedade de etiquetas.
+translation=Mover etiquetas escritas no corpo de uma nota para a sua propriedade de etiquetas.
 
 [importer.onenote.name]
 original=Microsoft OneNote

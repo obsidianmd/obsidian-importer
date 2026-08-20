@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1308,7 +1308,7 @@ translation=Tuotavat kansiot
 
 [importer.markdown.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Valittujen kansioiden koko sisältö tuodaan. Poista valinta kansioista, jotka haluat jättää pois.
+translation=Valittujen kansioiden kaikki sisältö tuodaan. Poista valinta kansioista, jotka haluat jättää pois.
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1332,7 +1332,7 @@ translation=Käytä tämän holvin asetuksia listoille, sisennyksille ja linkeil
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties
-translation=Muunna tekstinsisäiset tunnisteet määreiksi
+translation=Muunna tekstin sisäiset tunnisteet määreiksi
 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.

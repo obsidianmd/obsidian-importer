@@ -1292,7 +1292,7 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .zip)
-translation=Markdown (.md)
+translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
 original=Markdown
@@ -1300,7 +1300,7 @@ translation=Markdown
 
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
-translation=Выберите отдельные файлы Markdown, целые папки или zip-архивы. Структура папок сохраняется без изменений.
+translation=Выберите отдельные файлы Markdown, целые папки или zip-архивы. Структура папок сохраняется.
 
 [importer.markdown.name-folders]
 original=Folders to import
@@ -1308,7 +1308,7 @@ translation=Папки для импорта
 
 [importer.markdown.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Всё содержимое отмеченных папок будет импортировано. Снимите флажок, чтобы исключить папки.
+translation=Всё содержимое отмеченных папок будет импортировано. Снимите отметку с папок, которые нужно исключить.
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1328,7 +1328,7 @@ translation=Стандартизировать форматирование
 
 [importer.markdown.desc-standardize-formatting]
 original=Use this vault's settings for lists, indentation, and links.
-translation=Использовать настройки этого хранилища для списков, отступов и ссылок.
+translation=Применить настройки этого хранилища для списков, отступов и ссылок.
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties
@@ -1336,7 +1336,7 @@ translation=Преобразовать встроенные теги в свой
 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
-translation=Перенести теги, написанные в теле заметки, в её свойство тегов.
+translation=Перенести теги из тела заметки в свойство теги.
 
 [importer.onenote.name]
 original=Microsoft OneNote
