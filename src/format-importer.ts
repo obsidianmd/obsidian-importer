@@ -1025,7 +1025,8 @@ export abstract class FormatImporter {
 			const candidate = at(nth);
 			if (this.hasClaimed(candidate)) continue;
 
-			const existing = this.vault.getAbstractFileByPath(candidate);
+			const existing = this.vault.getAbstractFileByPath(candidate)
+				?? this.vault.getAbstractFileByPathInsensitive(candidate);
 			if (existing === null) {
 				this.claimPath(candidate);
 				return { path: candidate, reuse: null };
@@ -1037,11 +1038,11 @@ export abstract class FormatImporter {
 			const verdict = await recognise(existing);
 			if (verdict === 'another') continue;
 
-			this.claimPath(candidate);
+			this.claimPath(existing.path);
 
 			// Skip leaves what is there even when the source has moved on.
 			const stale = verdict === 'stale' && this.duplicateHandling !== DuplicateHandling.Skip;
-			return { path: candidate, reuse: stale ? null : existing };
+			return { path: existing.path, reuse: stale ? null : existing };
 		}
 	}
 

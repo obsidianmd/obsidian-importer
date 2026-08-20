@@ -42,6 +42,17 @@ test('an attachment another source left behind is not handed to this one', async
 	assert.equal((vault.contents.get('Document.pdf') as ArrayBuffer).byteLength, 11);
 });
 
+test('an attachment differing only in case is still an occupied name', async () => {
+	const { vault, subject } = importer();
+	await vault.createBinary('Cover.png', new ArrayBuffer(11));
+
+	const { path, reuse } = await subject.place('cover.png', sized(22));
+
+	assert.equal(reuse, null);
+	assert.equal(path, 'cover 1.png');
+	assert.equal((vault.contents.get('Cover.png') as ArrayBuffer).byteLength, 11);
+});
+
 test('the attachment this source wrote before is the one taken back up', async () => {
 	const { vault, subject } = importer();
 	await vault.createBinary('Document.pdf', new ArrayBuffer(22));
@@ -90,6 +101,16 @@ test('an attachment the source has changed is written over where it stands', asy
 
 	assert.equal(path, 'Photo.png', 'in place rather than beside it');
 	assert.equal(reuse, null, 'and the new bytes are fetched');
+});
+
+test('a stale attachment keeps the casing of the file already in the vault', async () => {
+	const { vault, subject } = importer();
+	await vault.createBinary('Photo.png', new ArrayBuffer(5));
+
+	const { path, reuse } = await subject.place('photo.png', () => 'stale');
+
+	assert.equal(path, 'Photo.png');
+	assert.equal(reuse, null);
 });
 
 test('"Skip" leaves an attachment the source has changed alone', async () => {
