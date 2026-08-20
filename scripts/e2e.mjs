@@ -10,7 +10,7 @@ const FOLDER = '_e2e-check';
 
 const CASES = [
 	{ importer: 'html', fixture: 'tests/html/links.html', expected: 'tests/html/expected/links.md', note: 'links.md' },
-	{ importer: 'html', fixture: 'tests/html/tables.html', expected: 'tests/html/expected/tables.md', note: 'tables.md' },
+	{ importer: 'html', fixture: 'tests/html/tables.html', expected: 'tests/html/expected/tables.md', note: 'Tables.md' },
 	{ importer: 'html', fixture: 'tests/html/special filename#.html', expected: 'tests/html/expected/special filename#.md', note: 'special filename.md' },
 	{
 		importer: 'tomboy',

@@ -15,6 +15,7 @@ function importer(): { vault: MemoryVault, subject: HtmlImporter } {
 	const subject = new HtmlImporter(indexedApp(vault) as never, {
 		sourceEl: null, outputEl: null, optionsEl: null,
 	} as never);
+	subject.saveSourceId = false;
 
 	return { vault, subject };
 }
@@ -73,6 +74,117 @@ test('links follow a target renamed from its document title', async () => {
 	])]);
 
 	assert.equal(vault.contents.get('Import/Site/Index.md'), '[[A useful title|Read it]]');
+});
+
+test('cross-page heading links use the target heading text', async () => {
+	const { vault, subject } = importer();
+
+	await importing(subject, [new SourceFolder('Site', [
+		new SourceFile('A.html', '<main><a href="B.html#sec">to B sec</a></main>'),
+		new SourceFile('B.html', '<main><h2 id="sec">Section Two</h2></main>'),
+	])]);
+
+	assert.equal(vault.contents.get('Import/Site/A.md'), '[[B#Section Two|to B sec]]');
+});
+
+test('a same-page heading does not resolve to a sibling page named after its folder', async () => {
+	const { vault, subject } = importer();
+
+	await importing(subject, [
+		new SourceFile('Site.html', '<title>Site Page</title><main><p>Other page</p></main>'),
+		new SourceFolder('Site', [new SourceFile(
+			'A.html',
+			'<main><a href="#own">own</a><h2 id="own">Own Heading</h2></main>',
+		)]),
+	]);
+
+	assert.equal(vault.contents.get('Import/Site/A.md'), '[[#Own Heading|own]]\n\n## Own Heading');
+});
+
+test('a changed document title updates the note identified by its source', async () => {
+	const { vault, subject } = importer();
+	subject.saveSourceId = true;
+
+	await importing(subject, [new SourceFile(
+		'Page.html', '<title>Draft title</title><main><p>Draft</p></main>')]);
+	await importing(subject, [new SourceFile(
+		'Page.html', '<title>Final title</title><main><p>Final</p></main>')]);
+
+	assert.deepEqual(vault.paths(), ['Import/Draft title.md']);
+	const updated = String(vault.contents.get('Import/Draft title.md'));
+	assert.match(updated, /html-source: Page\.html/u);
+	assert.match(updated, /Final/u);
+});
+
+test('an HTML-looking document title does not leave two extensions', async () => {
+	const { vault, subject } = importer();
+
+	await importing(subject, [new SourceFile(
+		'Page.html', '<title>index.html</title><main><p>Body</p></main>')]);
+
+	assert.deepEqual(vault.paths(), ['Import/index.md']);
+});
+
+test('cancelling metadata planning stops before the next document is read', async () => {
+	const { vault, subject } = importer();
+	const ctx = new ImportContext();
+	let secondReads = 0;
+
+	class CancellingFile extends SourceFile {
+		async readText(): Promise<string> {
+			const content = await super.readText();
+			ctx.cancel();
+			return content;
+		}
+	}
+	class CountedFile extends SourceFile {
+		async readText(): Promise<string> {
+			secondReads++;
+			return await super.readText();
+		}
+	}
+
+	await subject.ready;
+	subject.chosen = [
+		new CancellingFile('A.html', '<title>A</title><p>A</p>'),
+		new CountedFile('B.html', '<title>B</title><p>B</p>'),
+	];
+	subject.outputLocation = 'Import';
+	subject.indexImportedNotes();
+	await subject.import(ctx);
+
+	assert.equal(secondReads, 0);
+	assert.equal(ctx.progressCurrent, 1);
+	assert.equal(ctx.progressTotal, 4);
+	assert.deepEqual(vault.paths(), []);
+});
+
+test('planning and writing share one progress range', async () => {
+	const { subject } = importer();
+	const progress: [number, number][] = [];
+	const ctx = new ImportContext();
+	ctx.reportProgress = (current, total) => {
+		progress.push([current, total]);
+		ctx.progressCurrent = current;
+		ctx.progressTotal = total;
+	};
+
+	await subject.ready;
+	subject.chosen = [
+		new SourceFile('A.html', '<p>A</p>'),
+		new SourceFile('B.html', '<p>B</p>'),
+	];
+	subject.outputLocation = 'Import';
+	subject.indexImportedNotes();
+	await subject.import(ctx);
+
+	assert.deepEqual(progress, [
+		[0, 4],
+		[1, 4],
+		[2, 4],
+		[3, 4],
+		[4, 4],
+	]);
 });
 
 test('asset-only source folders are not reproduced as empty vault folders', async () => {

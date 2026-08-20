@@ -396,6 +396,8 @@ export const en = {
 		html: {
 			name: 'HTML files',
 			optionText: 'HTML (.html, .zip)',
+			labelId: 'HTML source path',
+			descSourceIdentity: 'Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.',
 			fileType: 'HTML',
 			descExport: 'Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.',
 			descSource: 'Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.',

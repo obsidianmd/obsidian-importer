@@ -13,6 +13,7 @@ function importer(): { vault: MemoryVault, subject: HtmlImporter } {
 	const subject = new HtmlImporter(indexedApp(vault) as never, {
 		sourceEl: null, outputEl: null, optionsEl: null,
 	} as never);
+	subject.saveSourceId = false;
 
 	return { vault, subject };
 }

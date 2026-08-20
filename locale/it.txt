@@ -1274,6 +1274,14 @@ translation=File HTML
 original=HTML (.html, .zip)
 translation=HTML (.html, .zip)
 
+[importer.html.label-id]
+original=HTML source path
+translation=
+
+[importer.html.desc-source-identity]
+original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
+translation=
+
 [importer.html.file-type]
 original=HTML
 translation=HTML

@@ -165,14 +165,15 @@ export function browserApp(vault: MemoryVault) {
 	 */
 	app.fileManager.generateMarkdownLink = (
 		file: { path: string, basename?: string },
-		_sourcePath: string,
+		sourcePath: string,
 		subpath?: string,
 		display?: string
 	) => {
 		const basename = file.basename ?? file.path.slice(file.path.lastIndexOf('/') + 1).replace(/\.md$/, '');
 		const sharing = vault.getMarkdownFiles()
 			.filter(other => (other as { basename?: string }).basename === basename).length;
-		const target = sharing > 1 ? file.path.replace(/\.md$/, '') : basename;
+		const sameFile = !!subpath && file.path.toLowerCase() === sourcePath.toLowerCase();
+		const target = sameFile ? '' : sharing > 1 ? file.path.replace(/\.md$/, '') : basename;
 
 		return `[[${target}${subpath ?? ''}${display && display !== target ? `|${display}` : ''}]]`;
 	};

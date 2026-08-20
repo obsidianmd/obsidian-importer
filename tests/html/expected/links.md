@@ -1,5 +1,3 @@
-# links.html
-
 - [embeds.html](embeds.html)
 - [./embeds.html](./embeds.html)
 - [../html/embeds.html](../html/embeds.html)

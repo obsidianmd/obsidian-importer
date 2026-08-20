@@ -9,7 +9,7 @@ import {
 	url as nodeUrl,
 } from '../filesystem';
 import { FormatImporter, leavesTheNoteAlone, PlannedNote } from '../format-importer';
-import { convertPreparedHtml, PreparedHtml, prepareHtmlDocument } from './html/convert';
+import { convertHtmlDocument, HtmlDocumentMetadata, inspectHtmlDocument } from './html/convert';
 import { ImportContext } from '../import-context';
 import { ImportedPathIndex, normalizeTreePath, parentTreePath, resolveTreePath } from '../imported-path-index';
 import { i18n } from '../i18n';
@@ -23,13 +23,16 @@ const SOURCE_EXTENSIONS = [...HTML_EXTENSIONS, 'zip'];
 
 interface PlannedHtml extends PlannedPickedItem {
 	note?: PlannedNote;
-	prepared?: PreparedHtml;
 	baseUrl?: URL;
 }
 
 interface IndexedSourceFile {
 	path: string;
 	file: PickedFile;
+}
+
+interface IndexedHtmlDocument extends HtmlDocumentMetadata {
+	path: string;
 }
 
 export class HtmlImporter extends FormatImporter {
@@ -45,12 +48,17 @@ export class HtmlImporter extends FormatImporter {
 	private importedUrls: ImportedPathIndex<TFile>;
 	private linkedOutputs: Map<string, TFile>;
 	private sourceFiles: ImportedPathIndex<IndexedSourceFile>;
+	private sourceDocuments: ImportedPathIndex<IndexedHtmlDocument>;
 
 	init(): void {
 		this.importedPaths = new ImportedPathIndex();
 		this.importedUrls = new ImportedPathIndex();
 		this.linkedOutputs = new Map();
 		this.sourceFiles = new ImportedPathIndex();
+		this.sourceDocuments = new ImportedPathIndex();
+		this.idProperty = 'html-source';
+		this.idLabel = i18n.importer.html.labelId();
+		this.duplicateCaveat = i18n.importer.html.descSourceIdentity();
 		this.extractMainContent = true;
 		this.folderPicker = new PickedFolderPicker(
 			() => this.source(),
@@ -158,6 +166,7 @@ export class HtmlImporter extends FormatImporter {
 			this.importedUrls.clear();
 			this.linkedOutputs.clear();
 			this.sourceFiles.clear();
+			this.sourceDocuments.clear();
 			await this.indexSourceFiles(items);
 
 			const planned: PlannedHtml[] = await plannedPickedItems(
@@ -176,50 +185,68 @@ export class HtmlImporter extends FormatImporter {
 					onError: (item, error) => ctx.reportFailed(item.name, error),
 				},
 			);
-			await this.preparePlan(ctx, planned);
+			const pageCount = planned.filter(item => item.file).length;
+			const progressTotal = planned.length + pageCount;
+			if (!await this.preparePlan(ctx, planned, progressTotal)) return;
 
 			const notes = planned.filter(item => item.file && item.note);
 			const ordered = [
 				...notes.filter(item => !item.note?.file),
 				...notes.filter(item => item.note?.file),
 				...planned.filter(item => !item.file),
+				...planned.filter(item => item.file && !item.note),
 			];
 
-			let done = 0;
-			ctx.reportProgress(done, ordered.length);
+			let done = pageCount;
 			for (const item of ordered) {
 				if (await ctx.shouldStop()) return;
 
-				ctx.status(i18n.common.statusProcessing({ name: item.file?.name ?? item.parent }));
-				try {
-					if (item.file) await this.processFile(ctx, item);
-					else await this.createFolders(item.parent);
-				}
-				catch (error) {
-					ctx.reportFailed(item.file?.fullpath ?? item.parent, error);
+				if (!item.file || item.note) {
+					ctx.status(i18n.common.statusProcessing({ name: item.file?.name ?? item.parent }));
+					try {
+						if (item.file) await this.processFile(ctx, item);
+						else await this.createFolders(item.parent);
+					}
+					catch (error) {
+						ctx.reportFailed(item.file?.fullpath ?? item.parent, error);
+					}
 				}
 
-				ctx.reportProgress(++done, ordered.length);
+				ctx.reportProgress(++done, progressTotal);
 			}
 		}, (name, error) => ctx.reportFailed(name, error));
 	}
 
-	private async preparePlan(ctx: ImportContext, items: PlannedHtml[]): Promise<void> {
-		for (const item of items) {
-			if (!item.file) continue;
+	private async preparePlan(
+		ctx: ImportContext,
+		items: PlannedHtml[],
+		progressTotal: number,
+	): Promise<boolean> {
+		const pages = items.filter((item): item is PlannedHtml & { file: PickedFile } => item.file !== null);
+		let done = 0;
+		ctx.reportProgress(done, progressTotal);
+
+		for (const item of pages) {
+			if (await ctx.shouldStop()) return false;
 
 			try {
-				item.baseUrl = this.sourceUrl(item.file, item.source);
-				item.prepared = prepareHtmlDocument(
-					await item.file.readText(), item.baseUrl, this.extractMainContent);
+				const { file } = item;
+				ctx.status(i18n.common.statusProcessing({ name: file.name }));
+				item.baseUrl = this.sourceUrl(file, item.source);
+				const metadata = inspectHtmlDocument(await file.readText(), item.baseUrl);
+				this.sourceDocuments.remember(item.source, { path: item.source, ...metadata });
 				item.note = this.planNote(
-					item.parent || '/', item.prepared.title || item.file.basename);
-				if (item.note.file) this.rememberImported(item.source, item.file, item.note.file);
+					item.parent || '/', htmlNoteTitle(metadata.title, file.basename), item.source);
+				if (item.note.file) this.rememberImported(item.source, file, item.note.file);
 			}
 			catch (error) {
 				ctx.reportFailed(item.file.fullpath, error);
 			}
+
+			ctx.reportProgress(++done, progressTotal);
 		}
+
+		return true;
 	}
 
 	private async processFile(ctx: ImportContext, item: PlannedHtml): Promise<void> {
@@ -237,8 +264,10 @@ export class HtmlImporter extends FormatImporter {
 			? new URL('./', baseUrl.href).href
 			: undefined;
 
-		const { markdown } = await convertPreparedHtml(item.prepared!, {
+		const { markdown } = await convertHtmlDocument(await file.readText(), {
 			baseUrl,
+			extractMainContent: this.extractMainContent,
+			resolveFragment: href => this.resolveHeadingFragment(item.source, href),
 			isCancelled: () => ctx.isCancelled(),
 			resolveAttachment: async (url, el, source) => {
 				ctx.status(i18n.importer.html.statusDownloading({ name: file.name }));
@@ -335,23 +364,25 @@ export class HtmlImporter extends FormatImporter {
 
 			const source = from ? `${from}/${item.name}` : item.name;
 			if (item.type === 'file') {
-				this.sourceFiles.remember(source, { path: source, file: item });
+				const indexed = { path: source, file: item };
+				this.sourceFiles.remember(source, indexed);
+				if (item instanceof NodePickedFile) this.sourceFiles.remember(item.filepath, indexed);
 			}
 			else await this.indexSourceFiles(await item.list(), source, false);
 		}
 	}
 
-	private linkedSourceFile(page: string, link: string): PickedFile | undefined {
+	private linkedSource(page: string, link: string): IndexedSourceFile | null {
 		if (link.startsWith('file:')) {
 			try {
 				const path = safeDecode(new URL(link).pathname);
-				return this.sourceFiles.get(path)?.file;
+				return this.sourceFiles.get(path);
 			}
 			catch {
-				return undefined;
+				return null;
 			}
 		}
-		if (/^[a-z][a-z\d+.-]*:/iu.test(link) || link.startsWith('//')) return undefined;
+		if (/^[a-z][a-z\d+.-]*:/iu.test(link) || link.startsWith('//')) return null;
 
 		const clean = safeDecode(link.split(/[?#]/u, 1)[0]);
 		const slash = page.indexOf('/');
@@ -359,7 +390,24 @@ export class HtmlImporter extends FormatImporter {
 		const source = link.startsWith('/')
 			? resolveTreePath(root, clean)
 			: resolveTreePath(parentTreePath(page), clean);
-		return this.sourceFiles.get(source)?.file;
+		return this.sourceFiles.get(source);
+	}
+
+	private linkedSourceFile(page: string, link: string): PickedFile | undefined {
+		return this.linkedSource(page, link)?.file;
+	}
+
+	private resolveHeadingFragment(page: string, href: string): string | null {
+		const hash = href.indexOf('#');
+		if (hash < 0 || hash === href.length - 1) return null;
+
+		const link = href.slice(0, hash);
+		const target = link ? this.linkedSource(page, link)?.path : page;
+		if (!target) return null;
+
+		const id = safeDecode(href.slice(hash + 1));
+		const heading = this.sourceDocuments.get(target)?.headings.get(id);
+		return heading ? `${link}#${encodeURIComponent(heading)}` : null;
 	}
 
 	private sourceUrl(file: PickedFile, source: string): URL {
@@ -380,6 +428,7 @@ export class HtmlImporter extends FormatImporter {
 		const query = path.indexOf('?');
 		const withoutSearch = query < 0 ? path : path.slice(0, query);
 		const decoded = safeDecode(withoutSearch);
+		if (!decoded) return null;
 
 		if (/^[a-z][a-z\d+.-]*:/iu.test(decoded) || decoded.startsWith('//')) {
 			return this.importedUrls.get(withoutSearch) ?? this.importedUrls.get(decoded);
@@ -437,6 +486,11 @@ function safeDecode(path: string): string {
 	catch {
 		return path;
 	}
+}
+
+function htmlNoteTitle(title: string, fallback: string): string {
+	const chosen = title.trim() || fallback;
+	return chosen.replace(/\.html?$/iu, '') || fallback;
 }
 
 function parseURL(url: URL) {
