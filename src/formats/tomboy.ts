@@ -130,6 +130,9 @@ export class TomboyImporter extends FormatImporter {
 		const tomboyNote = this.coreConverter.parseTomboyXML(xmlContent);
 		const markdownContent = this.coreConverter.convertToMarkdown(tomboyNote);
 
-		return await this.writeNote(ctx, folder, tomboyNote.title, markdownContent, { sourceId: file.basename });
+		return await this.writeNote(ctx, folder, tomboyNote.title, markdownContent, {
+			sourceId: file.basename,
+			templateVariables: { ...tomboyNote },
+		});
 	}
 }

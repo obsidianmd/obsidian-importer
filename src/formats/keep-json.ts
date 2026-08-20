@@ -166,6 +166,10 @@ export class KeepImporter extends FormatImporter {
 			strictLineBreaks,
 			sourcePath => this.attachmentPaths.get(sourcePath) ?? this.attachmentPaths.get(sourcePath.split('/').pop() ?? '') ?? sourcePath
 		);
-		return await this.writeNote(ctx, folder, filename, content, { ctime, mtime });
+		return await this.writeNote(ctx, folder, filename, content, {
+			ctime,
+			mtime,
+			templateVariables: { ...keepJson },
+		});
 	}
 }

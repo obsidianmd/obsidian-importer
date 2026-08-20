@@ -446,6 +446,22 @@ translation=Director de ieșire
 original=Where imported notes will be saved. Leave blank to use the top level of the vault.
 translation=Unde vor fi salvate însemnările importate. Lăsați gol pentru a folosi nivelul superior al seifului.
 
+[output.name-template]
+original=Template
+translation=
+
+[output.desc-template]
+original=Optional Markdown template from this vault. Use variables such as {{title}}, {{content}}, and {{date}}.
+translation=
+
+[output.placeholder-template]
+original=Templates/Import.md
+translation=
+
+[output.msg-template-not-found]
+original=Template must be a Markdown file in this vault: {{path}}
+translation=
+
 [output.name-attachments]
 original=Attachment location
 translation=Destinația atașamentelor

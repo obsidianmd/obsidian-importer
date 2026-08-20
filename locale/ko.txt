@@ -446,6 +446,22 @@ translation=출력 폴더
 original=Where imported notes will be saved. Leave blank to use the top level of the vault.
 translation=가져온 노트가 저장될 위치예요. 비워 두면 보관함 최상위에 저장돼요.
 
+[output.name-template]
+original=Template
+translation=
+
+[output.desc-template]
+original=Optional Markdown template from this vault. Use variables such as {{title}}, {{content}}, and {{date}}.
+translation=
+
+[output.placeholder-template]
+original=Templates/Import.md
+translation=
+
+[output.msg-template-not-found]
+original=Template must be a Markdown file in this vault: {{path}}
+translation=
+
 [output.name-attachments]
 original=Attachment location
 translation=첨부 파일 위치

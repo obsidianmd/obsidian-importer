@@ -265,7 +265,7 @@ export class HtmlImporter extends FormatImporter {
 			? new URL('./', baseUrl.href).href
 			: undefined;
 
-		const { markdown } = await convertHtmlDocument(await file.readText(), {
+		const { markdown, variables } = await convertHtmlDocument(await file.readText(), {
 			baseUrl,
 			extractMainContent: this.extractMainContent,
 			resolveFragment: href => this.resolveHeadingFragment(item.source, href),
@@ -285,7 +285,10 @@ export class HtmlImporter extends FormatImporter {
 			onFailed: (src, error) => ctx.reportFailed(src, error),
 		});
 
-		const { file: imported, written } = await this.writePlannedNote(ctx, planned, markdown, { disposition });
+		const { file: imported, written } = await this.writePlannedNote(ctx, planned, markdown, {
+			disposition,
+			templateVariables: variables,
+		});
 		this.rememberImported(item.source, file, imported);
 		if (written) ctx.reportNoteSuccess(file.fullpath);
 	}

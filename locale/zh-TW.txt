@@ -446,6 +446,22 @@ translation=輸出資料夾
 original=Where imported notes will be saved. Leave blank to use the top level of the vault.
 translation=匯入的筆記將儲存至此處。留空則使用保管庫的頂層目錄。
 
+[output.name-template]
+original=Template
+translation=
+
+[output.desc-template]
+original=Optional Markdown template from this vault. Use variables such as {{title}}, {{content}}, and {{date}}.
+translation=
+
+[output.placeholder-template]
+original=Templates/Import.md
+translation=
+
+[output.msg-template-not-found]
+original=Template must be a Markdown file in this vault: {{path}}
+translation=
+
 [output.name-attachments]
 original=Attachment location
 translation=附件位置

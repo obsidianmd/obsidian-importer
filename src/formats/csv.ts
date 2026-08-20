@@ -143,7 +143,9 @@ export class CSVImporter extends FormatImporter {
 				ctx.status(i18n.importer.csv.statusCreatingNote({ title }));
 
 				const targetFolder = await this.getTargetFolder(folder, location);
-				const { written } = await this.writeNote(ctx, targetFolder, title, content);
+				const { written } = await this.writeNote(ctx, targetFolder, title, content, {
+					templateVariables: row,
+				});
 				if (written) ctx.reportNoteSuccess(title);
 			}
 			catch (e) {
@@ -208,4 +210,3 @@ export class CSVImporter extends FormatImporter {
 		return await this.createFolders(fullPath);
 	}
 }
-

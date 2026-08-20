@@ -3,10 +3,12 @@ import { getAllFiles, NodePickedFile, NodePickedFolder, parseFilePath, PickedFil
 import { HostPlugin } from './plugin-data';
 import { AuthCallback, helpUrl } from './constants';
 import { FolderSuggest } from './folder-suggest';
+import { MarkdownFileSuggest } from './markdown-file-suggest';
 import { ImportContext } from './import-context';
 import { formatImportReport, importReportName } from './import-report';
 import { createMarkdown, formattedMarkdown, MarkdownFormatting, MarkdownLinkResolver, modifyMarkdown, standardizedMarkdown, standardizeMarkdownFile } from './markdown-output';
 import { i18n } from './i18n';
+import { NoteTemplateVariables, renderNoteTemplate } from './note-template';
 import { availableFileName, getUniqueFilePath, parseFrontMatterBlock, sanitizeFileName, sanitizeFilePath, serializeFrontMatter } from './util';
 
 const MAX_FILES_LISTED = 5;
@@ -84,6 +86,8 @@ export function vaultAttachmentLocation(vault: Vault): AttachmentLocation {
 
 export interface NoteImport extends DataWriteOptions {
 	sourceId?: string;
+	/** Importer-specific values made available to a selected Markdown template. */
+	templateVariables?: NoteTemplateVariables;
 }
 
 /**
@@ -167,6 +171,8 @@ export abstract class FormatImporter {
 	chosen: (PickedFile | PickedFolder)[] = [];
 
 	outputLocation: string = '';
+	/** Vault-relative path of the optional Markdown template for this importer. */
+	templatePath: string = '';
 	notAvailable: boolean = false;
 
 	/** Set in init(), not in a subclass field initializer. */
@@ -199,6 +205,7 @@ export abstract class FormatImporter {
 
 	/** Cached value for getOutputFolder. Do not use directly. */
 	private outputFolder: TFolder | null = null;
+	private loadedTemplate: { path: string, content: string } | null = null;
 
 	private outputStepDrawn: boolean = false;
 
@@ -753,11 +760,29 @@ export abstract class FormatImporter {
 
 	protected drawOutputSettings(contentEl: HTMLElement): void {
 		this.addOutputFolderSetting(contentEl);
+		this.addTemplateSetting(contentEl);
 		this.addAttachmentLocationSetting(contentEl);
 
 		this.startGroupIn(contentEl);
 		this.addDuplicateHandlingSetting(contentEl);
 		this.addSaveSourceIdSetting(contentEl);
+	}
+
+	private addTemplateSetting(contentEl: HTMLElement): void {
+		new Setting(this.settingsIn(contentEl))
+			.setName(i18n.output.nameTemplate())
+			.setDesc(i18n.output.descTemplate())
+			.addText(text => {
+				text
+					.setPlaceholder(i18n.output.placeholderTemplate())
+					.setValue(this.templatePath)
+					.onChange(value => {
+						this.templatePath = value.trim();
+						this.loadedTemplate = null;
+						this.saveOutputSettings();
+					});
+				new MarkdownFileSuggest(this.app, text.inputEl);
+			});
 	}
 
 	private addSaveSourceIdSetting(contentEl: HTMLElement): void {
@@ -868,6 +893,8 @@ export abstract class FormatImporter {
 
 	private async loadOutputSettings(): Promise<void> {
 		this.outputLocation = this.defaultOutputFolder;
+		this.templatePath = '';
+		this.loadedTemplate = null;
 		// init() may remove the field default from duplicateModes.
 		if (!this.duplicateModes.includes(this.duplicateHandling)) {
 			this.duplicateHandling = [DuplicateHandling.Update, DuplicateHandling.Skip]
@@ -890,6 +917,7 @@ export abstract class FormatImporter {
 			if (!saved) return;
 
 			if (saved.folder !== undefined) this.outputLocation = saved.folder;
+			if (saved.template !== undefined) this.templatePath = saved.template;
 			if (saved.attachments) this.attachmentLocation = { ...saved.attachments };
 			if (saved.duplicates && this.duplicateModes.includes(saved.duplicates)) {
 				this.duplicateHandling = saved.duplicates;
@@ -913,6 +941,7 @@ export abstract class FormatImporter {
 						attachments: { ...this.attachmentLocation },
 						duplicates: this.duplicateHandling,
 						saveSourceId: this.saveSourceId,
+						template: this.templatePath,
 					},
 				};
 				await this.host.plugin.saveData(data);
@@ -1254,8 +1283,9 @@ export abstract class FormatImporter {
 		content: string,
 		options: NoteImport & { disposition?: NoteDisposition } = {},
 	): Promise<NoteWritten> {
-		const { sourceId = planned.sourceId, disposition, ...writeOptions } = options;
+		const { sourceId = planned.sourceId, disposition, templateVariables, ...writeOptions } = options;
 		const { file, title, targetPath } = planned;
+		content = await this.applyNoteTemplate(planned.title, planned.targetPath, content, templateVariables, sourceId);
 		content = this.withSourceId(content, sourceId);
 
 		let decided = disposition ?? this.preflightNote(ctx, planned, writeOptions.mtime);
@@ -1285,6 +1315,60 @@ export abstract class FormatImporter {
 					outcome: 'created',
 				};
 		}
+	}
+
+	protected async applyNoteTemplate(
+		title: string,
+		targetPath: string,
+		content: string,
+		provided: NoteTemplateVariables | undefined,
+		sourceId: string | undefined,
+	): Promise<string> {
+		const template = await this.readTemplate();
+		if (template === null) return content;
+
+		const parsed = parseFrontMatterBlock(content);
+		const timestamp = new Date().toISOString();
+		const { parent, basename } = parseFilePath(targetPath);
+		const properties = parsed?.frontMatter ?? {};
+		const source = { ...properties, ...provided };
+		const variables: NoteTemplateVariables = {
+			// Source values are convenient at the top level. Common variables are
+			// applied afterwards so a property named "content" cannot hide the
+			// imported Markdown; collisions remain available below {{source}}.
+			...source,
+			title,
+			noteName: basename,
+			path: targetPath,
+			folder: parent,
+			content,
+			body: parsed?.body ?? content,
+			properties,
+			source,
+			date: timestamp,
+			time: timestamp,
+			importer: this.host.importerId,
+			sourceId: sourceId ?? '',
+		};
+
+		return renderNoteTemplate(template, variables);
+	}
+
+	private async readTemplate(): Promise<string | null> {
+		const configured = this.templatePath.trim();
+		if (!configured) return null;
+		const path = normalizePath(configured);
+		if (this.loadedTemplate?.path === path) return this.loadedTemplate.content;
+
+		const file = this.vault.getAbstractFileByPath(path)
+			?? this.vault.getAbstractFileByPathInsensitive(path);
+		if (!(file instanceof TFile) || file.extension.toLowerCase() !== 'md') {
+			throw new Error(i18n.output.msgTemplateNotFound({ path: this.templatePath }));
+		}
+
+		const template = await this.vault.cachedRead(file);
+		this.loadedTemplate = { path: file.path, content: template };
+		return template;
 	}
 
 	/** Write, update, or match an imported note according to the duplicate mode. */

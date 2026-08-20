@@ -538,8 +538,9 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 		// Notes may reference other notes, so we want them in resolvedFiles before we parse to avoid cycles
 		const body = await converter.format(false, file.path);
+		const content = await this.applyNoteTemplate(title, file.path, body, { ...row }, row.ZIDENTIFIER);
 
-		await this.modifyMarkdown(file, this.withSourceId(body, row.ZIDENTIFIER), {
+		await this.modifyMarkdown(file, this.withSourceId(content, row.ZIDENTIFIER), {
 			ctime: this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1),
 			mtime: this.decodeTime(row.ZMODIFICATIONDATE1)
 		});

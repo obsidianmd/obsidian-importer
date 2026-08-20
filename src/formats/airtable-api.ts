@@ -1202,7 +1202,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			return;
 		}
 
-		const { content } = await buildRecordNote(record, {
+		const { content, templateVariables } = await buildRecordNote(record, {
 			fields,
 			primaryFieldName,
 			viewReferences,
@@ -1232,6 +1232,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		const { written } = await this.writePlannedNote(ctx, note, content, {
 			disposition,
 			...recordTimestamps(record),
+			templateVariables,
 		});
 		if (written) ctx.reportNoteSuccess(title);
 

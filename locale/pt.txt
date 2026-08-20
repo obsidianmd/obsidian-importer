@@ -446,6 +446,22 @@ translation=Pasta de destino
 original=Where imported notes will be saved. Leave blank to use the top level of the vault.
 translation=Onde as notas importadas serão guardadas. Deixe em branco para usar o nível superior do cofre.
 
+[output.name-template]
+original=Template
+translation=
+
+[output.desc-template]
+original=Optional Markdown template from this vault. Use variables such as {{title}}, {{content}}, and {{date}}.
+translation=
+
+[output.placeholder-template]
+original=Templates/Import.md
+translation=
+
+[output.msg-template-not-found]
+original=Template must be a Markdown file in this vault: {{path}}
+translation=
+
 [output.name-attachments]
 original=Attachment location
 translation=Localização de anexos
