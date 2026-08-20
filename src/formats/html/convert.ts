@@ -113,7 +113,7 @@ export function prepareHtmlDocument(htmlContent: string, {
 }
 
 function extractWithDefuddle(dom: Element, url: URL) {
-	return new Defuddle(dom.ownerDocument!, {
+	return new Defuddle(dom.ownerDocument, {
 		url: url.href,
 		useAsync: false,
 		removeSmallImages: false,

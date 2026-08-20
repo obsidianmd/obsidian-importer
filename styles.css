@@ -336,7 +336,6 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 	font-size: var(--font-ui-smaller);
 	color: var(--text-muted);
 	padding: var(--size-4-4);
-	border-radius: var(--radius-s);
 	max-height: 300px;
 	user-select: text;
 	background-color: var(--setting-items-background);
