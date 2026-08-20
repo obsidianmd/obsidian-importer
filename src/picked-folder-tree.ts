@@ -86,7 +86,7 @@ export class PickedFolderPicker {
 export interface PlannedPickedItem {
 	parent: string;
 	source: string;
-	/** Null only when the source folder is genuinely empty. */
+	/** Null for an empty source folder. */
 	file: PickedFile | null;
 }
 

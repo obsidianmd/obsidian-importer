@@ -66,7 +66,7 @@ export function inspectHtmlDocument(htmlContent: string, baseUrl?: URL): HtmlDoc
 		title = extractWithDefuddle(dom, url).title.trim() || originalTitle;
 	}
 	catch {
-		// The source title remains usable when content extraction cannot read the page.
+		title = originalTitle;
 	}
 
 	return {
