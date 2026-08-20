@@ -2,9 +2,11 @@ import { normalizePath, Notice, TFile, TFolder } from 'obsidian';
 import { fsPromises, NodePickedFile, PickedFile, PickedFolder } from '../filesystem';
 import { DuplicateHandling, FormatImporter, leavesTheNoteAlone, PlannedNote } from '../format-importer';
 import { ImportContext } from '../import-context';
+import { ImportedPathIndex, normalizeTreePath, parentTreePath, resolveTreePath } from '../imported-path-index';
 import { i18n } from '../i18n';
 import { MarkdownFormatting, MarkdownLinkResolver } from '../markdown-output';
-import { TreePicker, ViewableNode } from '../tree-view';
+import { pickedFolderNodes, pickedFolderSelection, PickedFolderNode } from '../picked-folder-tree';
+import { TreePicker } from '../tree-view';
 import { countText, describeReason, sameBytes, sanitizeFileName } from '../util';
 import { readZip, ZipEntryFile, zipContents } from '../zip';
 import { convertMarkdownNote } from './markdown/convert';
@@ -14,11 +16,6 @@ const MARKDOWN_EXTS = ['md', 'markdown'];
 const NATIVE_EXTS = ['base', 'canvas'];
 
 const SOURCE_EXTS = [...MARKDOWN_EXTS, ...NATIVE_EXTS, 'zip'];
-
-interface FolderNode extends ViewableNode<FolderNode> {
-	path: string;
-	notes: number;
-}
 
 interface PlannedItem {
 	parent: string;
@@ -57,37 +54,10 @@ function under(from: string, name: string): string {
 	return from ? `${from}/${name}` : name;
 }
 
-async function folderNodes(items: (PickedFile | PickedFolder)[], from: string): Promise<FolderNode[]> {
-	const nodes: FolderNode[] = [];
-
-	const folders = items.filter((item): item is PickedFolder =>
-		item.type === 'folder' && !(from && isHidden(item)));
-	const listings = await Promise.all(folders.map(folder => folder.list()));
-
-	for (const [index, item] of folders.entries()) {
-		const path = under(from, item.name);
-		const inside = listings[index];
-		const children = await folderNodes(inside, path);
-
-		nodes.push({
-			title: item.name,
-			path,
-			notes: inside.filter(child => child.type === 'file' && !isHidden(child) && isMarkdown(child)).length
-				+ children.reduce((total, child) => total + child.notes, 0),
-			selected: true,
-			disabled: false,
-			collapsed: from !== '',
-			children,
-		});
-	}
-
-	return nodes;
-}
-
 async function fileTimes(file: PickedFile): Promise<FileTimes | undefined> {
 	if (file instanceof ZipEntryFile) {
 		const mtime = (file.mtime ?? file.ctime)?.getTime();
-		return mtime ? { ctime: (file.ctime ?? file.mtime)!.getTime(), mtime } : undefined;
+		return mtime ? { ctime: (file.ctime ?? file.mtime).getTime(), mtime } : undefined;
 	}
 
 	if (!(file instanceof NodePickedFile)) return undefined;
@@ -114,15 +84,12 @@ export class MarkdownImporter extends FormatImporter {
 	// Initialized in init() because the base constructor calls it.
 	standardizeFormatting: boolean;
 	tagsAsProperties: boolean;
-	private picker: TreePicker<FolderNode>;
+	private picker: TreePicker<PickedFolderNode>;
 	private loadedFrom: string;
-	private loadGeneration: number;
 	private skipping: Set<string>;
 	/** Selected folders, or null when no folder filter is active. */
 	private taking: Set<string> | null;
-	/** Imported files keyed by folded path, then exact source spelling. */
-	private importedFrom: Map<string, Map<string, TFile>>;
-	private sourceOf: Map<string, string>;
+	private importedPaths: ImportedPathIndex<TFile>;
 	private outputRoot: string;
 	private linksNeedRepair: boolean;
 
@@ -131,11 +98,9 @@ export class MarkdownImporter extends FormatImporter {
 		this.standardizeFormatting = true;
 		this.tagsAsProperties = false;
 		this.loadedFrom = '';
-		this.loadGeneration = 0;
 		this.skipping = new Set();
 		this.taking = null;
-		this.importedFrom = new Map();
-		this.sourceOf = new Map();
+		this.importedPaths = new ImportedPathIndex();
 		this.outputRoot = '';
 		this.linksNeedRepair = false;
 
@@ -189,7 +154,7 @@ export class MarkdownImporter extends FormatImporter {
 
 	private drawFolderPicker(): void {
 		this.draw(contentEl => {
-			this.picker = new TreePicker<FolderNode>(contentEl, {
+			this.picker = new TreePicker<PickedFolderNode>(contentEl, {
 				setting: this.addSetting('source'),
 				name: i18n.importer.markdown.nameFolders(),
 				desc: i18n.importer.markdown.descFolders(),
@@ -199,7 +164,7 @@ export class MarkdownImporter extends FormatImporter {
 				failed: error => describeReason(error),
 				view: {
 					icon: node => node.children?.length && !node.collapsed ? 'folder-open' : 'folder',
-					flair: node => countText(node.notes),
+					flair: node => countText(node.files),
 				},
 				loadsItself: true,
 			});
@@ -215,41 +180,25 @@ export class MarkdownImporter extends FormatImporter {
 			return;
 		}
 
-		const generation = ++this.loadGeneration;
-
-		await this.picker.load(async () => {
-			let nodes: FolderNode[] = [];
+		await this.picker.load(async isCurrent => {
+			let nodes: PickedFolderNode[] = [];
 			await this.opened(source, async items => {
-				nodes = await folderNodes(items, '');
+				nodes = await pickedFolderNodes(items, {
+					includeFolder: (folder, parent) => !parent || !isHidden(folder),
+					countFile: file => !isHidden(file) && isMarkdown(file),
+					isCurrent,
+				});
 			});
 
-			// Ignore a walk superseded by another source selection.
-			return generation === this.loadGeneration ? nodes : this.picker.nodes;
+			return nodes;
 		});
 	}
 
 	/** Compile the tree selection into skipped subtrees and included folders. */
 	private planSelection(): void {
-		this.skipping = new Set();
-		this.taking = this.picker?.nodes.length ? new Set() : null;
-		if (!this.taking) return;
-
-		const walk = (nodes: FolderNode[]): boolean => {
-			let wanted = false;
-
-			for (const node of nodes) {
-				const below = walk(node.children ?? []);
-
-				if (node.selected) this.taking!.add(node.path);
-				else if (!below) this.skipping.add(node.path);
-
-				wanted ||= node.selected || below;
-			}
-
-			return wanted;
-		};
-
-		walk(this.picker!.nodes);
+		const selection = pickedFolderSelection(this.picker?.nodes ?? []);
+		this.skipping = selection.skipped;
+		this.taking = selection.included;
 	}
 
 	/** Accept an entire drop so relative links retain their neighboring files. */
@@ -277,8 +226,7 @@ export class MarkdownImporter extends FormatImporter {
 		}
 
 		this.planSelection();
-		this.importedFrom.clear();
-		this.sourceOf.clear();
+		this.importedPaths.clear();
 		this.outputRoot = folder.path === '/' ? '' : folder.path;
 		this.linksNeedRepair = false;
 
@@ -316,7 +264,7 @@ export class MarkdownImporter extends FormatImporter {
 
 			item.note = this.planNote(item.parent || '/', file.basename);
 			this.notePlannedPath(item.source, item.note.targetPath);
-			if (item.note.file) this.rememberImported(item.source, item.note.file);
+			if (item.note.file) this.importedPaths.remember(item.source, item.note.file);
 		}
 
 		for (const item of items) {
@@ -424,7 +372,7 @@ export class MarkdownImporter extends FormatImporter {
 
 		const disposition = this.preflightNote(ctx, planned, times?.mtime);
 		if (leavesTheNoteAlone(disposition)) {
-			this.rememberImported(source, planned.file!);
+			this.importedPaths.remember(source, planned.file!);
 			return;
 		}
 
@@ -435,7 +383,7 @@ export class MarkdownImporter extends FormatImporter {
 		if (!this.linksNeedRepair && hasAbsoluteLink(markdown)) this.linksNeedRepair = true;
 
 		const { file: imported, written } = await this.writePlannedNote(ctx, planned, markdown, { ...times, disposition });
-		this.rememberImported(source, imported);
+		this.importedPaths.remember(source, imported);
 		if (written) ctx.reportNoteSuccess(file.name);
 	}
 
@@ -463,7 +411,7 @@ export class MarkdownImporter extends FormatImporter {
 
 		this.notePlannedPath(source, path);
 		const target = reuse ?? this.vault.getAbstractFileByPath(path);
-		if (target instanceof TFile) this.rememberImported(source, target);
+		if (target instanceof TFile) this.importedPaths.remember(source, target);
 
 		return { path, reuse, times };
 	}
@@ -483,7 +431,7 @@ export class MarkdownImporter extends FormatImporter {
 		}
 
 		const imported = await this.writeAttachment(path, await file.read(), times);
-		this.rememberImported(source, imported);
+		this.importedPaths.remember(source, imported);
 		ctx.reportAttachmentSuccess(file.name);
 	}
 
@@ -491,41 +439,21 @@ export class MarkdownImporter extends FormatImporter {
 		const relative = this.outputRoot && path.startsWith(`${this.outputRoot}/`)
 			? path.slice(this.outputRoot.length + 1)
 			: path;
-		if (sourcePath(source).toLowerCase() !== sourcePath(relative).toLowerCase()) {
+		if (normalizeTreePath(source).toLowerCase() !== normalizeTreePath(relative).toLowerCase()) {
 			this.linksNeedRepair = true;
 		}
 	}
 
-	private rememberImported(source: string, file: TFile): void {
-		const key = sourcePath(source);
-		const folded = key.toLowerCase();
-
-		let variants = this.importedFrom.get(folded);
-		if (!variants) this.importedFrom.set(folded, variants = new Map());
-		variants.set(key, file);
-
-		this.sourceOf.set(file.path.toLowerCase(), key);
-	}
-
-	/** Prefer exact spelling; fall back only when the folded path is unambiguous. */
-	private importedAt(source: string): TFile | null {
-		const variants = this.importedFrom.get(source.toLowerCase());
-		if (!variants) return null;
-
-		return variants.get(source)
-			?? (variants.size === 1 ? variants.values().next().value ?? null : null);
-	}
-
 	private resolveImportedLink(path: string, outputPath: string): TFile | null {
-		const source = this.sourceOf.get(outputPath.toLowerCase());
+		const source = this.importedPaths.sourceFor(outputPath);
 		if (!source) return null;
 
-		const relative = resolvedAgainst(parentOf(source), path);
-		const root = resolvedAgainst('', path);
+		const relative = resolveTreePath(parentTreePath(source), path);
+		const root = resolveTreePath('', path);
 
 		for (const candidate of path.startsWith('/') ? [root] : [relative, root]) {
 			for (const key of [candidate, `${candidate}.md`, `${candidate}.markdown`]) {
-				const imported = this.importedAt(key);
+				const imported = this.importedPaths.get(key);
 				if (imported && this.pathChanged(path, outputPath, imported)) return imported;
 			}
 		}
@@ -534,34 +462,11 @@ export class MarkdownImporter extends FormatImporter {
 	}
 
 	private pathChanged(link: string, outputPath: string, imported: TFile): boolean {
-		const expected = resolvedAgainst(link.startsWith('/') ? '' : parentOf(outputPath), link).toLowerCase();
+		const expected = resolveTreePath(link.startsWith('/') ? '' : parentTreePath(outputPath), link).toLowerCase();
 		const actual = imported.path.toLowerCase();
 
 		return actual !== expected && actual.replace(/\.md$/, '') !== expected;
 	}
-}
-
-function parentOf(path: string): string {
-	return path.slice(0, Math.max(0, path.lastIndexOf('/')));
-}
-
-function resolvedAgainst(parent: string, link: string): string {
-	const wanted = link.replace(/\\/g, '/').replace(/^\/+/, '');
-
-	return sourcePath(parent ? `${parent}/${wanted}` : wanted);
-}
-
-/** Normalize a source path without allowing `..` above its root. */
-function sourcePath(path: string): string {
-	const parts: string[] = [];
-
-	for (const part of path.replace(/\\/g, '/').split('/')) {
-		if (!part || part === '.') continue;
-		if (part === '..') parts.pop();
-		else parts.push(part);
-	}
-
-	return parts.join('/');
 }
 
 function hasAbsoluteLink(content: string): boolean {

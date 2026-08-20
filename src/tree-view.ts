@@ -51,6 +51,7 @@ export class TreePicker<T extends ViewableNode<T>> {
 	private filterEl: HTMLElement;
 	private search: SearchComponent;
 	private query: string = '';
+	private loadGeneration: number = 0;
 
 	constructor(containerEl: HTMLElement, private options: TreePickerOptions<T>) {
 		const setting = (options.setting ?? new Setting(containerEl))
@@ -101,7 +102,10 @@ export class TreePicker<T extends ViewableNode<T>> {
 		this.sectionEl.toggle(shown);
 	}
 
-	async load(load: () => Promise<T[]>): Promise<void> {
+	async load(load: (isCurrent: () => boolean) => Promise<T[]>): Promise<void> {
+		const generation = ++this.loadGeneration;
+		const isCurrent = () => generation === this.loadGeneration;
+
 		this.nodes = [];
 		this.clearFilter();
 		this.toggleButton.buttonEl.hide();
@@ -109,17 +113,22 @@ export class TreePicker<T extends ViewableNode<T>> {
 		this.setStatus(this.options.loading);
 
 		try {
-			this.nodes = await load();
+			const nodes = await load(isCurrent);
+			if (!isCurrent()) return;
+
+			this.nodes = nodes;
 			this.render();
 			if (this.nodes.length > 0) this.toggleButton.buttonEl.show();
 		}
 		catch (e) {
+			if (!isCurrent()) return;
+
 			this.setStatus(this.options.failed(e));
 			this.options.onChange?.();
 			throw e;
 		}
 		finally {
-			this.loadButton.setDisabled(false).setButtonText(i18n.tree.buttonRefresh());
+			if (isCurrent()) this.loadButton.setDisabled(false).setButtonText(i18n.tree.buttonRefresh());
 		}
 	}
 
@@ -128,9 +137,10 @@ export class TreePicker<T extends ViewableNode<T>> {
 	}
 
 	reset(): void {
+		this.loadGeneration++;
 		this.nodes = [];
 		this.toggleButton.buttonEl.hide();
-		this.loadButton.setButtonText(i18n.tree.buttonLoad());
+		this.loadButton.setDisabled(false).setButtonText(i18n.tree.buttonLoad());
 		this.clearFilter();
 		this.setStatus(this.options.hint);
 		this.options.onChange?.();

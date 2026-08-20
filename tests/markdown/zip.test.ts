@@ -181,12 +181,12 @@ test('the top level is open, the rest closed, and all of it counted', async () =
 
 interface CountedNode {
 	title: string;
-	notes: number;
+	files: number;
 	selected: boolean;
 	collapsed?: boolean;
 	children?: CountedNode[];
 }
 
 function counted(nodes: CountedNode[]): unknown[] {
-	return nodes.map(node => ({ [node.title]: [node.notes, counted(node.children ?? [])] }));
+	return nodes.map(node => ({ [node.title]: [node.files, counted(node.children ?? [])] }));
 }
