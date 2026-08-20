@@ -6,7 +6,7 @@ import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { readZip, ZipEntryFile } from '../zip';
 import { KeepJson } from './keep/models';
-import { convertKeepNote } from './keep/convert';
+import { convertKeepNote, keepTemplateVariables } from './keep/convert';
 
 
 
@@ -99,7 +99,7 @@ export class KeepImporter extends FormatImporter {
 					title: file.basename,
 					path: this.sanitizeFilePath(`${this.outputLocation}/${file.basename}.md`),
 					content,
-					variables: { ...note },
+					variables: keepTemplateVariables(note),
 					times: { ctime, mtime },
 				});
 			}
@@ -216,7 +216,7 @@ export class KeepImporter extends FormatImporter {
 		return await this.writeNote(ctx, folder, filename, content, {
 			ctime,
 			mtime,
-			templateVariables: { ...keepJson },
+			templateVariables: keepTemplateVariables(keepJson),
 		});
 	}
 }

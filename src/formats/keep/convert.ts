@@ -1,6 +1,6 @@
 import { FrontMatterCache } from 'obsidian';
 import { serializeFrontMatter } from '../../util';
-import { KeepJson } from './models';
+import { KeepAnnotation, KeepJson } from './models';
 import { sanitizeTag, sanitizeTags, toSentenceCase } from './util';
 
 export interface ConvertedKeepNote {
@@ -26,6 +26,59 @@ function collectTags(keepJson: KeepJson): string[] {
 	}
 
 	return tags;
+}
+
+export function keepTemplateVariables(keepJson: KeepJson): Record<string, unknown> {
+	return {
+		...keepJson,
+		labelNames: keepJson.labels?.map(label => label.name).filter(Boolean) ?? [],
+		taskIds: keepJson.tasks?.map(task => task.id).filter(Boolean) ?? [],
+		annotationUrls: keepJson.annotations
+			?.map(annotation => annotation.url?.trim())
+			.filter((url): url is string => !!url) ?? [],
+	};
+}
+
+function normalizeAnnotationText(value: string | undefined): string {
+	return (value ?? '').replace(/\s+/g, ' ').trim();
+}
+
+function escapeMarkdownText(text: string): string {
+	return text.replace(/([\\`*_[\]<>])/g, '\\$1');
+}
+
+function annotationUrl(url: string): string {
+	return `<${url.replace(/</g, '%3C').replace(/>/g, '%3E')}>`;
+}
+
+function annotationPrimaryText(annotation: KeepAnnotation): string {
+	const title = normalizeAnnotationText(annotation.title);
+	const url = normalizeAnnotationText(annotation.url);
+	const description = normalizeAnnotationText(annotation.description);
+
+	if (title && url) return `[${escapeMarkdownText(title)}](${annotationUrl(url)})`;
+	if (url) return annotationUrl(url);
+	if (title) return escapeMarkdownText(title);
+	return escapeMarkdownText(description);
+}
+
+export function formatAnnotations(annotations: KeepAnnotation[] | undefined): string {
+	const items: string[] = [];
+
+	for (const annotation of annotations ?? []) {
+		const primary = annotationPrimaryText(annotation);
+		if (!primary) continue;
+
+		items.push(`- ${primary}`);
+
+		const title = normalizeAnnotationText(annotation.title);
+		const description = normalizeAnnotationText(annotation.description);
+		if (description && description !== title && escapeMarkdownText(description) !== primary) {
+			items.push(`  ${escapeMarkdownText(description)}`);
+		}
+	}
+
+	return items.length > 0 ? `## Annotations\n\n${items.join('\n')}` : '';
 }
 
 export function convertKeepNote(
@@ -66,6 +119,9 @@ export function convertKeepNote(
 			parts.push(`![[${resolveAttachment(attachment.filePath)}]]`);
 		}
 	}
+
+	const annotations = formatAnnotations(keepJson.annotations);
+	if (annotations) parts.push('\n\n', annotations);
 
 	return {
 		content: parts.join(''),
