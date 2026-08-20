@@ -58,7 +58,7 @@ test('a folder dropped on an importer that reproduces it stays a folder', async 
 	assert.deepEqual(names(subject.files), ['Index.md', 'Loose.md']);
 });
 
-test('a folder dropped on an importer that only wants files is read for them', async () => {
+test('a folder dropped on the HTML importer stays available for its page structure', async () => {
 	const subject = await importer(HtmlImporter);
 	const page = new SourceFile('Page.html');
 
@@ -66,7 +66,7 @@ test('a folder dropped on an importer that only wants files is read for them', a
 		[new SourceFolder('Site', [page])],
 		[page, new SourceFile('style.css')]);
 
-	assert.deepEqual(names(subject.chosen), ['Page.html']);
+	assert.deepEqual(names(subject.chosen), ['Site']);
 	assert.deepEqual(names(subject.files), ['Page.html']);
 });
 

@@ -1,18 +1,30 @@
-import { CachedMetadata, normalizePath, Notice, parseLinktext, requestUrl, TFile, TFolder } from 'obsidian';
+import { normalizePath, Notice, requestUrl, TFile, TFolder } from 'obsidian';
 import {
 	fsPromises,
 	nodeBufferToArrayBuffer,
 	NodePickedFile,
 	parseFilePath,
 	PickedFile,
+	PickedFolder,
 	url as nodeUrl,
 } from '../filesystem';
-import { FormatImporter } from '../format-importer';
+import { DuplicateHandling, FormatImporter, leavesTheNoteAlone, PlannedNote } from '../format-importer';
 import { convertHtmlDocument } from './html/convert';
 import { ImportContext } from '../import-context';
+import { ImportedPathIndex, normalizeTreePath, parentTreePath, resolveTreePath } from '../imported-path-index';
 import { i18n } from '../i18n';
+import { MarkdownLinkResolver } from '../markdown-output';
 import { extensionForMime } from '../mime';
-import { stringToUtf8 } from '../util';
+import { pickedFolderNodes, pickedFolderSelection, PickedFolderNode } from '../picked-folder-tree';
+import { TreePicker } from '../tree-view';
+import { countText, describeReason, sanitizeFileName } from '../util';
+
+interface PlannedHtml {
+	parent: string;
+	source: string;
+	file: PickedFile | null;
+	note?: PlannedNote;
+}
 
 export class HtmlImporter extends FormatImporter {
 	static extensions = ['htm', 'html'];
@@ -21,13 +33,95 @@ export class HtmlImporter extends FormatImporter {
 
 	attachmentSizeLimit: number;
 	minimumImageSize: number;
+	private picker: TreePicker<PickedFolderNode>;
+	private loadedFrom: string;
+	private skipping: Set<string>;
+	private taking: Set<string> | null;
+	private importedPaths: ImportedPathIndex<TFile>;
+	private importedUrls: ImportedPathIndex<TFile>;
+	private linkedOutputs: Map<string, TFile>;
 
-	init() {
+	init(): void {
+		this.loadedFrom = '';
+		this.skipping = new Set();
+		this.taking = null;
+		this.importedPaths = new ImportedPathIndex();
+		this.importedUrls = new ImportedPathIndex();
+		this.linkedOutputs = new Map();
+
+		this.keepsFolders = true;
 		this.addExportSetting(i18n.importer.html.descExport());
-		this.addFileChooserSetting(i18n.importer.html.fileType(), HtmlImporter.extensions, true);
+		this.addFileChooserSetting(
+			i18n.importer.html.fileType(), HtmlImporter.extensions, true,
+			i18n.importer.html.descSource());
+		this.drawFolderPicker();
 		this.addAttachmentSizeLimit(0);
 		this.addMinimumImageSize(65); // 65 so that 64×64 are excluded
 		this.defaultOutputFolder = 'HTML import';
+	}
+
+	protected override get markdownLinkResolver(): MarkdownLinkResolver {
+		return (path, sourcePath) => this.resolveImportedLink(path, sourcePath);
+	}
+
+	private source(): (PickedFile | PickedFolder)[] {
+		return this.chosen.length > 0 ? this.chosen : this.files;
+	}
+
+	protected sourceChanged(): void {
+		super.sourceChanged();
+
+		this.picker?.toggle(this.source().length > 0);
+
+		const key = this.source().map(item => item.toString()).join('\n');
+		if (key === this.loadedFrom) return;
+
+		this.loadedFrom = key;
+		if (this.picker) void this.loadFolders();
+	}
+
+	private drawFolderPicker(): void {
+		this.draw(contentEl => {
+			this.picker = new TreePicker<PickedFolderNode>(contentEl, {
+				setting: this.addSetting('source'),
+				name: i18n.importer.html.nameFolders(),
+				desc: i18n.importer.html.descFolders(),
+				hint: i18n.importer.html.msgPickSourceFirst(),
+				loading: i18n.importer.html.msgReadingFolders(),
+				empty: i18n.importer.html.msgNoFolders(),
+				failed: error => describeReason(error),
+				view: {
+					icon: node => node.children?.length && !node.collapsed ? 'folder-open' : 'folder',
+					flair: node => countText(node.files),
+				},
+				loadsItself: true,
+			});
+
+			this.picker.toggle(this.source().length > 0);
+		}, 'source');
+	}
+
+	private async loadFolders(): Promise<void> {
+		const source = this.source();
+		if (source.length === 0) {
+			this.picker.reset();
+			return;
+		}
+
+		await this.picker.load(isCurrent => pickedFolderNodes(source, {
+			countFile: file => HtmlImporter.extensions.includes(file.extension),
+			isCurrent,
+		}));
+	}
+
+	private planSelection(): void {
+		const selection = pickedFolderSelection(this.picker?.nodes ?? []);
+		this.skipping = selection.skipped;
+		this.taking = selection.included;
+	}
+
+	wouldTake(_dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): number {
+		return files.some(file => HtmlImporter.extensions.includes(file.extension)) ? files.length : 0;
 	}
 
 	addAttachmentSizeLimit(defaultInMB: number) {
@@ -70,8 +164,8 @@ export class HtmlImporter extends FormatImporter {
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
-		const { files } = this;
-		if (files.length === 0) {
+		const source = this.source();
+		if (source.length === 0) {
 			new Notice(i18n.common.msgPickFile());
 			return;
 		}
@@ -82,173 +176,136 @@ export class HtmlImporter extends FormatImporter {
 			return;
 		}
 
-		const fileLookup = new Map<string, { file: PickedFile, tFile: TFile }>;
+		this.planSelection();
+		this.importedPaths.clear();
+		this.importedUrls.clear();
+		this.linkedOutputs.clear();
+		const planned = await this.plan(ctx, source, folder.path === '/' ? '' : folder.path);
+		this.preparePlan(planned);
 
-		ctx.reportProgress(0, files.length);
-		for (let i = 0; i < files.length; i++) {
+		const notes = planned.filter(item => item.file);
+		// Existing notes compare links against targets that must already exist.
+		const ordered = [
+			...notes.filter(item => !item.note?.file),
+			...notes.filter(item => item.note?.file),
+			...planned.filter(item => !item.file),
+		];
+
+		let done = 0;
+		ctx.reportProgress(done, ordered.length);
+		for (const item of ordered) {
 			if (await ctx.shouldStop()) return;
 
-			const file = files[i];
-			const tFile = await this.processFile(ctx, folder, file);
-			if (tFile) {
-				fileLookup.set(
-					file instanceof NodePickedFile
-						? nodeUrl.pathToFileURL(file.filepath).href
-						: file.name,
-					{ file, tFile });
+			ctx.status(i18n.common.statusProcessing({ name: item.file?.name ?? item.parent }));
+			try {
+				if (item.file) await this.processFile(ctx, item);
+				else await this.createFolders(item.parent);
+			}
+			catch (error) {
+				ctx.reportFailed(item.file?.fullpath ?? item.parent, error);
 			}
 
-			ctx.reportProgress(i+1, files.length);
+			ctx.reportProgress(++done, ordered.length);
 		}
-
-		const { metadataCache } = this.app;
-
-		let resolveUpdatesCompletePromise: () => void;
-		const updatesCompletePromise = new Promise<void>((resolve) => {
-			resolveUpdatesCompletePromise = resolve;
-		});
-
-		// @ts-ignore
-		metadataCache.onCleanCache(async () => {
-			// This function must call resolveUpdatesCompletePromise() before returning.
-			for (const [fileKey, { file, tFile }] of fileLookup) {
-				if (await ctx.shouldStop()) break;
-
-				try {
-					// Attempt to parse links using MetadataCache
-					let mdContent = await this.app.vault.cachedRead(tFile);
-
-					// @ts-ignore
-					const cache = metadataCache.computeMetadataAsync
-						// @ts-ignore
-						? await metadataCache.computeMetadataAsync(stringToUtf8(mdContent)) as CachedMetadata
-						: metadataCache.getFileCache(tFile);
-					if (!cache) continue;
-
-					// Gather changes to make to the document
-					const changes = [];
-					if (cache.links) {
-						for (const { link, position, displayText } of cache.links) {
-							const { path, subpath } = parseLinktext(link);
-							let linkKey: string;
-							if (nodeUrl) {
-								const url = new URL(encodeURI(path), fileKey);
-								url.hash = '';
-								url.search = '';
-								linkKey = decodeURIComponent(url.href);
-							}
-							else {
-								linkKey = parseFilePath(path.replace(/#/gu, '%23')).name;
-							}
-							const linkFile = fileLookup.get(linkKey);
-							if (linkFile) {
-								const newLink = this.app.fileManager.generateMarkdownLink(linkFile.tFile, tFile.path, subpath, displayText);
-								changes.push({ from: position.start.offset, to: position.end.offset, text: newLink });
-							}
-						}
-					}
-
-					// Apply changes from last to first
-					changes.sort((a, b) => b.from - a.from);
-					for (const change of changes) {
-						mdContent = mdContent.substring(0, change.from) + change.text + mdContent.substring(change.to);
-					}
-
-					await this.modifyMarkdown(tFile, mdContent);
-				}
-				catch (e) {
-					ctx.reportFailed(file.fullpath, e);
-				}
-			}
-
-			resolveUpdatesCompletePromise();
-		});
-
-		await updatesCompletePromise;
 	}
 
-	async processFile(ctx: ImportContext, folder: TFolder, file: PickedFile) {
-		ctx.status(i18n.common.statusProcessing({ name: file.name }));
-		try {
-			const htmlContent = await file.readText();
+	private async plan(
+		ctx: ImportContext,
+		items: (PickedFile | PickedFolder)[],
+		into: string,
+		chosen = true,
+		from = '',
+	): Promise<PlannedHtml[]> {
+		const planned: PlannedHtml[] = [];
 
-			const baseUrl = file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath) : undefined;
-			const allowedBaseDirUrl = baseUrl ? new URL('./', baseUrl.href).href : undefined;
+		for (const item of items) {
+			if (await ctx.shouldStop()) return planned;
 
-			const attachmentLookup = new Map<string, TFile>;
-			const notePath = normalizePath(`${folder.path}/${file.basename}.md`);
+			try {
+				if (item.type === 'file') {
+					if (!HtmlImporter.extensions.includes(item.extension)) continue;
+					if (from && this.taking && !this.taking.has(from)) continue;
 
-			const { markdown, attachments } = await convertHtmlDocument(htmlContent, {
-				baseUrl,
-				isCancelled: () => ctx.isCancelled(),
-				resolveAttachment: async (url, el) => {
-					ctx.status(i18n.importer.html.statusDownloading({ name: file.name }));
-					const attachmentFile = await this.downloadAttachment(el, url, notePath, allowedBaseDirUrl);
-					if (!attachmentFile) return null;
+					planned.push({ parent: into, source: under(from, item.name), file: item });
+					continue;
+				}
 
-					attachmentLookup.set(attachmentFile.path, attachmentFile);
-					return { path: attachmentFile.path, name: attachmentFile.name };
-				},
-				onAttachment: attachment => ctx.reportAttachmentSuccess(attachment.name),
-				onSkipped: src => ctx.reportSkipped(src),
-				onFailed: (src, e) => ctx.reportFailed(src, e),
-			});
+				const source = under(from, item.name);
+				if (this.skipping.has(source)) continue;
 
-			let mdContent = markdown;
-			let { file: mdFile, written } = await this.writeNote(ctx, folder, file.basename, mdContent);
+				const name = sanitizeFileName(item.name, into);
+				const desired = normalizePath(into ? `${into}/${name}` : name);
+				const existing = this.vault.getAbstractFileByPathInsensitive(desired);
+				let at: string;
 
-			if (!written) return mdFile;
-
-			// Because `htmlToMarkdown` always gets us markdown links, we'll want to convert them into wikilinks, or relative links depending on the user's preference.
-			if (attachments.size > 0) {
-				// Attempt to parse links using MetadataCache
-				let { metadataCache } = this.app;
-				let cache: CachedMetadata;
-				// @ts-ignore
-				if (metadataCache.computeMetadataAsync) {
-					// @ts-ignore
-					cache = await metadataCache.computeMetadataAsync(stringToUtf8(mdContent)) as CachedMetadata;
+				if (chosen && this.duplicateHandling === DuplicateHandling.CreateCopy) {
+					at = this.freeFilePath(into, name);
+				}
+				else if (existing instanceof TFolder) {
+					at = existing.path;
+				}
+				else if (existing || this.hasClaimed(desired)) {
+					at = this.freeFilePath(into, name);
 				}
 				else {
-					cache = await new Promise<CachedMetadata>(resolve => {
-						let cache = metadataCache.getFileCache(mdFile);
-						if (cache) return resolve(cache);
-						const ref = metadataCache.on('changed', (file, content, cache) => {
-							if (file === mdFile) {
-								metadataCache.offref(ref);
-								resolve(cache);
-							}
-						});
-					});
+					at = desired;
 				}
 
-				// Gather changes to make to the document
-				let changes = [];
-				if (cache.embeds) {
-					for (let { link, position } of cache.embeds) {
-						if (attachmentLookup.has(link)) {
-							let newLink = this.app.fileManager.generateMarkdownLink(attachmentLookup.get(link)!, mdFile.path);
-							changes.push({ from: position.start.offset, to: position.end.offset, text: '!' + newLink });
-						}
-					}
-				}
-
-				// Apply changes from last to first
-				changes.sort((a, b) => b.from - a.from);
-				for (let change of changes) {
-					mdContent = mdContent.substring(0, change.from) + change.text + mdContent.substring(change.to);
-				}
-
-				await this.modifyMarkdown(mdFile, mdContent);
+				this.claimPath(at);
+				const inside = await this.plan(ctx, await item.list(), at, false, source);
+				if (inside.length === 0) planned.push({ parent: at, source, file: null });
+				else for (const child of inside) planned.push(child);
 			}
+			catch (error) {
+				ctx.reportFailed(item.name, error);
+			}
+		}
 
-			ctx.reportNoteSuccess(file.fullpath);
-			return mdFile;
+		return planned;
+	}
+
+	private preparePlan(items: PlannedHtml[]): void {
+		for (const item of items) {
+			if (!item.file) continue;
+
+			item.note = this.planNote(item.parent || '/', item.file.basename);
+			if (item.note.file) this.rememberImported(item.source, item.file, item.note.file);
 		}
-		catch (e) {
-			ctx.reportFailed(file.fullpath, e);
+	}
+
+	private async processFile(ctx: ImportContext, item: PlannedHtml): Promise<void> {
+		const file = item.file!;
+		const planned = item.note!;
+		const disposition = this.preflightNote(ctx, planned);
+		if (leavesTheNoteAlone(disposition)) {
+			this.rememberImported(item.source, file, planned.file!);
+			return;
 		}
-		return null;
+
+		await this.createFolders(item.parent || '/');
+		const htmlContent = await file.readText();
+		const baseUrl = file instanceof NodePickedFile ? nodeUrl.pathToFileURL(file.filepath) : undefined;
+		const allowedBaseDirUrl = baseUrl ? new URL('./', baseUrl.href).href : undefined;
+
+		const { markdown } = await convertHtmlDocument(htmlContent, {
+			baseUrl,
+			isCancelled: () => ctx.isCancelled(),
+			resolveAttachment: async (url, el) => {
+				ctx.status(i18n.importer.html.statusDownloading({ name: file.name }));
+				const attachment = await this.downloadAttachment(el, url, planned.targetPath, allowedBaseDirUrl);
+				if (!attachment) return null;
+
+				this.linkedOutputs.set(attachment.path.toLowerCase(), attachment);
+				return { path: attachment.path, name: attachment.name };
+			},
+			onAttachment: attachment => ctx.reportAttachmentSuccess(attachment.name),
+			onSkipped: src => ctx.reportSkipped(src),
+			onFailed: (src, error) => ctx.reportFailed(src, error),
+		});
+
+		const { file: imported, written } = await this.writePlannedNote(ctx, planned, markdown, { disposition });
+		this.rememberImported(item.source, file, imported);
+		if (written) ctx.reportNoteSuccess(file.fullpath);
 	}
 
 	async downloadAttachment(el: HTMLElement, url: URL, notePath: string, allowedBaseDirUrl?: string) {
@@ -304,6 +361,45 @@ export class HtmlImporter extends FormatImporter {
 		return await this.vault.createBinary(path, data);
 	}
 
+	private rememberImported(source: string, picked: PickedFile, imported: TFile): void {
+		this.importedPaths.remember(source, imported);
+		if (!(picked instanceof NodePickedFile)) return;
+
+		const href = nodeUrl.pathToFileURL(picked.filepath).href;
+		this.importedUrls.remember(href, imported);
+		this.importedUrls.remember(safeDecode(href), imported);
+	}
+
+	private resolveImportedLink(path: string, outputPath: string): TFile | null {
+		const query = path.indexOf('?');
+		const withoutSearch = query < 0 ? path : path.slice(0, query);
+		const decoded = safeDecode(withoutSearch);
+
+		if (/^[a-z][a-z\d+.-]*:/iu.test(decoded) || decoded.startsWith('//')) {
+			return this.importedUrls.get(withoutSearch) ?? this.importedUrls.get(decoded);
+		}
+
+		const direct = normalizeTreePath(decoded);
+		const relativeOutput = resolveTreePath(parentTreePath(outputPath), decoded);
+		for (const candidate of [direct, relativeOutput]) {
+			const linked = this.linkedOutputs.get(candidate.toLowerCase());
+			if (linked) return linked;
+		}
+
+		const source = this.importedPaths.sourceFor(outputPath);
+		if (!source) return null;
+
+		const relative = resolveTreePath(parentTreePath(source), decoded);
+		const root = resolveTreePath('', decoded);
+		for (const candidate of decoded.startsWith('/') ? [root] : [relative, root]) {
+			for (const key of [candidate, `${candidate}.html`, `${candidate}.htm`]) {
+				const imported = this.importedPaths.get(key);
+				if (imported) return imported;
+			}
+		}
+
+		return null;
+	}
 
 	filterAttachmentSize(data: ArrayBuffer) {
 		const { byteLength } = data;
@@ -323,6 +419,19 @@ export class HtmlImporter extends FormatImporter {
 		}
 		const { height, width } = size;
 		return width >= this.minimumImageSize && height >= this.minimumImageSize;
+	}
+}
+
+function under(from: string, name: string): string {
+	return from ? `${from}/${name}` : name;
+}
+
+function safeDecode(path: string): string {
+	try {
+		return decodeURIComponent(path);
+	}
+	catch {
+		return path;
 	}
 }
 

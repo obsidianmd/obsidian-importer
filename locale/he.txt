@@ -1270,6 +1270,30 @@ translation=HTML
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
 translation=שמור את הדפים שברצונך לשמור כ-HTML. אם לאפליקציה שבה הם נמצאים יש ייבוא משלה, השתמש בו במקום זאת: הוא שומר יותר מהנתונים שלך.
 
+[importer.html.desc-source]
+original=Choose individual HTML files or whole folders. Pages in folders stay organized the same way.
+translation=
+
+[importer.html.name-folders]
+original=Folders to import
+translation=
+
+[importer.html.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=
+
+[importer.html.msg-pick-source-first]
+original=Choose files or folders first.
+translation=
+
+[importer.html.msg-reading-folders]
+original=Reading folders...
+translation=
+
+[importer.html.msg-no-folders]
+original=No folders found.
+translation=
+
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
 translation=מגבלת גודל קובץ מצורף (MB)
