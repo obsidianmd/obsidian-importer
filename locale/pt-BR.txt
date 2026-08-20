@@ -1299,36 +1299,36 @@ original=Markdown
 translation=Markdown
 
 [importer.markdown.desc-source]
-original=Choose individual Markdown files, whole folders, or zip files. Everything inside a folder or zip file stays organized the same way.
-translation=Selecione arquivos Markdown ou pastas para importar com a estrutura em que estão.
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=Escolher arquivos Markdown individuais, pastas inteiras ou arquivos zip. Tudo nas pastas mantém a mesma organização.
 
 [importer.markdown.name-folders]
 original=Folders to import
-translation=
+translation=Pastas para importar
 
 [importer.markdown.desc-folders]
-original=Everything inside a folder comes with it. Untick one to leave it out.
-translation=
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=Tudo nas pastas marcadas será importado. Desmarque pastas para excluí-las.
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
-translation=
+translation=Escolher arquivos ou pastas primeiro.
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
-translation=
+translation=Leitura de pastas...
 
 [importer.markdown.msg-no-folders]
 original=No folders found.
-translation=
+translation=Nenhuma pasta encontrada.
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting
 translation=Padronizar formatação
 
 [importer.markdown.desc-standardize-formatting]
-original=Use this vault's settings for lists, indentation, and links. Turn this off to preserve the source formatting.
-translation=Usar as configurações deste cofre para listas, indentação e links. Desative para preservar a formatação original.
+original=Use this vault's settings for lists, indentation, and links.
+translation=Usar as configurações deste cofre para listas, indentação e links.
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties

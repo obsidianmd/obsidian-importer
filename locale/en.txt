@@ -1299,7 +1299,7 @@ original=Markdown
 translation=
 
 [importer.markdown.desc-source]
-original=Choose individual Markdown files, whole folders, or zip files. Everything inside a folder or zip file stays organized the same way.
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
 translation=
 
 [importer.markdown.name-folders]
@@ -1307,7 +1307,7 @@ original=Folders to import
 translation=
 
 [importer.markdown.desc-folders]
-original=Everything inside a folder comes with it. Untick one to leave it out.
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
 translation=
 
 [importer.markdown.msg-pick-source-first]
@@ -1327,7 +1327,7 @@ original=Standardize formatting
 translation=
 
 [importer.markdown.desc-standardize-formatting]
-original=Use this vault's settings for lists, indentation, and links. Turn this off to preserve the source formatting.
+original=Use this vault's settings for lists, indentation, and links.
 translation=
 
 [importer.markdown.name-tags-as-properties]

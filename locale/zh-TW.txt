@@ -1299,36 +1299,36 @@ original=Markdown
 translation=Markdown
 
 [importer.markdown.desc-source]
-original=Choose individual Markdown files, whole folders, or zip files. Everything inside a folder or zip file stays organized the same way.
-translation=選擇要匯入的 Markdown 檔案或資料夾，資料夾將保留其原有結構。
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=選擇個別 Markdown 檔案、整個資料夾或 zip 檔案。資料夾中的所有內容將保持相同的組織結構。
 
 [importer.markdown.name-folders]
 original=Folders to import
-translation=
+translation=要匯入的資料夾
 
 [importer.markdown.desc-folders]
-original=Everything inside a folder comes with it. Untick one to leave it out.
-translation=
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=已勾選資料夾中的所有內容都會被匯入。取消勾選資料夾以排除它們。
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
-translation=
+translation=請先選擇檔案或資料夾。
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
-translation=
+translation=正在閱讀資料夾...
 
 [importer.markdown.msg-no-folders]
 original=No folders found.
-translation=
+translation=未找到資料夾。
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting
 translation=標準化格式
 
 [importer.markdown.desc-standardize-formatting]
-original=Use this vault's settings for lists, indentation, and links. Turn this off to preserve the source formatting.
-translation=使用此保管庫的設定來處理列表、縮排與連結。關閉此選項以保留原始內容的格式。
+original=Use this vault's settings for lists, indentation, and links.
+translation=使用此保管庫的設定來處理列表、縮排且連結。
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties

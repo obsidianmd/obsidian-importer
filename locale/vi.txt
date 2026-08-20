@@ -1299,36 +1299,36 @@ original=Markdown
 translation=Markdown
 
 [importer.markdown.desc-source]
-original=Choose individual Markdown files, whole folders, or zip files. Everything inside a folder or zip file stays organized the same way.
-translation=Chọn tệp Markdown hoặc thư mục để nhập với cấu trúc hiện có.
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=Chọn từng tệp Markdown riêng lẻ, toàn bộ thư mục hoặc tệp zip. Mọi thứ trong thư mục được giữ nguyên cấu trúc.
 
 [importer.markdown.name-folders]
 original=Folders to import
-translation=
+translation=Thư mục để nhập
 
 [importer.markdown.desc-folders]
-original=Everything inside a folder comes with it. Untick one to leave it out.
-translation=
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=Mọi thứ trong các thư mục được chọn sẽ được nhập. Bỏ chọn thư mục để loại trừ chúng.
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
-translation=
+translation=Chọn tệp hoặc thư mục trước.
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
-translation=
+translation=Đang đọc thư mục...
 
 [importer.markdown.msg-no-folders]
 original=No folders found.
-translation=
+translation=Không tìm thấy thư mục nào.
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting
 translation=Chuẩn hóa định dạng
 
 [importer.markdown.desc-standardize-formatting]
-original=Use this vault's settings for lists, indentation, and links. Turn this off to preserve the source formatting.
-translation=Sử dụng cài đặt của kho này cho danh sách, thụt lề và liên kết. Tắt tùy chọn này để giữ nguyên định dạng nguồn.
+original=Use this vault's settings for lists, indentation, and links.
+translation=Sử dụng cài đặt của kho này cho danh sách, thụt lề và liên kết.
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties

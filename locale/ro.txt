@@ -1299,36 +1299,36 @@ original=Markdown
 translation=Markdown
 
 [importer.markdown.desc-source]
-original=Choose individual Markdown files, whole folders, or zip files. Everything inside a folder or zip file stays organized the same way.
-translation=Alegeți fișiere Markdown sau foldere pentru a le importa cu structura în care se află.
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=Alege fișiere Markdown individuale, foldere întregi sau arhive zip. Tot conținutul folderelor își păstrează aceeași organizare.
 
 [importer.markdown.name-folders]
 original=Folders to import
-translation=
+translation=Foldere de importat
 
 [importer.markdown.desc-folders]
-original=Everything inside a folder comes with it. Untick one to leave it out.
-translation=
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=Tot conținutul folderelor bifate este importat. Debifează folderele pe care vrei să le excluzi.
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
-translation=
+translation=Alege mai întâi fișiere sau foldere.
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
-translation=
+translation=Se citesc folderele...
 
 [importer.markdown.msg-no-folders]
 original=No folders found.
-translation=
+translation=Nu s-au găsit foldere.
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting
 translation=Standardizare formatare
 
 [importer.markdown.desc-standardize-formatting]
-original=Use this vault's settings for lists, indentation, and links. Turn this off to preserve the source formatting.
-translation=Folosește setările acestui seif pentru liste, indentare și legături. Dezactivează această opțiune pentru a păstra formatarea sursă.
+original=Use this vault's settings for lists, indentation, and links.
+translation=Folosește setările acestui seif pentru liste, indentare și legături.
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties

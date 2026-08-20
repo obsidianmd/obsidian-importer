@@ -1299,36 +1299,36 @@ original=Markdown
 translation=Markdown
 
 [importer.markdown.desc-source]
-original=Choose individual Markdown files, whole folders, or zip files. Everything inside a folder or zip file stays organized the same way.
-translation=Selecciona archivos o carpetas Markdown para importarlos con su estructura.
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=Elige archivos Markdown individuales, carpetas completas o archivos zip. Todo en las carpetas se mantiene organizado de la misma manera.
 
 [importer.markdown.name-folders]
 original=Folders to import
-translation=
+translation=Carpetas a importar
 
 [importer.markdown.desc-folders]
-original=Everything inside a folder comes with it. Untick one to leave it out.
-translation=
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=Todo en las carpetas marcadas se importa. Desmarca carpetas para excluirlas.
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
-translation=
+translation=Elige archivos o carpetas primero.
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
-translation=
+translation=Leyendo carpetas...
 
 [importer.markdown.msg-no-folders]
 original=No folders found.
-translation=
+translation=No se encontraron carpetas.
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting
 translation=Estandarizar formato
 
 [importer.markdown.desc-standardize-formatting]
-original=Use this vault's settings for lists, indentation, and links. Turn this off to preserve the source formatting.
-translation=Usar los ajustes de esta bóveda para listas, sangría y enlaces. Desactiva esta opción para preservar el formato de la fuente.
+original=Use this vault's settings for lists, indentation, and links.
+translation=Usa los ajustes de esta bóveda para listas, sangría y enlaces.
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties

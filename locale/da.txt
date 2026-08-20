@@ -1299,36 +1299,36 @@ original=Markdown
 translation=Markdown
 
 [importer.markdown.desc-source]
-original=Choose individual Markdown files, whole folders, or zip files. Everything inside a folder or zip file stays organized the same way.
-translation=Vælg Markdown-filer eller -mapper, der skal importeres med deres mappestruktur.
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=Vælg individuelle Markdown-filer, hele mapper eller zip-filer. Alt i mapper bevarer den samme struktur.
 
 [importer.markdown.name-folders]
 original=Folders to import
-translation=
+translation=Mapper at importere
 
 [importer.markdown.desc-folders]
-original=Everything inside a folder comes with it. Untick one to leave it out.
-translation=
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=Alt i markerede mapper importeres. Fjern markeringen af mapper for at udelukke dem.
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
-translation=
+translation=Vælg filer eller mapper først.
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
-translation=
+translation=Læsning af mapper...
 
 [importer.markdown.msg-no-folders]
 original=No folders found.
-translation=
+translation=Ingen mapper fundet.
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting
 translation=Standardisér formatering
 
 [importer.markdown.desc-standardize-formatting]
-original=Use this vault's settings for lists, indentation, and links. Turn this off to preserve the source formatting.
-translation=Brug denne boks' indstillinger for lister, indrykning og links. Slå dette fra for at bevare kildeformateringen.
+original=Use this vault's settings for lists, indentation, and links.
+translation=Brug denne boks' indstillinger for lister, indrykning og links.
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties

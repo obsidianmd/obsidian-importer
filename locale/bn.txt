@@ -1299,36 +1299,36 @@ original=Markdown
 translation=Markdown
 
 [importer.markdown.desc-source]
-original=Choose individual Markdown files, whole folders, or zip files. Everything inside a folder or zip file stays organized the same way.
-translation=ইম্পোর্ট করতে Markdown ফাইল বা ফোল্ডার নির্বাচন করুন, ফোল্ডার কাঠামো অক্ষুণ্ণ থাকবে।
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=পৃথক Markdown ফাইল, সম্পূর্ণ ফোল্ডার, বা zip ফাইল নির্বাচন করুন। ফোল্ডারের সবকিছু একই কাঠামোতে সংগঠিত থাকবে।
 
 [importer.markdown.name-folders]
 original=Folders to import
-translation=
+translation=ইমপোর্ট করার ফোল্ডারসমূহ
 
 [importer.markdown.desc-folders]
-original=Everything inside a folder comes with it. Untick one to leave it out.
-translation=
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=চেক করা ফোল্ডারের সবকিছু ইমপোর্ট হবে। বাদ দিতে ফোল্ডার আনচেক করুন।
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
-translation=
+translation=প্রথমে ফাইল বা ফোল্ডার নির্বাচন করুন।
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
-translation=
+translation=ফোল্ডার পঠন করা হচ্ছে...
 
 [importer.markdown.msg-no-folders]
 original=No folders found.
-translation=
+translation=কোনো ফোল্ডার পাওয়া যায়নি।
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting
 translation=ফরম্যাটিং প্রমিতকরণ
 
 [importer.markdown.desc-standardize-formatting]
-original=Use this vault's settings for lists, indentation, and links. Turn this off to preserve the source formatting.
-translation=তালিকা, ইন্ডেন্টেশন এবং লিঙ্ক-এর জন্য এই ভল্ট-এর সেটিংস ব্যবহার করুন। সোর্স ফরম্যাটিং সংরক্ষণ করতে এটি বন্ধ করুন।
+original=Use this vault's settings for lists, indentation, and links.
+translation=তালিকা, ইন্ডেন্টেশন এবং লিঙ্ক-এর জন্য এই ভল্টের সেটিংস ব্যবহার করুন।
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties

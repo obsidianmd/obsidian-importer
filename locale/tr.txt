@@ -1299,36 +1299,36 @@ original=Markdown
 translation=Markdown
 
 [importer.markdown.desc-source]
-original=Choose individual Markdown files, whole folders, or zip files. Everything inside a folder or zip file stays organized the same way.
-translation=İçe aktarılacak Markdown dosyalarını veya klasörleri mevcut yapılarıyla birlikte seçin.
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=Tek tek Markdown dosyaları, klasörler veya zip dosyaları seçin. Klasörlerdeki her şey aynı düzende kalır.
 
 [importer.markdown.name-folders]
 original=Folders to import
-translation=
+translation=İçe aktarılacak klasörler
 
 [importer.markdown.desc-folders]
-original=Everything inside a folder comes with it. Untick one to leave it out.
-translation=
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=İşaretlenen klasörlerdeki her şey içe aktarılır. Hariç tutmak istediğiniz klasörlerin işaretini kaldırın.
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
-translation=
+translation=Önce dosya veya klasör seçin.
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
-translation=
+translation=Klasörler okunuyor...
 
 [importer.markdown.msg-no-folders]
 original=No folders found.
-translation=
+translation=Klasör bulunamadı.
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting
 translation=Biçimlendirmeyi standartlaştır
 
 [importer.markdown.desc-standardize-formatting]
-original=Use this vault's settings for lists, indentation, and links. Turn this off to preserve the source formatting.
-translation=Listeler, girintileme ve bağlantılar için bu kasanın ayarlarını kullan. Kaynak biçimlendirmesini korumak için bunu kapatın.
+original=Use this vault's settings for lists, indentation, and links.
+translation=Listeler, girintileme ve bağlantılar için bu kasanın ayarlarını kullan.
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties

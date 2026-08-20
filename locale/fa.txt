@@ -1299,36 +1299,36 @@ original=Markdown
 translation=Markdown
 
 [importer.markdown.desc-source]
-original=Choose individual Markdown files, whole folders, or zip files. Everything inside a folder or zip file stays organized the same way.
-translation=پرونده‌ها یا پوشه‌های Markdown را برای درون‌ریزی با ساختار فعلی‌شان انتخاب کنید.
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=پرونده‌های Markdown جداگانه، پوشه‌های کامل یا فایل‌های zip را انتخاب کنید. همه چیز در پوشه‌ها با همان ساختار سازمان‌دهی باقی می‌ماند.
 
 [importer.markdown.name-folders]
 original=Folders to import
-translation=
+translation=پوشه‌ها برای واردکردن
 
 [importer.markdown.desc-folders]
-original=Everything inside a folder comes with it. Untick one to leave it out.
-translation=
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=همه محتوای پوشه‌های انتخاب‌شده وارد می‌شود. برای حذف پوشه‌ها، تیک آن‌ها را بردارید.
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
-translation=
+translation=ابتدا پرونده‌ها یا پوشه‌ها را انتخاب کنید.
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
-translation=
+translation=در حال خواندن پوشه‌ها...
 
 [importer.markdown.msg-no-folders]
 original=No folders found.
-translation=
+translation=هیچ پوشه‌ای یافت نشد.
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting
 translation=یکسان‌سازی قالب‌بندی
 
 [importer.markdown.desc-standardize-formatting]
-original=Use this vault's settings for lists, indentation, and links. Turn this off to preserve the source formatting.
-translation=از تنظیمات این گاوصندوق برای فهرست‌ها، تورفتگی و پیوندها استفاده کنید. برای حفظ قالب‌بندی منبع، این گزینه را غیرفعال کنید.
+original=Use this vault's settings for lists, indentation, and links.
+translation=از تنظیمات این گاوصندوق برای فهرست‌ها، تورفتگی و پیوندها استفاده شود.
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties

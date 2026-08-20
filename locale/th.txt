@@ -1299,36 +1299,36 @@ original=Markdown
 translation=Markdown
 
 [importer.markdown.desc-source]
-original=Choose individual Markdown files, whole folders, or zip files. Everything inside a folder or zip file stays organized the same way.
-translation=เลือกไฟล์ Markdown หรือโฟลเดอร์ที่จะนำเข้าพร้อมโครงสร้างเดิม
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=เลือกไฟล์ Markdown แต่ละไฟล์ โฟลเดอร์ทั้งหมด หรือไฟล์ zip ทุกอย่างในโฟลเดอร์จะถูกจัดเรียงในรูปแบบเดิม
 
 [importer.markdown.name-folders]
 original=Folders to import
-translation=
+translation=โฟลเดอร์ที่จะนำเข้า
 
 [importer.markdown.desc-folders]
-original=Everything inside a folder comes with it. Untick one to leave it out.
-translation=
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=ทุกอย่างในโฟลเดอร์ที่เลือกไว้จะถูกนำเข้า ยกเลิกการเลือกโฟลเดอร์เพื่อไม่รวมโฟลเดอร์นั้น
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
-translation=
+translation=เลือกไฟล์หรือโฟลเดอร์ก่อน
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
-translation=
+translation=กำลังอ่านโฟลเดอร์...
 
 [importer.markdown.msg-no-folders]
 original=No folders found.
-translation=
+translation=ไม่พบโฟลเดอร์
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting
 translation=ปรับรูปแบบให้เป็นมาตรฐาน
 
 [importer.markdown.desc-standardize-formatting]
-original=Use this vault's settings for lists, indentation, and links. Turn this off to preserve the source formatting.
-translation=ใช้การตั้งค่าของห้องนิรภัยนี้สำหรับรายการ การเยื้อง และลิงก์ ปิดตัวเลือกนี้เพื่อคงรูปแบบต้นฉบับไว้
+original=Use this vault's settings for lists, indentation, and links.
+translation=ใช้การตั้งค่าของห้องนิรภัยนี้สำหรับรายการ การเยื้อง และลิงก์
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties

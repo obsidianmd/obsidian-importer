@@ -1299,36 +1299,36 @@ original=Markdown
 translation=Markdown
 
 [importer.markdown.desc-source]
-original=Choose individual Markdown files, whole folders, or zip files. Everything inside a folder or zip file stays organized the same way.
-translation=Trieu fitxers Markdown o carpetes per importar amb l'estructura que tenen.
+original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+translation=Tria fitxers Markdown individuals, carpetes senceres o fitxers zip. Tot el contingut de les carpetes manté la mateixa organització.
 
 [importer.markdown.name-folders]
 original=Folders to import
-translation=
+translation=Carpetes per importar
 
 [importer.markdown.desc-folders]
-original=Everything inside a folder comes with it. Untick one to leave it out.
-translation=
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=Tot el contingut de les carpetes marcades s'importa. Desmarca les carpetes per excloure-les.
 
 [importer.markdown.msg-pick-source-first]
 original=Choose files or folders first.
-translation=
+translation=Tria primer fitxers o carpetes.
 
 [importer.markdown.msg-reading-folders]
 original=Reading folders...
-translation=
+translation=Llegint carpetes...
 
 [importer.markdown.msg-no-folders]
 original=No folders found.
-translation=
+translation=No s'han trobat carpetes.
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting
 translation=Estandarditza el format
 
 [importer.markdown.desc-standardize-formatting]
-original=Use this vault's settings for lists, indentation, and links. Turn this off to preserve the source formatting.
-translation=Utilitza la configuració d'aquesta cambra forta per a llistes, sagnat i enllaços. Desactiva-ho per conservar el format de la font.
+original=Use this vault's settings for lists, indentation, and links.
+translation=Utilitza la configuració d'aquesta cambra forta per a llistes, sagnat i enllaços.
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties
