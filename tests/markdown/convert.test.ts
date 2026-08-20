@@ -1,17 +1,3 @@
-/**
- * The Markdown conversion, outside Obsidian.
- *
- * Markdown goes in and markdown comes out, so the conversion runs here as it
- * is. Each fixture is recorded twice over: once with every option off, which
- * has to hand the note back exactly as it was written, and once with inline
- * tags moved into the tags property.
- *
- * What the fixtures pin down about which `#` is a tag: one that starts a word,
- * and holds something other than digits. That leaves a heading, a link
- * fragment, a heading reference in a wikilink, and anything inside code out of
- * it - and, deliberately, a tag in brackets too, because `](#heading)` in a
- * link is written the same way.
- */
 import '../shims/runtime';
 
 import { test } from 'node:test';

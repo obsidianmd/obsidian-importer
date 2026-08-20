@@ -182,18 +182,12 @@ export function renderTreeNodes<T extends ViewableNode<T>>(container: HTMLElemen
 	}
 }
 
-/** A row further up, which a tick below it may have changed the state of. */
 interface Ancestor<T extends ViewableNode<T>> {
 	checkbox: HTMLInputElement;
 	node: T;
 }
 
-/**
- * Ticked when all of it is, and the dash between when only some of it is.
- *
- * The attribute, not the property: Obsidian's stylesheet draws the dash from
- * the attribute, and a webview left to paint the property itself fills the box.
- */
+/** Obsidian styles indeterminate checkboxes through this data attribute. */
 function setSelectionState<T extends ViewableNode<T>>(checkbox: HTMLInputElement, node: T): void {
 	const children = node.children ?? [];
 	const all = node.selected && areAllSelected(children);

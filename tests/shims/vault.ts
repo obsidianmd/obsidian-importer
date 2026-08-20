@@ -7,9 +7,4 @@
  */
 export { MemoryVault, memoryApp } from '../../web/obsidian/vault';
 
-/**
- * The same, with the metadata cache the link pass needs. Opt in where a test is
- * about what that pass does; memoryApp leaves it off, and most recordings were
- * made without it.
- */
 export { browserApp as indexedApp } from '../../web/obsidian/metadata';

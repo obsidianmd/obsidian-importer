@@ -12,10 +12,7 @@ export interface MarkdownOutput {
 	indentUnit: string;
 }
 
-/**
- * How a note is written out: this vault's formatting, or `null` for a source
- * that is already Markdown and was asked to be left as it was written.
- */
+/** Vault formatting, or null to preserve source Markdown. */
 export type MarkdownFormatting = MarkdownOutput | null;
 
 /** Resolve a source link whose imported destination no longer has the same path. */
@@ -93,8 +90,6 @@ async function standardizeLinks(
 	formatting?: MarkdownFormatting,
 	resolveLink?: MarkdownLinkResolver,
 ): Promise<string> {
-	// A note kept as it was written keeps its link syntax; only a target the
-	// importer says it renamed is rewritten.
 	const preserveStyle = formatting === null;
 	if (preserveStyle && !resolveLink) return content;
 
@@ -131,7 +126,7 @@ async function standardizeLinks(
 	return content;
 }
 
-/** Change only the target of a mapped link, leaving its source syntax intact. */
+/** Replace a mapped target without changing link syntax. */
 function repairedLink(app: App, original: string, target: TFile, sourcePath: string, subpath: string): string {
 	const wikiStart = original.indexOf('[[');
 	if (wikiStart >= 0) {
@@ -167,12 +162,7 @@ function relativePath(fromFile: string, toFile: string): string {
 	return [...from.map(() => '..'), ...to].join('/');
 }
 
-/**
- * Standardize an imported file without changing its imported timestamps.
- *
- * Ordinary links are only restyled when they already resolve. An importer may
- * additionally resolve a source path it had to rename while bringing it in.
- */
+/** Standardize links while preserving imported timestamps. */
 export async function standardizeMarkdownFile(
 	app: App,
 	file: TFile,

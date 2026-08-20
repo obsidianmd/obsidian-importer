@@ -243,7 +243,6 @@ export class WebPickedFile implements PickedFile {
 	}
 }
 
-/** A folder whose contents are a list already in hand, not a place on disk. */
 export class ListedFolder implements PickedFolder {
 	readonly type = 'folder' as const;
 
@@ -262,10 +261,7 @@ export class ListedFolder implements PickedFolder {
 	}
 }
 
-/**
- * The folders behind a flat list of files, where the path each one carries is
- * the only record of the shape it came in. A file with no path is at the top.
- */
+/** Rebuild a folder tree from paths attached to a flat file list. */
 export function pickedTree(entries: { path: string, file: PickedFile }[]): (PickedFile | PickedFolder)[] {
 	const top: (PickedFile | PickedFolder)[] = [];
 	const inside = new Map<string, (PickedFile | PickedFolder)[]>();
@@ -293,7 +289,6 @@ export function pickedTree(entries: { path: string, file: PickedFile }[]): (Pick
 	return top;
 }
 
-/** What a directory input handed over, which is that list with a path each. */
 export function webPickedTree(files: File[]): (PickedFile | PickedFolder)[] {
 	return pickedTree(files.map(file => {
 		const path = file.webkitRelativePath || file.name;

@@ -164,7 +164,6 @@ export abstract class FormatImporter {
 
 	files: PickedFile[] = [];
 
-	/** What the source step is showing: the files chosen, and folders when this importer keeps them. */
 	chosen: (PickedFile | PickedFolder)[] = [];
 
 	outputLocation: string = '';
@@ -195,13 +194,7 @@ export abstract class FormatImporter {
 	// Controls which interruption buttons the importer supports.
 	interruption: 'none' | 'stop' | 'pause' = 'none';
 
-	/**
-	 * Whether a folder the user picks stays a folder.
-	 *
-	 * Most importers want the files inside one, wherever they were found. An
-	 * importer that reproduces the structure it was given needs the folder
-	 * itself, and says so in init() before adding its file chooser.
-	 */
+	/** Preserve picked folders instead of flattening them to accepted files. */
 	protected keepsFolders: boolean = false;
 
 	/** Cached value for getOutputFolder. Do not use directly. */
@@ -639,7 +632,6 @@ export abstract class FormatImporter {
 		};
 
 		const updateFiles = () => {
-			// A folder holding none of what this importer reads is nothing chosen.
 			if (this.files.length === 0) {
 				this.chosen = [];
 				this.sourceChanged();
@@ -685,7 +677,6 @@ export abstract class FormatImporter {
 		return this.acceptsMultiple ? accepted : accepted.slice(0, 1);
 	}
 
-	/** The files this importer reads, from anywhere inside what it was given. */
 	protected async filesInside(items: (PickedFile | PickedFolder)[]): Promise<PickedFile[]> {
 		const extensions = this.acceptedExtensions;
 		if (!extensions) return [];
@@ -693,14 +684,13 @@ export abstract class FormatImporter {
 		return await getAllFiles(items, file => extensions.includes(file.extension));
 	}
 
-	/** Keep the files in step with what is picked, after a folder joins or leaves it. */
 	private async readChosen(): Promise<boolean> {
 		const chosen = this.chosen;
 		const files = chosen.every(item => item.type === 'file')
 			? chosen
 			: await this.filesInside(chosen);
 
-		// Reading a large folder can outlast the pick that replaced it.
+		// Ignore a folder read superseded by another selection.
 		if (chosen !== this.chosen) return false;
 
 		this.files = files;
@@ -716,7 +706,6 @@ export abstract class FormatImporter {
 		const accepted = this.acceptableFiles(files);
 		if (accepted.length === 0) return;
 
-		// A folder comes as it was dropped; a file only if this importer reads it.
 		const kept = dropped.filter(item => item.type === 'folder' || accepted.includes(item));
 		this.takeChosen(kept, accepted);
 	}
@@ -734,7 +723,6 @@ export abstract class FormatImporter {
 		return accepted.length;
 	}
 
-	/** What is picked or dropped joins what was already there, rather than replacing it. */
 	private joining<T extends PickedFile | PickedFolder>(existing: T[], arriving: T[]): T[] {
 		if (!this.acceptsMultiple) return arriving.slice(0, 1);
 
@@ -984,7 +972,7 @@ export abstract class FormatImporter {
 		return this.namingIn(folder.path === '/' ? '' : folder.path, filename);
 	}
 
-	/** The same naming, in a folder the importer chose rather than the vault. */
+	/** Build attachment names in an importer-selected folder. */
 	protected namingIn(parent: string, filename: string): (nth: number) => string {
 		const { basename, extension } = parseFilePath(filename);
 		const name = sanitizeFileName(basename, parent);
@@ -1011,10 +999,7 @@ export abstract class FormatImporter {
 		return await this.placeAttachmentAt(at, recognise);
 	}
 
-	/**
-	 * Place an attachment with importer-owned naming rather than the vault's
-	 * attachment setting. The recognition and duplicate-mode rules stay shared.
-	 */
+	/** Place an attachment using importer-selected candidate paths. */
 	protected async placeAttachmentAt(
 		at: (nth: number) => string,
 		recognise: (existing: TFile) => AttachmentVerdict | Promise<AttachmentVerdict>,

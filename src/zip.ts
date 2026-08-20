@@ -71,18 +71,10 @@ export async function readZip(file: PickedFile, callback: (zip: ZipReader<unknow
 	});
 }
 
-/**
- * What nobody compressed on purpose: macOS's own copy of the folder, and
- * anything a vault or a version control tool hides away for itself.
- */
+/** macOS metadata and other hidden paths. */
 const HIDDEN = /(?:^|\/)(?:__MACOSX\/|\.)/;
 
-/**
- * A zip as the folders it holds, so what was compressed keeps its shape.
- *
- * Only while the zip is open: an entry reads through the archive it came from,
- * and a NodePickedFile closes that when its callback returns.
- */
+/** Build the source tree while the archive backing its entries remains open. */
 export function zipContents(entries: ZipEntryFile[]): (PickedFile | PickedFolder)[] {
 	return pickedTree(entries
 		.filter(entry => !HIDDEN.test(entry.filepath))

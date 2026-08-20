@@ -1,9 +1,3 @@
-/**
- * A zip as a source, which is how a phone offers a folder.
- *
- * What it holds keeps its shape, and every entry has to be read before the
- * archive it came from is closed again.
- */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BlobReader, BlobWriter, TextReader, ZipReader, ZipWriter } from '@zip.js/zip.js';

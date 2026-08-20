@@ -216,17 +216,11 @@ export function serializeFrontMatter(frontMatter: FrontMatterCache): string {
 	return '';
 }
 
-/**
- * A number drawn on its own, grouped the way the chosen language groups one.
- *
- * A number inside a sentence goes through i18n, which does this already; this
- * is for the ones that reach the screen with no sentence around them.
- */
+/** Format a standalone count in the selected language. */
 export function countText(value: number): string {
 	return value.toLocaleString(getLanguage());
 }
 
-/** Whether two files hold the same bytes, which is what identifies an attachment. */
 export function sameBytes(left: ArrayBuffer, right: ArrayBuffer): boolean {
 	if (left.byteLength !== right.byteLength) return false;
 

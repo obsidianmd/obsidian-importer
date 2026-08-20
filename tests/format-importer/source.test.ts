@@ -1,10 +1,3 @@
-/**
- * What a chosen folder becomes, which every importer with a file chooser shares.
- *
- * An importer that reproduces the structure it was given keeps the folder; one
- * that only wants the files reads them out of it. Both end with `files` holding
- * what will be converted, and `chosen` holding what the user picked.
- */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -21,7 +14,6 @@ interface SourceInternals {
 	filesInside(items: (PickedFile | PickedFolder)[]): Promise<PickedFile[]>;
 }
 
-/** An importer with no file chooser, so it never says what it accepts. */
 class NoChooserImporter extends FormatImporter {
 	init(): void {
 	}

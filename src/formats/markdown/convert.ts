@@ -1,16 +1,10 @@
-/**
- * The markdown conversion, outside Obsidian.
- *
- * Markdown in, markdown out. The importer around this decides where a note
- * lands; everything here works on one document's text.
- */
 import { FrontMatterCache } from 'obsidian';
 import { ILLEGAL_TAG_CHARS, parseFrontMatterBlock, serializeFrontMatter } from '../../util';
 
 const TAG_BODY = `[^${ILLEGAL_TAG_CHARS}\\s]`;
 const TAG_EDGE = `[^${ILLEGAL_TAG_CHARS}\\s/-]`;
 
-/** A tag starts a word, so `note#heading` and `url#fragment` are not tags. */
+/** Tags require a word boundary, excluding link fragments. */
 const TAG = new RegExp(`(?<!\\S)#(${TAG_EDGE}${TAG_BODY}*${TAG_EDGE}|${TAG_EDGE})(?!${TAG_BODY})`, 'gu');
 
 const FENCE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
@@ -19,17 +13,15 @@ const BLANK = /^\s*$/;
 const SPACE = /[ \t]/;
 
 export interface MarkdownConversionOptions {
-	/** Move inline #tags out of the body and into the note's tags property. */
 	tagsAsProperties: boolean;
 }
 
 export interface ConvertedMarkdown {
 	markdown: string;
-	/** Tags moved into the property, in the order they appeared. */
 	tags: string[];
 }
 
-/** A copy of the body with code replaced by spaces, so offsets still line up. */
+/** Mask code with spaces to preserve offsets. */
 function maskCode(lines: string[]): string[] {
 	const blockCode: boolean[] = [];
 
@@ -43,7 +35,7 @@ function maskCode(lines: string[]): string[] {
 
 		if (fence !== null) {
 			blockCode.push(true);
-			// A closing fence is the same character, at least as long, and alone.
+			// Closing fences must match the opener and stand alone.
 			if (fenceMatch && fenceMatch[1][0] === fence[0] && fenceMatch[1].length >= fence.length && BLANK.test(fenceMatch[2])) {
 				fence = null;
 			}
@@ -57,14 +49,14 @@ function maskCode(lines: string[]): string[] {
 			continue;
 		}
 
-		// An indented block is only code where a paragraph could not continue.
+		// Indented code must follow a block boundary.
 		if (INDENTED_CODE.test(line) && (inIndentedCode || index === 0 || BLANK.test(lines[index - 1]))) {
 			inIndentedCode = true;
 			blockCode.push(true);
 			continue;
 		}
 
-		// A blank inside an indented block cannot join inline code on either side.
+		// Blank lines remain part of an indented code block.
 		if (blank && inIndentedCode) {
 			blockCode.push(true);
 			continue;
@@ -96,7 +88,7 @@ function maskCode(lines: string[]): string[] {
 	return masked;
 }
 
-/** Blank out `code spans`, including ones that cross a line ending. */
+/** Mask inline code, including multiline spans. */
 function maskInlineCode(content: string): string {
 	let masked = '';
 
@@ -137,7 +129,7 @@ function maskInlineCode(content: string): string {
 	return masked;
 }
 
-/** Obsidian does not read a run of digits as a tag: `#1` is a number. */
+/** Obsidian rejects all-numeric tags. */
 function isTag(tag: string): boolean {
 	return !/^\d+$/.test(tag);
 }
@@ -152,7 +144,6 @@ function tagList(value: unknown): string[] {
 		.filter(tag => tag !== '');
 }
 
-/** Existing tags first, then the ones found in the body, matched case-insensitively. */
 function mergeTags(existing: string[], found: string[]): string[] {
 	const merged: string[] = [];
 	const seen = new Set<string>();
@@ -168,12 +159,6 @@ function mergeTags(existing: string[], found: string[]): string[] {
 	return merged;
 }
 
-/**
- * Take the tags out of a line, and say what is left of it.
- *
- * A line that held nothing but tags is left empty for the caller to drop, so
- * that a note ending in a line of tags does not end in an empty one instead.
- */
 function stripTags(line: string, masked: string): { line: string, tags: string[] } {
 	const tags: string[] = [];
 	let stripped = '';
@@ -188,9 +173,7 @@ function stripTags(line: string, masked: string): { line: string, tags: string[]
 		let start = match.index;
 		let end = start + match[0].length;
 
-		// The space that held the tag apart goes with it, or the words around
-		// it are left doubly spaced. Which of the two spaces it can spare is
-		// the one that is not holding the line's indent.
+		// Remove one adjacent separator without consuming indentation.
 		if (start > at && SPACE.test(line[start - 1]) && /\S/u.test(line.slice(at, start))) start -= 1;
 		else if (SPACE.test(line[end] ?? '')) end += 1;
 
@@ -205,12 +188,7 @@ function stripTags(line: string, masked: string): { line: string, tags: string[]
 	return { line: BLANK.test(stripped) ? '' : stripped, tags };
 }
 
-/**
- * Move the inline tags of a note into its tags property.
- *
- * The frontmatter is rewritten only when there is a tag to add, so a note
- * without one is passed through as it was written rather than reserialized.
- */
+/** Move inline tags into frontmatter without rewriting unchanged notes. */
 export function convertMarkdownNote(content: string, options: MarkdownConversionOptions): ConvertedMarkdown {
 	if (!options.tagsAsProperties) return { markdown: content, tags: [] };
 
@@ -243,10 +221,7 @@ export function convertMarkdownNote(content: string, options: MarkdownConversion
 	};
 }
 
-/**
- * Remove the lines the tags were all that was on, without leaving a gap where
- * one stood between two blank lines.
- */
+/** Drop tag-only lines without creating duplicate blank lines. */
 function dropEmptied(lines: string[], emptied: boolean[]): string[] {
 	const kept: string[] = [];
 

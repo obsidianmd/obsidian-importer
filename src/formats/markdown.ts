@@ -11,24 +11,19 @@ import { convertMarkdownNote } from './markdown/convert';
 
 const MARKDOWN_EXTS = ['md', 'markdown'];
 
-/** Obsidian's own formats, which are copied across as they were written. */
 const NATIVE_EXTS = ['base', 'canvas'];
 
-/** A zip is a folder that has been packed up, which is how a phone offers one. */
 const SOURCE_EXTS = [...MARKDOWN_EXTS, ...NATIVE_EXTS, 'zip'];
 
-/** A folder the import found, named by where it sits under what was chosen. */
 interface FolderNode extends ViewableNode<FolderNode> {
 	path: string;
-	/** Notes inside it, the ones in the folders under it included. */
 	notes: number;
 }
 
 interface PlannedItem {
 	parent: string;
-	/** Where the item was addressed in the source tree. */
 	source: string;
-	/** Null represents an empty folder. */
+	/** Null for an empty folder. */
 	file: PickedFile | null;
 	note?: PlannedNote;
 	attachment?: PlannedAttachment;
@@ -40,7 +35,6 @@ interface PlannedAttachment {
 	times?: FileTimes;
 }
 
-/** What the source recorded, for a note that keeps its dates. */
 interface FileTimes {
 	ctime: number;
 	mtime: number;
@@ -54,17 +48,11 @@ function isZip(file: PickedFile | PickedFolder): file is PickedFile {
 	return file.type === 'file' && file.extension === 'zip';
 }
 
-/**
- * What a vault, or the tool that versions it, keeps for itself.
- *
- * Only ever skipped on the way down: a folder named this and picked on purpose
- * is one the user asked for.
- */
+/** Skip hidden descendants, but not an explicitly selected root. */
 function isHidden(item: PickedFile | PickedFolder): boolean {
 	return item.name.startsWith('.');
 }
 
-/** Where a folder sits under what was chosen, which is how the plan finds it again. */
 function under(from: string, name: string): string {
 	return from ? `${from}/${name}` : name;
 }
@@ -74,7 +62,6 @@ async function folderNodes(items: (PickedFile | PickedFolder)[], from: string): 
 
 	const folders = items.filter((item): item is PickedFolder =>
 		item.type === 'folder' && !(from && isHidden(item)));
-	// Siblings are only read, so they can be read together.
 	const listings = await Promise.all(folders.map(folder => folder.list()));
 
 	for (const [index, item] of folders.entries()) {
@@ -89,7 +76,6 @@ async function folderNodes(items: (PickedFile | PickedFolder)[], from: string): 
 				+ children.reduce((total, child) => total + child.notes, 0),
 			selected: true,
 			disabled: false,
-			// The top level is open, so what was chosen shows what is in it.
 			collapsed: from !== '',
 			children,
 		});
@@ -109,8 +95,7 @@ async function fileTimes(file: PickedFile): Promise<FileTimes | undefined> {
 	try {
 		const stat = await fsPromises.stat(file.filepath);
 
-		// Obsidian's write options take whole milliseconds, and a filesystem
-		// reports fractions of one.
+		// Vault timestamps use integer milliseconds.
 		return {
 			ctime: Math.round(stat.birthtimeMs || stat.ctimeMs),
 			mtime: Math.round(stat.mtimeMs),
@@ -122,21 +107,20 @@ async function fileTimes(file: PickedFile): Promise<FileTimes | undefined> {
 }
 
 export class MarkdownImporter extends FormatImporter {
-	// A zip is offered for a drop as well; the rest are only picked on purpose.
 	static extensions = [...MARKDOWN_EXTS, 'zip'];
 
 	interruption = 'pause' as const;
 
-	// No initializers: the base constructor calls init() first.
+	// Initialized in init() because the base constructor calls it.
 	standardizeFormatting: boolean;
 	tagsAsProperties: boolean;
 	private picker: TreePicker<FolderNode>;
 	private loadedFrom: string;
 	private loadGeneration: number;
 	private skipping: Set<string>;
-	/** Folders whose own files come across; null when nothing is picking them out. */
+	/** Selected folders, or null when no folder filter is active. */
 	private taking: Set<string> | null;
-	/** Every source path that landed somewhere, grouped by its folded spelling. */
+	/** Imported files keyed by folded path, then exact source spelling. */
 	private importedFrom: Map<string, Map<string, TFile>>;
 	private sourceOf: Map<string, string>;
 	private outputRoot: string;
@@ -155,7 +139,6 @@ export class MarkdownImporter extends FormatImporter {
 		this.outputRoot = '';
 		this.linksNeedRepair = false;
 
-		// A folder is what the structure is read from, so it is kept as one.
 		this.keepsFolders = true;
 		this.addFileChooserSetting(
 			i18n.importer.markdown.fileType(), SOURCE_EXTS, true,
@@ -188,7 +171,6 @@ export class MarkdownImporter extends FormatImporter {
 			: undefined;
 	}
 
-	/** What was chosen or dropped, or the files a scripted import was handed. */
 	private source(): (PickedFile | PickedFolder)[] {
 		return this.chosen.length > 0 ? this.chosen : this.files;
 	}
@@ -241,16 +223,12 @@ export class MarkdownImporter extends FormatImporter {
 				nodes = await folderNodes(items, '');
 			});
 
-			// Ignore a walk overtaken by a later one.
+			// Ignore a walk superseded by another source selection.
 			return generation === this.loadGeneration ? nodes : this.picker.nodes;
 		});
 	}
 
-	/**
-	 * What the ticks come to: the folders to walk past, and the folders whose own
-	 * files are wanted. A folder nobody ticked is still walked into when
-	 * something under it was, and gives up only what is below.
-	 */
+	/** Compile the tree selection into skipped subtrees and included folders. */
 	private planSelection(): void {
 		this.skipping = new Set();
 		this.taking = this.picker?.nodes.length ? new Set() : null;
@@ -274,10 +252,7 @@ export class MarkdownImporter extends FormatImporter {
 		walk(this.picker!.nodes);
 	}
 
-	/**
-	 * A folder comes whole, so what is dropped with a note in it is all taken:
-	 * the files beside a note are what its links point at.
-	 */
+	/** Accept an entire drop so relative links retain their neighboring files. */
 	wouldTake(_dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): number {
 		return files.some(file => SOURCE_EXTS.includes(file.extension)) ? files.length : 0;
 	}
@@ -332,9 +307,9 @@ export class MarkdownImporter extends FormatImporter {
 		}, (name, error) => ctx.reportFailed(name, error));
 	}
 
-	/** Settle every destination before reading note content, so link comparisons see the completed map. */
+	/** Plan every destination before resolving links. */
 	private async preparePlan(ctx: ImportContext, items: PlannedItem[]): Promise<boolean> {
-		// Notes win name collisions regardless of their order in the source tree.
+		// Notes win path collisions regardless of source order.
 		for (const item of items) {
 			const { file } = item;
 			if (!file || !isMarkdown(file)) continue;
@@ -360,10 +335,7 @@ export class MarkdownImporter extends FormatImporter {
 		return true;
 	}
 
-	/**
-	 * Run the import with every picked zip open, since an entry can only be read
-	 * through the archive it came from and that is closed on the way out.
-	 */
+	/** Keep zip archives open until all of their entries are imported. */
 	private async opened(
 		items: (PickedFile | PickedFolder)[],
 		body: (items: (PickedFile | PickedFolder)[]) => Promise<void>,
@@ -393,14 +365,7 @@ export class MarkdownImporter extends FormatImporter {
 		await open(0, []);
 	}
 
-	/**
-	 * Where every chosen item is going, with the folders it came in preserved.
-	 *
-	 * A chosen folder keeps the name it had, so that importing it a second time
-	 * lands on the same notes and can update them. Only asking for a copy each
-	 * time numbers the folder instead - which is also what keeps two sources
-	 * that happen to share a folder name apart.
-	 */
+	/** Preserve source folders, numbering selected roots only in CreateCopy mode. */
 	private async plan(
 		ctx: ImportContext,
 		items: (PickedFile | PickedFolder)[],
@@ -436,7 +401,7 @@ export class MarkdownImporter extends FormatImporter {
 				const inside = await this.plan(ctx, await item.list(), at, false, source);
 
 				if (inside.length === 0) planned.push({ parent: at, source, file: null });
-				// Pushed one at a time: a folder can hold more items than a call takes arguments.
+				// Avoid the argument limit of planned.push(...inside).
 				else for (const item of inside) planned.push(item);
 			}
 			catch (error) {
@@ -466,8 +431,7 @@ export class MarkdownImporter extends FormatImporter {
 		const { markdown } = convertMarkdownNote(await file.readText(), {
 			tagsAsProperties: this.tagsAsProperties,
 		});
-		// A shared output-folder prefix leaves relative links alone, but an
-		// absolute source link still has to be relocated with its target.
+		// Moving under an output root changes only absolute source links.
 		if (!this.linksNeedRepair && hasAbsoluteLink(markdown)) this.linksNeedRepair = true;
 
 		const { file: imported, written } = await this.writePlannedNote(ctx, planned, markdown, { ...times, disposition });
@@ -475,11 +439,7 @@ export class MarkdownImporter extends FormatImporter {
 		if (written) ctx.reportNoteSuccess(file.name);
 	}
 
-	/**
-	 * Anything that is not a note, kept where it was so that a relative link
-	 * written beside it still resolves. A second import lands on the same file
-	 * again rather than numbering a copy, which would leave those links behind.
-	 */
+	/** Keep attachments beside their notes and reuse recognized copies. */
 	private async planAttachment(parent: string, source: string, file: PickedFile): Promise<PlannedAttachment> {
 		const folder = await this.createFolders(parent || '/');
 		const candidate = this.namingIn(folder.path === '/' ? '' : folder.path, file.name);
@@ -547,7 +507,7 @@ export class MarkdownImporter extends FormatImporter {
 		this.sourceOf.set(file.path.toLowerCase(), key);
 	}
 
-	/** The spelling the link used, or the only one there is when it differs in case. */
+	/** Prefer exact spelling; fall back only when the folded path is unambiguous. */
 	private importedAt(source: string): TFile | null {
 		const variants = this.importedFrom.get(source.toLowerCase());
 		if (!variants) return null;
@@ -585,14 +545,13 @@ function parentOf(path: string): string {
 	return path.slice(0, Math.max(0, path.lastIndexOf('/')));
 }
 
-/** Where a link written in a folder points, as a path from the tree's root. */
 function resolvedAgainst(parent: string, link: string): string {
 	const wanted = link.replace(/\\/g, '/').replace(/^\/+/, '');
 
 	return sourcePath(parent ? `${parent}/${wanted}` : wanted);
 }
 
-/** Normalize a path in the source tree without letting `..` escape its root. */
+/** Normalize a source path without allowing `..` above its root. */
 function sourcePath(path: string): string {
 	const parts: string[] = [];
 
@@ -605,7 +564,6 @@ function sourcePath(path: string): string {
 	return parts.join('/');
 }
 
-/** A cheap guard for the one link shape changed merely by moving the source tree under the output folder. */
 function hasAbsoluteLink(content: string): boolean {
 	return /!?\[\[\s*\/|!?\[[^\]]*\]\(\s*<?\//u.test(content);
 }

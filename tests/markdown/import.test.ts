@@ -1,10 +1,3 @@
-/**
- * The importer's half of a Markdown import, against the in-memory vault.
- *
- * What the conversion cannot answer is where a note lands. A folder is
- * imported as the folder it was, files that are not notes included, so that a
- * relative link written between them still points at what it did on disk.
- */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as nodeFs from 'node:fs';
@@ -368,7 +361,6 @@ test('a hidden folder picked on purpose is the one thing that is imported', asyn
 
 	await importing(subject, [new SourceFolder('.obsidian', [new SourceFile('app.json', '{}')])]);
 
-	// The vault cannot hold a folder whose name starts with a dot.
 	assert.deepEqual(vault.paths(), ['Import/obsidian/app.json']);
 });
 

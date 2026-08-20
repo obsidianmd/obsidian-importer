@@ -1,9 +1,3 @@
-/**
- * A directory input's flat list, put back into the folders it came from.
- *
- * The browser gives up the shape of what was chosen; every file carries the
- * path it had, and that is all there is to rebuild from.
- */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 

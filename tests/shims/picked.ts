@@ -1,4 +1,3 @@
-/** What a picker hands an importer, without a filesystem behind it. */
 import { PickedFile, PickedFolder } from '../../src/filesystem';
 
 export class SourceFile implements PickedFile {
@@ -40,7 +39,6 @@ export class SourceFile implements PickedFile {
 export class SourceFolder implements PickedFolder {
 	readonly type = 'folder' as const;
 
-	/** Resolves after `delay` ticks, for a listing that outlasts a later pick. */
 	constructor(
 		readonly name: string,
 		private readonly items: (PickedFile | PickedFolder)[],
