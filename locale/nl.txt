@@ -392,7 +392,7 @@ translation=Mappen om te importeren
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Alles in aangevinkte mappen wordt geïmporteerd. Vink mappen uit om ze over te slaan.
+translation=Alles in aangevinkte mappen wordt geïmporteerd. Vink mappen uit om ze uit te sluiten.
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=HTML-bronpad
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=Als u een andere map of ander zipbestand kiest, kan het bronpad veranderen, waardoor bestaande notities mogelijk niet worden herkend.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=Sla de pagina's die je wilt bewaren op als HTML. Als de app waarin z
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=Kies afzonderlijke HTML-bestanden, volledige mappen of zipbestanden. Pagina's in mappen behouden dezelfde structuur.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=Hoofdinhoud extraheren
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=Verwijder Navigatie, zijbalken, voetteksten en andere paginarommel.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

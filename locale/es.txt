@@ -392,7 +392,7 @@ translation=Carpetas para importar
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Todo en las carpetas marcadas se importa. Desmarca carpetas para excluirlas.
+translation=Se importa todo lo que esté en las carpetas marcadas. Desmarca carpetas para excluirlas.
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=Ruta de origen HTML
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=Cambiar la carpeta o el archivo zip que elijas puede modificar la ruta de origen, por lo que es posible que no se reconozcan las notas existentes.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=Guarda las páginas que quieras conservar como HTML. Si la aplicaci�
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=Elige archivos HTML individuales, carpetas completas o archivos zip. Las páginas en carpetas mantienen la misma organización.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=Extraer contenido principal
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=Eliminar navegación, barras laterales, pies de página y otros elementos innecesarios.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

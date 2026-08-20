@@ -392,7 +392,7 @@ translation=Tuotavat kansiot
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Valittujen kansioiden koko sisältö tuodaan. Poista valinta kansioista, jotka haluat jättää pois.
+translation=Kaikki valituissa kansioissa oleva tuodaan. Poista valinta kansioista, jotka haluat jättää pois.
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=HTML-lähdepolku
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=Valitun kansion tai zip-tiedoston vaihtaminen voi muuttaa lähdepolkua, jolloin aiemmin tuotuja muistiinpanoja ei ehkä tunnisteta.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=Tallenna säilytettävät sivut HTML-muodossa. Jos sovelluksella, jo
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=Valitse yksittäisiä HTML-tiedostoja, kokonaisia kansioita tai zip-tiedostoja. Kansioissa olevat sivut säilyttävät alkuperäisen rakenteensa.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=Poimi pääsisältö
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=Poista siirtyminen, sivupalkit, alatunnisteet ja muu sivun ylimääräinen sisältö.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

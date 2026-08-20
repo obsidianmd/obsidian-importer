@@ -392,7 +392,7 @@ translation=Φάκελοι για εισαγωγή
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Όλα τα περιεχόμενα των επιλεγμένων φακέλων εισάγονται. Αποεπιλέξτε φακέλους για να τους εξαιρέσετε.
+translation=Όλα τα στοιχεία στους επιλεγμένους φακέλους εισάγονται. Αποεπιλέξτε φακέλους για να τους εξαιρέσετε.
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=Διαδρομή πηγής HTML
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=Η αλλαγή του φακέλου ή του αρχείου zip που επιλέγετε μπορεί να αλλάξει τη διαδρομή πηγής, οπότε υπάρχουσες σημειώσεις ενδέχεται να μην αναγνωριστούν.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=Αποθηκεύστε τις σελίδες που θέλετε ν�
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=Επιλέξτε μεμονωμένα αρχεία HTML, ολόκληρους φακέλους ή αρχεία zip. Οι σελίδες σε φακέλους διατηρούν την ίδια οργάνωση.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=Εξαγωγή κύριου περιεχομένου
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=Αφαίρεση πλοήγησης, πλαϊνών στηλών, υποσέλιδων και άλλων περιττών στοιχείων σελίδας.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

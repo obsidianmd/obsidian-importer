@@ -392,11 +392,11 @@ translation=پوشه‌ها برای وارد کردن
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=همه محتوای پوشه‌های انتخاب‌شده وارد می‌شود. برای حذف پوشه‌ها، تیک آن‌ها را بردارید.
+translation=همه چیز در پوشه‌های انتخاب‌شده وارد می‌شود. برای حذف پوشه‌ها، تیک آن‌ها را بردارید.
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
-translation=ابتدا پرونده‌ها یا پوشه‌ها را انتخاب کنید.
+translation=ابتدا فایل‌ها یا پوشه‌ها را انتخاب کنید.
 
 [source.msg-reading-folders]
 original=Reading folders...
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=مسیر منبع HTML
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=تغییر پوشه یا فایل zip انتخاب‌شده می‌تواند مسیر منبع را تغییر دهد، بنابراین یادداشت‌های موجود ممکن است شناسایی نشوند.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=صفحاتی را که می‌خواهید نگه دارید به ص
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=فایل‌های HTML تکی، پوشه‌های کامل یا فایل‌های zip را انتخاب کنید. صفحات داخل پوشه‌ها با همان ساختار سازمان‌دهی باقی می‌مانند.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=استخراج محتوای اصلی
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=حذف ناوبری، نوارهای کناری، پاورقی‌ها و دیگر عناصر اضافی صفحه.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

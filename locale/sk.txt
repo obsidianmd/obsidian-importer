@@ -392,11 +392,11 @@ translation=Priečinky na import
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Všetko v označených priečinkoch sa importuje. Odznačte priečinky, ktoré chcete vynechať.
+translation=Všetko v označených priečinkoch sa importuje. Odznačením priečinkov ich vylúčite.
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
-translation=Najskôr zvoľte súbory alebo priečinky.
+translation=Najprv zvoľte súbory alebo priečinky.
 
 [source.msg-reading-folders]
 original=Reading folders...
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=Zdrojová cesta HTML
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=Zmena zvoleného priečinka alebo zip súboru môže zmeniť zdrojovú cestu, takže existujúce poznámky nemusia byť rozpoznané.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=Uložte stránky, ktoré si chcete ponechať, ako HTML. Ak aplikáci
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=Zvoľte jednotlivé HTML súbory, celé priečinky alebo zip súbory. Stránky v priečinkoch si zachovajú rovnakú štruktúru.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=Extrahovať hlavný obsah
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=Odstráni navigáciu, bočné panely, päty a iné rušivé prvky stránky.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

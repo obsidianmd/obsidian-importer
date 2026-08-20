@@ -392,11 +392,11 @@ translation=Carpetes per importar
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Tot el contingut de les carpetes marcades s'importa. Desmarca les carpetes per excloure-les.
+translation=Tot el que hi ha a les carpetes marcades s'importarà. Desmarqueu les carpetes per excloure-les.
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
-translation=Tria primer fitxers o carpetes.
+translation=Trieu primer fitxers o carpetes.
 
 [source.msg-reading-folders]
 original=Reading folders...
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=Ruta de la font HTML
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=Canviar la carpeta o el fitxer zip que trieu pot canviar la ruta de la font, de manera que les notes existents podrien no ser reconegudes.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=Desa les pàgines que vulguis conservar com a HTML. Si l'aplicació 
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=Trieu fitxers HTML individuals, carpetes senceres o fitxers zip. Les pàgines dins de carpetes mantenen la mateixa organització.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=Extreure el contingut principal
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=Eliminar la navegació, barres laterals, peus de pàgina i altres elements sobrants.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

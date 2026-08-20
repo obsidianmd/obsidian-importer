@@ -392,7 +392,7 @@ translation=가져올 폴더
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=체크된 폴더의 모든 항목을 가져와요. 제외하려면 체크를 해제하세요.
+translation=체크된 폴더의 모든 항목이 가져와져요. 폴더를 체크 해제하면 제외할 수 있어요.
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=HTML 원본 경로
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=선택하는 폴더나 zip 파일이 달라지면 원본 경로도 변경될 수 있어서, 기존 노트가 인식되지 않을 수 있어요.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=보관하고 싶은 페이지를 HTML로 저장하세요. 해당 앱
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=개별 HTML 파일, 전체 폴더 또는 zip 파일을 선택하세요. 폴더 안의 페이지는 동일한 구조로 정리돼요.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=본문 콘텐츠 추출
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=내비게이션, 사이드바, 푸터 and 그 외 페이지 요소를 삭제해요.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

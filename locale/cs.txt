@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=Zdrojová cesta HTML
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=Změna vybrané složky nebo souboru zip může změnit zdrojovou cestu, takže existující poznámky nemusí být rozpoznány.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=Uložte stránky, které si chcete ponechat, jako HTML. Pokud má ap
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=Vyberte jednotlivé HTML soubory, celé složky nebo soubory zip. Stránky ve složkách zůstanou uspořádány stejným způsobem.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=Extrahovat hlavní obsah
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=Odebrat navigaci, postranní panely, zápatí a další nepotřebné prvky stránky.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

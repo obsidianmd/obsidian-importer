@@ -392,7 +392,7 @@ translation=ইম্পোর্ট করার ফোল্ডার
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=চেক করা ফোল্ডারের সবকিছু ইমপোর্ট হবে। বাদ দিতে ফোল্ডার আনচেক করুন।
+translation=চেক করা ফোল্ডারের সবকিছু ইমপোর্ট করা হবে। বাদ দিতে ফোল্ডার আনচেক করুন।
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=HTML সোর্স অবস্থান
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=কোন ফোল্ডার বা zip ফাইল নির্বাচন করুন তার উপর ভিত্তি করে সোর্স অবস্থান পরিবর্তন হতে পারে, তাই বিদ্যমান নোট চিনতে না-ও পারে।
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=আপনি যে পৃষ্ঠাগুলো রাখতে �
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=পৃথক HTML ফাইল, সম্পূর্ণ ফোল্ডার, বা zip ফাইল নির্বাচন করুন। ফোল্ডারের পেজগুলো একইভাবে সংগঠিত থাকবে।
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=মূল বিষয়বস্তু এক্সট্র্যাক্ট করুন
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=নেভিগেশন, সাইডবার, ফুটার এবং অন্যান্য পেজ বিশৃঙ্খলা সরান।
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

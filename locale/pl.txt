@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=Ścieżka źródłowa HTML
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=Zmiana wybranego folderu lub pliku zip może zmienić ścieżkę źródłową, przez co istniejące notatki mogą nie zostać rozpoznane.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=Zapisz strony, które chcesz zachować, jako HTML. Jeśli aplikacja,
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=Wybierz pojedyncze pliki HTML, całe foldery lub pliki zip. Strony w folderach zachowują dotychczasową organizację.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=Wyodrębnij główną treść
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=Usuń menu, paski boczne, stopki i inne zbędne elementy strony.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

@@ -392,11 +392,11 @@ translation=Directoare de importat
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Tot conținutul folderelor bifate este importat. Debifează folderele pe care vrei să le excluzi.
+translation=Tot ce se află în directoarele bifate este importat. Debifați directoarele pentru a le exclude.
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
-translation=Alege mai întâi fișiere sau foldere.
+translation=Alegeți mai întâi fișierele sau directoarele.
 
 [source.msg-reading-folders]
 original=Reading folders...
@@ -404,7 +404,7 @@ translation=Citire directoare...
 
 [source.msg-no-folders]
 original=No folders found.
-translation=Nu s-au găsit foldere.
+translation=Nu s-au găsit directoare.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=Calea sursei HTML
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=Schimbarea directorului sau a fișierului zip ales poate modifica calea sursei, astfel încât notele existente ar putea să nu fie recunoscute.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=Salvați paginile pe care doriți să le păstrați ca HTML. Dacă a
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=Alegeți fișiere HTML individuale, directoare întregi sau fișiere zip. Paginile din directoare își păstrează aceeași organizare.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=Extrage conținutul principal
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=Elimină navigarea, barele laterale, subsolurile și alte elemente de dezordine din pagină.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

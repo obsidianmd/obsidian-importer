@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=Percorso sorgente HTML
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=Cambiare la cartella o il file zip scelto può modificare il percorso sorgente, quindi le note esistenti potrebbero non essere riconosciute.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=Salva le pagine che vuoi conservare come HTML. Se l'app in cui si tr
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=Scegli singoli file HTML, intere cartelle o file zip. Le pagine nelle cartelle mantengono la stessa organizzazione.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=Estrai contenuto principale
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=Rimuovi navigazione, barre laterali, piè di pagina e altri elementi superflui.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

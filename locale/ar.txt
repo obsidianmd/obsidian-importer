@@ -392,7 +392,7 @@ translation=المجلدات للاستيراد
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=يتم استيراد كل شيء في المجلدات المحددة. ألغِ تحديد المجلدات لاستبعادها.
+translation=يتم استيراد كل شيء في المجلدات المحددة. قم بإلغاء تحديد المجلدات لاستبعادها.
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=مسار مصدر HTML
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=تغيير المجلد أو ملف zip الذي تختاره قد يغيّر مسار المصدر، لذا قد لا يتم التعرف على الملاحظات الموجودة.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=احفظ الصفحات التي تريد الاحتفاظ بها ب
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=اختر ملفات HTML فردية، أو مجلدات كاملة، أو ملفات zip. تبقى الصفحات في المجلدات منظمة بنفس الطريقة.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=استخراج المحتوى الرئيسي
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=إزالة التنقل والأشرطة الجانبية والتذييلات وعناصر الصفحة غير الضرورية الأخرى.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

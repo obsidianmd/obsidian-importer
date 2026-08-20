@@ -396,7 +396,7 @@ translation=チェックされたフォルダ内のすべてがインポート�
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
-translation=まずファイルまたはフォルダを選択してください。
+translation=最初にファイルまたはフォルダを選択してください。
 
 [source.msg-reading-folders]
 original=Reading folders...
@@ -404,7 +404,7 @@ translation=フォルダを読み込み中...
 
 [source.msg-no-folders]
 original=No folders found.
-translation=フォルダが見つかりませんでした。
+translation=フォルダが見つかりません。
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=HTML ソースパス
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=選択するフォルダまたはzipファイルを変更するとソースパスが変わる場合があり、既存のノートが認識されなくなることがあります。
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=保存したいページを HTML として保存してください�
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=個別のHTMLファイル、フォルダ全体、またはzipファイルを選択してください。フォルダ内のページは同じ構造で整理されます。
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=メインコンテンツを抽出
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=ナビゲーション、サイドバー、フッター、その他のページの不要な要素を削除します。
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

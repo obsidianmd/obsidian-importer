@@ -392,7 +392,7 @@ translation=Папки для импорта
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Всё содержимое отмеченных папок будет импортировано. Снимите флажок, чтобы исключить папки.
+translation=Всё содержимое отмеченных папок будет импортировано. Снимите отметку с папок, чтобы исключить их.
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=Исходный путь HTML
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=Изменение выбранной папки или zip-файла может изменить исходный путь, поэтому существующие заметки могут не быть распознаны.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=Сохраните нужные страницы в формате H
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=Выберите отдельные HTML-файлы, целые папки или zip-файлы. Страницы в папках сохраняют исходную структуру.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=Извлечь основное содержимое
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=Удалить навигацию, боковые панели, подвалы и другие лишние элементы страницы.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

@@ -392,11 +392,11 @@ translation=תיקיות לייבוא
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=כל מה שבתיקיות המסומנות מיובא. בטל סימון של תיקיות כדי להחריג אותן.
+translation=כל מה שבתיקיות המסומנות ייובא. בטל סימון של תיקיות כדי להחריג אותן.
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
-translation=בחר קבצים או תיקיות קודם.
+translation=בחר קבצים או תיקיות תחילה.
 
 [source.msg-reading-folders]
 original=Reading folders...
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=נתיב מקור HTML
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=שינוי התיקייה או קובץ ה-zip שתבחר עשוי לשנות את נתיב המקור, כך שהערות קיימות עלולות שלא להיות מזוהות.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=שמור את הדפים שברצונך לשמור כ-HTML. אם ל�
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=בחר קבצי HTML בודדים, תיקיות שלמות או קבצי zip. דפים בתיקיות נשארים מאורגנים באותו אופן.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=חילוץ תוכן עיקרי
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=הסר ניווט, סרגלים צדדיים, כותרות תחתונות ועומס דף אחר.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

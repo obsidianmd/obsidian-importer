@@ -392,7 +392,7 @@ translation=Ordner zum Importieren
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Alles in markierten Ordnern wird importiert. Deaktiviere Ordner, um sie auszuschließen.
+translation=Alles in aktivierten Ordnern wird importiert. Deaktiviere Ordner, um sie auszuschließen.
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=HTML-Quellpfad
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=Wenn du einen anderen Ordner oder eine andere ZIP-Datei auswählst, kann sich der Quellpfad ändern, sodass vorhandene Notizen möglicherweise nicht erkannt werden.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=Speichere die Seiten, die du behalten möchtest, als HTML. Falls die
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=Wähle einzelne HTML-Dateien, ganze Ordner oder ZIP-Dateien aus. Seiten in Ordnern behalten ihre Struktur bei.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=Hauptinhalt extrahieren
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=Navigation, Seitenleisten, Fußzeilen und andere überflüssige Seitenelemente entfernen.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

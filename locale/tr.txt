@@ -392,7 +392,7 @@ translation=İçe aktarılacak klasörler
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=İşaretlenen klasörlerdeki her şey içe aktarılır. Hariç tutmak istediğiniz klasörlerin işaretini kaldırın.
+translation=İşaretli klasörlerdeki her şey içe aktarılır. Hariç tutmak istediğiniz klasörlerin işaretini kaldırın.
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=HTML kaynak yolu
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=Seçtiğiniz klasör veya zip dosyasını değiştirmek kaynak yolunu değiştirebilir, bu nedenle mevcut notlar tanınmayabilir.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=Saklamak istediğiniz sayfaları HTML olarak kaydedin. Bulundukları
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=Tek tek HTML dosyaları, tüm klasörler veya zip dosyaları seçin. Klasörlerdeki sayfalar aynı düzende kalır.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=Ana içeriği ayıkla
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=Navigasyon, kenar çubukları, alt bilgiler ve diğer sayfa karmaşasını kaldırın.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

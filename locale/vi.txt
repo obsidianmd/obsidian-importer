@@ -392,7 +392,7 @@ translation=Thư mục để nhập
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Mọi thứ trong các thư mục được chọn sẽ được nhập. Bỏ chọn thư mục để loại trừ chúng.
+translation=Mọi thứ trong các thư mục được chọn sẽ được nhập. Bỏ chọn thư mục để loại trừ.
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=Đường dẫn nguồn HTML
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=Thay đổi thư mục hoặc tệp zip bạn chọn có thể thay đổi đường dẫn nguồn, do đó các ghi chú hiện có có thể không được nhận dạng.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=Lưu các trang bạn muốn giữ lại dưới dạng HTML. Nếu 
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=Chọn từng tệp HTML riêng lẻ, toàn bộ thư mục hoặc tệp zip. Các trang trong thư mục sẽ giữ nguyên cách sắp xếp.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=Trích xuất nội dung chính
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=Gỡ bỏ điều hướng, thanh bên, chân trang và các phần thừa khác của trang.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

@@ -392,7 +392,7 @@ translation=โฟลเดอร์ที่ต้องการนำเข�
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=ทุกอย่างในโฟลเดอร์ที่เลือกไว้จะถูกนำเข้า ยกเลิกการเลือกโฟลเดอร์เพื่อไม่รวมโฟลเดอร์นั้น
+translation=ทุกอย่างในโฟลเดอร์ที่เลือกจะถูกนำเข้า ยกเลิกการเลือกโฟลเดอร์เพื่อไม่รวมไว้
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=เส้นทางต้นทาง HTML
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=การเปลี่ยนโฟลเดอร์หรือไฟล์ zip ที่คุณเลือกอาจเปลี่ยนเส้นทางต้นทาง ทำให้โน้ตที่มีอยู่อาจไม่ถูกรู้จัก
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=บันทึกหน้าที่คุณต้องกา�
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=เลือกไฟล์ HTML แต่ละไฟล์ โฟลเดอร์ทั้งหมด หรือไฟล์ zip หน้าในโฟลเดอร์จะยังคงจัดระเบียบในรูปแบบเดิม
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=ดึงเนื้อหาหลัก
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=ลบการนำทาง แถบด้านข้าง ส่วนท้าย และส่วนที่ไม่จำเป็นอื่นๆ ของหน้าออก
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

@@ -392,11 +392,11 @@ translation=要导入的文件夹
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=已勾选的文件夹中的所有内容将被导入。取消勾选文件夹以排除它们。
+translation=勾选的文件夹中的所有内容都将被导入。取消勾选文件夹以排除它们。
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
-translation=请先选择文件列表或文件夹。
+translation=请先选择文件或文件夹。
 
 [source.msg-reading-folders]
 original=Reading folders...
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=HTML 源码路径
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=更改所选的文件夹或 zip 文件可能会改变源码路径，因此现有笔记可能无法被识别。
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=将你想保留的页面保存为 HTML。如果页面所在的应用
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=选择单个 HTML 文件、整个文件夹或 zip 文件。文件夹中的页面将保持原有的组织结构。
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=提取主要内容
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=移除自定义文件列表、侧边栏、页脚及其他页面杂项内容。
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

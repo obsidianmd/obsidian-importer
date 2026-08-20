@@ -392,11 +392,11 @@ translation=Importálandó mappák
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=A bejelölt mappák teljes tartalma importálásra kerül. Töröld a jelölést a kizárandó mappáknál.
+translation=A bejelölt mappák teljes tartalma importálásra kerül. A kizáráshoz töröld a jelölést.
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
-translation=Először válassz ki fájlokat vagy mappákat.
+translation=Először válassz fájlokat vagy mappákat.
 
 [source.msg-reading-folders]
 original=Reading folders...
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=HTML forrás útvonal
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=A kiválasztott mappa vagy zip fájl módosítása megváltoztathatja a forrás útvonalat, így a meglévő jegyzetek nem feltétlenül lesznek felismerhetők.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=Mentsd el a megtartani kívánt oldalakat HTML formátumban. Ha az a
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=Válassz egyedi HTML fájlokat, teljes mappákat vagy zip fájlokat. A mappákban lévő oldalak megőrzik az eredeti szerkezetüket.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=Fő tartalom kinyerése
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=Navigáció, oldalsávok, láblécek és egyéb felesleges elemek eltávolítása.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

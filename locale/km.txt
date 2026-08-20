@@ -392,7 +392,7 @@ translation=ថតដើម្បីនាំចូល
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=អ្វីគ្រប់យ៉ាងក្នុងថតដែលបានគូសធីកនឹងត្រូវបាននាំចូល។ ដោះធីកថតដើម្បីមិនរាប់បញ្ចូល។
+translation=អ្វីគ្រប់យ៉ាងនៅក្នុងថតដែលបានធីកនឹងត្រូវបាននាំចូល។ ដោះធីកថតដើម្បីមិនរួមបញ្ចូលពួកវា។
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=ផ្លូវប្រភព HTML
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=ការផ្លាស់ប្តូរថត ឬឯកសារ zip ដែលអ្នកជ្រើសរើសអាចផ្លាស់ប្តូរផ្លូវប្រភព ដូច្នេះកំណត់ត្រាដែលមានស្រាប់អាចមិនត្រូវបានស្គាល់។
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=រក្សាទុក ទំព័រដែលអ្នកចង�
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=ជ្រើសរើសឯកសារ HTML នីមួយៗ ថតទាំងមូល ឬឯកសារ zip។ ទំព័រក្នុងថតនឹងរក្សាការរៀបចំដូចគ្នា។
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=ស្រង់យកខ្លឹមសារសំខាន់
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=ដកចេញការរុករក របារចំហៀង បាតកថា និងភាពច្រំដែលនៃទំព័រផ្សេងទៀត។
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

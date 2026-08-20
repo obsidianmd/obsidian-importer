@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=Alur sumber HTML
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=Mengubah folder atau file zip yang Anda pilih dapat mengubah alur sumber, sehingga catatan yang sudah ada mungkin tidak dikenali.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=Simpan halaman yang ingin Anda simpan sebagai HTML. Jika aplikasi te
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=Pilih file HTML individual, seluruh folder, atau file zip. Halaman dalam folder tetap terorganisir dengan cara yang sama.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=Ekstrak konten utama
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=Hapus navigasi, sidebar, footer, dan elemen halaman lain yang tidak diperlukan.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

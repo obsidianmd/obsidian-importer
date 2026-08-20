@@ -392,11 +392,11 @@ translation=Теки для імпорту
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Увесь вміст позначених папок буде імпортовано. Зніміть позначку, щоб виключити папку.
+translation=Усе у позначених теках буде імпортовано. Зніміть позначку з тек, щоб виключити їх.
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
-translation=Спочатку оберіть файли або папки.
+translation=Спочатку оберіть файли або теки.
 
 [source.msg-reading-folders]
 original=Reading folders...
@@ -404,7 +404,7 @@ translation=Читання тек...
 
 [source.msg-no-folders]
 original=No folders found.
-translation=Папок не знайдено.
+translation=Теки не знайдено.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=Шлях до джерела HTML
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=Зміна обраної теки або zip-файлу може змінити шлях до джерела, тому наявні нотатки можуть не бути розпізнані.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=Збережіть потрібні сторінки як HTML. Як
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=Оберіть окремі HTML-файли, цілі теки або zip-файли. Сторінки в теках зберігають ту саму структуру.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=Витягнути основний вміст
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=Видалити навігацію, бічні панелі, нижні колонтитули та інший зайвий вміст сторінки.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)

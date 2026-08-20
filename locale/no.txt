@@ -392,7 +392,7 @@ translation=Mapper å importere
 
 [source.desc-folders]
 original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Alt i avkryssede mapper importeres. Fjern avkryssing for å ekskludere mapper.
+translation=Alt i avmerkede mapper importeres. Fjern avmerking for mapper du vil utelate.
 
 [source.msg-pick-source-first]
 original=Choose files or folders first.
@@ -1276,11 +1276,11 @@ translation=HTML (.html, .zip)
 
 [importer.html.label-id]
 original=HTML source path
-translation=
+translation=HTML-kildebane
 
 [importer.html.desc-source-identity]
 original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
-translation=
+translation=Endring av hvilken mappe eller zip-fil du velger kan endre kildebanen, slik at eksisterende notater kanskje ikke gjenkjennes.
 
 [importer.html.file-type]
 original=HTML
@@ -1292,15 +1292,15 @@ translation=Lagre sidene du vil beholde som HTML. Hvis appen de befinner seg i h
 
 [importer.html.desc-source]
 original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
-translation=
+translation=Velg individuelle HTML-filer, hele mapper eller zip-filer. Sider i mapper beholder samme organisering.
 
 [importer.html.name-extract-main-content]
 original=Extract main content
-translation=
+translation=Trekk ut hovedinnhold
 
 [importer.html.desc-extract-main-content]
 original=Remove navigation, sidebars, footers, and other page clutter.
-translation=
+translation=Fjern navigasjon, sidepaneler, bunntekster og annet sidestøy.
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
