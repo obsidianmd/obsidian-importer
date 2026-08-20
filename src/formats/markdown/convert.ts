@@ -31,17 +31,18 @@ export interface ConvertedMarkdown {
 
 /** A copy of the body with code replaced by spaces, so offsets still line up. */
 function maskCode(lines: string[]): string[] {
-	const masked: string[] = [];
+	const blockCode: boolean[] = [];
 
 	let fence: string | null = null;
 	let inIndentedCode = false;
 
-	for (const line of lines) {
+	for (let index = 0; index < lines.length; index++) {
+		const line = lines[index];
 		const blank = BLANK.test(line);
 		const fenceMatch = FENCE.exec(line);
 
 		if (fence !== null) {
-			masked.push(' '.repeat(line.length));
+			blockCode.push(true);
 			// A closing fence is the same character, at least as long, and alone.
 			if (fenceMatch && fenceMatch[1][0] === fence[0] && fenceMatch[1].length >= fence.length && BLANK.test(fenceMatch[2])) {
 				fence = null;
@@ -51,61 +52,85 @@ function maskCode(lines: string[]): string[] {
 
 		if (fenceMatch) {
 			fence = fenceMatch[1];
-			masked.push(' '.repeat(line.length));
+			blockCode.push(true);
 			inIndentedCode = false;
 			continue;
 		}
 
 		// An indented block is only code where a paragraph could not continue.
-		if (INDENTED_CODE.test(line) && (inIndentedCode || masked.length === 0 || BLANK.test(lines[masked.length - 1]))) {
+		if (INDENTED_CODE.test(line) && (inIndentedCode || index === 0 || BLANK.test(lines[index - 1]))) {
 			inIndentedCode = true;
-			masked.push(' '.repeat(line.length));
+			blockCode.push(true);
+			continue;
+		}
+
+		// A blank inside an indented block cannot join inline code on either side.
+		if (blank && inIndentedCode) {
+			blockCode.push(true);
 			continue;
 		}
 
 		if (!blank) inIndentedCode = false;
+		blockCode.push(false);
+	}
 
-		masked.push(maskInlineCode(line));
+	const masked: string[] = [];
+	for (let index = 0; index < lines.length;) {
+		if (blockCode[index]) {
+			masked.push(' '.repeat(lines[index].length));
+			index++;
+			continue;
+		}
+		if (BLANK.test(lines[index])) {
+			masked.push(lines[index]);
+			index++;
+			continue;
+		}
+
+		let end = index + 1;
+		while (end < lines.length && !blockCode[end] && !BLANK.test(lines[end])) end++;
+		masked.push(...maskInlineCode(lines.slice(index, end).join('\n')).split('\n'));
+		index = end;
 	}
 
 	return masked;
 }
 
-/** Blank out `code spans`, matching a run of backticks with one the same length. */
-function maskInlineCode(line: string): string {
+/** Blank out `code spans`, including ones that cross a line ending. */
+function maskInlineCode(content: string): string {
 	let masked = '';
 
-	for (let i = 0; i < line.length;) {
-		if (line[i] !== '`') {
-			masked += line[i++];
+	for (let i = 0; i < content.length;) {
+		if (content[i] !== '`') {
+			masked += content[i++];
 			continue;
 		}
 
 		let open = i;
-		while (line[i] === '`') i++;
+		while (content[i] === '`') i++;
 		const ticks = i - open;
 
 		let close = i;
-		while (close < line.length) {
-			if (line[close] !== '`') {
+		while (close < content.length) {
+			if (content[close] !== '`') {
 				close++;
 				continue;
 			}
 
 			let run = close;
-			while (line[run] === '`') run++;
+			while (content[run] === '`') run++;
 			if (run - close === ticks) break;
 			close = run;
 		}
 
-		if (close >= line.length) {
-			// Unmatched backticks open nothing, so the rest of the line is text.
-			masked += line.slice(open, i);
+		if (close >= content.length) {
+			// Unmatched backticks open nothing, so the run itself is text.
+			masked += content.slice(open, i);
 			continue;
 		}
 
 		const end = close + ticks;
-		masked += ' '.repeat(end - open);
+		masked += content.slice(open, end).replace(/[^\n]/g, ' ');
 		i = end;
 	}
 

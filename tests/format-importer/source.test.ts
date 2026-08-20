@@ -17,7 +17,7 @@ import { SourceFile, SourceFolder } from '../shims/picked';
 import { MemoryVault, memoryApp } from '../shims/vault';
 
 interface SourceInternals {
-	readChosen(): Promise<void>;
+	readChosen(): Promise<boolean>;
 	filesInside(items: (PickedFile | PickedFolder)[]): Promise<PickedFile[]>;
 }
 
@@ -97,7 +97,7 @@ test('reading a folder does not overwrite the pick that replaced it', async () =
 	subject.chosen = [new SourceFile('Picked.md')];
 	const replaced = internals.readChosen();
 
-	await Promise.all([slow, replaced]);
+	assert.deepEqual(await Promise.all([slow, replaced]), [false, true]);
 
 	assert.deepEqual(names(subject.files), ['Picked.md']);
 });

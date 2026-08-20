@@ -5,7 +5,7 @@ import { AuthCallback, helpUrl } from './constants';
 import { FolderSuggest } from './folder-suggest';
 import { ImportContext } from './import-context';
 import { formatImportReport, importReportName } from './import-report';
-import { createMarkdown, formattedMarkdown, MarkdownFormatting, modifyMarkdown, standardizedMarkdown, standardizeMarkdownFile } from './markdown-output';
+import { createMarkdown, formattedMarkdown, MarkdownFormatting, MarkdownLinkResolver, modifyMarkdown, standardizedMarkdown, standardizeMarkdownFile } from './markdown-output';
 import { i18n } from './i18n';
 import { availableFileName, getUniqueFilePath, parseFrontMatterBlock, sanitizeFileName, sanitizeFilePath, serializeFrontMatter } from './util';
 
@@ -607,13 +607,14 @@ export abstract class FormatImporter {
 		const addChosen = async (chosen: (PickedFile | PickedFolder)[]) => {
 			this.chosen = this.alsoChosen(chosen);
 
-			await this.readChosen();
-			updateFiles();
+			if (await this.readChosen()) updateFiles();
 		};
 
 		const removeChosen = (item: PickedFile | PickedFolder) => {
 			this.chosen = this.chosen.filter(other => other !== item);
-			void this.readChosen().then(updateFiles);
+			void this.readChosen().then(current => {
+				if (current) updateFiles();
+			});
 		};
 
 		const drawState = (text: string) => {
@@ -641,16 +642,17 @@ export abstract class FormatImporter {
 		};
 
 		const updateFiles = () => {
-			this.sourceChanged();
-
 			// A folder holding none of what this importer reads is nothing chosen.
 			if (this.files.length === 0) {
 				this.chosen = [];
+				this.sourceChanged();
 				drawState(i18n.source.msgNothingToImport({
 					extensions: extensions.map(e => '.' + e).join(', '),
 				}));
 				return;
 			}
+
+			this.sourceChanged();
 
 			listEl.empty();
 
@@ -695,14 +697,17 @@ export abstract class FormatImporter {
 	}
 
 	/** Keep the files in step with what is picked, after a folder joins or leaves it. */
-	private async readChosen(): Promise<void> {
+	private async readChosen(): Promise<boolean> {
 		const chosen = this.chosen;
 		const files = chosen.every(item => item.type === 'file')
 			? chosen
 			: await this.filesInside(chosen);
 
 		// Reading a large folder can outlast the pick that replaced it.
-		if (chosen === this.chosen) this.files = files;
+		if (chosen !== this.chosen) return false;
+
+		this.files = files;
+		return true;
 	}
 
 	takeDropped(dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): void {
@@ -1006,6 +1011,17 @@ export abstract class FormatImporter {
 		recognise: (existing: TFile) => AttachmentVerdict | Promise<AttachmentVerdict>,
 	): Promise<{ path: string, reuse: TFile | null }> {
 		const at = await this.attachmentNaming(filename, sourcePath);
+		return await this.placeAttachmentAt(at, recognise);
+	}
+
+	/**
+	 * Place an attachment with importer-owned naming rather than the vault's
+	 * attachment setting. The recognition and duplicate-mode rules stay shared.
+	 */
+	protected async placeAttachmentAt(
+		at: (nth: number) => string,
+		recognise: (existing: TFile) => AttachmentVerdict | Promise<AttachmentVerdict>,
+	): Promise<{ path: string, reuse: TFile | null }> {
 		const reusing = this.duplicateHandling !== DuplicateHandling.CreateCopy;
 
 		for (let nth = 0; ; nth++) {
@@ -1085,6 +1101,11 @@ export abstract class FormatImporter {
 		return undefined;
 	}
 
+	/** Repair links to source paths that an importer had to rename. */
+	protected get markdownLinkResolver(): MarkdownLinkResolver | undefined {
+		return undefined;
+	}
+
 	/**
 	 * Apply settings that need the whole import to exist, notably shortest and
 	 * relative links. Called by both interactive and scripted import entrypoints.
@@ -1104,7 +1125,7 @@ export abstract class FormatImporter {
 					continue;
 				}
 				try {
-					await standardizeMarkdownFile(this.app, file, this.markdownFormatting);
+					await standardizeMarkdownFile(this.app, file, this.markdownFormatting, this.markdownLinkResolver);
 				}
 				catch (error) {
 					if (ctx) ctx.reportFailed(file.path, error);
@@ -1319,7 +1340,9 @@ export abstract class FormatImporter {
 	private async unchangedContent(ctx: ImportContext, file: TFile, title: string, content: string): Promise<boolean> {
 		try {
 			const current = await this.vault.read(file);
-			if (current !== await standardizedMarkdown(this.app, file.path, content, this.markdownFormatting)) return false;
+			if (current !== await standardizedMarkdown(
+				this.app, file.path, content, this.markdownFormatting, this.markdownLinkResolver,
+			)) return false;
 		}
 		catch (error) {
 			console.error(`Could not read the note already at: ${file.path}`, error);

@@ -18,6 +18,9 @@ export interface MarkdownOutput {
  */
 export type MarkdownFormatting = MarkdownOutput | null;
 
+/** Resolve a source link whose imported destination no longer has the same path. */
+export type MarkdownLinkResolver = (path: string, sourcePath: string) => TFile | null;
+
 /** The step a conversion indents by before this runs. A tab counts as one too. */
 const CONVERSION_STEP = 4;
 
@@ -72,14 +75,25 @@ function escapePipes(text: string): string {
  * apply both `useMarkdownLinks` and `newLinkFormat` without each converter
  * having to reproduce link resolution itself.
  */
-export async function standardizedMarkdown(app: App, sourcePath: string, content: string, formatting?: MarkdownFormatting): Promise<string> {
-	if (formatting === null) return content;
-
+export async function standardizedMarkdown(
+	app: App,
+	sourcePath: string,
+	content: string,
+	formatting?: MarkdownFormatting,
+	resolveLink?: MarkdownLinkResolver,
+): Promise<string> {
 	content = formattedMarkdown(app.vault, content, formatting);
-	return await standardizeLinks(app, sourcePath, content);
+	if (formatting === null && !resolveLink) return content;
+	return await standardizeLinks(app, sourcePath, content, resolveLink, formatting === null);
 }
 
-async function standardizeLinks(app: App, sourcePath: string, content: string): Promise<string> {
+async function standardizeLinks(
+	app: App,
+	sourcePath: string,
+	content: string,
+	resolveLink?: MarkdownLinkResolver,
+	preserveStyle: boolean = false,
+): Promise<string> {
 	const cache = await computeMetadata(app, content);
 	if (!cache) return content;
 
@@ -93,11 +107,14 @@ async function standardizeLinks(app: App, sourcePath: string, content: string): 
 		...(cache.embeds ?? []).map(reference => ({ reference, embed: true })),
 	]) {
 		const { path, subpath } = parseLinktext(reference.link);
-		const target = app.metadataCache.getFirstLinkpathDest(path, sourcePath);
+		const mapped = resolveLink?.(path, sourcePath) ?? null;
+		const target = mapped ?? (preserveStyle ? null : app.metadataCache.getFirstLinkpathDest(path, sourcePath));
 		if (!target) continue;
 
-		let text = app.fileManager.generateMarkdownLink(target, sourcePath, subpath, reference.displayText);
-		if (embed) text = '!' + text;
+		let text = preserveStyle
+			? repairedLink(app, reference.original, target, sourcePath, subpath)
+			: app.fileManager.generateMarkdownLink(target, sourcePath, subpath, reference.displayText);
+		if (embed && !text.startsWith('!')) text = '!' + text;
 		if (inTable(reference.position.start.offset)) text = escapePipes(text);
 		changes.push({ from: reference.position.start.offset, to: reference.position.end.offset, text });
 	}
@@ -110,17 +127,64 @@ async function standardizeLinks(app: App, sourcePath: string, content: string): 
 	return content;
 }
 
+/** Change only the target of a mapped link, leaving its source syntax intact. */
+function repairedLink(app: App, original: string, target: TFile, sourcePath: string, subpath: string): string {
+	const wikiStart = original.indexOf('[[');
+	if (wikiStart >= 0) {
+		const from = wikiStart + 2;
+		const alias = original.indexOf('|', from);
+		const to = alias >= 0 ? alias : original.length - 2;
+		const path = app.metadataCache.fileToLinktext(target, sourcePath, true) + subpath;
+		return original.slice(0, from) + path + original.slice(to);
+	}
+
+	const from = original.indexOf('](') + 2;
+	if (from < 2) return original;
+
+	const to = original.length - 1;
+	const raw = original.slice(from, to);
+	const angled = raw.startsWith('<') && raw.endsWith('>');
+	const relative = relativePath(sourcePath, target.path);
+	const path = (angled ? relative : encodeURI(relative)) + subpath;
+	const written = angled || /[\s()<>]/u.test(path) ? `<${path}>` : path;
+
+	return original.slice(0, from) + written + original.slice(to);
+}
+
+function relativePath(fromFile: string, toFile: string): string {
+	const from = fromFile.split('/').slice(0, -1);
+	const to = toFile.split('/');
+
+	while (from.length > 0 && to.length > 0 && from[0].toLowerCase() === to[0].toLowerCase()) {
+		from.shift();
+		to.shift();
+	}
+
+	return [...from.map(() => '..'), ...to].join('/');
+}
+
 /**
  * Standardize an imported file without changing its imported timestamps.
  *
- * This pass only reaches a link that already resolves, so it restyles rather
- * than repairs: a source left as it was written keeps the links it had.
+ * Ordinary links are only restyled when they already resolve. An importer may
+ * additionally resolve a source path it had to rename while bringing it in.
  */
-export async function standardizeMarkdownFile(app: App, file: TFile, formatting?: MarkdownFormatting): Promise<void> {
-	if (formatting === null) return;
+export async function standardizeMarkdownFile(
+	app: App,
+	file: TFile,
+	formatting?: MarkdownFormatting,
+	resolveLink?: MarkdownLinkResolver,
+): Promise<void> {
+	if (formatting === null && !resolveLink) return;
 
 	const original = await app.vault.read(file);
-	const standardized = await standardizeLinks(app, file.path, formattedMarkdown(app.vault, original, formatting));
+	const standardized = await standardizeLinks(
+		app,
+		file.path,
+		formattedMarkdown(app.vault, original, formatting),
+		resolveLink,
+		formatting === null,
+	);
 	if (standardized === original) return;
 
 	await app.vault.modify(file, standardized, { ctime: file.stat.ctime, mtime: file.stat.mtime });

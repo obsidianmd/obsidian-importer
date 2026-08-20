@@ -7,14 +7,19 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import * as nodeFs from 'node:fs';
+import * as nodeOs from 'node:os';
+import * as nodePath from 'node:path';
 import { TFolder } from 'obsidian';
 
-import { PickedFile, PickedFolder } from '../../src/filesystem';
+import { NodePickedFile, PickedFile, PickedFolder, provideNodeModules } from '../../src/filesystem';
 import { DuplicateHandling } from '../../src/format-importer';
 import { MarkdownImporter } from '../../src/formats/markdown';
 import { ImportContext } from '../../src/import-context';
 import { SourceFile, SourceFolder } from '../shims/picked';
 import { indexedApp, MemoryVault } from '../shims/vault';
+
+provideNodeModules({ fs: nodeFs as never, os: nodeOs, path: nodePath });
 
 function importer(): { vault: MemoryVault, subject: MarkdownImporter } {
 	const vault = new MemoryVault();
@@ -38,9 +43,9 @@ async function importing(subject: MarkdownImporter, chosen: (PickedFile | Picked
 
 function notes(): SourceFolder {
 	return new SourceFolder('Notes', [
-		new SourceFile('Index.md', '# Index\n\n[A day](Journal/Day.md)\n\n![](cover.png)\n'),
+		new SourceFile('Index.md', '# Index\n\n[A day](Journal?/Day.markdown)\n\n![](cover.png)\n'),
 		new SourceFile('cover.png', 'pretend this is a png'),
-		new SourceFolder('Journal', [new SourceFile('Day.markdown', 'A day.\n')]),
+		new SourceFolder('Journal?', [new SourceFile('Day.markdown', 'A day.\n')]),
 	]);
 }
 
@@ -64,7 +69,7 @@ test('a link is rewritten in this vault\'s form, still reaching the note it name
 	assert.equal(vault.contents.get('Import/Notes/Index.md'), '# Index\n\n[[Day|A day]]\n\n![](cover.png)\n');
 });
 
-test('a link is left as it was written where the source formatting is kept', async () => {
+test('source link syntax is kept while a renamed target is repaired', async () => {
 	const { vault, subject } = importer();
 
 	await subject.ready;
@@ -72,6 +77,19 @@ test('a link is left as it was written where the source formatting is kept', asy
 	await importing(subject, [notes()]);
 
 	assert.equal(vault.contents.get('Import/Notes/Index.md'), '# Index\n\n[A day](Journal/Day.md)\n\n![](cover.png)\n');
+});
+
+test('an absolute source link is repaired after its tree moves under the output folder', async () => {
+	const { vault, subject } = importer();
+
+	await subject.ready;
+	subject.standardizeFormatting = false;
+	await importing(subject, [new SourceFolder('Notes', [
+		new SourceFile('Index.md', '[[/Notes/Target]]\n'),
+		new SourceFile('Target.md', 'Target.\n'),
+	])]);
+
+	assert.equal(vault.contents.get('Import/Notes/Index.md'), '[[Target]]\n');
 });
 
 test('a folder holding nothing is still made', async () => {
@@ -107,7 +125,110 @@ test('importing the same folder again lands on the notes it wrote', async () => 
 	]);
 	assert.equal(first.notes, 2);
 	assert.equal(second.notes, 0);
-	assert.deepEqual(second.skipped, ['Index', 'Day']);
+	assert.deepEqual(second.skipped, ['Index', 'cover.png', 'Day']);
+});
+
+test('an unrelated same-sized attachment is left alone', async () => {
+	const { vault, subject } = importer();
+	await vault.createFolder('Import');
+	await vault.createFolder('Import/Notes');
+	await vault.createBinary('Import/Notes/cover.png', new TextEncoder().encode('MINE').buffer);
+
+	await importing(subject, [new SourceFolder('Notes', [new SourceFile('cover.png', 'SRC!')])]);
+
+	assert.deepEqual(vault.paths(), ['Import/Notes/cover.png', 'Import/Notes/cover 1.png']);
+	assert.equal(new TextDecoder().decode(vault.contents.get('Import/Notes/cover.png') as ArrayBuffer), 'MINE');
+	assert.equal(new TextDecoder().decode(vault.contents.get('Import/Notes/cover 1.png') as ArrayBuffer), 'SRC!');
+});
+
+test('attachments whose names sanitize alike reuse their own candidates', async () => {
+	const { vault, subject } = importer();
+	const source = new SourceFolder('Notes', [
+		new SourceFile('pic?.png', 'first'),
+		new SourceFile('pic:.png', 'second'),
+	]);
+
+	for (let round = 1; round <= 3; round++) {
+		await importing(subject, [source]);
+		assert.deepEqual(vault.paths(), ['Import/Notes/pic.png', 'Import/Notes/pic 1.png'], `round ${round}`);
+	}
+});
+
+test('a changed attachment without stable times adds one version, not one per import', async () => {
+	const { vault, subject } = importer();
+
+	await importing(subject, [new SourceFile('photo.png', 'first')]);
+	await importing(subject, [new SourceFile('photo.png', 'changed')]);
+	await importing(subject, [new SourceFile('photo.png', 'changed')]);
+
+	assert.deepEqual(vault.paths(), ['Import/photo.png', 'Import/photo 1.png']);
+});
+
+test('case-distinct source links resolve to their respective planned notes', async () => {
+	const { vault, subject } = importer();
+
+	await importing(subject, [new SourceFolder('Notes', [
+		new SourceFile('Index.md', '[[A]] and [[a]]\n'),
+		new SourceFile('A.md', 'upper\n'),
+		new SourceFile('a.md', 'lower\n'),
+	])]);
+
+	assert.deepEqual(vault.paths(), [
+		'Import/Notes/Index.md',
+		'Import/Notes/A.md',
+		'Import/Notes/a 1.md',
+	]);
+	assert.equal(vault.contents.get('Import/Notes/Index.md'), '[[A]] and [[a 1]]\n');
+});
+
+test('source folder casing is canonicalized to an existing vault folder', async () => {
+	const { vault, subject } = importer();
+	await vault.createFolder('Import');
+	await vault.createFolder('Import/Notes');
+
+	await importing(subject, [new SourceFolder('notes', [new SourceFile('One.md', 'one\n')])]);
+
+	assert.deepEqual(vault.paths(), ['Import/Notes/One.md']);
+});
+
+test('a changed local attachment is rewritten in place', async t => {
+	const directory = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'markdown-attachment-'));
+	t.after(() => nodeFs.rmSync(directory, { recursive: true }));
+	const sourcePath = nodePath.join(directory, 'photo.png');
+	nodeFs.writeFileSync(sourcePath, 'first');
+
+	const { vault, subject } = importer();
+	const source = new NodePickedFile(sourcePath);
+	await importing(subject, [source]);
+
+	nodeFs.writeFileSync(sourcePath, 'changed');
+	const later = new Date(Date.now() + 5_000);
+	nodeFs.utimesSync(sourcePath, later, later);
+	await importing(subject, [source]);
+
+	assert.deepEqual(vault.paths(), ['Import/photo.png']);
+	assert.equal(new TextDecoder().decode(vault.contents.get('Import/photo.png') as ArrayBuffer), 'changed');
+});
+
+test('Skip leaves a changed local attachment alone', async t => {
+	const directory = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'markdown-attachment-'));
+	t.after(() => nodeFs.rmSync(directory, { recursive: true }));
+	const sourcePath = nodePath.join(directory, 'photo.png');
+	nodeFs.writeFileSync(sourcePath, 'first');
+
+	const { vault, subject } = importer();
+	const source = new NodePickedFile(sourcePath);
+	await importing(subject, [source]);
+
+	subject.duplicateHandling = DuplicateHandling.Skip;
+	nodeFs.writeFileSync(sourcePath, 'changed');
+	const later = new Date(Date.now() + 5_000);
+	nodeFs.utimesSync(sourcePath, later, later);
+	const second = await importing(subject, [source]);
+
+	assert.deepEqual(vault.paths(), ['Import/photo.png']);
+	assert.equal(new TextDecoder().decode(vault.contents.get('Import/photo.png') as ArrayBuffer), 'first');
+	assert.deepEqual(second.skipped, ['photo.png']);
 });
 
 test('asking for a copy numbers the folder rather than the notes inside it', async () => {
@@ -154,6 +275,27 @@ test('source list formatting is preserved when standardization is turned off', a
 	assert.deepEqual(second.skipped, ['Shopping']);
 });
 
+test('an unchanged source-formatted import does not run the Markdown link pass', async () => {
+	const vault = new MemoryVault();
+	const app = indexedApp(vault) as never as {
+		metadataCache: { computeMetadataAsync(content: ArrayBuffer): Promise<unknown> };
+	};
+	const computeMetadata = app.metadataCache.computeMetadataAsync;
+	let computations = 0;
+	app.metadataCache.computeMetadataAsync = async content => {
+		computations++;
+		return await computeMetadata(content);
+	};
+	const subject = new MarkdownImporter(app as never, { sourceEl: null, outputEl: null, optionsEl: null } as never);
+
+	await subject.ready;
+	subject.standardizeFormatting = false;
+	await importing(subject, [new SourceFile('Plain.md', 'No renamed paths here.\n')]);
+	await importing(subject, [new SourceFile('Plain.md', 'No renamed paths here.\n')]);
+
+	assert.equal(computations, 0);
+});
+
 interface PickerInternals {
 	picker: { nodes: { path: string, selected: boolean, children?: unknown[] }[] };
 	loadFolders(): Promise<void>;
@@ -169,7 +311,7 @@ test('a folder left unticked is not imported, nor anything inside it', async () 
 		nodes: [{
 			path: 'Notes',
 			selected: true,
-			children: [{ path: 'Notes/Journal', selected: false, children: [] }],
+			children: [{ path: 'Notes/Journal?', selected: false, children: [] }],
 		}],
 	} as PickerInternals['picker'];
 
@@ -187,7 +329,7 @@ test('a folder ticked under one that is not brings only itself', async () => {
 		nodes: [{
 			path: 'Notes',
 			selected: false,
-			children: [{ path: 'Notes/Journal', selected: true, children: [] }],
+			children: [{ path: 'Notes/Journal?', selected: true, children: [] }],
 		}],
 	} as PickerInternals['picker'];
 
