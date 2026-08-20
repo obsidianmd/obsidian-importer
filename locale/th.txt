@@ -390,9 +390,21 @@ translation=เลือกไฟล์ที่ต้องการนำเ�
 original=Folders to import
 translation=โฟลเดอร์ที่ต้องการนำเข้า
 
+[source.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=ทุกอย่างในโฟลเดอร์ที่เลือกไว้จะถูกนำเข้า ยกเลิกการเลือกโฟลเดอร์เพื่อไม่รวมโฟลเดอร์นั้น
+
+[source.msg-pick-source-first]
+original=Choose files or folders first.
+translation=เลือกไฟล์หรือโฟลเดอร์ก่อน
+
 [source.msg-reading-folders]
 original=Reading folders...
 translation=กำลังอ่านโฟลเดอร์...
+
+[source.msg-no-folders]
+original=No folders found.
+translation=ไม่พบโฟลเดอร์
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -1259,8 +1271,16 @@ original=HTML files
 translation=ไฟล์ HTML
 
 [importer.html.option-text]
-original=HTML (.html)
-translation=HTML (.html)
+original=HTML (.html, .zip)
+translation=HTML (.html, .zip)
+
+[importer.html.label-id]
+original=HTML source path
+translation=
+
+[importer.html.desc-source-identity]
+original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
+translation=
 
 [importer.html.file-type]
 original=HTML
@@ -1269,6 +1289,18 @@ translation=HTML
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
 translation=บันทึกหน้าที่คุณต้องการเก็บไว้เป็น HTML หากแอปที่ใช้อยู่มีตัวนำเข้าของตัวเอง ให้ใช้ตัวนั้นแทน เพราะจะเก็บข้อมูลของคุณได้มากกว่า
+
+[importer.html.desc-source]
+original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
+translation=
+
+[importer.html.name-extract-main-content]
+original=Extract main content
+translation=
+
+[importer.html.desc-extract-main-content]
+original=Remove navigation, sidebars, footers, and other page clutter.
+translation=
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1301,26 +1333,6 @@ translation=Markdown
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
 translation=เลือกไฟล์ Markdown แต่ละไฟล์ โฟลเดอร์ทั้งหมด หรือไฟล์ zip โครงสร้างโฟลเดอร์จะถูกจัดเรียงเหมือนเดิม
-
-[importer.markdown.name-folders]
-original=Folders to import
-translation=โฟลเดอร์ที่จะนำเข้า
-
-[importer.markdown.desc-folders]
-original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=ทุกอย่างในโฟลเดอร์ที่เลือกไว้จะถูกนำเข้า ยกเลิกการเลือกโฟลเดอร์เพื่อข้ามการนำเข้า
-
-[importer.markdown.msg-pick-source-first]
-original=Choose files or folders first.
-translation=เลือกไฟล์หรือโฟลเดอร์ก่อน
-
-[importer.markdown.msg-reading-folders]
-original=Reading folders...
-translation=กำลังอ่านโฟลเดอร์...
-
-[importer.markdown.msg-no-folders]
-original=No folders found.
-translation=ไม่พบโฟลเดอร์
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting

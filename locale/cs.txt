@@ -390,9 +390,21 @@ translation=Vyberte soubory k importu
 original=Folders to import
 translation=Složky k importu
 
+[source.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=Vše v zaškrtnutých složkách bude importováno. Odškrtněte složky, které chcete vyloučit.
+
+[source.msg-pick-source-first]
+original=Choose files or folders first.
+translation=Nejprve vyberte soubory nebo složky.
+
 [source.msg-reading-folders]
 original=Reading folders...
 translation=Čtení složek...
+
+[source.msg-no-folders]
+original=No folders found.
+translation=Nebyly nalezeny žádné složky.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -1259,8 +1271,16 @@ original=HTML files
 translation=HTML soubory
 
 [importer.html.option-text]
-original=HTML (.html)
-translation=HTML (.html)
+original=HTML (.html, .zip)
+translation=HTML (.html, .zip)
+
+[importer.html.label-id]
+original=HTML source path
+translation=
+
+[importer.html.desc-source-identity]
+original=Changing which folder or zip file you choose can change the source path, so existing notes may not be recognized.
+translation=
 
 [importer.html.file-type]
 original=HTML
@@ -1269,6 +1289,18 @@ translation=HTML
 [importer.html.desc-export]
 original=Save the pages you want to keep as HTML. If the app they are in has an importer of its own, use that instead: it keeps more of your data.
 translation=Uložte stránky, které si chcete ponechat, jako HTML. Pokud má aplikace, ve které se nacházejí, vlastní importér, použijte raději ten – zachová více vašich dat.
+
+[importer.html.desc-source]
+original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
+translation=
+
+[importer.html.name-extract-main-content]
+original=Extract main content
+translation=
+
+[importer.html.desc-extract-main-content]
+original=Remove navigation, sidebars, footers, and other page clutter.
+translation=
 
 [importer.html.name-size-limit]
 original=Attachment size limit (MB)
@@ -1301,26 +1333,6 @@ translation=Markdown
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
 translation=Vyberte jednotlivé soubory Markdown, celé složky nebo soubory zip. Vše ve složkách zůstane uspořádáno stejným způsobem.
-
-[importer.markdown.name-folders]
-original=Folders to import
-translation=Složky k importu
-
-[importer.markdown.desc-folders]
-original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Vše v zaškrtnutých složkách se importuje. Odškrtněte složky, které chcete vynechat.
-
-[importer.markdown.msg-pick-source-first]
-original=Choose files or folders first.
-translation=Nejdříve vyberte soubory nebo složky.
-
-[importer.markdown.msg-reading-folders]
-original=Reading folders...
-translation=Čtení složek...
-
-[importer.markdown.msg-no-folders]
-original=No folders found.
-translation=Nebyly nalezeny žádné složky.
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting

@@ -1,54 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BlobReader, BlobWriter, TextReader, ZipReader, ZipWriter } from '@zip.js/zip.js';
 
-import { PickedFile } from '../../src/filesystem';
+import { PickedFile, PickedFolder } from '../../src/filesystem';
 import { MarkdownImporter } from '../../src/formats/markdown';
 import { ImportContext } from '../../src/import-context';
+import { withZipContents } from '../../src/zip';
 import { indexedApp, MemoryVault } from '../shims/vault';
-
-class ZipFile implements PickedFile {
-	readonly type = 'file' as const;
-	readonly extension = 'zip';
-	readonly basename: string;
-
-	constructor(readonly name: string, private readonly blob: Blob) {
-		this.basename = name.replace(/\.zip$/, '');
-	}
-
-	get fullpath(): string {
-		return this.name;
-	}
-
-	async read(): Promise<ArrayBuffer> {
-		return await this.blob.arrayBuffer();
-	}
-
-	async readText(): Promise<string> {
-		throw new Error('not text');
-	}
-
-	async *readChunks(): AsyncIterable<string> {
-		throw new Error('not text');
-	}
-
-	async readZip(callback: (zip: ZipReader<unknown>) => Promise<void>): Promise<void> {
-		return await callback(new ZipReader(new BlobReader(this.blob)));
-	}
-
-	toString(): string {
-		return this.name;
-	}
-}
-
-async function zipOf(entries: Record<string, string>): Promise<ZipFile> {
-	const writer = new ZipWriter(new BlobWriter('application/zip'));
-	for (const [path, text] of Object.entries(entries)) {
-		await writer.add(path, new TextReader(text));
-	}
-
-	return new ZipFile('Export.zip', await writer.close());
-}
+import { zipOf } from '../shims/zip';
 
 async function importing(zip: PickedFile): Promise<{ vault: MemoryVault, ctx: ImportContext }> {
 	const vault = new MemoryVault();
@@ -118,12 +76,8 @@ test('the tree lists the folders a zip holds, and not the files', async () => {
 		'Notes/Journal/Art/Sketch.png': 'a png',
 	})];
 
-	const internals = subject as unknown as {
-		opened(items: unknown[], body: (items: unknown[]) => Promise<void>): Promise<void>,
-	};
-
 	let shape: unknown;
-	await internals.opened(subject.chosen, async items => {
+	await withZipContents(subject.chosen, async items => {
 		shape = await folderShape(items as { type: string, name: string, list(): Promise<unknown[]> }[]);
 	});
 
@@ -156,25 +110,18 @@ test('the top level is open, the rest closed, and all of it counted', async () =
 		'Notes/Journal/Art/Sketch.png': 'a png',
 	})];
 
-	const picker = {
-		nodes: [] as CountedNode[],
-		async load(walk: () => Promise<CountedNode[]>): Promise<void> {
-			this.nodes = await walk();
-		},
-		reset(): void {
-			this.nodes = [];
-		},
+	const internals = subject as unknown as {
+		folderPicker: {
+			loadNodes(items: (PickedFile | PickedFolder)[], isCurrent: () => boolean): Promise<CountedNode[]>;
+		};
 	};
+	const nodes = await internals.folderPicker.loadNodes(subject.chosen, () => true);
 
-	const internals = subject as unknown as { loadFolders(): Promise<void>, picker: unknown };
-	internals.picker = picker;
-	await internals.loadFolders();
+	assert.ok(nodes.every(node => !node.collapsed), 'what was chosen starts open');
+	assert.ok(nodes.every(node => (node.children ?? []).every(child => child.collapsed)), 'what is under it does not');
+	assert.ok(nodes.every(node => node.selected), 'and all of it is ticked');
 
-	assert.ok(picker.nodes.every(node => !node.collapsed), 'what was chosen starts open');
-	assert.ok(picker.nodes.every(node => (node.children ?? []).every(child => child.collapsed)), 'what is under it does not');
-	assert.ok(picker.nodes.every(node => node.selected), 'and all of it is ticked');
-
-	assert.deepEqual(counted(picker.nodes), [
+	assert.deepEqual(counted(nodes), [
 		{ Notes: [3, [{ Journal: [2, [{ Art: [0, []] }]] }]] },
 	]);
 });

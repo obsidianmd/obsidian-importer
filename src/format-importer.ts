@@ -714,6 +714,11 @@ export abstract class FormatImporter {
 		return this.acceptableFiles(files).length;
 	}
 
+	takesWholeDrop(dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): boolean {
+		const taken = this.wouldTake(dropped, files);
+		return taken > 0 && taken === files.length;
+	}
+
 	takeFiles(files: PickedFile[]): number {
 		const accepted = this.acceptableFiles(files);
 		if (accepted.length === 0) return 0;
@@ -1196,6 +1201,19 @@ export abstract class FormatImporter {
 			this.hasClaimed(at(candidate)) || this.vault.getAbstractFileByPathInsensitive(at(candidate)) !== null);
 
 		return at(free);
+	}
+
+	protected mirroredFolderPath(parent: string, sourceName: string, chosen: boolean): string {
+		const name = sanitizeFileName(sourceName, parent);
+		let at = chosen && this.duplicateHandling === DuplicateHandling.CreateCopy
+			? this.freeFilePath(parent, name)
+			: normalizePath(parent ? `${parent}/${name}` : name);
+		const existing = this.vault.getAbstractFileByPathInsensitive(at);
+
+		if (existing instanceof TFolder) at = existing.path;
+		else if (existing) at = this.freeFilePath(parent, name);
+
+		return at;
 	}
 
 	/**

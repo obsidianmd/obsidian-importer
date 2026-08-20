@@ -232,7 +232,9 @@ export function memoryApp(vault: MemoryVault) {
 			},
 			// A whole path resolves before a bare name does, which is what makes
 			// a link to "Books/Dune" reach that note rather than another "Dune".
-			getFirstLinkpathDest: (linkpath: string, _sourcePath: string) => {
+			getFirstLinkpathDest: (linkpath: string, sourcePath: string) => {
+				if (!linkpath) return vault.getAbstractFileByPathInsensitive(sourcePath);
+
 				const name = linkpath.toLowerCase().endsWith('.md') ? linkpath : `${linkpath}.md`;
 				const whole = vault.getAbstractFileByPathInsensitive(name);
 				if (whole) return whole;

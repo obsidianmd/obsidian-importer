@@ -1,4 +1,4 @@
-# Reading list
+## Reading list
 
 A table with a header, which is what most exports produce.
 
@@ -24,9 +24,8 @@ A table with a header, which is what most exports produce.
 
 ## A table used for layout
 
-|   |
-|---|
-|Exported pages often wrap a paragraph in a one-cell table.|
-|It is not data, but it converts as though it were.|
+Exported pages often wrap a paragraph in a one-cell table.
+
+It is not data, but it converts as though it were.
 
 After the tables.

@@ -17,8 +17,9 @@ import assert from 'node:assert/strict';
 import * as nodeFs from 'node:fs';
 import * as nodePath from 'node:path';
 import * as nodeUrl from 'node:url';
+import Defuddle from 'defuddle';
 
-import { convertHtmlDocument, ResolvedAttachment } from '../../src/formats/html/convert';
+import { convertHtmlDocument, prepareHtmlDocument, ResolvedAttachment } from '../../src/formats/html/convert';
 import { expectedFor, expectFile, fixtures } from '../helpers';
 
 const FIXTURES = __dirname;
@@ -116,7 +117,9 @@ test('reports a source it could not resolve rather than throwing', async () => {
 	const failed: string[] = [];
 	await convertHtmlDocument('<p><img src="a.png"></p>', {
 		baseUrl: new URL('file:///doc/index.html'),
-		resolveAttachment: async () => { throw new Error('no'); },
+		resolveAttachment: async () => {
+			throw new Error('no');
+		},
 		onFailed: src => failed.push(src),
 	});
 
@@ -136,4 +139,123 @@ test('carries audio and video through as embeds', async () => {
 
 	assert.match(markdown, /!\[\]\(Attachments\/a\.mp3\)/);
 	assert.match(markdown, /!\[\]\(Attachments\/b\.mp4\)/);
+});
+
+test('rewrites heading IDs to the heading anchors Obsidian resolves', async () => {
+	const { markdown } = await convertHtmlDocument(`
+		<html><head><title>A book</title></head><body><main>
+			<a href="#lexical-analysis">Lexical analysis</a>
+			<h2 id="lexical-analysis">1.1 - Lexical Analysis</h2>
+		</main></body></html>
+	`, { resolveAttachment: async () => null });
+
+	assert.match(markdown, /\[Lexical analysis\]\(#1\.1%20-%20Lexical%20Analysis\)/);
+});
+
+test('main-content extraction can be disabled', async () => {
+	const html = `
+		<html><head><title>Article</title></head><body>
+			<nav><img src="https://example.com/logo.png">Navigation noise</nav>
+			<main><article><h1>Article</h1>
+				<p>This is the primary article body with enough words to be recognized as useful content.</p>
+				<p>Another paragraph gives the extractor enough context to select this article.</p>
+				<img src="https://example.com/article.png" alt="Article image">
+			</article></main>
+			<aside><table><tr><td>Sidebar noise</td></tr></table></aside>
+			<footer>Footer noise</footer>
+		</body></html>
+	`;
+	const options = { resolveAttachment: async () => null };
+
+	const extracted = await convertHtmlDocument(html, options);
+	const complete = await convertHtmlDocument(html, { ...options, extractMainContent: false });
+
+	assert.doesNotMatch(extracted.markdown, /Navigation noise|Sidebar noise|Footer noise|logo\.png/);
+	assert.match(extracted.markdown, /article\.png/);
+	assert.match(complete.markdown, /Navigation noise/);
+	assert.match(complete.markdown, /Sidebar noise/);
+	assert.match(complete.markdown, /Footer noise/);
+});
+
+test('standardizes Bootstrap alerts without dropping their content', async () => {
+	const { markdown } = await convertHtmlDocument(`
+		<html><head><title>Bootstrap alerts</title></head><body><article>
+			<p>Content before the alerts.</p>
+			<div class="alert alert-info">
+				<p class="alert-heading">Important</p>
+				<p>This is an informational alert.</p>
+			</div>
+			<div class="alert alert-warning"><p>This is a warning.</p></div>
+			<div class="alert alert-danger"><p>Something went wrong.</p></div>
+			<div class="alert alert-success"><p>Operation completed successfully.</p></div>
+			<p>Content after the alerts.</p>
+		</article></body></html>
+	`, { resolveAttachment: async () => null });
+
+	assert.match(markdown, /This is an informational alert/);
+});
+
+test('uses the original page URL for format-specific extraction', async () => {
+	const { markdown } = await convertHtmlDocument(`
+		<html><head>
+			<title>Improve the importer by test-owner · Pull Request #42</title>
+			<meta name="expected-hostname" content="github.com">
+			<meta property="og:url" content="https://github.com/test-owner/test-repo/pull/42">
+		</head><body>
+			<div class="pull-discussion-timeline">
+				<div id="pullrequest-42" class="timeline-comment">
+					<a class="author">original-author</a>
+					<relative-time datetime="2026-08-01T00:00:00Z"></relative-time>
+					<div class="comment-body markdown-body"><p>The pull request description survives extraction.</p></div>
+				</div>
+				<div class="review-comment">
+					<a class="author">reviewer</a>
+					<relative-time datetime="2026-08-02T00:00:00Z"></relative-time>
+					<div class="comment-body markdown-body"><p>The review comment must survive too.</p></div>
+				</div>
+			</div>
+		</body></html>
+	`, {
+		baseUrl: new URL('file:///export/pull-42.html'),
+		resolveAttachment: async () => null,
+	});
+
+	assert.match(markdown, /The pull request description survives extraction/);
+	assert.match(markdown, /The review comment must survive too/);
+});
+
+test('extracts React streaming content whose generated IDs need CSS escaping', async () => {
+	const { markdown } = await convertHtmlDocument(`
+		<html><head><title>How Many Airports Are There?</title></head><body>
+			<header><nav>Home Guides About Contact</nav></header>
+			<template id="B:0"></template>
+			<div hidden id="S:a">
+				<h1>How Many Airports Are There?</h1>
+				<p>Counting airports sounds simple, but the number depends on what counts as an airport.</p>
+				<p>Strict definitions include only certified facilities with scheduled passenger service.</p>
+				<p>A broader count adds general aviation fields for private pilots and flight schools.</p>
+				<p>Broader registries also include grass strips, heliports, and seaplane bases.</p>
+				<p>Two sources can therefore be correct while reporting very different totals.</p>
+				<p>The practical lesson is to check the definition before comparing the numbers.</p>
+			</div>
+			<template id="P:8"></template>
+			<footer>Copyright Example Travel. Privacy Policy and Terms of Service.</footer>
+		</body></html>
+	`, { resolveAttachment: async () => null });
+
+	assert.match(markdown, /Counting airports sounds simple/);
+	assert.match(markdown, /check the definition before comparing the numbers/);
+	assert.doesNotMatch(markdown, /Home Guides About Contact|Privacy Policy/);
+});
+
+test('falls back to the original document when extraction alters a protected reference', t => {
+	t.mock.method(Defuddle.prototype, 'parse', () => ({
+		title: 'Extracted',
+		content: '<main><a href="https://obsidian-importer.invalid/reference/0/changed">Changed</a></main>',
+	}) as never);
+
+	const prepared = prepareHtmlDocument('<main><a href="kept.html">Kept</a></main>');
+
+	assert.match(prepared.content, /href="kept\.html"/u);
+	assert.doesNotMatch(prepared.content, /obsidian-importer\.invalid/u);
 });

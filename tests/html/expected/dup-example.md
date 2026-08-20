@@ -1,5 +1,3 @@
-# dup-example.html
-
 The goal of this file is to demonstrate that importing two attachments with the same filename will succeed.
 
 folder 1
