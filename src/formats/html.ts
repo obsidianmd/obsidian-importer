@@ -59,6 +59,7 @@ export class HtmlImporter extends FormatImporter {
 		this.idProperty = 'html-source';
 		this.idLabel = i18n.importer.html.labelId();
 		this.duplicateCaveat = i18n.importer.html.descSourceIdentity();
+		this.saveSourceId = false;
 		this.extractMainContent = true;
 		this.folderPicker = new PickedFolderPicker(
 			() => this.source(),
@@ -89,7 +90,7 @@ export class HtmlImporter extends FormatImporter {
 				.onChange(value => this.extractMainContent = value));
 		this.addAttachmentSizeLimit(0);
 		this.addMinimumImageSize(65); // 65 so that 64×64 are excluded
-		this.defaultOutputFolder = 'HTML import';
+		this.defaultOutputFolder = 'HTML';
 	}
 
 	protected override get markdownLinkResolver(): MarkdownLinkResolver {
