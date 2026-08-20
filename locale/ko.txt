@@ -390,9 +390,21 @@ translation=가져올 파일 선택
 original=Folders to import
 translation=가져올 폴더
 
+[source.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=체크된 폴더의 모든 항목을 가져와요. 제외하려면 체크를 해제하세요.
+
+[source.msg-pick-source-first]
+original=Choose files or folders first.
+translation=먼저 파일이나 폴더를 선택하세요.
+
 [source.msg-reading-folders]
 original=Reading folders...
 translation=폴더를 읽는 중...
+
+[source.msg-no-folders]
+original=No folders found.
+translation=폴더를 찾을 수 없어요.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -1259,8 +1271,8 @@ original=HTML files
 translation=HTML 파일
 
 [importer.html.option-text]
-original=HTML (.html)
-translation=HTML (.html)
+original=HTML (.html, .zip)
+translation=HTML (.html, .zip)
 
 [importer.html.file-type]
 original=HTML
@@ -1271,27 +1283,15 @@ original=Save the pages you want to keep as HTML. If the app they are in has an 
 translation=보관하고 싶은 페이지를 HTML로 저장하세요. 해당 앱에 자체 가져오기 도구가 있다면 그것을 사용하세요. 더 많은 데이터를 유지할 수 있어요.
 
 [importer.html.desc-source]
-original=Choose individual HTML files or whole folders. Pages in folders stay organized the same way.
+original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
 translation=
 
-[importer.html.name-folders]
-original=Folders to import
+[importer.html.name-extract-main-content]
+original=Extract main content
 translation=
 
-[importer.html.desc-folders]
-original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=
-
-[importer.html.msg-pick-source-first]
-original=Choose files or folders first.
-translation=
-
-[importer.html.msg-reading-folders]
-original=Reading folders...
-translation=
-
-[importer.html.msg-no-folders]
-original=No folders found.
+[importer.html.desc-extract-main-content]
+original=Remove navigation, sidebars, footers, and other page clutter.
 translation=
 
 [importer.html.name-size-limit]
@@ -1325,26 +1325,6 @@ translation=마크다운
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
 translation=개별 마크다운 파일, 전체 폴더 또는 zip 파일을 선택하세요. 폴더 내 구조는 그대로 유지돼요.
-
-[importer.markdown.name-folders]
-original=Folders to import
-translation=가져올 폴더
-
-[importer.markdown.desc-folders]
-original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=체크된 폴더의 모든 항목이 가져와져요. 제외하려면 체크를 해제하세요.
-
-[importer.markdown.msg-pick-source-first]
-original=Choose files or folders first.
-translation=먼저 파일이나 폴더를 선택하세요.
-
-[importer.markdown.msg-reading-folders]
-original=Reading folders...
-translation=폴더를 읽는 중...
-
-[importer.markdown.msg-no-folders]
-original=No folders found.
-translation=폴더를 찾을 수 없어요.
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting

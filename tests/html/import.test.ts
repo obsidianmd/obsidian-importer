@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { PickedFile, PickedFolder } from '../../src/filesystem';
+import { DuplicateHandling } from '../../src/format-importer';
 import { HtmlImporter } from '../../src/formats/html';
 import { ImportContext } from '../../src/import-context';
 import { SourceFile, SourceFolder } from '../shims/picked';
@@ -49,12 +50,90 @@ test('a chosen HTML folder keeps its source structure', async () => {
 	]);
 });
 
+test('the document title names the imported note', async () => {
+	const { vault, subject } = importer();
+
+	await importing(subject, [new SourceFile(
+		'page-012345.html',
+		'<title>A useful title</title><main><p>Body</p></main>',
+	)]);
+
+	assert.deepEqual(vault.paths(), ['Import/A useful title.md']);
+});
+
+test('links follow a target renamed from its document title', async () => {
+	const { vault, subject } = importer();
+
+	await importing(subject, [new SourceFolder('Site', [
+		new SourceFile('Index.html', '<main><a href="page-012345.html">Read it</a></main>'),
+		new SourceFile(
+			'page-012345.html',
+			'<title>A useful title</title><main><p>Body</p></main>',
+		),
+	])]);
+
+	assert.equal(vault.contents.get('Import/Site/Index.md'), '[[A useful title|Read it]]');
+});
+
+test('asset-only source folders are not reproduced as empty vault folders', async () => {
+	const { vault, subject } = importer();
+	const source = new SourceFolder('Site', [
+		new SourceFile('Index.html', '<p>Home</p>'),
+		new SourceFolder('Index_files', [
+			new SourceFile('style.css'),
+			new SourceFolder('images', [new SourceFile('logo.png')]),
+		]),
+	]);
+
+	await importing(subject, [source]);
+
+	assert.deepEqual(vault.getAllLoadedFiles().map(file => file.path), [
+		'/',
+		'Import',
+		'Import/Site',
+		'Import/Site/Index.md',
+	]);
+});
+
+test('an ignored source folder does not reserve a copy number', async () => {
+	const { vault, subject } = importer();
+	subject.duplicateHandling = DuplicateHandling.CreateCopy;
+
+	await importing(subject, [
+		new SourceFolder('Site', [new SourceFile('style.css')]),
+		new SourceFolder('Site', [new SourceFile('Index.html', '<p>Home</p>')]),
+	]);
+
+	assert.deepEqual(vault.paths(), ['Import/Site/Index.md']);
+});
+
+test('a genuinely empty selected folder is preserved', async () => {
+	const { vault, subject } = importer();
+
+	await importing(subject, [new SourceFolder('Site', [new SourceFolder('Empty', [])])]);
+
+	assert.ok(vault.getAbstractFileByPath('Import/Site/Empty'));
+	assert.deepEqual(vault.paths(), []);
+});
+
 test('planned source paths resolve links without waiting for the metadata cache', async () => {
 	const { vault, subject } = importer();
 	const app = subject.app as unknown as { metadataCache: { onCleanCache(): void } };
 	app.metadataCache.onCleanCache = () => assert.fail('should not wait for the metadata cache');
 
 	await importing(subject, [site()]);
+
+	assert.equal(vault.contents.get('Import/Site/Index.md'), '[[About]]');
+});
+
+test('a root-relative link resolves within the chosen site root', async () => {
+	const { vault, subject } = importer();
+	const source = new SourceFolder('Site', [
+		new SourceFile('Index.html', '<p><a href="/About.html">About</a></p>'),
+		new SourceFile('About.html', '<h1>About</h1>'),
+	]);
+
+	await importing(subject, [source]);
 
 	assert.equal(vault.contents.get('Import/Site/Index.md'), '[[About]]');
 });
@@ -106,6 +185,22 @@ test('re-importing the same folder reuses the notes it planned before conversion
 	assert.deepEqual(second.skipped, ['Index', 'About']);
 });
 
+test('same-named chosen roots merge consistently across re-imports', async () => {
+	const { vault, subject } = importer();
+	const roots = [
+		new SourceFolder('Site', [new SourceFile('A.html', '<p>A</p>')]),
+		new SourceFolder('Site', [new SourceFile('B.html', '<p>B</p>')]),
+	];
+
+	await importing(subject, roots);
+	await importing(subject, roots);
+
+	assert.deepEqual(vault.paths(), [
+		'Import/Site/A.md',
+		'Import/Site/B.md',
+	]);
+});
+
 test('source folder casing follows an existing vault folder', async () => {
 	const { vault, subject } = importer();
 	await vault.createFolder('Import');
@@ -117,7 +212,9 @@ test('source folder casing follows an existing vault folder', async () => {
 });
 
 interface PickerInternals {
-	picker: { nodes: { path: string, selected: boolean, children?: unknown[] }[] };
+	folderPicker: {
+		selection(): { included: Set<string> | null, skipped: Set<string> };
+	};
 }
 
 test('an unticked HTML folder and its pages are excluded', async () => {
@@ -125,15 +222,24 @@ test('an unticked HTML folder and its pages are excluded', async () => {
 	const internals = subject as unknown as PickerInternals;
 
 	await subject.ready;
-	internals.picker = {
-		nodes: [{
-			path: 'Site',
-			selected: true,
-			children: [{ path: 'Site/Pages', selected: false, children: [] }],
-		}],
-	} as PickerInternals['picker'];
+	internals.folderPicker.selection = () => ({
+		included: new Set(['Site']),
+		skipped: new Set(['Site/Pages']),
+	});
 
 	await importing(subject, [site()]);
+
+	assert.deepEqual(vault.paths(), ['Import/Site/Index.md']);
+});
+
+test('hidden descendant folders are ignored', async () => {
+	const { vault, subject } = importer();
+	const source = new SourceFolder('Site', [
+		new SourceFile('Index.html', '<p>Home</p>'),
+		new SourceFolder('.git', [new SourceFile('History.html', '<p>History</p>')]),
+	]);
+
+	await importing(subject, [source]);
 
 	assert.deepEqual(vault.paths(), ['Import/Site/Index.md']);
 });

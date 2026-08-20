@@ -1,14 +1,13 @@
-import { normalizePath, Notice, TFile, TFolder } from 'obsidian';
+import { Notice, TFile } from 'obsidian';
 import { fsPromises, NodePickedFile, PickedFile, PickedFolder } from '../filesystem';
 import { DuplicateHandling, FormatImporter, leavesTheNoteAlone, PlannedNote } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { ImportedPathIndex, normalizeTreePath, parentTreePath, resolveTreePath } from '../imported-path-index';
 import { i18n } from '../i18n';
 import { MarkdownFormatting, MarkdownLinkResolver } from '../markdown-output';
-import { pickedFolderNodes, pickedFolderSelection, PickedFolderNode } from '../picked-folder-tree';
-import { TreePicker } from '../tree-view';
-import { countText, describeReason, sameBytes, sanitizeFileName } from '../util';
-import { readZip, ZipEntryFile, zipContents } from '../zip';
+import { isHiddenPickedItem, PickedFolderNode, PickedFolderPicker, pickedFolderNodes, plannedPickedItems, PlannedPickedItem } from '../picked-folder-tree';
+import { sameBytes } from '../util';
+import { withZipContents, ZipEntryFile } from '../zip';
 import { convertMarkdownNote } from './markdown/convert';
 
 const MARKDOWN_EXTS = ['md', 'markdown'];
@@ -17,11 +16,7 @@ const NATIVE_EXTS = ['base', 'canvas'];
 
 const SOURCE_EXTS = [...MARKDOWN_EXTS, ...NATIVE_EXTS, 'zip'];
 
-interface PlannedItem {
-	parent: string;
-	source: string;
-	/** Null for an empty folder. */
-	file: PickedFile | null;
+interface PlannedItem extends PlannedPickedItem {
 	note?: PlannedNote;
 	attachment?: PlannedAttachment;
 }
@@ -39,19 +34,6 @@ interface FileTimes {
 
 function isMarkdown(file: PickedFile): boolean {
 	return MARKDOWN_EXTS.includes(file.extension);
-}
-
-function isZip(file: PickedFile | PickedFolder): file is PickedFile {
-	return file.type === 'file' && file.extension === 'zip';
-}
-
-/** Skip hidden descendants, but not an explicitly selected root. */
-function isHidden(item: PickedFile | PickedFolder): boolean {
-	return item.name.startsWith('.');
-}
-
-function under(from: string, name: string): string {
-	return from ? `${from}/${name}` : name;
 }
 
 async function fileTimes(file: PickedFile): Promise<FileTimes | undefined> {
@@ -84,11 +66,7 @@ export class MarkdownImporter extends FormatImporter {
 	// Initialized in init() because the base constructor calls it.
 	standardizeFormatting: boolean;
 	tagsAsProperties: boolean;
-	private picker: TreePicker<PickedFolderNode>;
-	private loadedFrom: string;
-	private skipping: Set<string>;
-	/** Selected folders, or null when no folder filter is active. */
-	private taking: Set<string> | null;
+	private folderPicker: PickedFolderPicker;
 	private importedPaths: ImportedPathIndex<TFile>;
 	private outputRoot: string;
 	private linksNeedRepair: boolean;
@@ -97,19 +75,30 @@ export class MarkdownImporter extends FormatImporter {
 		this.defaultOutputFolder = 'Markdown';
 		this.standardizeFormatting = true;
 		this.tagsAsProperties = false;
-		this.loadedFrom = '';
-		this.skipping = new Set();
-		this.taking = null;
 		this.importedPaths = new ImportedPathIndex();
 		this.outputRoot = '';
 		this.linksNeedRepair = false;
+		this.folderPicker = new PickedFolderPicker(
+			() => this.source(),
+			async (source, isCurrent) => {
+				let nodes: PickedFolderNode[] = [];
+				await withZipContents(source, async items => {
+					nodes = await pickedFolderNodes(items, {
+						includeFolder: (folder, chosen) => chosen || !isHiddenPickedItem(folder),
+						countFile: file => !isHiddenPickedItem(file) && isMarkdown(file),
+						isCurrent,
+					});
+				});
+				return nodes;
+			},
+		);
 
 		this.keepsFolders = true;
 		this.addFileChooserSetting(
 			i18n.importer.markdown.fileType(), SOURCE_EXTS, true,
 			i18n.importer.markdown.descSource());
 
-		this.drawFolderPicker();
+		this.draw(contentEl => this.folderPicker.draw(contentEl, this.addSetting('source')), 'source');
 
 		this.addSetting()
 			?.setName(i18n.importer.markdown.nameStandardizeFormatting())
@@ -142,63 +131,7 @@ export class MarkdownImporter extends FormatImporter {
 
 	protected sourceChanged(): void {
 		super.sourceChanged();
-
-		this.picker?.toggle(this.source().length > 0);
-
-		const key = this.source().map(item => item.toString()).join('\n');
-		if (key === this.loadedFrom) return;
-
-		this.loadedFrom = key;
-		if (this.picker) void this.loadFolders();
-	}
-
-	private drawFolderPicker(): void {
-		this.draw(contentEl => {
-			this.picker = new TreePicker<PickedFolderNode>(contentEl, {
-				setting: this.addSetting('source'),
-				name: i18n.importer.markdown.nameFolders(),
-				desc: i18n.importer.markdown.descFolders(),
-				hint: i18n.importer.markdown.msgPickSourceFirst(),
-				loading: i18n.importer.markdown.msgReadingFolders(),
-				empty: i18n.importer.markdown.msgNoFolders(),
-				failed: error => describeReason(error),
-				view: {
-					icon: node => node.children?.length && !node.collapsed ? 'folder-open' : 'folder',
-					flair: node => countText(node.files),
-				},
-				loadsItself: true,
-			});
-
-			this.picker.toggle(this.source().length > 0);
-		}, 'source');
-	}
-
-	private async loadFolders(): Promise<void> {
-		const source = this.source();
-		if (source.length === 0) {
-			this.picker.reset();
-			return;
-		}
-
-		await this.picker.load(async isCurrent => {
-			let nodes: PickedFolderNode[] = [];
-			await this.opened(source, async items => {
-				nodes = await pickedFolderNodes(items, {
-					includeFolder: (folder, parent) => !parent || !isHidden(folder),
-					countFile: file => !isHidden(file) && isMarkdown(file),
-					isCurrent,
-				});
-			});
-
-			return nodes;
-		});
-	}
-
-	/** Compile the tree selection into skipped subtrees and included folders. */
-	private planSelection(): void {
-		const selection = pickedFolderSelection(this.picker?.nodes ?? []);
-		this.skipping = selection.skipped;
-		this.taking = selection.included;
+		this.folderPicker.changed();
 	}
 
 	/** Accept an entire drop so relative links retain their neighboring files. */
@@ -225,13 +158,22 @@ export class MarkdownImporter extends FormatImporter {
 			return;
 		}
 
-		this.planSelection();
 		this.importedPaths.clear();
 		this.outputRoot = folder.path === '/' ? '' : folder.path;
 		this.linksNeedRepair = false;
 
-		await this.opened(source, async items => {
-			const planned = await this.plan(ctx, items, this.outputRoot);
+		await withZipContents(source, async items => {
+			const planned: PlannedItem[] = await plannedPickedItems(items, this.outputRoot, {
+				selection: this.folderPicker.selection(),
+				includeFile: (file, chosen) => chosen || !isHiddenPickedItem(file),
+				includeFolder: (folder, chosen) => chosen || !isHiddenPickedItem(folder),
+				folderPath: (folder, parent, chosen) => this.mirroredFolderPath(parent, folder.name, chosen),
+				onFolder: (path, chosen) => {
+					if (chosen) this.claimPath(path);
+				},
+				shouldStop: () => ctx.shouldStop(),
+				onError: (item, error) => ctx.reportFailed(item.name, error),
+			});
 			if (!await this.preparePlan(ctx, planned)) return;
 
 			let done = 0;
@@ -281,83 +223,6 @@ export class MarkdownImporter extends FormatImporter {
 		}
 
 		return true;
-	}
-
-	/** Keep zip archives open until all of their entries are imported. */
-	private async opened(
-		items: (PickedFile | PickedFolder)[],
-		body: (items: (PickedFile | PickedFolder)[]) => Promise<void>,
-		report?: (name: string, error: unknown) => void,
-	): Promise<void> {
-		const open = async (index: number, taken: (PickedFile | PickedFolder)[]): Promise<void> => {
-			if (index === items.length) return await body(taken);
-
-			const item = items[index];
-			if (!isZip(item)) return await open(index + 1, [...taken, item]);
-
-			let read = false;
-			try {
-				await readZip(item, async (_zip, entries) => {
-					read = true;
-					await open(index + 1, [...taken, ...zipContents(entries)]);
-				});
-			}
-			catch (error) {
-				if (read || !report) throw error;
-
-				report(item.name, error);
-				await open(index + 1, taken);
-			}
-		};
-
-		await open(0, []);
-	}
-
-	/** Preserve source folders, numbering selected roots only in CreateCopy mode. */
-	private async plan(
-		ctx: ImportContext,
-		items: (PickedFile | PickedFolder)[],
-		into: string,
-		chosen = true,
-		from = '',
-	): Promise<PlannedItem[]> {
-		const planned: PlannedItem[] = [];
-
-		for (const item of items) {
-			if (!chosen && isHidden(item)) continue;
-
-			try {
-				if (item.type === 'file') {
-					if (from && this.taking && !this.taking.has(from)) continue;
-
-					planned.push({ parent: into, source: under(from, item.name), file: item });
-					continue;
-				}
-
-				const source = under(from, item.name);
-				if (this.skipping.has(source)) continue;
-
-				const name = sanitizeFileName(item.name, into);
-
-				let at = chosen && this.duplicateHandling === DuplicateHandling.CreateCopy
-					? this.freeFilePath(into, name)
-					: normalizePath(into ? `${into}/${name}` : name);
-				const existing = this.vault.getAbstractFileByPathInsensitive(at);
-				if (existing instanceof TFolder) at = existing.path;
-				if (chosen) this.claimPath(at);
-
-				const inside = await this.plan(ctx, await item.list(), at, false, source);
-
-				if (inside.length === 0) planned.push({ parent: at, source, file: null });
-				// Avoid the argument limit of planned.push(...inside).
-				else for (const item of inside) planned.push(item);
-			}
-			catch (error) {
-				ctx.reportFailed(item.name, error);
-			}
-		}
-
-		return planned;
 	}
 
 	private async importNote(

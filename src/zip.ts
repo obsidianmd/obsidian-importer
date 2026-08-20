@@ -80,3 +80,34 @@ export function zipContents(entries: ZipEntryFile[]): (PickedFile | PickedFolder
 		.filter(entry => !HIDDEN.test(entry.filepath))
 		.map(entry => ({ path: entry.filepath, file: entry })));
 }
+
+export async function withZipContents(
+	items: (PickedFile | PickedFolder)[],
+	body: (items: (PickedFile | PickedFolder)[]) => Promise<void>,
+	report?: (name: string, error: unknown) => void,
+): Promise<void> {
+	const open = async (index: number, taken: (PickedFile | PickedFolder)[]): Promise<void> => {
+		if (index === items.length) return await body(taken);
+
+		const item = items[index];
+		if (item.type !== 'file' || item.extension !== 'zip') {
+			return await open(index + 1, [...taken, item]);
+		}
+
+		let read = false;
+		try {
+			await readZip(item, async (_zip, entries) => {
+				read = true;
+				await open(index + 1, [...taken, ...zipContents(entries)]);
+			});
+		}
+		catch (error) {
+			if (read || !report) throw error;
+
+			report(item.name, error);
+			await open(index + 1, taken);
+		}
+	};
+
+	await open(0, []);
+}

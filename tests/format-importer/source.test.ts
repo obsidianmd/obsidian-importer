@@ -61,13 +61,29 @@ test('a folder dropped on an importer that reproduces it stays a folder', async 
 test('a folder dropped on the HTML importer stays available for its page structure', async () => {
 	const subject = await importer(HtmlImporter);
 	const page = new SourceFile('Page.html');
+	const style = new SourceFile('style.css');
+	const dropped = [new SourceFolder('Site', [page])];
+	const files = [page, style];
 
-	subject.takeDropped(
-		[new SourceFolder('Site', [page])],
-		[page, new SourceFile('style.css')]);
+	assert.equal(subject.wouldTake(dropped, files), 1);
+	assert.equal(subject.takesWholeDrop(dropped, files), true);
+
+	subject.takeDropped(dropped, files);
 
 	assert.deepEqual(names(subject.chosen), ['Site']);
 	assert.deepEqual(names(subject.files), ['Page.html']);
+});
+
+test('the HTML importer accepts a zip as a complete source', async () => {
+	const subject = await importer(HtmlImporter);
+	const zip = new SourceFile('Site.zip');
+
+	assert.ok(HtmlImporter.extensions.includes('zip'));
+	assert.equal(subject.wouldTake([zip], [zip]), 1);
+	assert.equal(subject.takesWholeDrop([zip], [zip]), true);
+
+	subject.takeDropped([zip], [zip]);
+	assert.deepEqual(names(subject.chosen), ['Site.zip']);
 });
 
 test('a chosen folder is read for the files the importer converts', async () => {

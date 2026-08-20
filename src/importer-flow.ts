@@ -627,8 +627,7 @@ export class ImporterFlow implements ImporterHost {
 		const files = await expandDropped(items);
 
 		if (!this.pickingFormat && this.importer) {
-			const taken = this.importer.wouldTake(items, files);
-			if (taken > 0 && taken === files.length) {
+			if (this.importer.takesWholeDrop(items, files)) {
 				this.importer.takeDropped(items, files);
 				this.showSourceStep();
 				return;

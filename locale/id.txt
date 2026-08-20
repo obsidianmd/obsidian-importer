@@ -390,9 +390,21 @@ translation=Pilih file untuk diimpor
 original=Folders to import
 translation=Folder untuk diimpor
 
+[source.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=Semua isi folder yang dicentang akan diimpor. Hapus centang folder untuk mengecualikannya.
+
+[source.msg-pick-source-first]
+original=Choose files or folders first.
+translation=Pilih file atau folder terlebih dahulu.
+
 [source.msg-reading-folders]
 original=Reading folders...
 translation=Baca folder...
+
+[source.msg-no-folders]
+original=No folders found.
+translation=Tidak ada folder ditemukan.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -1259,8 +1271,8 @@ original=HTML files
 translation=File HTML
 
 [importer.html.option-text]
-original=HTML (.html)
-translation=HTML (.html)
+original=HTML (.html, .zip)
+translation=HTML (.html, .zip)
 
 [importer.html.file-type]
 original=HTML
@@ -1271,27 +1283,15 @@ original=Save the pages you want to keep as HTML. If the app they are in has an 
 translation=Simpan halaman yang ingin Anda simpan sebagai HTML. Jika aplikasi tempatnya berada memiliki importernya sendiri, gunakan itu: data Anda akan lebih lengkap.
 
 [importer.html.desc-source]
-original=Choose individual HTML files or whole folders. Pages in folders stay organized the same way.
+original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
 translation=
 
-[importer.html.name-folders]
-original=Folders to import
+[importer.html.name-extract-main-content]
+original=Extract main content
 translation=
 
-[importer.html.desc-folders]
-original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=
-
-[importer.html.msg-pick-source-first]
-original=Choose files or folders first.
-translation=
-
-[importer.html.msg-reading-folders]
-original=Reading folders...
-translation=
-
-[importer.html.msg-no-folders]
-original=No folders found.
+[importer.html.desc-extract-main-content]
+original=Remove navigation, sidebars, footers, and other page clutter.
 translation=
 
 [importer.html.name-size-limit]
@@ -1325,26 +1325,6 @@ translation=Markdown
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
 translation=Pilih file Markdown individual, seluruh folder, atau file zip. Semua yang ada di dalam folder tetap terorganisir dengan cara yang sama.
-
-[importer.markdown.name-folders]
-original=Folders to import
-translation=Folder untuk diimpor
-
-[importer.markdown.desc-folders]
-original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Semua yang ada di folder yang dicentang akan diimpor. Hapus centang folder untuk mengecualikannya.
-
-[importer.markdown.msg-pick-source-first]
-original=Choose files or folders first.
-translation=Pilih file atau folder terlebih dahulu.
-
-[importer.markdown.msg-reading-folders]
-original=Reading folders...
-translation=Membaca folder...
-
-[importer.markdown.msg-no-folders]
-original=No folders found.
-translation=Tidak ada folder ditemukan.
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting

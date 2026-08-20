@@ -390,9 +390,21 @@ translation=Vælg filer til import
 original=Folders to import
 translation=Mapper til import
 
+[source.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=Alt i markerede mapper importeres. Fjern markeringen af mapper for at udelukke dem.
+
+[source.msg-pick-source-first]
+original=Choose files or folders first.
+translation=Vælg filer eller mapper først.
+
 [source.msg-reading-folders]
 original=Reading folders...
 translation=Læser mapper...
+
+[source.msg-no-folders]
+original=No folders found.
+translation=Ingen mapper fundet.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -1259,8 +1271,8 @@ original=HTML files
 translation=HTML-filer
 
 [importer.html.option-text]
-original=HTML (.html)
-translation=HTML (.html)
+original=HTML (.html, .zip)
+translation=HTML (.html, .zip)
 
 [importer.html.file-type]
 original=HTML
@@ -1271,27 +1283,15 @@ original=Save the pages you want to keep as HTML. If the app they are in has an 
 translation=Gem de sider, du vil beholde, som HTML. Hvis den applikation, de er i, har sin egen importør, så brug den i stedet: den bevarer flere af dine data.
 
 [importer.html.desc-source]
-original=Choose individual HTML files or whole folders. Pages in folders stay organized the same way.
+original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
 translation=
 
-[importer.html.name-folders]
-original=Folders to import
+[importer.html.name-extract-main-content]
+original=Extract main content
 translation=
 
-[importer.html.desc-folders]
-original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=
-
-[importer.html.msg-pick-source-first]
-original=Choose files or folders first.
-translation=
-
-[importer.html.msg-reading-folders]
-original=Reading folders...
-translation=
-
-[importer.html.msg-no-folders]
-original=No folders found.
+[importer.html.desc-extract-main-content]
+original=Remove navigation, sidebars, footers, and other page clutter.
 translation=
 
 [importer.html.name-size-limit]
@@ -1325,26 +1325,6 @@ translation=Markdown
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
 translation=Vælg individuelle Markdown-filer, hele mapper eller zip-filer. Alt i mapper bevarer den samme struktur.
-
-[importer.markdown.name-folders]
-original=Folders to import
-translation=Mapper til import
-
-[importer.markdown.desc-folders]
-original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Alt i markerede mapper importeres. Fjern markeringen fra mapper for at udelukke dem.
-
-[importer.markdown.msg-pick-source-first]
-original=Choose files or folders first.
-translation=Vælg filer eller mapper først.
-
-[importer.markdown.msg-reading-folders]
-original=Reading folders...
-translation=Læser mapper...
-
-[importer.markdown.msg-no-folders]
-original=No folders found.
-translation=Ingen mapper fundet.
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting

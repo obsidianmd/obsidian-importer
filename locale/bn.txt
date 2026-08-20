@@ -390,9 +390,21 @@ translation=ইম্পোর্ট করার জন্য ফাইল ব�
 original=Folders to import
 translation=ইম্পোর্ট করার ফোল্ডার
 
+[source.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=চেক করা ফোল্ডারের সবকিছু ইমপোর্ট হবে। বাদ দিতে ফোল্ডার আনচেক করুন।
+
+[source.msg-pick-source-first]
+original=Choose files or folders first.
+translation=প্রথমে ফাইল বা ফোল্ডার নির্বাচন করুন।
+
 [source.msg-reading-folders]
 original=Reading folders...
 translation=ফোল্ডার পড়া হচ্ছে...
+
+[source.msg-no-folders]
+original=No folders found.
+translation=কোনো ফোল্ডার পাওয়া যায়নি।
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -1259,8 +1271,8 @@ original=HTML files
 translation=HTML ফাইল
 
 [importer.html.option-text]
-original=HTML (.html)
-translation=HTML (.html)
+original=HTML (.html, .zip)
+translation=HTML (.html, .zip)
 
 [importer.html.file-type]
 original=HTML
@@ -1271,27 +1283,15 @@ original=Save the pages you want to keep as HTML. If the app they are in has an 
 translation=আপনি যে পৃষ্ঠাগুলো রাখতে চান সেগুলো HTML হিসেবে সংরক্ষণ করুন। সেগুলো যে অ্যাপে আছে তার নিজস্ব ইম্পোর্টার থাকলে সেটি ব্যবহার করুন: এতে আপনার বেশি ডেটা সংরক্ষিত থাকবে।
 
 [importer.html.desc-source]
-original=Choose individual HTML files or whole folders. Pages in folders stay organized the same way.
+original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
 translation=
 
-[importer.html.name-folders]
-original=Folders to import
+[importer.html.name-extract-main-content]
+original=Extract main content
 translation=
 
-[importer.html.desc-folders]
-original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=
-
-[importer.html.msg-pick-source-first]
-original=Choose files or folders first.
-translation=
-
-[importer.html.msg-reading-folders]
-original=Reading folders...
-translation=
-
-[importer.html.msg-no-folders]
-original=No folders found.
+[importer.html.desc-extract-main-content]
+original=Remove navigation, sidebars, footers, and other page clutter.
 translation=
 
 [importer.html.name-size-limit]
@@ -1325,26 +1325,6 @@ translation=Markdown
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
 translation=পৃথক Markdown ফাইল, সম্পূর্ণ ফোল্ডার বা zip ফাইল নির্বাচন করুন। ফোল্ডারের সবকিছু একই কাঠামোতে সংগঠিত থাকবে।
-
-[importer.markdown.name-folders]
-original=Folders to import
-translation=ইমপোর্ট করার ফোল্ডারসমূহ
-
-[importer.markdown.desc-folders]
-original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=চেক করা ফোল্ডারের সবকিছু ইমপোর্ট হবে। বাদ দিতে ফোল্ডার আনচেক করুন।
-
-[importer.markdown.msg-pick-source-first]
-original=Choose files or folders first.
-translation=প্রথমে ফাইল বা ফোল্ডার নির্বাচন করুন।
-
-[importer.markdown.msg-reading-folders]
-original=Reading folders...
-translation=ফোল্ডার পঠন হচ্ছে...
-
-[importer.markdown.msg-no-folders]
-original=No folders found.
-translation=কোনো ফোল্ডার পাওয়া যায়নি।
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting

@@ -290,8 +290,9 @@ test('an unchanged source-formatted import does not run the Markdown link pass',
 });
 
 interface PickerInternals {
-	picker: { nodes: { path: string, selected: boolean, children?: unknown[] }[] };
-	loadFolders(): Promise<void>;
+	folderPicker: {
+		selection(): { included: Set<string> | null, skipped: Set<string> };
+	};
 }
 
 test('a folder left unticked is not imported, nor anything inside it', async () => {
@@ -300,13 +301,10 @@ test('a folder left unticked is not imported, nor anything inside it', async () 
 
 	await subject.ready;
 	subject.chosen = [notes()];
-	internals.picker = {
-		nodes: [{
-			path: 'Notes',
-			selected: true,
-			children: [{ path: 'Notes/Journal?', selected: false, children: [] }],
-		}],
-	} as PickerInternals['picker'];
+	internals.folderPicker.selection = () => ({
+		included: new Set(['Notes']),
+		skipped: new Set(['Notes/Journal?']),
+	});
 
 	await importing(subject, [notes()]);
 
@@ -318,13 +316,10 @@ test('a folder ticked under one that is not brings only itself', async () => {
 	const internals = subject as unknown as PickerInternals;
 
 	await subject.ready;
-	internals.picker = {
-		nodes: [{
-			path: 'Notes',
-			selected: false,
-			children: [{ path: 'Notes/Journal?', selected: true, children: [] }],
-		}],
-	} as PickerInternals['picker'];
+	internals.folderPicker.selection = () => ({
+		included: new Set(['Notes/Journal?']),
+		skipped: new Set(),
+	});
 
 	await importing(subject, [notes()]);
 
@@ -336,7 +331,7 @@ test('unticking the folder that was chosen leaves the import empty', async () =>
 	const internals = subject as unknown as PickerInternals;
 
 	await subject.ready;
-	internals.picker = { nodes: [{ path: 'Notes', selected: false, children: [] }] } as PickerInternals['picker'];
+	internals.folderPicker.selection = () => ({ included: new Set(), skipped: new Set(['Notes']) });
 
 	await importing(subject, [notes()]);
 

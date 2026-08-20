@@ -390,9 +390,21 @@ translation=Chọn tệp để nhập
 original=Folders to import
 translation=Thư mục để nhập
 
+[source.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=Mọi thứ trong các thư mục được chọn sẽ được nhập. Bỏ chọn thư mục để loại trừ chúng.
+
+[source.msg-pick-source-first]
+original=Choose files or folders first.
+translation=Chọn tệp hoặc thư mục trước.
+
 [source.msg-reading-folders]
 original=Reading folders...
 translation=Đọc thư mục...
+
+[source.msg-no-folders]
+original=No folders found.
+translation=Không tìm thấy thư mục nào.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -1259,8 +1271,8 @@ original=HTML files
 translation=Tệp HTML
 
 [importer.html.option-text]
-original=HTML (.html)
-translation=HTML (.html)
+original=HTML (.html, .zip)
+translation=HTML (.html, .zip)
 
 [importer.html.file-type]
 original=HTML
@@ -1271,27 +1283,15 @@ original=Save the pages you want to keep as HTML. If the app they are in has an 
 translation=Lưu các trang bạn muốn giữ lại dưới dạng HTML. Nếu ứng dụng chứa chúng có trình nhập riêng, hãy dùng trình nhập đó: nó giữ lại nhiều dữ liệu hơn.
 
 [importer.html.desc-source]
-original=Choose individual HTML files or whole folders. Pages in folders stay organized the same way.
+original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
 translation=
 
-[importer.html.name-folders]
-original=Folders to import
+[importer.html.name-extract-main-content]
+original=Extract main content
 translation=
 
-[importer.html.desc-folders]
-original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=
-
-[importer.html.msg-pick-source-first]
-original=Choose files or folders first.
-translation=
-
-[importer.html.msg-reading-folders]
-original=Reading folders...
-translation=
-
-[importer.html.msg-no-folders]
-original=No folders found.
+[importer.html.desc-extract-main-content]
+original=Remove navigation, sidebars, footers, and other page clutter.
 translation=
 
 [importer.html.name-size-limit]
@@ -1325,26 +1325,6 @@ translation=Markdown
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
 translation=Chọn từng tệp Markdown, toàn bộ thư mục hoặc tệp zip. Mọi thứ trong thư mục sẽ được giữ nguyên cấu trúc.
-
-[importer.markdown.name-folders]
-original=Folders to import
-translation=Thư mục cần nhập
-
-[importer.markdown.desc-folders]
-original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Mọi thứ trong các thư mục được chọn sẽ được nhập. Bỏ chọn thư mục để loại trừ chúng.
-
-[importer.markdown.msg-pick-source-first]
-original=Choose files or folders first.
-translation=Chọn tệp hoặc thư mục trước.
-
-[importer.markdown.msg-reading-folders]
-original=Reading folders...
-translation=Đang đọc thư mục...
-
-[importer.markdown.msg-no-folders]
-original=No folders found.
-translation=Không tìm thấy thư mục nào.
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting

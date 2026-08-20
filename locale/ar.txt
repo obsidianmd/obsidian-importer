@@ -390,9 +390,21 @@ translation=اختر الملفات للاستيراد
 original=Folders to import
 translation=المجلدات للاستيراد
 
+[source.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=يتم استيراد كل شيء في المجلدات المحددة. ألغِ تحديد المجلدات لاستبعادها.
+
+[source.msg-pick-source-first]
+original=Choose files or folders first.
+translation=اختر الملفات أو المجلدات أولاً.
+
 [source.msg-reading-folders]
 original=Reading folders...
 translation=جارٍ قراءة المجلدات...
+
+[source.msg-no-folders]
+original=No folders found.
+translation=لم يتم العثور على مجلدات.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -1259,8 +1271,8 @@ original=HTML files
 translation=ملفات HTML
 
 [importer.html.option-text]
-original=HTML (.html)
-translation=HTML (.html)
+original=HTML (.html, .zip)
+translation=HTML (.html, .zip)
 
 [importer.html.file-type]
 original=HTML
@@ -1271,27 +1283,15 @@ original=Save the pages you want to keep as HTML. If the app they are in has an 
 translation=احفظ الصفحات التي تريد الاحتفاظ بها بصيغة HTML. إذا كان التطبيق الذي توجد فيه يحتوي على أداة استيراد خاصة به، فاستخدمها بدلاً من ذلك: فهي تحتفظ بمزيد من بياناتك.
 
 [importer.html.desc-source]
-original=Choose individual HTML files or whole folders. Pages in folders stay organized the same way.
+original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
 translation=
 
-[importer.html.name-folders]
-original=Folders to import
+[importer.html.name-extract-main-content]
+original=Extract main content
 translation=
 
-[importer.html.desc-folders]
-original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=
-
-[importer.html.msg-pick-source-first]
-original=Choose files or folders first.
-translation=
-
-[importer.html.msg-reading-folders]
-original=Reading folders...
-translation=
-
-[importer.html.msg-no-folders]
-original=No folders found.
+[importer.html.desc-extract-main-content]
+original=Remove navigation, sidebars, footers, and other page clutter.
 translation=
 
 [importer.html.name-size-limit]
@@ -1325,26 +1325,6 @@ translation=Markdown
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
 translation=اختر ملفات Markdown فردية، أو مجلدات كاملة، أو ملفات zip. يبقى كل شيء في المجلدات منظمًا بنفس الطريقة.
-
-[importer.markdown.name-folders]
-original=Folders to import
-translation=المجلدات المراد استيرادها
-
-[importer.markdown.desc-folders]
-original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=يتم استيراد كل شيء في المجلدات المحددة. ألغِ تحديد المجلدات لاستثنائها.
-
-[importer.markdown.msg-pick-source-first]
-original=Choose files or folders first.
-translation=اختر الملفات أو المجلدات أولاً.
-
-[importer.markdown.msg-reading-folders]
-original=Reading folders...
-translation=جارٍ قراءة المجلدات...
-
-[importer.markdown.msg-no-folders]
-original=No folders found.
-translation=لم يتم العثور على مجلدات.
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting

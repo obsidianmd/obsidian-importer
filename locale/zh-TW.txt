@@ -390,9 +390,21 @@ translation=選擇要匯入的檔案
 original=Folders to import
 translation=要匯入的資料夾
 
+[source.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=已勾選資料夾中的所有內容都會被匯入。取消勾選資料夾以排除它們。
+
+[source.msg-pick-source-first]
+original=Choose files or folders first.
+translation=請先選擇檔案或資料夾。
+
 [source.msg-reading-folders]
 original=Reading folders...
 translation=正在閱讀資料夾...
+
+[source.msg-no-folders]
+original=No folders found.
+translation=未找到資料夾。
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -1259,8 +1271,8 @@ original=HTML files
 translation=HTML 檔案
 
 [importer.html.option-text]
-original=HTML (.html)
-translation=HTML (.html)
+original=HTML (.html, .zip)
+translation=HTML (.html, .zip)
 
 [importer.html.file-type]
 original=HTML
@@ -1271,27 +1283,15 @@ original=Save the pages you want to keep as HTML. If the app they are in has an 
 translation=將您想保留的頁面儲存為 HTML。如果頁面所在的應用程式有自己的匯入工具，請改用該工具：它能保留更多資料。
 
 [importer.html.desc-source]
-original=Choose individual HTML files or whole folders. Pages in folders stay organized the same way.
+original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
 translation=
 
-[importer.html.name-folders]
-original=Folders to import
+[importer.html.name-extract-main-content]
+original=Extract main content
 translation=
 
-[importer.html.desc-folders]
-original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=
-
-[importer.html.msg-pick-source-first]
-original=Choose files or folders first.
-translation=
-
-[importer.html.msg-reading-folders]
-original=Reading folders...
-translation=
-
-[importer.html.msg-no-folders]
-original=No folders found.
+[importer.html.desc-extract-main-content]
+original=Remove navigation, sidebars, footers, and other page clutter.
 translation=
 
 [importer.html.name-size-limit]
@@ -1325,26 +1325,6 @@ translation=Markdown
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
 translation=選擇個別 Markdown 檔案、整個資料夾或 zip 檔案。資料夾中的內容會保持相同的組織結構。
-
-[importer.markdown.name-folders]
-original=Folders to import
-translation=要匯入的資料夾
-
-[importer.markdown.desc-folders]
-original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=已勾選資料夾中的所有內容都會被匯入。取消勾選資料夾以排除它們。
-
-[importer.markdown.msg-pick-source-first]
-original=Choose files or folders first.
-translation=請先選擇檔案或資料夾。
-
-[importer.markdown.msg-reading-folders]
-original=Reading folders...
-translation=正在閱讀資料夾…
-
-[importer.markdown.msg-no-folders]
-original=No folders found.
-translation=找不到資料夾。
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting

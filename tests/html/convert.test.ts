@@ -137,3 +137,35 @@ test('carries audio and video through as embeds', async () => {
 	assert.match(markdown, /!\[\]\(Attachments\/a\.mp3\)/);
 	assert.match(markdown, /!\[\]\(Attachments\/b\.mp4\)/);
 });
+
+test('rewrites heading IDs to the heading anchors Obsidian resolves', async () => {
+	const { markdown } = await convertHtmlDocument(`
+		<html><head><title>A book</title></head><body><main>
+			<a href="#lexical-analysis">Lexical analysis</a>
+			<h2 id="lexical-analysis">1.1 - Lexical Analysis</h2>
+		</main></body></html>
+	`, { resolveAttachment: async () => null });
+
+	assert.match(markdown, /\[Lexical analysis\]\(#1\.1%20-%20Lexical%20Analysis\)/);
+});
+
+test('main-content extraction can be disabled', async () => {
+	const html = `
+		<html><head><title>Article</title></head><body>
+			<nav>Navigation noise</nav>
+			<main><article><h1>Article</h1>
+				<p>This is the primary article body with enough words to be recognized as useful content.</p>
+				<p>Another paragraph gives the extractor enough context to select this article.</p>
+			</article></main>
+			<footer>Footer noise</footer>
+		</body></html>
+	`;
+	const options = { resolveAttachment: async () => null };
+
+	const extracted = await convertHtmlDocument(html, options);
+	const complete = await convertHtmlDocument(html, { ...options, extractMainContent: false });
+
+	assert.doesNotMatch(extracted.markdown, /Navigation noise|Footer noise/);
+	assert.match(complete.markdown, /Navigation noise/);
+	assert.match(complete.markdown, /Footer noise/);
+});

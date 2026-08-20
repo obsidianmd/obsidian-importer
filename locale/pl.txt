@@ -390,9 +390,21 @@ translation=Wybierz pliki do importu
 original=Folders to import
 translation=Foldery do importu
 
+[source.desc-folders]
+original=Everything in checked folders is imported. Uncheck folders to exclude them.
+translation=Wszystko w zaznaczonych folderach zostanie zaimportowane. Odznacz foldery, aby je wykluczyć.
+
+[source.msg-pick-source-first]
+original=Choose files or folders first.
+translation=Najpierw wybierz pliki lub foldery.
+
 [source.msg-reading-folders]
 original=Reading folders...
 translation=Odczytywanie folderów...
+
+[source.msg-no-folders]
+original=No folders found.
+translation=Nie znaleziono folderów.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -1259,8 +1271,8 @@ original=HTML files
 translation=Pliki HTML
 
 [importer.html.option-text]
-original=HTML (.html)
-translation=HTML (.html)
+original=HTML (.html, .zip)
+translation=HTML (.html, .zip)
 
 [importer.html.file-type]
 original=HTML
@@ -1271,27 +1283,15 @@ original=Save the pages you want to keep as HTML. If the app they are in has an 
 translation=Zapisz strony, które chcesz zachować, jako HTML. Jeśli aplikacja, w której się znajdują, ma własny importer, użyj go — zachowa więcej danych.
 
 [importer.html.desc-source]
-original=Choose individual HTML files or whole folders. Pages in folders stay organized the same way.
+original=Choose individual HTML files, whole folders, or zip files. Pages in folders stay organized the same way.
 translation=
 
-[importer.html.name-folders]
-original=Folders to import
+[importer.html.name-extract-main-content]
+original=Extract main content
 translation=
 
-[importer.html.desc-folders]
-original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=
-
-[importer.html.msg-pick-source-first]
-original=Choose files or folders first.
-translation=
-
-[importer.html.msg-reading-folders]
-original=Reading folders...
-translation=
-
-[importer.html.msg-no-folders]
-original=No folders found.
+[importer.html.desc-extract-main-content]
+original=Remove navigation, sidebars, footers, and other page clutter.
 translation=
 
 [importer.html.name-size-limit]
@@ -1325,26 +1325,6 @@ translation=Markdown
 [importer.markdown.desc-source]
 original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
 translation=Wybierz pojedyncze pliki Markdown, całe foldery lub pliki zip. Zawartość folderów zachowuje tę samą strukturę.
-
-[importer.markdown.name-folders]
-original=Folders to import
-translation=Foldery do zaimportowania
-
-[importer.markdown.desc-folders]
-original=Everything in checked folders is imported. Uncheck folders to exclude them.
-translation=Importowana jest zawartość zaznaczonych folderów. Odznacz foldery, aby je wykluczyć.
-
-[importer.markdown.msg-pick-source-first]
-original=Choose files or folders first.
-translation=Najpierw wybierz pliki lub foldery.
-
-[importer.markdown.msg-reading-folders]
-original=Reading folders...
-translation=Odczytywanie folderów...
-
-[importer.markdown.msg-no-folders]
-original=No folders found.
-translation=Nie znaleziono folderów.
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting

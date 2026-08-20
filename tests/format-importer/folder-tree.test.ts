@@ -1,7 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { pickedFolderNodes, pickedFolderSelection, PickedFolderNode } from '../../src/picked-folder-tree';
+import {
+	pickedFolderNodes,
+	pickedFolderSelection,
+	PickedFolderNode,
+	plannedPickedItems,
+	isHiddenPickedItem,
+} from '../../src/picked-folder-tree';
 import { SourceFile, SourceFolder } from '../shims/picked';
 
 test('builds a selectable folder tree with importer-defined file counts', async () => {
@@ -16,7 +22,7 @@ test('builds a selectable folder tree with importer-defined file counts', async 
 			new SourceFolder('More', [new SourceFile('Other.md')]),
 		]),
 	], {
-		includeFolder: (folder, parent) => !parent || !folder.name.startsWith('.'),
+		includeFolder: (folder, chosen) => chosen || !isHiddenPickedItem(folder),
 		countFile: file => file.extension === 'md',
 	});
 
@@ -61,4 +67,31 @@ test('an absent folder tree leaves source filtering disabled', () => {
 
 	assert.equal(included, null);
 	assert.deepEqual([...skipped], []);
+});
+
+test('planning preserves truly empty folders without reproducing filtered trees', async () => {
+	const planned = await plannedPickedItems([
+		new SourceFolder('Docs', [
+			new SourceFolder('Assets', [new SourceFile('logo.png')]),
+			new SourceFolder('Empty', []),
+			new SourceFile('Index.md'),
+		]),
+	], 'Import', {
+		selection: pickedFolderSelection([]),
+		includeFile: file => file.extension === 'md',
+		includeFolder: () => true,
+		folderPath: (folder, parent) => `${parent}/${folder.name}`,
+		onFolder: () => {},
+		shouldStop: async () => false,
+		onError: (_item, error) => assert.fail(String(error)),
+	});
+
+	assert.deepEqual(planned.map(item => ({
+		parent: item.parent,
+		source: item.source,
+		file: item.file?.name ?? null,
+	})), [
+		{ parent: 'Import/Docs/Empty', source: 'Docs/Empty', file: null },
+		{ parent: 'Import/Docs', source: 'Docs/Index.md', file: 'Index.md' },
+	]);
 });
