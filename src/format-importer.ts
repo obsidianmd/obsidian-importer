@@ -604,18 +604,15 @@ export abstract class FormatImporter {
 			await addChosen(this.keepsFolders ? folders : await this.filesInside(folders));
 		};
 
-		const addChosen = async (chosen: (PickedFile | PickedFolder)[]) => {
-			this.chosen = this.alsoChosen(chosen);
+		const setChosen = async (chosen: (PickedFile | PickedFolder)[]) => {
+			this.chosen = chosen;
 
 			if (await this.readChosen()) updateFiles();
 		};
 
-		const removeChosen = (item: PickedFile | PickedFolder) => {
-			this.chosen = this.chosen.filter(other => other !== item);
-			void this.readChosen().then(current => {
-				if (current) updateFiles();
-			});
-		};
+		const addChosen = (arriving: (PickedFile | PickedFolder)[]) => setChosen(this.joining(this.chosen, arriving));
+		const removeChosen = (item: PickedFile | PickedFolder) =>
+			void setChosen(this.chosen.filter(other => other !== item));
 
 		const drawState = (text: string) => {
 			listEl.empty();
@@ -738,20 +735,16 @@ export abstract class FormatImporter {
 	}
 
 	/** What is picked or dropped joins what was already there, rather than replacing it. */
-	private alsoChosen<T extends PickedFile | PickedFolder>(arriving: T[]): (PickedFile | PickedFolder)[] {
+	private joining<T extends PickedFile | PickedFolder>(existing: T[], arriving: T[]): T[] {
 		if (!this.acceptsMultiple) return arriving.slice(0, 1);
 
-		const seen = new Set(this.chosen.map(item => item.toString()));
-		return [...this.chosen, ...arriving.filter(item => !seen.has(item.toString()))];
+		const seen = new Set(existing.map(item => item.toString()));
+		return [...existing, ...arriving.filter(item => !seen.has(item.toString()))];
 	}
 
 	private takeChosen(chosen: (PickedFile | PickedFolder)[], files: PickedFile[]): void {
-		const seen = new Set(this.files.map(file => file.toString()));
-
-		this.files = this.acceptsMultiple
-			? [...this.files, ...files.filter(file => !seen.has(file.toString()))]
-			: files.slice(0, 1);
-		this.chosen = this.alsoChosen(chosen);
+		this.files = this.joining(this.files, files);
+		this.chosen = this.joining(this.chosen, chosen);
 
 		if (this.showPickedFiles) this.showPickedFiles();
 		else this.sourceChanged();
@@ -987,8 +980,12 @@ export abstract class FormatImporter {
 	/** How an attachment is named in its folder, and how collisions are numbered. */
 	private async attachmentNaming(filename: string, sourcePath?: string): Promise<(nth: number) => string> {
 		const folder = await this.createFolders(await this.attachmentFolderPath(sourcePath));
-		const parent = folder.path === '/' ? '' : folder.path;
 
+		return this.namingIn(folder.path === '/' ? '' : folder.path, filename);
+	}
+
+	/** The same naming, in a folder the importer chose rather than the vault. */
+	protected namingIn(parent: string, filename: string): (nth: number) => string {
 		const { basename, extension } = parseFilePath(filename);
 		const name = sanitizeFileName(basename, parent);
 		const fullExt = extension ? '.' + extension : '';

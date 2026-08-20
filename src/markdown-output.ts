@@ -83,17 +83,21 @@ export async function standardizedMarkdown(
 	resolveLink?: MarkdownLinkResolver,
 ): Promise<string> {
 	content = formattedMarkdown(app.vault, content, formatting);
-	if (formatting === null && !resolveLink) return content;
-	return await standardizeLinks(app, sourcePath, content, resolveLink, formatting === null);
+	return await standardizeLinks(app, sourcePath, content, formatting, resolveLink);
 }
 
 async function standardizeLinks(
 	app: App,
 	sourcePath: string,
 	content: string,
+	formatting?: MarkdownFormatting,
 	resolveLink?: MarkdownLinkResolver,
-	preserveStyle: boolean = false,
 ): Promise<string> {
+	// A note kept as it was written keeps its link syntax; only a target the
+	// importer says it renamed is rewritten.
+	const preserveStyle = formatting === null;
+	if (preserveStyle && !resolveLink) return content;
+
 	const cache = await computeMetadata(app, content);
 	if (!cache) return content;
 
@@ -182,8 +186,8 @@ export async function standardizeMarkdownFile(
 		app,
 		file.path,
 		formattedMarkdown(app.vault, original, formatting),
+		formatting,
 		resolveLink,
-		formatting === null,
 	);
 	if (standardized === original) return;
 

@@ -5,7 +5,7 @@ import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { MarkdownFormatting, MarkdownLinkResolver } from '../markdown-output';
 import { TreePicker, ViewableNode } from '../tree-view';
-import { countText, describeReason, sanitizeFileName } from '../util';
+import { countText, describeReason, sameBytes, sanitizeFileName } from '../util';
 import { readZip, ZipEntryFile, zipContents } from '../zip';
 import { convertMarkdownNote } from './markdown/convert';
 
@@ -31,7 +31,7 @@ interface PlannedItem {
 	/** Null represents an empty folder. */
 	file: PickedFile | null;
 	note?: PlannedNote;
-	attachment?: PlannedAttachment | null;
+	attachment?: PlannedAttachment;
 }
 
 interface PlannedAttachment {
@@ -72,12 +72,14 @@ function under(from: string, name: string): string {
 async function folderNodes(items: (PickedFile | PickedFolder)[], from: string): Promise<FolderNode[]> {
 	const nodes: FolderNode[] = [];
 
-	for (const item of items) {
-		if (item.type !== 'folder') continue;
-		if (from && isHidden(item)) continue;
+	const folders = items.filter((item): item is PickedFolder =>
+		item.type === 'folder' && !(from && isHidden(item)));
+	// Siblings are only read, so they can be read together.
+	const listings = await Promise.all(folders.map(folder => folder.list()));
 
+	for (const [index, item] of folders.entries()) {
 		const path = under(from, item.name);
-		const inside = await item.list();
+		const inside = listings[index];
 		const children = await folderNodes(inside, path);
 
 		nodes.push({
@@ -134,8 +136,8 @@ export class MarkdownImporter extends FormatImporter {
 	private skipping: Set<string>;
 	/** Folders whose own files come across; null when nothing is picking them out. */
 	private taking: Set<string> | null;
-	private importedFrom: Map<string, TFile>;
-	private importedFromFolded: Map<string, Map<string, TFile>>;
+	/** Every source path that landed somewhere, grouped by its folded spelling. */
+	private importedFrom: Map<string, Map<string, TFile>>;
 	private sourceOf: Map<string, string>;
 	private outputRoot: string;
 	private linksNeedRepair: boolean;
@@ -149,7 +151,6 @@ export class MarkdownImporter extends FormatImporter {
 		this.skipping = new Set();
 		this.taking = null;
 		this.importedFrom = new Map();
-		this.importedFromFolded = new Map();
 		this.sourceOf = new Map();
 		this.outputRoot = '';
 		this.linksNeedRepair = false;
@@ -302,7 +303,6 @@ export class MarkdownImporter extends FormatImporter {
 
 		this.planSelection();
 		this.importedFrom.clear();
-		this.importedFromFolded.clear();
 		this.sourceOf.clear();
 		this.outputRoot = folder.path === '/' ? '' : folder.path;
 		this.linksNeedRepair = false;
@@ -353,7 +353,6 @@ export class MarkdownImporter extends FormatImporter {
 				item.attachment = await this.planAttachment(item.parent, item.source, file);
 			}
 			catch (error) {
-				item.attachment = null;
 				ctx.reportFailed(file.fullpath, error);
 			}
 		}
@@ -436,7 +435,9 @@ export class MarkdownImporter extends FormatImporter {
 
 				const inside = await this.plan(ctx, await item.list(), at, false, source);
 
-				planned.push(...inside.length > 0 ? inside : [{ parent: at, source, file: null }]);
+				if (inside.length === 0) planned.push({ parent: at, source, file: null });
+				// Pushed one at a time: a folder can hold more items than a call takes arguments.
+				else for (const item of inside) planned.push(item);
 			}
 			catch (error) {
 				ctx.reportFailed(item.name, error);
@@ -481,13 +482,7 @@ export class MarkdownImporter extends FormatImporter {
 	 */
 	private async planAttachment(parent: string, source: string, file: PickedFile): Promise<PlannedAttachment> {
 		const folder = await this.createFolders(parent || '/');
-		const at = folder.path === '/' ? '' : folder.path;
-		const sanitized = sanitizeFileName(file.name, at);
-		const dot = sanitized.lastIndexOf('.');
-		const name = dot > 0 ? sanitized.slice(0, dot) : sanitized;
-		const suffix = dot > 0 ? sanitized.slice(dot) : '';
-		const candidate = (nth: number) => normalizePath(
-			at ? `${at}/${name}${nth ? ` ${nth}` : ''}${suffix}` : `${name}${nth ? ` ${nth}` : ''}${suffix}`);
+		const candidate = this.namingIn(folder.path === '/' ? '' : folder.path, file.name);
 
 		const times = await fileTimes(file);
 		let data: ArrayBuffer | undefined;
@@ -496,7 +491,7 @@ export class MarkdownImporter extends FormatImporter {
 			const data = await sourceData();
 			if (existing.stat.size === data.byteLength) {
 				const current = await this.vault.readBinary(existing);
-				if (equalBytes(current, data)) return 'same';
+				if (sameBytes(current, data)) return 'same';
 			}
 
 			if (times && existing.stat.ctime === times.ctime) {
@@ -543,35 +538,32 @@ export class MarkdownImporter extends FormatImporter {
 
 	private rememberImported(source: string, file: TFile): void {
 		const key = sourcePath(source);
-		this.importedFrom.set(key, file);
-
 		const folded = key.toLowerCase();
-		let variants = this.importedFromFolded.get(folded);
-		if (!variants) this.importedFromFolded.set(folded, variants = new Map());
+
+		let variants = this.importedFrom.get(folded);
+		if (!variants) this.importedFrom.set(folded, variants = new Map());
 		variants.set(key, file);
 
 		this.sourceOf.set(file.path.toLowerCase(), key);
 	}
 
+	/** The spelling the link used, or the only one there is when it differs in case. */
 	private importedAt(source: string): TFile | null {
-		const exact = this.importedFrom.get(source);
-		if (exact) return exact;
+		const variants = this.importedFrom.get(source.toLowerCase());
+		if (!variants) return null;
 
-		const variants = this.importedFromFolded.get(source.toLowerCase());
-		return variants?.size === 1 ? variants.values().next().value ?? null : null;
+		return variants.get(source)
+			?? (variants.size === 1 ? variants.values().next().value ?? null : null);
 	}
 
 	private resolveImportedLink(path: string, outputPath: string): TFile | null {
 		const source = this.sourceOf.get(outputPath.toLowerCase());
 		if (!source) return null;
 
-		const absolute = path.startsWith('/');
-		const wanted = path.replace(/\\/g, '/').replace(/^\/+/, '');
-		const parent = source.slice(0, Math.max(0, source.lastIndexOf('/')));
-		const relative = sourcePath(parent ? `${parent}/${wanted}` : wanted);
-		const root = sourcePath(wanted);
+		const relative = resolvedAgainst(parentOf(source), path);
+		const root = resolvedAgainst('', path);
 
-		for (const candidate of absolute ? [root] : [relative, root]) {
+		for (const candidate of path.startsWith('/') ? [root] : [relative, root]) {
 			for (const key of [candidate, `${candidate}.md`, `${candidate}.markdown`]) {
 				const imported = this.importedAt(key);
 				if (imported && this.pathChanged(path, outputPath, imported)) return imported;
@@ -582,13 +574,22 @@ export class MarkdownImporter extends FormatImporter {
 	}
 
 	private pathChanged(link: string, outputPath: string, imported: TFile): boolean {
-		const wanted = link.replace(/\\/g, '/').replace(/^\/+/, '');
-		const parent = outputPath.slice(0, Math.max(0, outputPath.lastIndexOf('/')));
-		const expected = sourcePath(link.startsWith('/') || !parent ? wanted : `${parent}/${wanted}`).toLowerCase();
+		const expected = resolvedAgainst(link.startsWith('/') ? '' : parentOf(outputPath), link).toLowerCase();
 		const actual = imported.path.toLowerCase();
 
 		return actual !== expected && actual.replace(/\.md$/, '') !== expected;
 	}
+}
+
+function parentOf(path: string): string {
+	return path.slice(0, Math.max(0, path.lastIndexOf('/')));
+}
+
+/** Where a link written in a folder points, as a path from the tree's root. */
+function resolvedAgainst(parent: string, link: string): string {
+	const wanted = link.replace(/\\/g, '/').replace(/^\/+/, '');
+
+	return sourcePath(parent ? `${parent}/${wanted}` : wanted);
 }
 
 /** Normalize a path in the source tree without letting `..` escape its root. */
@@ -607,12 +608,4 @@ function sourcePath(path: string): string {
 /** A cheap guard for the one link shape changed merely by moving the source tree under the output folder. */
 function hasAbsoluteLink(content: string): boolean {
 	return /!?\[\[\s*\/|!?\[[^\]]*\]\(\s*<?\//u.test(content);
-}
-
-function equalBytes(left: ArrayBuffer, right: ArrayBuffer): boolean {
-	if (left.byteLength !== right.byteLength) return false;
-
-	const a = new Uint8Array(left);
-	const b = new Uint8Array(right);
-	return a.every((byte, index) => byte === b[index]);
 }

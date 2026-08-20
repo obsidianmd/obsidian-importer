@@ -1,6 +1,6 @@
 import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
 import { ButtonComponent, DataWriteOptions, Notice, Setting, TFile, TFolder, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
-import { genUid, extractErrorMessage, parseHTML, sanitizeFileName } from '../util';
+import { genUid, extractErrorMessage, parseHTML, sameBytes, sanitizeFileName } from '../util';
 import { DuplicateHandling, FormatImporter } from '../format-importer';
 import { selectedNodes } from '../tree';
 import { TreePicker, ViewableNode } from '../tree-view';
@@ -67,14 +67,6 @@ async function resourceKey(contentLocation: string): Promise<string> {
 async function resourceFilename(filename: string, contentLocation: string): Promise<string> {
 	const { basename, extension } = parseFilePath(filename);
 	return `${basename} ${await resourceKey(contentLocation)}${extension ? `.${extension}` : ''}`;
-}
-
-function sameBytes(left: ArrayBuffer, right: ArrayBuffer): boolean {
-	if (left.byteLength !== right.byteLength) return false;
-
-	const a = new Uint8Array(left);
-	const b = new Uint8Array(right);
-	return a.every((byte, index) => byte === b[index]);
 }
 
 function assertUnreachable(x: never): never {

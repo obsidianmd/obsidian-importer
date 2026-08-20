@@ -226,6 +226,19 @@ export function countText(value: number): string {
 	return value.toLocaleString(getLanguage());
 }
 
+/** Whether two files hold the same bytes, which is what identifies an attachment. */
+export function sameBytes(left: ArrayBuffer, right: ArrayBuffer): boolean {
+	if (left.byteLength !== right.byteLength) return false;
+
+	const a = new Uint8Array(left);
+	const b = new Uint8Array(right);
+	for (let at = 0; at < a.length; at++) {
+		if (a[at] !== b[at]) return false;
+	}
+
+	return true;
+}
+
 export function describeReason(reason: unknown): string {
 	if (typeof reason === 'string') return reason;
 
