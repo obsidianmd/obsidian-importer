@@ -1,6 +1,6 @@
 import { ButtonComponent, IconName, SearchComponent, setIcon, Setting } from 'obsidian';
 import { i18n } from './i18n';
-import { areAllSelected, nodesMatching, redrawTree, SelectableNode, setAllSelection, setNodeSelection } from './tree';
+import { areAllSelected, areAnySelected, nodesMatching, redrawTree, SelectableNode, setAllSelection, setNodeSelection } from './tree';
 
 
 export interface ViewableNode<T extends SelectableNode> extends SelectableNode {
@@ -174,12 +174,33 @@ export class TreePicker<T extends ViewableNode<T>> {
 	}
 }
 
-export function renderTreeNodes<T extends ViewableNode<T>>(container: HTMLElement, nodes: T[], view: TreeView<T>): void {
+export function renderTreeNodes<T extends ViewableNode<T>>(container: HTMLElement, nodes: T[], view: TreeView<T>, above: Ancestor<T>[] = []): void {
 	for (const node of nodes) {
 		if (view.filtered && !view.filtered.has(node)) continue;
 
-		renderTreeNode(container, node, view);
+		renderTreeNode(container, node, view, above);
 	}
+}
+
+/** A row further up, which a tick below it may have changed the state of. */
+interface Ancestor<T extends ViewableNode<T>> {
+	checkbox: HTMLInputElement;
+	node: T;
+}
+
+/**
+ * Ticked when all of it is, and the dash between when only some of it is.
+ *
+ * The attribute, not the property: Obsidian's stylesheet draws the dash from
+ * the attribute, and a webview left to paint the property itself fills the box.
+ */
+function setSelectionState<T extends ViewableNode<T>>(checkbox: HTMLInputElement, node: T): void {
+	const children = node.children ?? [];
+	const all = node.selected && areAllSelected(children);
+	const some = !all && (node.selected || areAnySelected(children));
+
+	checkbox.checked = all;
+	checkbox.setAttr('data-indeterminate', some);
 }
 
 function refreshSelection<T extends ViewableNode<T>>(treeItem: HTMLElement, node: T, view: TreeView<T>): void {
@@ -188,8 +209,8 @@ function refreshSelection<T extends ViewableNode<T>>(treeItem: HTMLElement, node
 	const checkbox = selfEl?.querySelector<HTMLInputElement>('input.file-tree-item-checkbox');
 
 	if (checkbox) {
-		checkbox.checked = node.selected;
 		checkbox.disabled = node.disabled;
+		setSelectionState(checkbox, node);
 	}
 
 	selfEl?.toggleClass('is-disabled', node.disabled);
@@ -205,7 +226,7 @@ function refreshSelection<T extends ViewableNode<T>>(treeItem: HTMLElement, node
 	});
 }
 
-function renderTreeNode<T extends ViewableNode<T>>(container: HTMLElement, node: T, view: TreeView<T>): void {
+function renderTreeNode<T extends ViewableNode<T>>(container: HTMLElement, node: T, view: TreeView<T>, above: Ancestor<T>[] = []): void {
 	const children = node.children ?? [];
 	const collapsible = view.isCollapsible?.(node) ?? children.length > 0;
 
@@ -231,8 +252,8 @@ function renderTreeNode<T extends ViewableNode<T>>(container: HTMLElement, node:
 	const treeItemInner = treeItemSelf.createDiv('tree-item-inner file-tree-item');
 
 	const checkbox = treeItemInner.createEl('input', { type: 'checkbox', cls: 'file-tree-item-checkbox' });
-	checkbox.checked = node.selected;
 	checkbox.disabled = node.disabled;
+	setSelectionState(checkbox, node);
 
 	checkbox.addEventListener('change', () => {
 		if (node.disabled) return;
@@ -240,6 +261,7 @@ function renderTreeNode<T extends ViewableNode<T>>(container: HTMLElement, node:
 		setNodeSelection(node, checkbox.checked);
 
 		refreshSelection(treeItem, node, view);
+		for (const ancestor of above) setSelectionState(ancestor.checkbox, ancestor.node);
 		view.selectionChanged();
 	});
 
@@ -256,7 +278,7 @@ function renderTreeNode<T extends ViewableNode<T>>(container: HTMLElement, node:
 	const childrenContainer = treeItem.createDiv('tree-item-children');
 	if (folded) childrenContainer.hide();
 
-	renderTreeNodes(childrenContainer, children, view);
+	renderTreeNodes(childrenContainer, children, view, [...above, { checkbox, node }]);
 
 	if (collapseIcon) {
 		const fold = () => {

@@ -12,6 +12,12 @@ export interface MarkdownOutput {
 	indentUnit: string;
 }
 
+/**
+ * How a note is written out: this vault's formatting, or `null` for a source
+ * that is already Markdown and was asked to be left as it was written.
+ */
+export type MarkdownFormatting = MarkdownOutput | null;
+
 /** The step a conversion indents by before this runs. A tab counts as one too. */
 const CONVERSION_STEP = 4;
 
@@ -39,16 +45,16 @@ export function markdownOutputFor(vault: Vault): MarkdownOutput {
  * Compare against this rather than the converter's own output, or a note that
  * was formatted on the way in never matches and is rewritten every import.
  */
-export function formattedMarkdown(vault: Vault, content: string): string {
-	return formatMarkdown(content, markdownOutputFor(vault));
+export function formattedMarkdown(vault: Vault, content: string, formatting: MarkdownFormatting = markdownOutputFor(vault)): string {
+	return formatting ? formatMarkdown(content, formatting) : content;
 }
 
-export async function createMarkdown(vault: Vault, path: string, content: string, options?: DataWriteOptions): Promise<TFile> {
-	return await vault.create(path, formattedMarkdown(vault, content), options);
+export async function createMarkdown(vault: Vault, path: string, content: string, options?: DataWriteOptions, formatting?: MarkdownFormatting): Promise<TFile> {
+	return await vault.create(path, formattedMarkdown(vault, content, formatting), options);
 }
 
-export async function modifyMarkdown(vault: Vault, file: TFile, content: string, options?: DataWriteOptions): Promise<void> {
-	return await vault.modify(file, formattedMarkdown(vault, content), options);
+export async function modifyMarkdown(vault: Vault, file: TFile, content: string, options?: DataWriteOptions, formatting?: MarkdownFormatting): Promise<void> {
+	return await vault.modify(file, formattedMarkdown(vault, content, formatting), options);
 }
 
 type MarkdownChange = { from: number, to: number, text: string };
@@ -66,8 +72,10 @@ function escapePipes(text: string): string {
  * apply both `useMarkdownLinks` and `newLinkFormat` without each converter
  * having to reproduce link resolution itself.
  */
-export async function standardizedMarkdown(app: App, sourcePath: string, content: string): Promise<string> {
-	content = formattedMarkdown(app.vault, content);
+export async function standardizedMarkdown(app: App, sourcePath: string, content: string, formatting?: MarkdownFormatting): Promise<string> {
+	if (formatting === null) return content;
+
+	content = formattedMarkdown(app.vault, content, formatting);
 	return await standardizeLinks(app, sourcePath, content);
 }
 
@@ -102,10 +110,17 @@ async function standardizeLinks(app: App, sourcePath: string, content: string): 
 	return content;
 }
 
-/** Standardize an imported file without changing its imported timestamps. */
-export async function standardizeMarkdownFile(app: App, file: TFile): Promise<void> {
+/**
+ * Standardize an imported file without changing its imported timestamps.
+ *
+ * This pass only reaches a link that already resolves, so it restyles rather
+ * than repairs: a source left as it was written keeps the links it had.
+ */
+export async function standardizeMarkdownFile(app: App, file: TFile, formatting?: MarkdownFormatting): Promise<void> {
+	if (formatting === null) return;
+
 	const original = await app.vault.read(file);
-	const standardized = await standardizeLinks(app, file.path, formattedMarkdown(app.vault, original));
+	const standardized = await standardizeLinks(app, file.path, formattedMarkdown(app.vault, original, formatting));
 	if (standardized === original) return;
 
 	await app.vault.modify(file, standardized, { ctime: file.stat.ctime, mtime: file.stat.mtime });

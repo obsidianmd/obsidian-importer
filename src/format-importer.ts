@@ -5,7 +5,7 @@ import { AuthCallback, helpUrl } from './constants';
 import { FolderSuggest } from './folder-suggest';
 import { ImportContext } from './import-context';
 import { formatImportReport, importReportName } from './import-report';
-import { createMarkdown, formatMarkdown, markdownOutputFor, modifyMarkdown, standardizedMarkdown, standardizeMarkdownFile } from './markdown-output';
+import { createMarkdown, formattedMarkdown, MarkdownFormatting, modifyMarkdown, standardizedMarkdown, standardizeMarkdownFile } from './markdown-output';
 import { i18n } from './i18n';
 import { availableFileName, getUniqueFilePath, parseFrontMatterBlock, sanitizeFileName, sanitizeFilePath, serializeFrontMatter } from './util';
 
@@ -605,13 +605,7 @@ export abstract class FormatImporter {
 		};
 
 		const addChosen = async (chosen: (PickedFile | PickedFolder)[]) => {
-			if (!allowMultiple) {
-				this.chosen = chosen.slice(0, 1);
-			}
-			else {
-				const seen = new Set(this.chosen.map(item => item.toString()));
-				this.chosen = [...this.chosen, ...chosen.filter(item => !seen.has(item.toString()))];
-			}
+			this.chosen = this.alsoChosen(chosen);
 
 			await this.readChosen();
 			updateFiles();
@@ -738,9 +732,22 @@ export abstract class FormatImporter {
 		return accepted.length;
 	}
 
+	/** What is picked or dropped joins what was already there, rather than replacing it. */
+	private alsoChosen<T extends PickedFile | PickedFolder>(arriving: T[]): (PickedFile | PickedFolder)[] {
+		if (!this.acceptsMultiple) return arriving.slice(0, 1);
+
+		const seen = new Set(this.chosen.map(item => item.toString()));
+		return [...this.chosen, ...arriving.filter(item => !seen.has(item.toString()))];
+	}
+
 	private takeChosen(chosen: (PickedFile | PickedFolder)[], files: PickedFile[]): void {
-		this.chosen = chosen;
-		this.files = files;
+		const seen = new Set(this.files.map(file => file.toString()));
+
+		this.files = this.acceptsMultiple
+			? [...this.files, ...files.filter(file => !seen.has(file.toString()))]
+			: files.slice(0, 1);
+		this.chosen = this.alsoChosen(chosen);
+
 		if (this.showPickedFiles) this.showPickedFiles();
 		else this.sourceChanged();
 	}
@@ -1073,6 +1080,11 @@ export abstract class FormatImporter {
 
 	abstract import(ctx: ImportContext): Promise<void>;
 
+	/** Use the vault's Markdown formatting unless an importer opts out. */
+	protected get markdownFormatting(): MarkdownFormatting | undefined {
+		return undefined;
+	}
+
 	/**
 	 * Apply settings that need the whole import to exist, notably shortest and
 	 * relative links. Called by both interactive and scripted import entrypoints.
@@ -1092,7 +1104,7 @@ export abstract class FormatImporter {
 					continue;
 				}
 				try {
-					await standardizeMarkdownFile(this.app, file);
+					await standardizeMarkdownFile(this.app, file, this.markdownFormatting);
 				}
 				catch (error) {
 					if (ctx) ctx.reportFailed(file.path, error);
@@ -1307,7 +1319,7 @@ export abstract class FormatImporter {
 	private async unchangedContent(ctx: ImportContext, file: TFile, title: string, content: string): Promise<boolean> {
 		try {
 			const current = await this.vault.read(file);
-			if (current !== await standardizedMarkdown(this.app, file.path, content)) return false;
+			if (current !== await standardizedMarkdown(this.app, file.path, content, this.markdownFormatting)) return false;
 		}
 		catch (error) {
 			console.error(`Could not read the note already at: ${file.path}`, error);
@@ -1332,13 +1344,13 @@ export abstract class FormatImporter {
 	}
 
 	async createMarkdown(path: string, content: string, options?: DataWriteOptions): Promise<TFile> {
-		const file = await createMarkdown(this.vault, path, content, options);
+		const file = await createMarkdown(this.vault, path, content, options, this.markdownFormatting);
 		this.trackMarkdownFile(file);
 		return file;
 	}
 
 	async modifyMarkdown(file: TFile, content: string, options?: DataWriteOptions): Promise<void> {
-		await modifyMarkdown(this.vault, file, content, options);
+		await modifyMarkdown(this.vault, file, content, options, this.markdownFormatting);
 		this.trackMarkdownFile(file);
 	}
 
@@ -1372,9 +1384,7 @@ export abstract class FormatImporter {
 	async createFile(folder: TFolder, fileName: string, content: string, options?: DataWriteOptions): Promise<TFile> {
 		const path = getUniqueFilePath(this.vault, folder.path, fileName);
 
-		if (path.toLowerCase().endsWith('.md')) {
-			content = formatMarkdown(content, markdownOutputFor(this.vault));
-		}
+		if (path.toLowerCase().endsWith('.md')) content = formattedMarkdown(this.vault, content, this.markdownFormatting);
 
 		const file = await this.vault.create(path, content, options);
 		this.trackMarkdownFile(file);

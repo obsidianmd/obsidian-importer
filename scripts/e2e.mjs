@@ -48,6 +48,15 @@ const CASES = [
 		note: 'tags.md',
 	},
 	{
+		// The same, for a note the vault's own formatting would rewrite: only
+		// the app's write path can say that turning it off reaches that far.
+		importer: 'markdown',
+		fixture: 'tests/markdown/lists.md',
+		expected: 'tests/markdown/lists.md',
+		note: 'lists.md',
+		options: { standardizeFormatting: false },
+	},
+	{
 		// The one importer that writes into a folder of its own, which is what
 		// makes it worth running here: nothing creates the notebook's folder
 		// until a note goes into it, and Vault will not create a file inside a

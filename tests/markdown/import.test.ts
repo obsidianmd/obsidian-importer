@@ -14,11 +14,11 @@ import { DuplicateHandling } from '../../src/format-importer';
 import { MarkdownImporter } from '../../src/formats/markdown';
 import { ImportContext } from '../../src/import-context';
 import { SourceFile, SourceFolder } from '../shims/picked';
-import { MemoryVault, memoryApp } from '../shims/vault';
+import { indexedApp, MemoryVault } from '../shims/vault';
 
 function importer(): { vault: MemoryVault, subject: MarkdownImporter } {
 	const vault = new MemoryVault();
-	const subject = new MarkdownImporter(memoryApp(vault), { sourceEl: null, outputEl: null, optionsEl: null } as never);
+	const subject = new MarkdownImporter(indexedApp(vault) as never, { sourceEl: null, outputEl: null, optionsEl: null } as never);
 
 	return { vault, subject };
 }
@@ -31,6 +31,7 @@ async function importing(subject: MarkdownImporter, chosen: (PickedFile | Picked
 	const ctx = new ImportContext();
 	subject.indexImportedNotes();
 	await subject.import(ctx);
+	await subject.finalizeMarkdownOutput(ctx);
 
 	return ctx;
 }
@@ -55,9 +56,19 @@ test('a folder is imported as the folder it was', async () => {
 	]);
 });
 
-test('a note keeps the links it was written with', async () => {
+test('a link is rewritten in this vault\'s form, still reaching the note it named', async () => {
 	const { vault, subject } = importer();
 
+	await importing(subject, [notes()]);
+
+	assert.equal(vault.contents.get('Import/Notes/Index.md'), '# Index\n\n[[Day|A day]]\n\n![](cover.png)\n');
+});
+
+test('a link is left as it was written where the source formatting is kept', async () => {
+	const { vault, subject } = importer();
+
+	await subject.ready;
+	subject.standardizeFormatting = false;
 	await importing(subject, [notes()]);
 
 	assert.equal(vault.contents.get('Import/Notes/Index.md'), '# Index\n\n[A day](Journal/Day.md)\n\n![](cover.png)\n');
@@ -116,4 +127,118 @@ test('asking for a copy numbers the folder rather than the notes inside it', asy
 		'Import/Notes 1/cover.png',
 		'Import/Notes 1/Journal/Day.md',
 	]);
+});
+
+const LISTS = '# Shopping\n\n* Bread\n    * Sourdough\n* Milk\n';
+
+test('a list is written the way this vault writes one', async () => {
+	const { vault, subject } = importer();
+
+	await importing(subject, [new SourceFile('Shopping.md', LISTS)]);
+
+	assert.equal(vault.contents.get('Import/Shopping.md'), '# Shopping\n\n- Bread\n    - Sourdough\n- Milk\n');
+});
+
+test('source list formatting is preserved when standardization is turned off', async () => {
+	const { vault, subject } = importer();
+
+	await subject.ready;
+	subject.standardizeFormatting = false;
+	const first = await importing(subject, [new SourceFile('Shopping.md', LISTS)]);
+	await subject.finalizeMarkdownOutput();
+	const second = await importing(subject, [new SourceFile('Shopping.md', LISTS)]);
+
+	assert.equal(vault.contents.get('Import/Shopping.md'), LISTS);
+	assert.equal(first.notes, 1);
+	assert.equal(second.notes, 0);
+	assert.deepEqual(second.skipped, ['Shopping']);
+});
+
+interface PickerInternals {
+	picker: { nodes: { path: string, selected: boolean, children?: unknown[] }[] };
+	loadFolders(): Promise<void>;
+}
+
+test('a folder left unticked is not imported, nor anything inside it', async () => {
+	const { vault, subject } = importer();
+	const internals = subject as unknown as PickerInternals;
+
+	await subject.ready;
+	subject.chosen = [notes()];
+	internals.picker = {
+		nodes: [{
+			path: 'Notes',
+			selected: true,
+			children: [{ path: 'Notes/Journal', selected: false, children: [] }],
+		}],
+	} as PickerInternals['picker'];
+
+	await importing(subject, [notes()]);
+
+	assert.deepEqual(vault.paths(), ['Import/Notes/Index.md', 'Import/Notes/cover.png']);
+});
+
+test('a folder ticked under one that is not brings only itself', async () => {
+	const { vault, subject } = importer();
+	const internals = subject as unknown as PickerInternals;
+
+	await subject.ready;
+	internals.picker = {
+		nodes: [{
+			path: 'Notes',
+			selected: false,
+			children: [{ path: 'Notes/Journal', selected: true, children: [] }],
+		}],
+	} as PickerInternals['picker'];
+
+	await importing(subject, [notes()]);
+
+	assert.deepEqual(vault.paths(), ['Import/Notes/Journal/Day.md']);
+});
+
+test('unticking the folder that was chosen leaves the import empty', async () => {
+	const { vault, subject } = importer();
+	const internals = subject as unknown as PickerInternals;
+
+	await subject.ready;
+	internals.picker = { nodes: [{ path: 'Notes', selected: false, children: [] }] } as PickerInternals['picker'];
+
+	await importing(subject, [notes()]);
+
+	assert.deepEqual(vault.paths(), []);
+});
+
+test('what a vault keeps for itself is left behind', async () => {
+	const { vault, subject } = importer();
+
+	await importing(subject, [new SourceFolder('Notes', [
+		new SourceFile('Index.md', 'one'),
+		new SourceFile('.DS_Store', 'noise'),
+		new SourceFolder('.obsidian', [new SourceFile('app.json', '{}')]),
+		new SourceFolder('.git', [new SourceFile('HEAD', 'ref')]),
+	])]);
+
+	assert.deepEqual(vault.paths(), ['Import/Notes/Index.md']);
+});
+
+test('a hidden folder picked on purpose is the one thing that is imported', async () => {
+	const { vault, subject } = importer();
+
+	await importing(subject, [new SourceFolder('.obsidian', [new SourceFile('app.json', '{}')])]);
+
+	// The vault cannot hold a folder whose name starts with a dot.
+	assert.deepEqual(vault.paths(), ['Import/obsidian/app.json']);
+});
+
+test('a base and a canvas come across as they were written', async () => {
+	const { vault, subject } = importer();
+
+	await importing(subject, [new SourceFolder('Notes', [
+		new SourceFile('Books.base', 'filters:\n  and: []\n'),
+		new SourceFile('Map.canvas', '{"nodes":[]}'),
+	])]);
+
+	assert.deepEqual(vault.paths(), ['Import/Notes/Books.base', 'Import/Notes/Map.canvas']);
+	const canvas = vault.contents.get('Import/Notes/Map.canvas') as ArrayBuffer;
+	assert.equal(new TextDecoder().decode(canvas), '{"nodes":[]}');
 });

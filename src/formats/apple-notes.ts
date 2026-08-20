@@ -1,4 +1,4 @@
-import { DataWriteOptions, Notice, Platform, TFile, TFolder, moment, normalizePath } from 'obsidian';
+import { DataWriteOptions, Notice, Platform, TFile, TFolder, getLanguage, moment, normalizePath } from 'obsidian';
 import { NoteConverter, noteTitle } from './apple-notes/convert-note';
 import { ANAccount, ANAttachment, ANContext, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
 import { descriptor } from './apple-notes/descriptor';
@@ -194,7 +194,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				failed: describeFolderFailure,
 				view: {
 					icon: node => node.type === 'account' ? 'user' : 'folder',
-					flair: node => node.type === 'account' ? '' : String(node.notes),
+					flair: node => node.type === 'account' ? '' : node.notes.toLocaleString(getLanguage()),
 				},
 				onChange: () => {
 					this.selectedFolders = selectedNodes(this.picker.nodes, node => node.type === 'folder').map(node => node.id);

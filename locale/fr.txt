@@ -1288,27 +1288,55 @@ translation=Téléchargement d'une pièce jointe pour {{name}}
 
 [importer.markdown.name]
 original=Markdown
-translation=
+translation=Markdown
 
 [importer.markdown.option-text]
-original=Markdown (.md)
-translation=
+original=Markdown (.md, .zip)
+translation=Markdown (.md)
 
 [importer.markdown.file-type]
 original=Markdown
-translation=
+translation=Markdown
 
 [importer.markdown.desc-source]
-original=Pick Markdown files, or folders to import with the structure they are in.
+original=Choose individual Markdown files, whole folders, or zip files. Everything inside a folder or zip file stays organized the same way.
+translation=Sélectionnez des fichiers Markdown ou des dossiers à importer en conservant leur structure.
+
+[importer.markdown.name-folders]
+original=Folders to import
 translation=
+
+[importer.markdown.desc-folders]
+original=Everything inside a folder comes with it. Untick one to leave it out.
+translation=
+
+[importer.markdown.msg-pick-source-first]
+original=Choose files or folders first.
+translation=
+
+[importer.markdown.msg-reading-folders]
+original=Reading folders...
+translation=
+
+[importer.markdown.msg-no-folders]
+original=No folders found.
+translation=
+
+[importer.markdown.name-standardize-formatting]
+original=Standardize formatting
+translation=Standardiser le formatage
+
+[importer.markdown.desc-standardize-formatting]
+original=Use this vault's settings for lists, indentation, and links. Turn this off to preserve the source formatting.
+translation=Utiliser les paramètres de ce coffre pour les listes, l'indentation et les liens. Désactivez cette option pour conserver le formatage d'origine.
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties
-translation=
+translation=Convertir les mots-clés en ligne en propriétés
 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
-translation=
+translation=Déplacer les mots-clés écrits dans le Corps d'une note vers sa propriété Mots-clés.
 
 [importer.onenote.name]
 original=Microsoft OneNote

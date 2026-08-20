@@ -1,6 +1,6 @@
 import { BlobReader, BlobWriter, Entry, Uint8ArrayWriter, ZipReader } from '@zip.js/zip.js';
 import { decodeText } from './encoding';
-import { parseFilePath, PickedFile } from './filesystem';
+import { parseFilePath, PickedFile, PickedFolder, pickedTree } from './filesystem';
 
 interface FileEntry extends Entry {
 	directory: false;
@@ -69,4 +69,22 @@ export async function readZip(file: PickedFile, callback: (zip: ZipReader<unknow
 
 		return callback(zip, files);
 	});
+}
+
+/**
+ * What nobody compressed on purpose: macOS's own copy of the folder, and
+ * anything a vault or a version control tool hides away for itself.
+ */
+const HIDDEN = /(?:^|\/)(?:__MACOSX\/|\.)/;
+
+/**
+ * A zip as the folders it holds, so what was compressed keeps its shape.
+ *
+ * Only while the zip is open: an entry reads through the archive it came from,
+ * and a NodePickedFile closes that when its callback returns.
+ */
+export function zipContents(entries: ZipEntryFile[]): (PickedFile | PickedFolder)[] {
+	return pickedTree(entries
+		.filter(entry => !HIDDEN.test(entry.filepath))
+		.map(entry => ({ path: entry.filepath, file: entry })));
 }

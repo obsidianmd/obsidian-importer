@@ -243,8 +243,8 @@ export class WebPickedFile implements PickedFile {
 	}
 }
 
-/** A folder a browser gave up as a flat list, put back together. */
-export class WebPickedFolder implements PickedFolder {
+/** A folder whose contents are a list already in hand, not a place on disk. */
+export class ListedFolder implements PickedFolder {
 	readonly type = 'folder' as const;
 
 	constructor(
@@ -263,10 +263,10 @@ export class WebPickedFolder implements PickedFolder {
 }
 
 /**
- * The folders behind a directory input's files, which arrive as one flat list
- * with the path each file had as the only record of the shape it came in.
+ * The folders behind a flat list of files, where the path each one carries is
+ * the only record of the shape it came in. A file with no path is at the top.
  */
-export function webPickedTree(files: File[]): (PickedFile | PickedFolder)[] {
+export function pickedTree(entries: { path: string, file: PickedFile }[]): (PickedFile | PickedFolder)[] {
 	const top: (PickedFile | PickedFolder)[] = [];
 	const inside = new Map<string, (PickedFile | PickedFolder)[]>();
 
@@ -279,24 +279,26 @@ export function webPickedTree(files: File[]): (PickedFile | PickedFolder)[] {
 
 		const cut = path.lastIndexOf('/');
 		const parent = cut < 0 ? top : folderAt(path.slice(0, cut));
-		parent.push(new WebPickedFolder(path.slice(cut + 1), path, items));
+		parent.push(new ListedFolder(path.slice(cut + 1), path, items));
 
 		return items;
 	};
 
-	for (const file of files) {
-		const path = file.webkitRelativePath;
-		if (!path) {
-			top.push(new WebPickedFile(file));
-			continue;
-		}
-
+	for (const { path, file } of entries) {
 		const cut = path.lastIndexOf('/');
 		const into = cut < 0 ? top : folderAt(path.slice(0, cut));
-		into.push(new WebPickedFile(file, path));
+		into.push(file);
 	}
 
 	return top;
+}
+
+/** What a directory input handed over, which is that list with a path each. */
+export function webPickedTree(files: File[]): (PickedFile | PickedFolder)[] {
+	return pickedTree(files.map(file => {
+		const path = file.webkitRelativePath || file.name;
+		return { path, file: new WebPickedFile(file, path) };
+	}));
 }
 
 export function dataTransferHasFiles(dataTransfer: DataTransfer): boolean {

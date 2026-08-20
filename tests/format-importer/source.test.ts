@@ -11,6 +11,7 @@ import assert from 'node:assert/strict';
 import { PickedFile, PickedFolder } from '../../src/filesystem';
 import { FormatImporter } from '../../src/format-importer';
 import { HtmlImporter } from '../../src/formats/html';
+import { CSVImporter } from '../../src/formats/csv';
 import { MarkdownImporter } from '../../src/formats/markdown';
 import { SourceFile, SourceFolder } from '../shims/picked';
 import { MemoryVault, memoryApp } from '../shims/vault';
@@ -107,4 +108,36 @@ test('an importer that accepts nothing reads nothing out of a folder', async () 
 
 	assert.deepEqual(await internals.filesInside([notes()]), []);
 	assert.deepEqual(subject.acceptableFiles([new SourceFile('Index.md')]), []);
+});
+
+test('a second drop joins the first rather than replacing it', async () => {
+	const subject = await importer(MarkdownImporter);
+	const one = new SourceFile('One.zip');
+	const two = new SourceFile('Two.zip');
+
+	subject.takeDropped([one], [one]);
+	subject.takeDropped([two], [two]);
+
+	assert.deepEqual(names(subject.chosen), ['One.zip', 'Two.zip']);
+	assert.deepEqual(names(subject.files), ['One.zip', 'Two.zip']);
+});
+
+test('dropping the same thing twice leaves one of it', async () => {
+	const subject = await importer(MarkdownImporter);
+	const one = new SourceFile('One.zip');
+	const same = new SourceFile('One.zip');
+
+	subject.takeDropped([one], [one]);
+	subject.takeDropped([same], [same]);
+
+	assert.deepEqual(names(subject.chosen), ['One.zip']);
+});
+
+test('an importer that takes one file at a time still takes the latest', async () => {
+	const subject = await importer(CSVImporter);
+
+	subject.takeDropped([new SourceFile('One.csv')], [new SourceFile('One.csv')]);
+	subject.takeDropped([new SourceFile('Two.csv')], [new SourceFile('Two.csv')]);
+
+	assert.deepEqual(names(subject.files), ['Two.csv']);
 });

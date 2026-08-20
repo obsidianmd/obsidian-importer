@@ -1288,27 +1288,55 @@ translation=Se descarcă atașamentul pentru {{name}}
 
 [importer.markdown.name]
 original=Markdown
-translation=
+translation=Markdown
 
 [importer.markdown.option-text]
-original=Markdown (.md)
-translation=
+original=Markdown (.md, .zip)
+translation=Markdown (.md)
 
 [importer.markdown.file-type]
 original=Markdown
-translation=
+translation=Markdown
 
 [importer.markdown.desc-source]
-original=Pick Markdown files, or folders to import with the structure they are in.
+original=Choose individual Markdown files, whole folders, or zip files. Everything inside a folder or zip file stays organized the same way.
+translation=Alegeți fișiere Markdown sau foldere pentru a le importa cu structura în care se află.
+
+[importer.markdown.name-folders]
+original=Folders to import
 translation=
+
+[importer.markdown.desc-folders]
+original=Everything inside a folder comes with it. Untick one to leave it out.
+translation=
+
+[importer.markdown.msg-pick-source-first]
+original=Choose files or folders first.
+translation=
+
+[importer.markdown.msg-reading-folders]
+original=Reading folders...
+translation=
+
+[importer.markdown.msg-no-folders]
+original=No folders found.
+translation=
+
+[importer.markdown.name-standardize-formatting]
+original=Standardize formatting
+translation=Standardizare formatare
+
+[importer.markdown.desc-standardize-formatting]
+original=Use this vault's settings for lists, indentation, and links. Turn this off to preserve the source formatting.
+translation=Folosește setările acestui seif pentru liste, indentare și legături. Dezactivează această opțiune pentru a păstra formatarea sursă.
 
 [importer.markdown.name-tags-as-properties]
 original=Convert inline tags to properties
-translation=
+translation=Convertire etichete inline în proprietăți
 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
-translation=
+translation=Mută etichetele scrise în corpul unei însemnări în proprietatea sa de etichete.
 
 [importer.onenote.name]
 original=Microsoft OneNote

@@ -1,12 +1,28 @@
-import { normalizePath, Notice, Platform, TFile } from 'obsidian';
+import { getLanguage, normalizePath, Notice, TFile } from 'obsidian';
 import { fsPromises, NodePickedFile, PickedFile, PickedFolder } from '../filesystem';
 import { DuplicateHandling, FormatImporter, leavesTheNoteAlone } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
-import { sanitizeFileName } from '../util';
+import { MarkdownFormatting } from '../markdown-output';
+import { TreePicker, ViewableNode } from '../tree-view';
+import { describeReason, sanitizeFileName } from '../util';
+import { readZip, ZipEntryFile, zipContents } from '../zip';
 import { convertMarkdownNote } from './markdown/convert';
 
 const MARKDOWN_EXTS = ['md', 'markdown'];
+
+/** Obsidian's own formats, which are copied across as they were written. */
+const NATIVE_EXTS = ['base', 'canvas'];
+
+/** A zip is a folder that has been packed up, which is how a phone offers one. */
+const SOURCE_EXTS = [...MARKDOWN_EXTS, ...NATIVE_EXTS, 'zip'];
+
+/** A folder the import found, named by where it sits under what was chosen. */
+interface FolderNode extends ViewableNode<FolderNode> {
+	path: string;
+	/** Notes inside it, the ones in the folders under it included. */
+	notes: number;
+}
 
 interface PlannedItem {
 	parent: string;
@@ -24,7 +40,58 @@ function isMarkdown(file: PickedFile): boolean {
 	return MARKDOWN_EXTS.includes(file.extension);
 }
 
+function isZip(file: PickedFile | PickedFolder): file is PickedFile {
+	return file.type === 'file' && file.extension === 'zip';
+}
+
+/**
+ * What a vault, or the tool that versions it, keeps for itself.
+ *
+ * Only ever skipped on the way down: a folder named this and picked on purpose
+ * is one the user asked for.
+ */
+function isHidden(item: PickedFile | PickedFolder): boolean {
+	return item.name.startsWith('.');
+}
+
+/** Where a folder sits under what was chosen, which is how the plan finds it again. */
+function under(from: string, name: string): string {
+	return from ? `${from}/${name}` : name;
+}
+
+async function folderNodes(items: (PickedFile | PickedFolder)[], from: string): Promise<FolderNode[]> {
+	const nodes: FolderNode[] = [];
+
+	for (const item of items) {
+		if (item.type !== 'folder') continue;
+		if (from && isHidden(item)) continue;
+
+		const path = under(from, item.name);
+		const inside = await item.list();
+		const children = await folderNodes(inside, path);
+
+		nodes.push({
+			title: item.name,
+			path,
+			notes: inside.filter(child => child.type === 'file' && !isHidden(child) && isMarkdown(child)).length
+				+ children.reduce((total, child) => total + child.notes, 0),
+			selected: true,
+			disabled: false,
+			// The top level is open, so what was chosen shows what is in it.
+			collapsed: from !== '',
+			children,
+		});
+	}
+
+	return nodes;
+}
+
 async function fileTimes(file: PickedFile): Promise<FileTimes | undefined> {
+	if (file instanceof ZipEntryFile) {
+		const mtime = (file.mtime ?? file.ctime)?.getTime();
+		return mtime ? { ctime: (file.ctime ?? file.mtime)!.getTime(), mtime } : undefined;
+	}
+
 	if (!(file instanceof NodePickedFile)) return undefined;
 
 	try {
@@ -43,22 +110,44 @@ async function fileTimes(file: PickedFile): Promise<FileTimes | undefined> {
 }
 
 export class MarkdownImporter extends FormatImporter {
-	static extensions = MARKDOWN_EXTS;
+	// A zip is offered for a drop as well; the rest are only picked on purpose.
+	static extensions = [...MARKDOWN_EXTS, 'zip'];
 
 	interruption = 'pause' as const;
 
 	// No initializers: the base constructor calls init() first.
+	standardizeFormatting: boolean;
 	tagsAsProperties: boolean;
+	private picker: TreePicker<FolderNode>;
+	private loadedFrom: string;
+	private loadGeneration: number;
+	private skipping: Set<string>;
+	/** Folders whose own files come across; null when nothing is picking them out. */
+	private taking: Set<string> | null;
 
 	init(): void {
 		this.defaultOutputFolder = 'Markdown';
+		this.standardizeFormatting = true;
 		this.tagsAsProperties = false;
+		this.loadedFrom = '';
+		this.loadGeneration = 0;
+		this.skipping = new Set();
+		this.taking = null;
 
 		// A folder is what the structure is read from, so it is kept as one.
 		this.keepsFolders = true;
 		this.addFileChooserSetting(
-			i18n.importer.markdown.fileType(), MARKDOWN_EXTS, true,
-			Platform.isDesktopApp ? i18n.importer.markdown.descSource() : undefined);
+			i18n.importer.markdown.fileType(), SOURCE_EXTS, true,
+			i18n.importer.markdown.descSource());
+
+		this.drawFolderPicker();
+
+		this.addSetting()
+			?.setName(i18n.importer.markdown.nameStandardizeFormatting())
+			.setDesc(i18n.importer.markdown.descStandardizeFormatting())
+			.addToggle(toggle => toggle
+				.setValue(this.standardizeFormatting)
+				.onChange(value => this.standardizeFormatting = value));
 
 		this.addSetting()
 			?.setName(i18n.importer.markdown.nameTagsAsProperties())
@@ -68,9 +157,94 @@ export class MarkdownImporter extends FormatImporter {
 				.onChange(value => this.tagsAsProperties = value));
 	}
 
+	protected override get markdownFormatting(): MarkdownFormatting | undefined {
+		return this.standardizeFormatting ? undefined : null;
+	}
+
 	/** What was chosen or dropped, or the files a scripted import was handed. */
 	private source(): (PickedFile | PickedFolder)[] {
 		return this.chosen.length > 0 ? this.chosen : this.files;
+	}
+
+	protected sourceChanged(): void {
+		super.sourceChanged();
+
+		this.picker?.toggle(this.source().length > 0);
+
+		const key = this.source().map(item => item.toString()).join('\n');
+		if (key === this.loadedFrom) return;
+
+		this.loadedFrom = key;
+		if (this.picker) void this.loadFolders();
+	}
+
+	private drawFolderPicker(): void {
+		this.draw(contentEl => {
+			this.picker = new TreePicker<FolderNode>(contentEl, {
+				setting: this.addSetting('source'),
+				name: i18n.importer.markdown.nameFolders(),
+				desc: i18n.importer.markdown.descFolders(),
+				hint: i18n.importer.markdown.msgPickSourceFirst(),
+				loading: i18n.importer.markdown.msgReadingFolders(),
+				empty: i18n.importer.markdown.msgNoFolders(),
+				failed: error => describeReason(error),
+				view: {
+					icon: node => node.children?.length && !node.collapsed ? 'folder-open' : 'folder',
+					flair: node => node.notes.toLocaleString(getLanguage()),
+				},
+				loadsItself: true,
+			});
+
+			this.picker.toggle(this.source().length > 0);
+		}, 'source');
+	}
+
+	private async loadFolders(): Promise<void> {
+		const source = this.source();
+		if (source.length === 0) {
+			this.picker.reset();
+			return;
+		}
+
+		const generation = ++this.loadGeneration;
+
+		await this.picker.load(async () => {
+			let nodes: FolderNode[] = [];
+			await this.opened(source, async items => {
+				nodes = await folderNodes(items, '');
+			});
+
+			// Ignore a walk overtaken by a later one.
+			return generation === this.loadGeneration ? nodes : this.picker.nodes;
+		});
+	}
+
+	/**
+	 * What the ticks come to: the folders to walk past, and the folders whose own
+	 * files are wanted. A folder nobody ticked is still walked into when
+	 * something under it was, and gives up only what is below.
+	 */
+	private planSelection(): void {
+		this.skipping = new Set();
+		this.taking = this.picker?.nodes.length ? new Set() : null;
+		if (!this.taking) return;
+
+		const walk = (nodes: FolderNode[]): boolean => {
+			let wanted = false;
+
+			for (const node of nodes) {
+				const below = walk(node.children ?? []);
+
+				if (node.selected) this.taking!.add(node.path);
+				else if (!below) this.skipping.add(node.path);
+
+				wanted ||= node.selected || below;
+			}
+
+			return wanted;
+		};
+
+		walk(this.picker!.nodes);
 	}
 
 	/**
@@ -78,7 +252,7 @@ export class MarkdownImporter extends FormatImporter {
 	 * the files beside a note are what its links point at.
 	 */
 	wouldTake(_dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): number {
-		return files.some(isMarkdown) ? files.length : 0;
+		return files.some(file => SOURCE_EXTS.includes(file.extension)) ? files.length : 0;
 	}
 
 	protected drawOutputSettings(contentEl: HTMLElement): void {
@@ -100,26 +274,63 @@ export class MarkdownImporter extends FormatImporter {
 			return;
 		}
 
-		const planned = await this.plan(ctx, source, folder.path === '/' ? '' : folder.path);
+		this.planSelection();
 
-		let done = 0;
-		ctx.reportProgress(done, planned.length);
+		await this.opened(source, async items => {
+			const planned = await this.plan(ctx, items, folder.path === '/' ? '' : folder.path);
 
-		for (const { parent, file } of planned) {
-			if (await ctx.shouldStop()) return;
+			let done = 0;
+			ctx.reportProgress(done, planned.length);
 
-			ctx.status(i18n.common.statusProcessing({ name: file ? file.name : parent }));
+			for (const { parent, file } of planned) {
+				if (await ctx.shouldStop()) return;
+
+				ctx.status(i18n.common.statusProcessing({ name: file ? file.name : parent }));
+				try {
+					if (!file) await this.createFolders(parent);
+					else if (isMarkdown(file)) await this.importNote(ctx, parent, file);
+					else await this.copyAttachment(ctx, parent, file);
+				}
+				catch (error) {
+					ctx.reportFailed(file ? file.fullpath : parent, error);
+				}
+
+				ctx.reportProgress(++done, planned.length);
+			}
+		}, (name, error) => ctx.reportFailed(name, error));
+	}
+
+	/**
+	 * Run the import with every picked zip open, since an entry can only be read
+	 * through the archive it came from and that is closed on the way out.
+	 */
+	private async opened(
+		items: (PickedFile | PickedFolder)[],
+		body: (items: (PickedFile | PickedFolder)[]) => Promise<void>,
+		report?: (name: string, error: unknown) => void,
+	): Promise<void> {
+		const open = async (index: number, taken: (PickedFile | PickedFolder)[]): Promise<void> => {
+			if (index === items.length) return await body(taken);
+
+			const item = items[index];
+			if (!isZip(item)) return await open(index + 1, [...taken, item]);
+
+			let read = false;
 			try {
-				if (!file) await this.createFolders(parent);
-				else if (isMarkdown(file)) await this.importNote(ctx, parent, file);
-				else await this.copyAttachment(ctx, parent, file);
+				await readZip(item, async (_zip, entries) => {
+					read = true;
+					await open(index + 1, [...taken, ...zipContents(entries)]);
+				});
 			}
 			catch (error) {
-				ctx.reportFailed(file ? file.fullpath : parent, error);
-			}
+				if (read || !report) throw error;
 
-			ctx.reportProgress(++done, planned.length);
-		}
+				report(item.name, error);
+				await open(index + 1, taken);
+			}
+		};
+
+		await open(0, []);
 	}
 
 	/**
@@ -135,15 +346,23 @@ export class MarkdownImporter extends FormatImporter {
 		items: (PickedFile | PickedFolder)[],
 		into: string,
 		chosen = true,
+		from = '',
 	): Promise<PlannedItem[]> {
 		const planned: PlannedItem[] = [];
 
 		for (const item of items) {
+			if (!chosen && isHidden(item)) continue;
+
 			try {
 				if (item.type === 'file') {
+					if (from && this.taking && !this.taking.has(from)) continue;
+
 					planned.push({ parent: into, file: item });
 					continue;
 				}
+
+				const source = under(from, item.name);
+				if (this.skipping.has(source)) continue;
 
 				const name = sanitizeFileName(item.name, into);
 
@@ -152,7 +371,7 @@ export class MarkdownImporter extends FormatImporter {
 					: normalizePath(into ? `${into}/${name}` : name);
 				if (chosen) this.claimPath(at);
 
-				const inside = await this.plan(ctx, await item.list(), at, false);
+				const inside = await this.plan(ctx, await item.list(), at, false, source);
 
 				planned.push(...inside.length > 0 ? inside : [{ parent: at, file: null }]);
 			}
