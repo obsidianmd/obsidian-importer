@@ -1,5 +1,5 @@
 /**
- * Every string the importer shows. This is the source of truth: `locale/en.txt`
+ * Every string in Importer. This is the source of truth: `locale/en.txt`
  * is generated from it, and a translator fills in the other files from there.
  *
  * Conventions, borrowed from Obsidian's own string table:
@@ -12,8 +12,7 @@
  *
  * Not in here, deliberately: messages only a developer sees (console output and
  * the errors the scripted `runImport` throws), and text that is written into a
- * note rather than shown on screen, which has to read the same whoever imported
- * it.
+ * note rather than shown on screen.
  */
 export const en = {
 	command: {
@@ -51,10 +50,6 @@ export const en = {
 		pageWithCount_plural: '{{count}} pages',
 	},
 
-	/**
-	 * An app offering more than one way in. The list shows the app; this is the
-	 * screen that follows, where the two ways are told apart.
-	 */
 	group: {
 		onenote: {
 			name: 'Microsoft OneNote',
@@ -206,10 +201,6 @@ export const en = {
 		msgNoMatches: 'No results found.',
 	},
 
-	/**
-	 * What a service said no to. `subject` is what was being read, `service` the
-	 * name it goes by, and `credential` a sentence about the token to check.
-	 */
 	request: {
 		msgUnauthorized: '{{service}} did not accept the request for {{subject}}. {{credential}}',
 		msgForbidden: '{{service}} would not give access to {{subject}}. {{credential}}',
