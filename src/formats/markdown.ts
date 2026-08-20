@@ -1,11 +1,11 @@
-import { getLanguage, normalizePath, Notice, TFile } from 'obsidian';
+import { normalizePath, Notice, TFile } from 'obsidian';
 import { fsPromises, NodePickedFile, PickedFile, PickedFolder } from '../filesystem';
 import { DuplicateHandling, FormatImporter, leavesTheNoteAlone } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { MarkdownFormatting } from '../markdown-output';
 import { TreePicker, ViewableNode } from '../tree-view';
-import { describeReason, sanitizeFileName } from '../util';
+import { countText, describeReason, sanitizeFileName } from '../util';
 import { readZip, ZipEntryFile, zipContents } from '../zip';
 import { convertMarkdownNote } from './markdown/convert';
 
@@ -190,7 +190,7 @@ export class MarkdownImporter extends FormatImporter {
 				failed: error => describeReason(error),
 				view: {
 					icon: node => node.children?.length && !node.collapsed ? 'folder-open' : 'folder',
-					flair: node => node.notes.toLocaleString(getLanguage()),
+					flair: node => countText(node.notes),
 				},
 				loadsItself: true,
 			});

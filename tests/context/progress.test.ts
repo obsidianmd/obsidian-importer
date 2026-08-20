@@ -58,3 +58,13 @@ test('an import that reports no progress still counts what it imported', () => {
 
 	assert.equal(statsOf(ui).imported, '2');
 });
+
+test('a count of thousands is grouped the way the reader groups one', () => {
+	const ui = drawn();
+
+	ui.reportProgress(2500, 14000);
+	for (let note = 0; note < 12345; note++) ui.reportNoteSuccess(`Note ${note}`);
+
+	assert.equal(statsOf(ui).imported, '12,345');
+	assert.equal(statsOf(ui).remaining, '11,500');
+});

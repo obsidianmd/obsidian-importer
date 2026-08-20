@@ -1,7 +1,7 @@
 import { Setting, SettingGroup } from 'obsidian';
 import { ImportContext, ImportLogEntry } from './import-context';
 import { i18n } from './i18n';
-import { describeReason } from './util';
+import { countText, describeReason } from './util';
 
 export function outcomeText(ctx: ImportContext): string {
 	return ctx.failed.length > 0 ? i18n.progress.msgErrors() : i18n.progress.msgComplete();
@@ -62,23 +62,23 @@ export class ImportProgressUI extends ImportContext {
 
 		group.listEl.createDiv('importer-stats-container', el => {
 			el.createDiv('importer-stat mod-imported', el => {
-				this.importedCountEl = el.createDiv({ cls: 'importer-stat-count', text: this.notes.toString() });
+				this.importedCountEl = el.createDiv({ cls: 'importer-stat-count', text: countText(this.notes) });
 				el.createDiv({ cls: 'importer-stat-name', text: i18n.progress.statImported() });
 			});
 			el.createDiv('importer-stat mod-attachments', el => {
-				this.attachmentCountEl = el.createDiv({ cls: 'importer-stat-count', text: this.attachments.toString() });
+				this.attachmentCountEl = el.createDiv({ cls: 'importer-stat-count', text: countText(this.attachments) });
 				el.createDiv({ cls: 'importer-stat-name', text: i18n.progress.statAttachments() });
 			});
 			el.createDiv('importer-stat mod-remaining', el => {
-				this.remainingCountEl = el.createDiv({ cls: 'importer-stat-count', text: '0' });
+				this.remainingCountEl = el.createDiv({ cls: 'importer-stat-count', text: countText(0) });
 				el.createDiv({ cls: 'importer-stat-name', text: i18n.progress.statRemaining() });
 			});
 			el.createDiv('importer-stat mod-skipped', el => {
-				this.skippedCountEl = el.createDiv({ cls: 'importer-stat-count', text: this.skipped.length.toString() });
+				this.skippedCountEl = el.createDiv({ cls: 'importer-stat-count', text: countText(this.skipped.length) });
 				el.createDiv({ cls: 'importer-stat-name', text: i18n.progress.statSkipped() });
 			});
 			el.createDiv('importer-stat mod-failed', el => {
-				this.failedCountEl = el.createDiv({ cls: 'importer-stat-count', text: this.failed.length.toString() });
+				this.failedCountEl = el.createDiv({ cls: 'importer-stat-count', text: countText(this.failed.length) });
 				el.createDiv({ cls: 'importer-stat-name', text: i18n.progress.statFailed() });
 			});
 		});
@@ -117,17 +117,17 @@ export class ImportProgressUI extends ImportContext {
 	}
 
 	protected onNoteSuccess(): void {
-		this.importedCountEl.setText(this.notes.toString());
+		this.importedCountEl.setText(countText(this.notes));
 	}
 
 	protected onAttachmentSuccess(): void {
-		this.attachmentCountEl.setText(this.attachments.toString());
+		this.attachmentCountEl.setText(countText(this.attachments));
 	}
 
 	protected onLogged(entry: ImportLogEntry): void {
 		if (entry.outcome !== 'message') {
 			const countEl = entry.outcome === 'failed' ? this.failedCountEl : this.skippedCountEl;
-			countEl.setText((entry.outcome === 'failed' ? this.failed : this.skipped).length.toString());
+			countEl.setText(countText((entry.outcome === 'failed' ? this.failed : this.skipped).length));
 		}
 
 		this.drawLogEntry(entry);
@@ -136,7 +136,7 @@ export class ImportProgressUI extends ImportContext {
 	}
 
 	protected onProgress(current: number, total: number): void {
-		this.remainingCountEl.setText((total - current).toString());
+		this.remainingCountEl.setText(countText(total - current));
 		this.fillBar((100 * current / total).toFixed(1) + '%');
 	}
 

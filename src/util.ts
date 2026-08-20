@@ -1,4 +1,4 @@
-import { App, FrontMatterCache, parseYaml, Platform, stringifyYaml, Vault, normalizePath } from 'obsidian';
+import { App, FrontMatterCache, getLanguage, parseYaml, Platform, stringifyYaml, Vault, normalizePath } from 'obsidian';
 
 const FRONT_MATTER_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 
@@ -214,6 +214,16 @@ export function serializeFrontMatter(frontMatter: FrontMatterCache): string {
 	}
 
 	return '';
+}
+
+/**
+ * A number drawn on its own, grouped the way the chosen language groups one.
+ *
+ * A number inside a sentence goes through i18n, which does this already; this
+ * is for the ones that reach the screen with no sentence around them.
+ */
+export function countText(value: number): string {
+	return value.toLocaleString(getLanguage());
 }
 
 export function describeReason(reason: unknown): string {
