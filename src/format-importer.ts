@@ -1351,7 +1351,7 @@ export abstract class FormatImporter {
 			sourceId: sourceId ?? '',
 		};
 
-		return renderNoteTemplate(template, variables);
+		return await renderNoteTemplate(template, variables);
 	}
 
 	private async readTemplate(): Promise<string | null> {
