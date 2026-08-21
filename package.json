@@ -45,6 +45,7 @@
 	"dependencies": {
 		"@joplin/turndown-plugin-gfm": "1.0.62",
 		"@notionhq/client": "5.20.0",
+		"@obsidianmd/knap": "^0.1.0",
 		"@zip.js/zip.js": "2.7.60",
 		"airtable": "^0.12.2",
 		"defuddle": "^0.19.2",
