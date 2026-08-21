@@ -1,4 +1,10 @@
-import { createEngine, standardFilters, type TemplateFilter, type TemplateVariables } from '@obsidianmd/knap';
+import {
+	createEngine,
+	standardFilters,
+	TemplateRenderError,
+	type TemplateFilter,
+	type TemplateVariables,
+} from '@obsidianmd/knap';
 import { htmlFilters } from '@obsidianmd/knap/html';
 import { createMarkdownContent } from 'defuddle/full';
 
@@ -35,8 +41,22 @@ export async function renderNoteTemplate(
 	variables: NoteTemplateVariables,
 ): Promise<string> {
 	const sourceUrl = typeof variables.url === 'string' ? variables.url : undefined;
-	return engine.renderOrThrow(template, {
+	const result = await engine.render(template, {
 		variables,
 		context: { sourceUrl },
 	});
+
+	if (result.errors.length > 0) {
+		throw new TemplateRenderError(result.errors);
+	}
+	if (result.warnings.length > 0) {
+		console.warn(
+			'Note template warnings:',
+			result.warnings.map(warning =>
+				`Line ${warning.line}, filter ${warning.filter}: ${warning.message}`
+			).join('; '),
+		);
+	}
+
+	return result.output;
 }

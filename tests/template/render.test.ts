@@ -63,3 +63,14 @@ test('accepts an explicit Markdown base URL parameter', async () => {
 		{ html: '<a href="page">Page</a>' },
 	), '[Page](page)');
 });
+
+test('surfaces non-fatal Knap filter warnings', async (t) => {
+	const warn = t.mock.method(console, 'warn', () => undefined);
+
+	assert.equal(await renderNoteTemplate(
+		'{{value|replace:"/[/":"x"}}',
+		{ value: 'a[b' },
+	), 'a[b');
+	assert.equal(warn.mock.callCount(), 1);
+	assert.match(String(warn.mock.calls[0]?.arguments[1]), /filter replace/u);
+});
