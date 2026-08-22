@@ -83,6 +83,7 @@ interface EditableProperty {
 }
 
 const TEMPLATE_FRONT_MATTER_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
+const EMPTY_TEMPLATE_FRONT_MATTER_PATTERN = /^---\r?\n---\r?\n?/;
 const TEMPLATE_EXPRESSION_PATTERN = /({{[\s\S]*?}}|{%[\s\S]*?%})/g;
 const TEMPLATE_EXPRESSION_TOKEN = '__KNAP_TEMPLATE_EXPRESSION_';
 
@@ -115,6 +116,11 @@ function transformTemplateExpressions(
 }
 
 function parseTemplateFrontMatter(template: string): { properties: EditableProperty[], body: string } | null {
+	const emptyMatch = EMPTY_TEMPLATE_FRONT_MATTER_PATTERN.exec(template);
+	if (emptyMatch) {
+		return { properties: [], body: template.slice(emptyMatch[0].length) };
+	}
+
 	const match = TEMPLATE_FRONT_MATTER_PATTERN.exec(template);
 	if (!match) return null;
 
@@ -153,7 +159,7 @@ function serializeTemplate(properties: EditableProperty[], body: string): string
 
 function nativeEditorTemplate(properties: EditableProperty[], body: string): string {
 	const entries = properties.filter(property => property.key.trim());
-	if (entries.length === 0) return body;
+	if (entries.length === 0) return `---\n---\n${body}`;
 	const frontMatter = Object.fromEntries(entries.map(property => [property.key.trim(), property.value]));
 	return `---\n${stringifyYaml(frontMatter)}---\n${body}`;
 }
