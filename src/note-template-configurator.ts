@@ -473,7 +473,14 @@ export class NoteTemplateConfigurator {
 				renderComponent = null;
 				clearPreview();
 				previewDiagnostics.empty();
-				previewNav.hide();
+				previewPathParent.empty();
+				previewPathName.empty();
+				previewPath.setAttr('title', '');
+				previewPath.show();
+				previousButton.disabled = true;
+				nextButton.disabled = true;
+				previewNavButtons.show();
+				previewNav.show();
 				const loading = preview.createDiv('importer-loading importer-template-preview-loading');
 				setIcon(loading.createDiv('loader-spinner'), 'loader-2');
 				loading.createDiv({

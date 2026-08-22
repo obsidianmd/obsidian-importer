@@ -219,8 +219,10 @@ export abstract class FormatImporter {
 	outputLocation: string = '';
 	/** Vault-relative path of the optional Markdown template for this importer. */
 	templatePath: string = '';
-	/** Inline template configured for this import run. */
+	/** Inline template used for this import run. */
 	protected inlineTemplate: string | null = null;
+	/** Whether the inline template is a user customization worth remembering. */
+	private customInlineTemplate: boolean = false;
 	/** Knap expression used to name imported notes. */
 	noteTitleTemplate: string = '{{title}}';
 	notAvailable: boolean = false;
@@ -437,7 +439,7 @@ export abstract class FormatImporter {
 		setup: NoteTemplateSetup = {},
 	): Promise<boolean> {
 		const defaultTemplate = setup.defaultTemplate ?? '{{content}}';
-		let template = defaultTemplate;
+		let template = this.inlineTemplate ?? defaultTemplate;
 		let templatePath = this.templatePath;
 		if (templatePath.trim()) {
 			try {
@@ -446,6 +448,7 @@ export abstract class FormatImporter {
 			catch (error) {
 				new Notice(error instanceof Error ? error.message : String(error));
 				templatePath = '';
+				template = this.inlineTemplate ?? defaultTemplate;
 			}
 		}
 
@@ -490,6 +493,8 @@ export abstract class FormatImporter {
 
 		this.inlineTemplate = configured.template;
 		this.templatePath = configured.path;
+		this.customInlineTemplate = !configured.path.trim()
+			&& configured.template !== defaultTemplate;
 		this.noteTitleTemplate = configured.titleTemplate;
 		this.loadedTemplate = null;
 		this.saveOutputSettings();
@@ -1251,6 +1256,10 @@ export abstract class FormatImporter {
 
 			if (saved.folder !== undefined) this.outputLocation = saved.folder;
 			if (saved.template !== undefined) this.templatePath = saved.template;
+			if (!this.templatePath.trim() && saved.inlineTemplate !== undefined) {
+				this.inlineTemplate = saved.inlineTemplate;
+				this.customInlineTemplate = true;
+			}
 			if (saved.titleTemplate !== undefined) this.noteTitleTemplate = saved.titleTemplate || '{{title}}';
 			if (saved.attachments) this.attachmentLocation = { ...saved.attachments };
 			if (saved.duplicates && this.duplicateModes.includes(saved.duplicates)) {
@@ -1278,6 +1287,9 @@ export abstract class FormatImporter {
 						saveSourceId: this.saveSourceId,
 						idProperty: this.idProperty ?? undefined,
 						template: this.templatePath,
+						inlineTemplate: !this.templatePath.trim() && this.customInlineTemplate
+							? this.inlineTemplate ?? undefined
+							: undefined,
 						titleTemplate: this.noteTitleTemplate,
 					},
 				};

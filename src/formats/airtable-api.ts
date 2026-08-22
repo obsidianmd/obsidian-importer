@@ -3,7 +3,7 @@
  * Imports tables and records from Airtable using the API
  */
 
-import { Notice, normalizePath, TFile, setIcon, stringifyYaml, parseYaml, Setting, SettingGroup } from 'obsidian';
+import { Notice, normalizePath, TFile, setIcon, stringifyYaml, parseYaml, Setting } from 'obsidian';
 import { FormatImporter, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
@@ -92,6 +92,10 @@ interface AirtableTemplatePreviewSample extends NoteTemplateSample {
 
 export class AirtableAPIImporter extends FormatImporter {
 	interruption = 'pause' as const;
+
+	protected override get sourceIdSettingFirst(): boolean {
+		return true;
+	}
 
 	/** Resolved from the keychain on each read, so unlinking the secret takes effect immediately */
 	get airtableToken(): string {
@@ -487,8 +491,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		contentEl: HTMLElement,
 		previewChanged: () => void,
 	): void {
-		const group = new SettingGroup(contentEl);
-		new Setting(group.listEl)
+		new Setting(this.settingsIn(contentEl))
 			.setName(i18n.importer.airtableApi.nameViewProperty())
 			.setDesc(i18n.importer.airtableApi.descViewProperty())
 			.addText(text => text

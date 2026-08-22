@@ -9,6 +9,7 @@ import { ImportContext } from '../../src/import-context';
 import { memoryApp, MemoryVault } from '../shims/vault';
 import { NoteTemplateConfigurator, propertyIcon } from '../../src/note-template-configurator';
 import type { ManagedTemplateProperty } from '../../src/note-template-configurator';
+import { DEFAULT_DATA, HostPlugin, ImporterData } from '../../src/plugin-data';
 import { Setting } from 'obsidian';
 
 class LoadingPreviewImporter extends FormatImporter {
@@ -264,5 +265,91 @@ test('source identity is configured beside the template while existing-note beha
 		NoteTemplateConfigurator.prototype.show = realShow;
 		settingPrototype.addDropdown = realAddDropdown;
 		settingPrototype.addToggle = realAddToggle;
+	}
+});
+
+test('an edited inline template is remembered without freezing defaults or overriding a selected file', async () => {
+	const realShow = NoteTemplateConfigurator.prototype.show;
+	const vault = new MemoryVault();
+	let data: ImporterData = structuredClone(DEFAULT_DATA);
+	let saved: (() => void) | null = null;
+	const plugin: HostPlugin = {
+		loadData: async () => structuredClone(data),
+		saveData: async value => {
+			data = structuredClone(value);
+			saved?.();
+			saved = null;
+		},
+		registerAuthCallback: () => {},
+	};
+	const createImporter = async () => {
+		const importer = new NoteSettingsImporter(memoryApp(vault), {
+			sourceEl: createDiv(),
+			outputEl: null,
+			optionsEl: null,
+			plugin,
+			importerId: 'remembered-template',
+			abortController: new AbortController(),
+		});
+		await importer.ready;
+		return importer;
+	};
+	const flushSettings = async (importer: NoteSettingsImporter) => {
+		const didSave = new Promise<void>(resolve => saved = resolve);
+		(importer as unknown as {
+			saveOutputSettings: { run(): unknown };
+		}).saveOutputSettings.run();
+		await didSave;
+	};
+
+	try {
+		NoteTemplateConfigurator.prototype.show = async function() {
+			return {
+				template: '{{content}}',
+				path: '',
+				titleTemplate: '{{title}}',
+			};
+		};
+		const unchanged = await createImporter();
+		await unchanged.showSettings(createDiv(), createDiv());
+		await flushSettings(unchanged);
+		assert.equal(data.outputSettings['remembered-template'].inlineTemplate, undefined);
+
+		NoteTemplateConfigurator.prototype.show = async function() {
+			return {
+				template: '# Custom\n\n{{content}}',
+				path: '',
+				titleTemplate: '{{title}}',
+			};
+		};
+		const edited = await createImporter();
+		await edited.showSettings(createDiv(), createDiv());
+		await flushSettings(edited);
+		assert.equal(
+			data.outputSettings['remembered-template'].inlineTemplate,
+			'# Custom\n\n{{content}}',
+		);
+
+		let openedWith = '';
+		NoteTemplateConfigurator.prototype.show = async function() {
+			openedWith = (this as unknown as {
+				options: { template: string };
+			}).options.template;
+			return null;
+		};
+		const reopened = await createImporter();
+		await reopened.showSettings(createDiv(), createDiv());
+		assert.equal(openedWith, '# Custom\n\n{{content}}');
+
+		await vault.createFolder('Templates');
+		await vault.create('Templates/Import.md', '# From file\n\n{{content}}');
+		data.outputSettings['remembered-template'].template = 'Templates/Import.md';
+		data.outputSettings['remembered-template'].inlineTemplate = '# Stale inline template';
+		const withFile = await createImporter();
+		await withFile.showSettings(createDiv(), createDiv());
+		assert.equal(openedWith, '# From file\n\n{{content}}');
+	}
+	finally {
+		NoteTemplateConfigurator.prototype.show = realShow;
 	}
 });
