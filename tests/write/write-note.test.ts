@@ -10,6 +10,12 @@ import { MemoryVault, memoryApp } from '../shims/vault';
 class WritingImporter extends FormatImporter {
 	init(): void {}
 	async import(_ctx: ImportContext): Promise<void> {}
+	useInlineTemplate(template: string): void {
+		this.inlineTemplate = template;
+	}
+	async preview(template = '{{content}}') {
+		return await this.exampleTemplatePreview(template, []);
+	}
 }
 
 function importer(duplicateHandling: DuplicateHandling) {
@@ -169,6 +175,48 @@ test('a selected Markdown template renders the whole imported note', async () =>
 	].join('\n'));
 });
 
+test('an inline template renders importer-specific source values', async () => {
+	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
+	subject.useInlineTemplate('---\nProject: {{Project | yaml}}\n---\n# {{title}}');
+
+	const { file } = await subject.writeNote(ctx, vault.root, 'Roadmap', '', {
+		templateVariables: { Project: 'Importer: templates' },
+	});
+
+	assert.equal(vault.contents.get(file.path), [
+		'---',
+		'Project: "Importer: templates"',
+		'---',
+		'# Roadmap',
+	].join('\n'));
+});
+
+test('shared template timestamps reflect source file times', async () => {
+	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
+	await vault.create('Template.md', '{{ctime}} / {{mtime}}');
+	subject.templatePath = 'Template.md';
+
+	const { file } = await subject.writeNote(ctx, vault.root, 'Note', 'Body', {
+		ctime: Date.parse('2024-01-02T03:04:05.000Z'),
+		mtime: Date.parse('2025-06-07T08:09:10.000Z'),
+	});
+
+	assert.equal(
+		vault.contents.get(file.path),
+		'2024-01-02T03:04:05.000Z / 2025-06-07T08:09:10.000Z',
+	);
+});
+
+test('shared source timestamps are empty when the importer has none', async () => {
+	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
+	await vault.create('Template.md', '{{ctime}} / {{mtime}}');
+	subject.templatePath = 'Template.md';
+
+	const { file } = await subject.writeNote(ctx, vault.root, 'Note', 'Body');
+
+	assert.equal(vault.contents.get(file.path), ' / ');
+});
+
 test('source identity is added after rendering the template', async () => {
 	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
 	await vault.create('Template.md', '# {{title}}\n\n{{body}}');
@@ -179,6 +227,20 @@ test('source identity is added after rendering the template', async () => {
 	const { file } = await subject.writeNote(ctx, vault.root, 'Note', 'Body', { sourceId: 'abc-123' });
 
 	assert.equal(vault.contents.get(file.path), '---\nsource-id: abc-123\n---\n# Note\n\nBody');
+});
+
+test('the template preview includes source identity when it will be saved', async () => {
+	const { subject } = importer(DuplicateHandling.CreateCopy);
+	subject.idProperty = 'apple-notes-id';
+
+	subject.saveSourceId = false;
+	assert.equal((await subject.preview()).content, '# Imported note\n\nImported content');
+
+	subject.saveSourceId = true;
+	assert.equal(
+		(await subject.preview()).content,
+		'---\napple-notes-id: example-source-id\n---\n# Imported note\n\nImported content',
+	);
 });
 
 test('common variables win collisions while the source value remains namespaced', async () => {

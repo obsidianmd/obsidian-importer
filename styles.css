@@ -436,6 +436,77 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 	justify-content: center;
 }
 
+.importer-template-diagnostics {
+	color: var(--text-error);
+	font-size: var(--font-ui-small);
+}
+
+.importer-template-preview-nav {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--size-4-2);
+	margin-bottom: var(--size-4-2);
+}
+
+.importer-template-preview-nav button {
+	--icon-size: var(--icon-s);
+	padding: var(--size-4-1);
+}
+
+.importer-template-preview {
+	min-height: 12rem;
+	max-height: 24rem;
+	overflow: auto;
+	padding: var(--size-4-3);
+	border: var(--border-width) solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--background-primary-alt);
+}
+
+.importer-template-preview .markdown-preview-view {
+	padding: 0;
+}
+
+.importer-template-preview .importer-template-preview-loading {
+	min-height: calc(12rem - var(--size-4-6));
+	justify-content: center;
+	padding: 0;
+}
+
+.importer-template-preview .markdown-preview-view .metadata-container {
+	display: block;
+}
+
+.importer-template-editor {
+	display: block;
+	width: 100%;
+	min-height: 18rem;
+	padding: 0;
+	resize: vertical;
+	border: 0;
+	background: transparent;
+	color: var(--text-normal);
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-small);
+}
+
+.importer-template-editor:focus {
+	box-shadow: none;
+}
+
+.importer-template-rendered-note {
+	color: var(--text-normal);
+}
+
+.importer-template-rendered-note .inline-title {
+	display: block;
+}
+
+.importer-template-properties:not(.is-editable) {
+	pointer-events: none;
+}
+
 /*
  * Tree selector buttons. Their labels change as the user works ("Load" ->
  * "Loading..." -> "Refresh", "Select all" -> "Deselect all"), so they need a

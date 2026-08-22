@@ -499,10 +499,6 @@ export class ImporterFlow implements ImporterHost {
 		});
 	}
 
-	private hasOptionsStep(): boolean {
-		return (this.optionsEl?.childElementCount ?? 0) > 0;
-	}
-
 	showSourceStep() {
 		this.drawCurrent = () => this.showSourceStep();
 		this.drawStep(this.sourceDepth(), this.sourceEl, () => this.showPreviousScreen(), el => {
@@ -524,25 +520,10 @@ export class ImporterFlow implements ImporterHost {
 		this.drawCurrent = () => this.showOutputStep();
 
 		await importer.ready;
+		importer.prefetchTemplatePreview();
 		importer.drawOutputStep();
 
 		this.drawStep(this.sourceDepth() + 1, this.outputEl, () => this.showSourceStep(), el => {
-			if (this.hasOptionsStep()) {
-				el.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonContinue() }, el => {
-					el.addEventListener('click', () => this.showOptionsStep());
-				});
-				return;
-			}
-
-			this.addImportButton(el, importer);
-		});
-	}
-
-	showOptionsStep() {
-		const { importer } = this;
-
-		this.drawCurrent = () => this.showOptionsStep();
-		this.drawStep(this.sourceDepth() + 2, this.optionsEl, () => this.showOutputStep(), el => {
 			this.addImportButton(el, importer);
 		});
 	}

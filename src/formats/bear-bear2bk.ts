@@ -1,6 +1,6 @@
 import { DataWriteOptions, normalizePath, Notice, TFile, TFolder } from 'obsidian';
 import { parseFilePath } from '../filesystem';
-import { FormatImporter } from '../format-importer';
+import { FormatImporter, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { readZip, ZipEntryFile } from '../zip';
@@ -39,22 +39,67 @@ export class Bear2bkImporter extends FormatImporter {
 		this.idProperty = 'bear-id';
 		this.idLabel = i18n.importer.bear.labelId();
 
-		this.addSetting()
+		this.addSetting('template')
 			?.setName(i18n.importer.bear.nameTagsProperty())
 			.setDesc(i18n.importer.bear.descTagsProperty())
 			.addToggle(t => t
 				.setValue(false)
-				.onChange(async v => this.tagPlacement = v ? 'property' : 'inline')
+				.onChange(async v => {
+					this.tagPlacement = v ? 'property' : 'inline';
+					this.templateSettingsChanged();
+				})
 			);
 
-		this.addSetting()
+		this.addSetting('template')
 			?.setName(i18n.importer.bear.nameFlattenTags())
 			.setDesc(i18n.importer.bear.descFlattenTags())
 			.addToggle(t => t
 				.setValue(false)
-				.onChange(async v => this.flattenTags = v)
+				.onChange(async v => {
+					this.flattenTags = v;
+					this.templateSettingsChanged();
+				})
 			);
 
+	}
+
+	protected override async templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]> {
+		const samples: NoteTemplateSample[] = [];
+		for (const file of this.files) {
+			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
+			await readZip(file, async (_zip, entries) => {
+				const metadata = await this.collectMetadata(ctx, entries);
+				for (const entry of entries) {
+					if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
+					if (entry.extension !== 'md' && entry.extension !== 'markdown') continue;
+
+					try {
+						const title = parseFilePath(entry.parent).basename || entry.basename;
+						const converted = await convertBearNote(await entry.readText(), {
+							basename: title,
+							parent: entry.parent,
+							flattenTags: this.flattenTags,
+							tagPlacement: this.tagPlacement,
+							// Resolving an asset chooses and claims a vault path. Preview the
+							// source-relative link instead, without touching the vault.
+							resolveAsset: async assetPath => assetPath,
+						});
+						const noteMetadata = metadata[entry.parent];
+						samples.push({
+							title,
+							path: normalizePath(`${this.outputLocation}/${title}.md`),
+							content: converted.content,
+							sourceId: noteMetadata?.id,
+							times: { ctime: noteMetadata?.ctime, mtime: noteMetadata?.mtime },
+						});
+					}
+					catch (error) {
+						console.warn(`Could not preview Bear note ${entry.fullpath}`, error);
+					}
+				}
+			});
+		}
+		return samples;
 	}
 
 	async import(ctx: ImportContext): Promise<void> {

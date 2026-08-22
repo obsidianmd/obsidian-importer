@@ -23,6 +23,8 @@ function importerOverPages(pages: OnenotePage[], overrides: Partial<OneNoteImpor
 		sectionPages: new Map(),
 		readingAhead: new Map(),
 		readAheadQueue: Promise.resolve(),
+		previewContentReads: new Map(),
+		previewReadAhead: Promise.resolve(),
 		pagesGeneration: 0,
 		graphData: { accessToken: 'token' },
 		duplicateHandling: DuplicateHandling.CreateCopy,
@@ -110,6 +112,58 @@ test('page lists read ahead of the import are not fetched twice', async () => {
 	await subject.import(new ImportContext());
 
 	assert.deepEqual(listed, [], 'the cached list should be used as it stands');
+});
+
+test('moving past the source step reads the first ten preview pages ahead', async () => {
+	const pages = Array.from({ length: 12 }, (_, index) => ({
+		id: `p-${index}`,
+		title: `Page ${index}`,
+		contentUrl: `page-id=p-${index}}`,
+	})) as OnenotePage[];
+	const contentReads: string[] = [];
+	const subject = importerOverPages(pages, {
+		sectionPages: new Map([['section', pages]]),
+		fetchResource: async (url: string) => {
+			contentReads.push(url);
+			return `content for ${url}`;
+		},
+	} as unknown as Partial<OneNoteImporter>);
+	const inner = subject as unknown as {
+		previewReadAhead: Promise<void>;
+		previewPageContent(page: OnenotePage, progress?: ImportContext): Promise<string>;
+	};
+
+	subject.prefetchTemplatePreview();
+	await inner.previewReadAhead;
+
+	assert.equal(contentReads.length, 10);
+	assert.match(contentReads[0], /pages\/p-0\/content/);
+	assert.match(contentReads[9], /pages\/p-9\/content/);
+
+	await inner.previewPageContent(pages[0], new ImportContext());
+	assert.equal(contentReads.length, 10, 'the visible preview should reuse the speculative request');
+});
+
+test('a failed speculative preview read can retry with the visible progress context', async () => {
+	const page = { id: 'p', title: 'Page', contentUrl: 'page-id=p}' } as OnenotePage;
+	let contentReads = 0;
+	const subject = importerOverPages([page], {
+		sectionPages: new Map([['section', [page]]]),
+		fetchResource: async () => {
+			contentReads++;
+			if (contentReads === 1) throw new Error('background request refused');
+			return 'content';
+		},
+	} as unknown as Partial<OneNoteImporter>);
+	const inner = subject as unknown as {
+		previewReadAhead: Promise<void>;
+		previewPageContent(page: OnenotePage, progress?: ImportContext): Promise<string>;
+	};
+
+	subject.prefetchTemplatePreview();
+	await inner.previewReadAhead;
+	assert.equal(await inner.previewPageContent(page, new ImportContext()), 'content');
+	assert.equal(contentReads, 2);
 });
 
 test('a section missed by the read-ahead is still fetched by the import', async () => {
@@ -220,6 +274,7 @@ test('signing out forgets which kind of account it was', () => {
 		graphData: { accessToken: 'token' },
 		sectionPages: new Map(),
 		readingAhead: new Map(),
+		previewContentReads: new Map(),
 		pagesGeneration: 0,
 		picker: { reset: () => {} },
 		accountSetting: { setDesc: () => {} },

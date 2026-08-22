@@ -19,7 +19,7 @@ import * as nodeFs from 'node:fs';
 import * as nodeOs from 'node:os';
 import * as nodePath from 'node:path';
 
-import { convertRow, defaultTemplateConfig, sanitizeYAMLKey } from '../../src/formats/csv/convert';
+import { convertRow, defaultNoteTemplate, defaultTemplateConfig, sanitizeYAMLKey } from '../../src/formats/csv/convert';
 import { parseCSV, parseCSVLine, splitCSVLines } from '../../src/formats/csv/parse';
 import { sanitizeFileName } from '../../src/util';
 import { expectedFor, expectTree, fixtures } from '../helpers';
@@ -30,6 +30,18 @@ const files = fixtures(FIXTURES, '.csv');
 
 test('there are fixtures to convert', () => {
 	assert.ok(files.length > 0, 'expected at least one .csv in tests/csv');
+});
+
+test('generates a Markdown template from CSV headers', () => {
+	assert.equal(defaultNoteTemplate(
+		['Name', 'Project: status', ''],
+		sanitizeYAMLKey,
+	), [
+		'---',
+		'Name: {{source["Name"] | yaml}}',
+		'Project status: {{source["Project: status"] | yaml}}',
+		'---',
+	].join('\n'));
 });
 
 for (const file of files) {

@@ -662,6 +662,10 @@ translation=Nepodarilo sa prečítať {{subject}}.
 original=Configure how your data should be imported. Use {{syntax}} syntax to reference field values.
 translation=Nakonfigurujte, ako sa majú vaše dáta importovať. Použite syntax {{syntax}} na odkazovanie na hodnoty polí.
 
+[template.msg-note-template-intro]
+original=Preview examples from your selection or choose a Markdown template from your vault.
+translation=
+
 [template.name-title]
 original=Note title
 translation=Premenovať súbor
@@ -685,6 +689,42 @@ translation=Obsah poznámky
 [template.desc-content]
 original=Template for the note content. Use {{field_name}} to insert values.
 translation=Šablóna pre obsah poznámky. Použite {{field_name}} na vloženie hodnôt.
+
+[template.name-template-file]
+original=Template
+translation=
+
+[template.desc-template-file]
+original=Choose a template from your vault.
+translation=
+
+[template.heading-preview]
+original=Preview
+translation=
+
+[template.button-edit-template]
+original=Edit
+translation=
+
+[template.button-save-template]
+original=Save
+translation=
+
+[template.name-template-editor]
+original=Template source
+translation=
+
+[template.button-add-property]
+original=Add property
+translation=
+
+[template.button-previous-preview]
+original=Previous preview
+translation=
+
+[template.button-next-preview]
+original=Next preview
+translation=
 
 [template.heading-properties]
 original=Properties

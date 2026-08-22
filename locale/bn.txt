@@ -662,6 +662,10 @@ translation={{subject}} পড়া যায়নি।
 original=Configure how your data should be imported. Use {{syntax}} syntax to reference field values.
 translation=আপনার ডেটা কীভাবে ইমপোর্ট করা হবে তা সাজান। ফিল্ডের মান রেফারেন্স করতে {{syntax}} সিনট্যাক্স ব্যবহার করুন।
 
+[template.msg-note-template-intro]
+original=Preview examples from your selection or choose a Markdown template from your vault.
+translation=
+
 [template.name-title]
 original=Note title
 translation=ফাইলের নাম পরিবর্তন করুন
@@ -685,6 +689,42 @@ translation=নোটের বিষয়বস্তু
 [template.desc-content]
 original=Template for the note content. Use {{field_name}} to insert values.
 translation=নোটের বিষয়বস্তুর জন্য টেমপ্লেট। মান যোগ করুন {{field_name}} ব্যবহার করে।
+
+[template.name-template-file]
+original=Template
+translation=
+
+[template.desc-template-file]
+original=Choose a template from your vault.
+translation=
+
+[template.heading-preview]
+original=Preview
+translation=
+
+[template.button-edit-template]
+original=Edit
+translation=
+
+[template.button-save-template]
+original=Save
+translation=
+
+[template.name-template-editor]
+original=Template source
+translation=
+
+[template.button-add-property]
+original=Add property
+translation=
+
+[template.button-previous-preview]
+original=Previous preview
+translation=
+
+[template.button-next-preview]
+original=Next preview
+translation=
 
 [template.heading-properties]
 original=Properties

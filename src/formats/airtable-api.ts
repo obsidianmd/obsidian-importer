@@ -3,8 +3,8 @@
  * Imports tables and records from Airtable using the API
  */
 
-import { Notice, normalizePath, TFile, setIcon, stringifyYaml, parseYaml } from 'obsidian';
-import { FormatImporter } from '../format-importer';
+import { Notice, normalizePath, TFile, setIcon, stringifyYaml, parseYaml, Setting, SettingGroup } from 'obsidian';
+import { FormatImporter, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { parseFilePath } from '../filesystem';
@@ -17,6 +17,7 @@ import {
 	TemplateConfigurator,
 	TemplateConfig,
 	TemplateField,
+	sourceVariableExpression,
 } from '../template';
 
 // Import helper modules
@@ -177,19 +178,16 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		this.picker.onLoad(() => void this.loadTree());
 
-		// Formula import strategy
+		// Formula conversion affects import processing rather than the property
+		// names configured on the template page.
 		this.addSetting()
 			?.setName(i18n.importer.airtableApi.nameFormulas())
 			.setDesc(i18n.importer.airtableApi.descFormulas())
-			.addDropdown(dropdown => {
-				dropdown
-					.addOption('hybrid', i18n.importer.airtableApi.optionFormulaHybrid())
-					.addOption('static', i18n.importer.airtableApi.optionFormulaStatic())
-					.setValue('hybrid')
-					.onChange(value => {
-						this.formulaStrategy = value as FormulaImportStrategy;
-					});
-			});
+			.addDropdown(dropdown => dropdown
+				.addOption('hybrid', i18n.importer.airtableApi.optionFormulaHybrid())
+				.addOption('static', i18n.importer.airtableApi.optionFormulaStatic())
+				.setValue(this.formulaStrategy)
+				.onChange(value => this.formulaStrategy = value as FormulaImportStrategy));
 
 		// Download attachments option
 		this.addSetting()
@@ -202,19 +200,6 @@ export class AirtableAPIImporter extends FormatImporter {
 						this.downloadAttachments = value;
 					});
 			});
-
-		// View property name
-		this.addSetting()
-			?.setName(i18n.importer.airtableApi.nameViewProperty())
-			.setDesc(i18n.importer.airtableApi.descViewProperty())
-			.addText(text => text
-				.setPlaceholder('Views')
-				.setValue('Views')
-				.onChange(value => {
-					// Stripped rather than escaped: this name is embedded in a
-					// double-quoted Bases filter string in the generated .base file
-					this.viewPropertyName = value.trim().replace(/["\\]/g, '') || 'Views';
-				}));
 
 		this.duplicateCaveat = i18n.importer.airtableApi.descNoModifiedTime({
 			update: i18n.output.optionUpdate(),
@@ -360,7 +345,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	/**
 	 * Show template configuration UI before import (similar to CSV importer)
 	 */
-	async showTemplateConfiguration(_ctx: ImportContext, container: HTMLElement, buttonsEl: HTMLElement): Promise<boolean> {
+	async showTemplateConfiguration(ctx: ImportContext, container: HTMLElement, buttonsEl: HTMLElement): Promise<boolean> {
 		if (this.getSelectedNodes().length === 0) {
 			new Notice(i18n.importer.airtableApi.msgPickTable());
 			return false;
@@ -442,12 +427,132 @@ export class AirtableAPIImporter extends FormatImporter {
 			placeholderSyntax: '{{field_name}}',
 			showTitleTemplate: false, // Airtable always uses primary field as note title
 			showLocationTemplate: false, // Records go to table folders automatically
+			actionText: i18n.modal.buttonContinue(),
+			configure: (contentEl, config, redrawProperties) => {
+				this.addAirtableTemplateSettings(contentEl, config, Array.from(allFieldsMap.values()), redrawProperties);
+			},
 		});
 
 		this.templateConfig = await configurator.show(container, buttonsEl);
 
 		// Return false if user cancelled
-		return this.templateConfig !== null;
+		if (!this.templateConfig) return false;
+		const templateFields = fields.map(field => ({
+			...field,
+			sourceName: field.id,
+			id: sourceVariableExpression(field.id),
+		}));
+		const samples = this.loadTemplatePreviewSamples(ctx, picked).catch(error => {
+			console.error('Could not load Airtable template previews', error);
+			return [];
+		});
+		return await this.showNoteTemplateConfiguration(container, buttonsEl, {
+			fields: templateFields,
+			preview: async template => await this.previewLoadedSamples(template, samples, templateFields),
+		});
+	}
+
+	private addAirtableTemplateSettings(
+		contentEl: HTMLElement,
+		config: TemplateConfig,
+		fields: Iterable<AirtableFieldSchema>,
+		redrawProperties: () => void,
+	): void {
+		const group = new SettingGroup(contentEl);
+		new Setting(group.listEl)
+			.setName(i18n.importer.airtableApi.nameViewProperty())
+			.setDesc(i18n.importer.airtableApi.descViewProperty())
+			.addText(text => text
+				.setPlaceholder('Views')
+				.setValue(this.viewPropertyName)
+				.onChange(value => {
+					// Stripped rather than escaped: this name is embedded in a
+					// double-quoted Bases filter string in the generated .base file.
+					const previous = this.viewPropertyName;
+					this.viewPropertyName = value.trim().replace(/["\\]/g, '') || 'Views';
+					this.updateAirtableViewPropertyConflict(config, fields, previous);
+					redrawProperties();
+				}));
+	}
+
+	private updateAirtableViewPropertyConflict(
+		config: TemplateConfig,
+		fields: Iterable<AirtableFieldSchema>,
+		previous: string,
+	): void {
+		for (const field of fields) {
+			const propertyName = sanitizePropertyName(field.name);
+			if (propertyName.toLowerCase() === this.viewPropertyName.toLowerCase()) {
+				config.propertyNames.delete(field.name);
+				config.propertyValues.delete(field.name);
+			}
+			else if (
+				propertyName.toLowerCase() === previous.toLowerCase()
+				&& !config.propertyNames.has(field.name)
+			) {
+				config.propertyNames.set(field.name, propertyName);
+				config.propertyValues.set(field.name, `{{${field.name}}}`);
+			}
+		}
+	}
+
+	private async loadTemplatePreviewSamples(
+		ctx: ImportContext,
+		picked: AirtableTreeNode[],
+	): Promise<NoteTemplateSample[]> {
+		const samples: NoteTemplateSample[] = [];
+		for (const group of this.groupSelectedNodesByBase(picked).values()) {
+			for (const table of group.tables) {
+				if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) return samples;
+
+				const fields = table.fields;
+				const primaryFieldName = fields.find(field => field.id === table.primaryFieldId)?.name
+					?? fields[0]?.name;
+				if (!primaryFieldName) continue;
+
+				const records = await selectRecords(
+					this.getAirtableBase(group.baseId),
+					table.tableId || table.tableName,
+					{ maxRecords: TEMPLATE_PREVIEW_LIMIT - samples.length },
+				);
+				const formulaFieldNames = new Set(this.computeTableFormulas(fields, table.primaryFieldId).keys());
+				const frontMatterFields = this.frontMatterFieldsForTable(fields, primaryFieldName);
+
+				for (const record of records as AirtableRecord[]) {
+					if (isEmptyRecord(record)) continue;
+					const title = recordTitle(record, primaryFieldName);
+					const path = normalizePath([
+						this.outputLocation.trim(),
+						sanitizeFileName(group.baseName),
+						sanitizeFileName(table.tableName),
+						`${sanitizeFileName(title)}.md`,
+					].filter(Boolean).join('/'));
+					const { content, templateVariables } = await buildRecordNote(record, {
+						fields,
+						primaryFieldName,
+						viewReferences: [],
+						viewPropertyName: this.viewPropertyName,
+						formulaFieldNames,
+						frontMatterFields,
+						recordId: false,
+						bodyTemplate: this.templateConfig?.bodyTemplate,
+						resolveAttachments: async () => [],
+						formatAttachmentsForBody: () => [],
+						formatAttachmentsForYAML: () => [],
+					});
+					samples.push({
+						title,
+						path,
+						content,
+						variables: templateVariables,
+						sourceId: record.id,
+						times: recordTimestamps(record),
+					});
+					if (samples.length >= TEMPLATE_PREVIEW_LIMIT) return samples;
+				}
+			}
+		}
+		return samples;
 	}
 
 	/**

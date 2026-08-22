@@ -662,6 +662,10 @@ translation=Impossibile leggere {{subject}}.
 original=Configure how your data should be imported. Use {{syntax}} syntax to reference field values.
 translation=Configura come importare i tuoi dati. Usa la sintassi {{syntax}} per fare riferimento ai valori dei campi.
 
+[template.msg-note-template-intro]
+original=Preview examples from your selection or choose a Markdown template from your vault.
+translation=
+
 [template.name-title]
 original=Note title
 translation=Rinomina file
@@ -685,6 +689,42 @@ translation=Contenuto della nota
 [template.desc-content]
 original=Template for the note content. Use {{field_name}} to insert values.
 translation=Modello per il contenuto della nota. Usa {{field_name}} per inserire i valori.
+
+[template.name-template-file]
+original=Template
+translation=
+
+[template.desc-template-file]
+original=Choose a template from your vault.
+translation=
+
+[template.heading-preview]
+original=Preview
+translation=
+
+[template.button-edit-template]
+original=Edit
+translation=
+
+[template.button-save-template]
+original=Save
+translation=
+
+[template.name-template-editor]
+original=Template source
+translation=
+
+[template.button-add-property]
+original=Add property
+translation=
+
+[template.button-previous-preview]
+original=Previous preview
+translation=
+
+[template.button-next-preview]
+original=Next preview
+translation=
 
 [template.heading-properties]
 original=Properties

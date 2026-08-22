@@ -1,6 +1,6 @@
 import { Notice, TFolder } from 'obsidian';
 import { PickedFile } from '../filesystem';
-import { FormatImporter, NoteWritten } from '../format-importer';
+import { FormatImporter, NoteTemplateSample, NoteWritten, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { ATTACHMENT_EXTS } from '../constants';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
@@ -76,6 +76,48 @@ export class KeepImporter extends FormatImporter {
 			return;
 		}
 		await this.handleFiles(files, folder, ctx);
+	}
+
+	protected override async templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]> {
+		const samples: NoteTemplateSample[] = [];
+		const addFile = async (file: PickedFile): Promise<void> => {
+			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || file.extension !== 'json') return;
+			const note = JSON.parse(await file.readText()) as KeepJson;
+			if (!note?.userEditedTimestampUsec || !note.createdTimestampUsec) return;
+			if (note.isArchived && !this.importArchived) return;
+			if (note.isTrashed && !this.importTrashed) return;
+
+			const strictLineBreaks = this.vault.getConfig('strictLineBreaks') === true;
+			const { content, ctime, mtime } = convertKeepNote(
+				note,
+				file.basename,
+				strictLineBreaks,
+				sourcePath => sourcePath,
+			);
+			samples.push({
+				title: file.basename,
+				path: this.sanitizeFilePath(`${this.outputLocation}/${file.basename}.md`),
+				content,
+				variables: { ...note },
+				times: { ctime, mtime },
+			});
+		};
+
+		for (const file of this.files) {
+			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
+			if (file.extension === 'zip') {
+				await readZip(file, async (_zip, entries) => {
+					for (const entry of entries) {
+						if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
+						await addFile(entry);
+					}
+				});
+			}
+			else {
+				await addFile(file);
+			}
+		}
+		return samples;
 	}
 
 	async handleFiles(files: PickedFile[], folder: TFolder, ctx: ImportContext): Promise<void> {

@@ -1,6 +1,6 @@
 import { normalizePath, Notice, TFolder, Platform } from 'obsidian';
 import { parseFilePath, NodePickedFolder, NodePickedFile, PickedFile, PickedFolder } from '../filesystem';
-import { FormatImporter } from '../format-importer';
+import { FormatImporter, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { readZip, ZipEntryFile } from '../zip';
@@ -26,6 +26,52 @@ export class TextbundleImporter extends FormatImporter {
 		this.addExportSetting(i18n.importer.textbundle.descExport());
 		this.addFileChooserSetting(i18n.importer.textbundle.fileType(), TextbundleImporter.extensions, true);
 		this.defaultOutputFolder = 'Textbundle';
+	}
+
+	protected override async templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]> {
+		const samples: NoteTemplateSample[] = [];
+		const sampleEntries = async (
+			bundleName: string,
+			entries: (PickedFile | PickedFolder | ZipEntryFile)[],
+		): Promise<void> => {
+			const info = entries.find(entry => entry.type === 'file' && entry.name === 'info.json') as PickedFile | undefined;
+			if (info && !isMarkdownBundle(await info.readText())) return;
+
+			for (const entry of entries) {
+				if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
+				if (entry.type !== 'file' || (entry.extension !== 'md' && entry.extension !== 'markdown')) continue;
+				const title = bundleNoteName('parent' in entry ? entry.parent : bundleName);
+				samples.push({
+					title,
+					path: normalizePath(`${this.outputLocation}/${title}.md`),
+					content: convertTextbundleNote(await entry.readText(), 'Attachments'),
+				});
+			}
+		};
+
+		for (const file of this.files) {
+			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
+			try {
+				if (file.extension === 'textpack') {
+					await readZip(file, async (_zip, entries) => sampleEntries(file.name, entries));
+				}
+				else if (file.extension === 'zip') {
+					await readZip(file, async (_zip, entries) => {
+						for (const textbundle of groupFilesByTextbundle(file.name, entries)) {
+							if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
+							await sampleEntries(file.name, textbundle);
+						}
+					});
+				}
+				else {
+					await sampleEntries(file.name, await new NodePickedFolder(`${file.toString()}/`).list());
+				}
+			}
+			catch (error) {
+				console.warn(`Could not preview Textbundle ${file.fullpath}`, error);
+			}
+		}
+		return samples;
 	}
 
 	async import(progress: ImportContext): Promise<void> {

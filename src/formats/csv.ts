@@ -1,15 +1,18 @@
-import { BasesConfigFile, Notice, TFolder } from 'obsidian';
-import { FormatImporter } from '../format-importer';
+import { BasesConfigFile, normalizePath, Notice, TFolder } from 'obsidian';
+import { FormatImporter, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { CSVRow, parseCSV } from './csv/parse';
-import { convertRow, defaultTemplateConfig, sanitizeYAMLKey } from './csv/convert';
+import { convertRow, defaultNoteTemplate, defaultTemplateConfig, sanitizeYAMLKey } from './csv/convert';
 import {
 	TemplateConfigurator,
 	TemplateConfig,
 	TemplateField,
+	applyTemplate,
+	sourceVariableExpression,
 } from '../template';
 import { createBaseFile } from '../base';
+import { sanitizeFileName } from '../util';
 
 export class CSVImporter extends FormatImporter {
 	static extensions = ['csv'];
@@ -82,12 +85,44 @@ export class CSVImporter extends FormatImporter {
 			fields,
 			defaults: defaultTemplateConfig(this.csvHeaders, sanitizeYAMLKey),
 			placeholderSyntax: '{{column_name}}',
+			showProperties: false,
+			showBodyTemplate: false,
+			actionText: i18n.modal.buttonContinue(),
 		});
 
 		this.config = await configurator.show(container, buttonsEl);
 
 		// Return false if user cancelled
-		return this.config !== null;
+		if (!this.config) return false;
+
+		return await this.showNoteTemplateConfiguration(container, buttonsEl, {
+			defaultTemplate: defaultNoteTemplate(this.csvHeaders, sanitizeYAMLKey),
+			fields: fields.map(field => ({
+				...field,
+				sourceName: field.id,
+				id: sourceVariableExpression(field.id),
+			})),
+			preview: async template => await Promise.all(
+				this.csvRows.slice(0, TEMPLATE_PREVIEW_LIMIT).map(row => this.previewTemplate(template, row))
+			),
+		});
+	}
+
+	private async previewTemplate(template: string, row: CSVRow) {
+		const title = applyTemplate(this.config!.titleTemplate, row) || i18n.importer.csv.reasonEmptyTitle();
+		const location = this.sanitizeFilePath(applyTemplate(this.config!.locationTemplate, row));
+		const root = this.outputLocation.trim();
+		const path = normalizePath([
+			root,
+			location,
+			`${sanitizeFileName(title)}.md`,
+		].filter(Boolean).join('/'));
+		return await this.renderTemplatePreview(template, {
+			title,
+			path,
+			content: '',
+			variables: row,
+		});
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -134,7 +169,7 @@ export class CSVImporter extends FormatImporter {
 			const row = this.csvRows[i];
 
 			try {
-				const { title, location, content } = convertRow(row, this.config);
+				const { title, location } = convertRow(row, this.config);
 				if (!title.trim()) {
 					ctx.reportSkipped(i18n.importer.csv.labelRow({ number: i + 1 }), i18n.importer.csv.reasonEmptyTitle());
 					continue;
@@ -143,7 +178,7 @@ export class CSVImporter extends FormatImporter {
 				ctx.status(i18n.importer.csv.statusCreatingNote({ title }));
 
 				const targetFolder = await this.getTargetFolder(folder, location);
-				const { written } = await this.writeNote(ctx, targetFolder, title, content, {
+				const { written } = await this.writeNote(ctx, targetFolder, title, '', {
 					templateVariables: row,
 				});
 				if (written) ctx.reportNoteSuccess(title);

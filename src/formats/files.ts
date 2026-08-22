@@ -17,6 +17,9 @@ interface PlannedCopy {
 
 export class FilesImporter extends FormatImporter {
 	interruption = 'pause' as const;
+	protected get supportsNoteTemplates(): boolean {
+		return false;
+	}
 
 	// No initializers: the base constructor calls init() first.
 	private dropped: (PickedFile | PickedFolder)[] | undefined;

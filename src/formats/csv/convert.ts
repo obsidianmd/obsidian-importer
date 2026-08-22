@@ -1,4 +1,4 @@
-import { applyTemplate, generateFrontmatter, TemplateConfig } from '../../template';
+import { applyTemplate, generateFrontmatter, sourceVariableExpression, TemplateConfig } from '../../template';
 import { CSVRow } from './parse';
 
 export interface ConvertedRow {
@@ -23,6 +23,18 @@ export function defaultTemplateConfig(headers: string[], sanitizeKey: (key: stri
 		propertyNames,
 		propertyValues,
 	};
+}
+
+/** Build the inline Markdown template shown before a CSV import. */
+export function defaultNoteTemplate(headers: string[], sanitizeKey: (key: string) => string): string {
+	const properties = headers
+		.map(header => ({ header, property: sanitizeKey(header).trim() }))
+		.filter(({ property }) => property.length > 0)
+		.map(({ header, property }) => `${property}: {{${sourceVariableExpression(header)} | yaml}}`);
+
+	return properties.length > 0
+		? ['---', ...properties, '---'].join('\n')
+		: '{{content}}';
 }
 
 export function sanitizeYAMLKey(key: string): string {

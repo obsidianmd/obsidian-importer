@@ -1,17 +1,23 @@
-import { App, DataWriteOptions, debounce, normalizePath, Platform, SecretComponent, Setting, SettingGroup, TFile, TFolder, Vault } from 'obsidian';
+import { App, DataWriteOptions, debounce, normalizePath, Notice, Platform, SecretComponent, Setting, SettingGroup, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, parseFilePath, PickedFile, PickedFolder, WebPickedFile, webPickedTree } from './filesystem';
 import { HostPlugin } from './plugin-data';
 import { AuthCallback, helpUrl } from './constants';
 import { FolderSuggest } from './folder-suggest';
-import { MarkdownFileSuggest } from './markdown-file-suggest';
 import { ImportContext } from './import-context';
 import { formatImportReport, importReportName } from './import-report';
 import { createMarkdown, formattedMarkdown, MarkdownFormatting, MarkdownLinkResolver, modifyMarkdown, standardizedMarkdown, standardizeMarkdownFile } from './markdown-output';
 import { i18n } from './i18n';
-import { NoteTemplateVariables, renderNoteTemplate } from './note-template';
+import { NoteTemplateVariables, renderNoteTemplate, renderNoteTemplateResult } from './note-template';
+import { NoteTemplateConfigurator, NoteTemplatePreview } from './note-template-configurator';
+import { TemplateField } from './template';
 import { availableFileName, getUniqueFilePath, parseFrontMatterBlock, sanitizeFileName, sanitizeFilePath, serializeFrontMatter } from './util';
 
 const MAX_FILES_LISTED = 5;
+export const TEMPLATE_PREVIEW_LIMIT = 10;
+
+function timestampVariable(value: number | undefined): string {
+	return value !== undefined && Number.isFinite(value) ? new Date(value).toISOString() : '';
+}
 
 export enum DuplicateHandling {
 	CreateCopy = 'create-copy',
@@ -90,6 +96,22 @@ export interface NoteImport extends DataWriteOptions {
 	templateVariables?: NoteTemplateVariables;
 }
 
+export interface NoteTemplateSetup {
+	defaultTemplate?: string;
+	fields?: TemplateField[];
+	preview?: (template: string) => Promise<NoteTemplatePreview | NoteTemplatePreview[]>;
+}
+
+export interface NoteTemplateSample {
+	label?: string;
+	title: string;
+	path: string;
+	content: string;
+	variables?: NoteTemplateVariables;
+	sourceId?: string;
+	times?: Pick<NoteImport, 'ctime' | 'mtime'>;
+}
+
 /**
  * What became of an imported note. The three that wrote nothing are kept
  * apart because a note left alone by a source that has not moved on can still
@@ -146,7 +168,7 @@ function comparedToSource(file: TFile, sourceMtime: number): 'unchanged' | 'pres
 	return 'update';
 }
 
-export type ImporterStep = 'source' | 'output' | 'options';
+export type ImporterStep = 'source' | 'output' | 'options' | 'template';
 
 export interface ImporterHost {
 	sourceEl: HTMLElement | null;
@@ -173,6 +195,8 @@ export abstract class FormatImporter {
 	outputLocation: string = '';
 	/** Vault-relative path of the optional Markdown template for this importer. */
 	templatePath: string = '';
+	/** Inline template configured for this import run. */
+	protected inlineTemplate: string | null = null;
 	notAvailable: boolean = false;
 
 	/** Set in init(), not in a subclass field initializer. */
@@ -208,6 +232,10 @@ export abstract class FormatImporter {
 	private loadedTemplate: { path: string, content: string } | null = null;
 
 	private outputStepDrawn: boolean = false;
+	private templateSettingsEl: HTMLElement | null = null;
+	private templateSettingNodes: Node[] | null = null;
+	private templatePreviewChanged: (() => void) | null = null;
+	private templateSamplesChanged: (() => void) | null = null;
 
 	/** Markdown written by this run, for the post-import Obsidian link pass. */
 	private markdownFiles = new Set<string>();
@@ -278,12 +306,157 @@ export abstract class FormatImporter {
 	 * @param container The container element to show the configuration UI in
 	 * @returns true if configuration was successful, false if cancelled or failed, null if no configuration needed
 	 */
+	protected get supportsNoteTemplates(): boolean {
+		return true;
+	}
+
 	get configures(): boolean {
+		return this.supportsNoteTemplates || this.requiresImporterConfiguration;
+	}
+
+	/** Whether this importer needs source-specific configuration that a scripted run cannot provide. */
+	get requiresImporterConfiguration(): boolean {
 		return this.showTemplateConfiguration !== FormatImporter.prototype.showTemplateConfiguration;
 	}
 
 	async showTemplateConfiguration(ctx: ImportContext, container: HTMLElement, buttonsEl: HTMLElement): Promise<boolean | null> {
-		return null;
+		if (!this.supportsNoteTemplates) return null;
+
+		const fields: TemplateField[] = [];
+		const loadSamples = (): Promise<NoteTemplateSample[]> =>
+			this.templatePreviewSamples === FormatImporter.prototype.templatePreviewSamples
+				? Promise.resolve([])
+				: Promise.resolve().then(() => this.templatePreviewSamples(ctx)).catch(error => {
+					console.error(`Could not load ${this.host.importerId} template previews`, error);
+					return [];
+				});
+		let samples = loadSamples();
+		const samplesChanged = () => {
+			samples = loadSamples();
+			this.templatePreviewChanged?.();
+		};
+		this.templateSamplesChanged = samplesChanged;
+		try {
+			return await this.showNoteTemplateConfiguration(container, buttonsEl, {
+				preview: async template => await this.previewLoadedSamples(template, samples, fields),
+			});
+		}
+		finally {
+			if (this.templateSamplesChanged === samplesChanged) this.templateSamplesChanged = null;
+		}
+	}
+
+	/** Read a small, side-effect-free sample from the current source selection. */
+	protected async templatePreviewSamples(_ctx: ImportContext): Promise<NoteTemplateSample[]> {
+		return [];
+	}
+
+	protected previewForSamples(
+		samples: NoteTemplateSample[],
+	): NoteTemplateSetup['preview'] | undefined {
+		if (samples.length === 0) return undefined;
+		return async template => await Promise.all(
+			samples.map(sample => this.renderTemplatePreview(template, sample))
+		);
+	}
+
+	/** Render real samples when available, otherwise retain the generated example. */
+	protected async previewLoadedSamples(
+		template: string,
+		samples: Promise<NoteTemplateSample[]>,
+		fields: TemplateField[] = [],
+	): Promise<NoteTemplatePreview | NoteTemplatePreview[]> {
+		const loaded = await samples;
+		const preview = this.previewForSamples(loaded);
+		return preview
+			? await preview(template)
+			: await this.exampleTemplatePreview(template, fields);
+	}
+
+	protected async showNoteTemplateConfiguration(
+		container: HTMLElement,
+		buttonsEl: HTMLElement,
+		setup: NoteTemplateSetup = {},
+	): Promise<boolean> {
+		const defaultTemplate = setup.defaultTemplate ?? '{{content}}';
+		let template = defaultTemplate;
+		let templatePath = this.templatePath;
+		if (templatePath.trim()) {
+			try {
+				template = await this.readTemplateFile(templatePath);
+			}
+			catch (error) {
+				new Notice(error instanceof Error ? error.message : String(error));
+				templatePath = '';
+			}
+		}
+
+		const preview = setup.preview
+			?? (async candidate => await this.exampleTemplatePreview(candidate, setup.fields ?? []));
+		let previewChange: (() => void) | null = null;
+		const configured = await new NoteTemplateConfigurator({
+			app: this.app,
+			defaultTemplate,
+			template,
+			path: templatePath,
+			preview,
+			configure: (contentEl, previewChanged) => {
+				previewChange = previewChanged;
+				this.templatePreviewChanged = previewChanged;
+				const settingsEl = this.appendTemplateSettings(contentEl);
+				if (this.idProperty) {
+					this.addSaveSourceIdSetting(settingsEl ?? this.settingsIn(contentEl), previewChanged);
+				}
+			},
+		}).show(container, buttonsEl);
+		if (previewChange && this.templatePreviewChanged === previewChange) this.templatePreviewChanged = null;
+
+		this.inlineTemplate = configured.template;
+		this.templatePath = configured.path;
+		this.loadedTemplate = null;
+		this.saveOutputSettings();
+		return true;
+	}
+
+	protected async exampleTemplatePreview(
+		template: string,
+		fields: TemplateField[],
+	): Promise<NoteTemplatePreview> {
+		const content = '# Imported note\n\nImported content';
+		const source = Object.fromEntries(fields.map(field => [field.sourceName ?? field.id, field.exampleValue ?? '']));
+		const sourceId = this.idProperty ? 'example-source-id' : undefined;
+		return await this.renderTemplatePreview(template, {
+			title: 'Imported note',
+			path: 'Import/Imported note.md',
+			content,
+			variables: source,
+			sourceId,
+		});
+	}
+
+	protected async renderTemplatePreview(
+		template: string,
+		sample: NoteTemplateSample,
+	): Promise<NoteTemplatePreview> {
+		const variables = this.noteTemplateVariables(
+			sample.title,
+			sample.path,
+			sample.content,
+			sample.variables ?? {},
+			sample.sourceId,
+			sample.times ?? {},
+		);
+		const result = await renderNoteTemplateResult(template, variables);
+		return {
+			label: sample.label,
+			path: sample.path,
+			content: this.withSourceId(result.output, sample.sourceId),
+			valid: result.errors.length === 0,
+			diagnostics: [
+				...result.errors.map(error => `Line ${error.line}: ${error.message}`),
+				...result.warnings.map(warning => `Line ${warning.line}: ${warning.message}`),
+			],
+		};
 	}
 
 	/**
@@ -305,6 +478,18 @@ export abstract class FormatImporter {
 		this.host.sourceChanged?.();
 	}
 
+	/** Re-read samples after a setting that changes generated properties is edited. */
+	protected templateSettingsChanged(): void {
+		if (this.templateSamplesChanged) this.templateSamplesChanged();
+		else this.templatePreviewChanged?.();
+	}
+
+	/**
+	 * Start any source reads that the template preview will need. Called after
+	 * the source step, while the user is completing the remaining settings.
+	 */
+	prefetchTemplatePreview(): void {}
+
 	protected stepEl(step: ImporterStep): HTMLElement | null {
 		switch (step) {
 			case 'source':
@@ -313,7 +498,20 @@ export abstract class FormatImporter {
 				return this.host.outputEl;
 			case 'options':
 				return this.host.optionsEl;
+			case 'template': {
+				if (this.templateSettingsEl) return this.templateSettingsEl;
+				const owner = this.host.sourceEl ?? this.host.outputEl ?? this.host.optionsEl;
+				const win = owner?.doc.win as (Window & { createDiv(): HTMLDivElement }) | undefined;
+				return win ? this.templateSettingsEl = win.createDiv() : null;
+			}
 		}
+	}
+
+	private appendTemplateSettings(contentEl: HTMLElement): HTMLElement | null {
+		if (!this.templateSettingsEl) return null;
+		this.templateSettingNodes ??= Array.from(this.templateSettingsEl.childNodes);
+		contentEl.append(...this.templateSettingNodes);
+		return this.groups.get(this.templateSettingsEl)?.listEl ?? null;
 	}
 
 	protected addInstructions(setting: Setting | null): Setting | null {
@@ -756,39 +954,26 @@ export abstract class FormatImporter {
 		this.outputStepDrawn = true;
 
 		this.drawOutputSettings(contentEl);
+
+		// Importer-specific conversion settings used to occupy a separate page.
+		// Keep optionsEl as their construction target so subclass initialization
+		// stays ordered, then move its groups below destination and attachments.
+		const optionsEl = this.stepEl('options');
+		if (optionsEl) contentEl.append(...Array.from(optionsEl.childNodes));
 	}
 
 	protected drawOutputSettings(contentEl: HTMLElement): void {
 		this.addOutputFolderSetting(contentEl);
-		this.addTemplateSetting(contentEl);
 		this.addAttachmentLocationSetting(contentEl);
 
 		this.startGroupIn(contentEl);
 		this.addDuplicateHandlingSetting(contentEl);
-		this.addSaveSourceIdSetting(contentEl);
 	}
 
-	private addTemplateSetting(contentEl: HTMLElement): void {
-		new Setting(this.settingsIn(contentEl))
-			.setName(i18n.output.nameTemplate())
-			.setDesc(i18n.output.descTemplate())
-			.addText(text => {
-				text
-					.setPlaceholder(i18n.output.placeholderTemplate())
-					.setValue(this.templatePath)
-					.onChange(value => {
-						this.templatePath = value.trim();
-						this.loadedTemplate = null;
-						this.saveOutputSettings();
-					});
-				new MarkdownFileSuggest(this.app, text.inputEl);
-			});
-	}
-
-	private addSaveSourceIdSetting(contentEl: HTMLElement): void {
+	private addSaveSourceIdSetting(settingsEl: HTMLElement, previewChanged?: () => void): void {
 		if (!this.idProperty) return;
 
-		new Setting(this.settingsIn(contentEl))
+		new Setting(settingsEl)
 			.setName(i18n.output.nameSaveSourceId({ label: this.idLabel }))
 			.setDesc(i18n.output.descSaveSourceId({ label: this.idLabel }))
 			.addToggle(toggle => {
@@ -797,6 +982,7 @@ export abstract class FormatImporter {
 					.onChange(value => {
 						this.saveSourceId = value;
 						this.saveOutputSettings();
+						previewChanged?.();
 					});
 			});
 	}
@@ -1285,7 +1471,14 @@ export abstract class FormatImporter {
 	): Promise<NoteWritten> {
 		const { sourceId = planned.sourceId, disposition, templateVariables, ...writeOptions } = options;
 		const { file, title, targetPath } = planned;
-		content = await this.applyNoteTemplate(planned.title, planned.targetPath, content, templateVariables, sourceId);
+		content = await this.applyNoteTemplate(
+			planned.title,
+			planned.targetPath,
+			content,
+			templateVariables,
+			sourceId,
+			writeOptions,
+		);
 		content = this.withSourceId(content, sourceId);
 
 		let decided = disposition ?? this.preflightNote(ctx, planned, writeOptions.mtime);
@@ -1323,10 +1516,22 @@ export abstract class FormatImporter {
 		content: string,
 		provided: NoteTemplateVariables | undefined,
 		sourceId: string | undefined,
+		times: Pick<DataWriteOptions, 'ctime' | 'mtime'> = {},
 	): Promise<string> {
 		const template = await this.readTemplate();
 		if (template === null) return content;
+		return await renderNoteTemplate(template, this.noteTemplateVariables(
+			title, targetPath, content, provided, sourceId, times));
+	}
 
+	protected noteTemplateVariables(
+		title: string,
+		targetPath: string,
+		content: string,
+		provided: NoteTemplateVariables | undefined,
+		sourceId: string | undefined,
+		times: Pick<DataWriteOptions, 'ctime' | 'mtime'> = {},
+	): NoteTemplateVariables {
 		const parsed = parseFrontMatterBlock(content);
 		const timestamp = new Date().toISOString();
 		const { parent, basename } = parseFilePath(targetPath);
@@ -1347,23 +1552,30 @@ export abstract class FormatImporter {
 			source,
 			date: timestamp,
 			time: timestamp,
+			ctime: timestampVariable(times.ctime),
+			mtime: timestampVariable(times.mtime),
 			importer: this.host.importerId,
 			sourceId: sourceId ?? '',
 		};
 
-		return await renderNoteTemplate(template, variables);
+		return variables;
 	}
 
 	private async readTemplate(): Promise<string | null> {
+		if (this.inlineTemplate !== null) return this.inlineTemplate;
 		const configured = this.templatePath.trim();
 		if (!configured) return null;
+		return await this.readTemplateFile(configured);
+	}
+
+	private async readTemplateFile(configured: string): Promise<string> {
 		const path = normalizePath(configured);
 		if (this.loadedTemplate?.path === path) return this.loadedTemplate.content;
 
 		const file = this.vault.getAbstractFileByPath(path)
 			?? this.vault.getAbstractFileByPathInsensitive(path);
 		if (!(file instanceof TFile) || file.extension.toLowerCase() !== 'md') {
-			throw new Error(i18n.output.msgTemplateNotFound({ path: this.templatePath }));
+			throw new Error(i18n.output.msgTemplateNotFound({ path }));
 		}
 
 		const template = await this.vault.cachedRead(file);

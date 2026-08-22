@@ -662,6 +662,10 @@ translation=No s'ha pogut llegir {{subject}}.
 original=Configure how your data should be imported. Use {{syntax}} syntax to reference field values.
 translation=Configurar com s'han d'importar les dades. Utilitzeu la sintaxi {{syntax}} per fer referència als valors dels camps.
 
+[template.msg-note-template-intro]
+original=Preview examples from your selection or choose a Markdown template from your vault.
+translation=
+
 [template.name-title]
 original=Note title
 translation=Canvia el nom de l'arxiu
@@ -685,6 +689,42 @@ translation=Contingut de la nota
 [template.desc-content]
 original=Template for the note content. Use {{field_name}} to insert values.
 translation=Plantilla per al contingut de la nota. Utilitzeu {{field_name}} per insertar valors.
+
+[template.name-template-file]
+original=Template
+translation=
+
+[template.desc-template-file]
+original=Choose a template from your vault.
+translation=
+
+[template.heading-preview]
+original=Preview
+translation=
+
+[template.button-edit-template]
+original=Edit
+translation=
+
+[template.button-save-template]
+original=Save
+translation=
+
+[template.name-template-editor]
+original=Template source
+translation=
+
+[template.button-add-property]
+original=Add property
+translation=
+
+[template.button-previous-preview]
+original=Previous preview
+translation=
+
+[template.button-next-preview]
+original=Next preview
+translation=
 
 [template.heading-properties]
 original=Properties

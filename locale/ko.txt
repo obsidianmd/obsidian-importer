@@ -662,6 +662,10 @@ translation={{subject}}을(를) 읽을 수 없어요.
 original=Configure how your data should be imported. Use {{syntax}} syntax to reference field values.
 translation=데이터를 가져올 방법을 설정하세요. {{syntax}} 구문을 사용하여 필드 값을 참조할 수 있어요.
 
+[template.msg-note-template-intro]
+original=Preview examples from your selection or choose a Markdown template from your vault.
+translation=
+
 [template.name-title]
 original=Note title
 translation=파일 이름 변경
@@ -685,6 +689,42 @@ translation=노트 내용
 [template.desc-content]
 original=Template for the note content. Use {{field_name}} to insert values.
 translation=노트 내용 템플릿이에요. {{field_name}}을 사용하여 값을 삽입하세요.
+
+[template.name-template-file]
+original=Template
+translation=
+
+[template.desc-template-file]
+original=Choose a template from your vault.
+translation=
+
+[template.heading-preview]
+original=Preview
+translation=
+
+[template.button-edit-template]
+original=Edit
+translation=
+
+[template.button-save-template]
+original=Save
+translation=
+
+[template.name-template-editor]
+original=Template source
+translation=
+
+[template.button-add-property]
+original=Add property
+translation=
+
+[template.button-previous-preview]
+original=Previous preview
+translation=
+
+[template.button-next-preview]
+original=Next preview
+translation=
 
 [template.heading-properties]
 original=Properties

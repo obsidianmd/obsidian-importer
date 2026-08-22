@@ -662,6 +662,10 @@ translation=無法讀取 {{subject}}。
 original=Configure how your data should be imported. Use {{syntax}} syntax to reference field values.
 translation=設定資料的匯入方式。使用 {{syntax}} 語法來引用欄位值。
 
+[template.msg-note-template-intro]
+original=Preview examples from your selection or choose a Markdown template from your vault.
+translation=
+
 [template.name-title]
 original=Note title
 translation=重新命名
@@ -685,6 +689,42 @@ translation=筆記內容
 [template.desc-content]
 original=Template for the note content. Use {{field_name}} to insert values.
 translation=筆記內容的範本。使用 {{field_name}} 來插入值。
+
+[template.name-template-file]
+original=Template
+translation=
+
+[template.desc-template-file]
+original=Choose a template from your vault.
+translation=
+
+[template.heading-preview]
+original=Preview
+translation=
+
+[template.button-edit-template]
+original=Edit
+translation=
+
+[template.button-save-template]
+original=Save
+translation=
+
+[template.name-template-editor]
+original=Template source
+translation=
+
+[template.button-add-property]
+original=Add property
+translation=
+
+[template.button-previous-preview]
+original=Previous preview
+translation=
+
+[template.button-next-preview]
+original=Next preview
+translation=
 
 [template.heading-properties]
 original=Properties

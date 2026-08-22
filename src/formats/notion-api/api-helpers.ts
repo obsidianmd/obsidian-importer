@@ -683,7 +683,7 @@ function convertNotionDateToObsidian(dateString: string): string {
  *               and TypeScript cannot properly narrow types in the switch statement
  * @returns Using 'any' because the return value type depends on the property type
  */
-function mapNotionPropertyToFrontmatter(prop: any): any {
+export function mapNotionPropertyToFrontmatter(prop: any): any {
 	switch (prop.type) {
 		case 'number':
 			return prop.number;

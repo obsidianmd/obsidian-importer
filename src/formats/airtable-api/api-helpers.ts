@@ -159,7 +159,7 @@ export async function selectRecords(
 	tableIdOrName: string,
 	options: SelectRecordsOptions = {}
 ): Promise<any[]> {
-	const { view, fields, onProgress } = options;
+	const { view, fields, maxRecords, onProgress } = options;
 
 	// Airtable SDK record objects with methods like get(), _rawJson, etc.
 	const records: any[] = [];
@@ -168,6 +168,10 @@ export async function selectRecords(
 	const selectOptions: any = {};
 	if (view) selectOptions.view = view;
 	if (fields) selectOptions.fields = fields;
+	if (maxRecords !== undefined) {
+		selectOptions.maxRecords = maxRecords;
+		selectOptions.pageSize = Math.min(maxRecords, 100);
+	}
 
 	await base(tableIdOrName)
 		.select(selectOptions)

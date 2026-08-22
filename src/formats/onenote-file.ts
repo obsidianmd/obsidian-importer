@@ -1,6 +1,6 @@
 import { Notice, Platform, TFile, TFolder, normalizePath } from 'obsidian';
 import { PickedFile, fs, os, path as nodePath } from '../filesystem';
-import { FormatImporter, leavesTheNoteAlone } from '../format-importer';
+import { FormatImporter, leavesTheNoteAlone, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { selectedNodes } from '../tree';
@@ -125,6 +125,78 @@ export class OneNoteFileImporter extends FormatImporter {
 
 			return nodes;
 		});
+	}
+
+	protected override async templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]> {
+		const samples: NoteTemplateSample[] = [];
+		const nodes = this.picker?.nodes ?? [];
+		const loaded = nodes.length > 0;
+		const chosen = selectedNodes(nodes, node => !node.children?.length);
+
+		for (const file of this.files) {
+			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
+			const forThisFile = chosen.filter(node => node.file === file);
+			if (loaded && forThisFile.length === 0) continue;
+			const wanted = loaded
+				? new Set(forThisFile.map(node => node.entryName).filter((name): name is string => name !== undefined))
+				: undefined;
+
+			try {
+				const data = new Uint8Array(await file.read());
+				const sections = readSections(data, file.name, wanted?.size ? wanted : undefined);
+				for (const entry of sections) {
+					if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
+					let section: Section;
+					try {
+						section = entry.read();
+					}
+					catch (error) {
+						console.warn(`Could not read OneNote section preview ${entry.title}`, error);
+						continue;
+					}
+
+					for (const page of section.pages) {
+						if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
+						if (page.isDeleted) continue;
+						try {
+							const title = sanitizeFileName(page.title);
+							const converted = await convertPage(page, {
+								noteName: title,
+								isCancelled: () => ctx.isCancelled(),
+								resolveInternalLink: linkedTitle => sanitizeFileName(linkedTitle),
+								onSkipped: () => {},
+								// The semantic converter has already decoded the attachment.
+								// Keep its suggested name without placing or writing it.
+								saveAttachment: async (_bytes, suggested) => ({ path: suggested, name: suggested }),
+							});
+							const within = [...entry.groups, section.name || entry.title]
+								.filter(Boolean)
+								.map(part => sanitizeFileName(part))
+								.join('/');
+							const parent = normalizePath(`${this.outputLocation}/${within}`);
+							samples.push({
+								title,
+								path: normalizePath(`${parent}/${title}.md`),
+								content: converted.markdown,
+								sourceId: page.id,
+								times: {
+									ctime: page.createdUtc?.getTime(),
+									mtime: page.lastModifiedUtc?.getTime(),
+								},
+							});
+						}
+						catch (error) {
+							console.warn(`Could not preview OneNote page ${page.title}`, error);
+						}
+					}
+				}
+			}
+			catch (error) {
+				console.warn(`Could not preview OneNote file ${file.fullpath}`, error);
+			}
+		}
+
+		return samples;
 	}
 
 	async import(ctx: ImportContext): Promise<void> {

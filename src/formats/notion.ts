@@ -1,6 +1,6 @@
 import { normalizePath, Notice, DataWriteOptions } from 'obsidian';
 import { PickedFile } from '../filesystem';
-import { attachmentLocationAsSetting, FormatImporter } from '../format-importer';
+import { attachmentLocationAsSetting, FormatImporter, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { NOTION_ID_PROPERTY } from '../constants';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
@@ -46,6 +46,51 @@ export class NotionImporter extends FormatImporter {
 				.onChange((value) => {
 					this.singleLineBreaks = value;
 				}));
+	}
+
+	protected override async templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]> {
+		const info = new NotionResolverInfo(
+			attachmentLocationAsSetting(this.attachmentLocation),
+			this.singleLineBreaks,
+		);
+		await processZips(ctx, this.files, async entry => {
+			if (await ctx.shouldStop()) return;
+			try {
+				await parseFileInfo(info, entry);
+			}
+			catch (error) {
+				console.warn(`Could not index Notion preview entry ${entry.fullpath}`, error);
+			}
+		});
+
+		const samples: NoteTemplateSample[] = [];
+		if (await ctx.shouldStop()) return samples;
+		await processZips(ctx, this.files, async entry => {
+			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) return;
+			if (entry.extension !== 'html') return;
+			const id = getNotionId(entry.name);
+			const fileInfo = id ? info.idsToFileInfo[id] : undefined;
+			if (!id || !fileInfo) return;
+
+			try {
+				const content = await readToMarkdown(info, entry);
+				const parent = info.getPathForFile(fileInfo);
+				samples.push({
+					title: fileInfo.title,
+					path: normalizePath(`${this.outputLocation}/${parent}${fileInfo.title}.md`),
+					content,
+					sourceId: id,
+					times: {
+						ctime: fileInfo.ctime?.getTime(),
+						mtime: fileInfo.mtime?.getTime(),
+					},
+				});
+			}
+			catch (error) {
+				console.warn(`Could not preview Notion page ${entry.fullpath}`, error);
+			}
+		});
+		return samples;
 	}
 
 	async import(ctx: ImportContext): Promise<void> {

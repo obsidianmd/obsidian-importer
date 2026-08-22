@@ -19,6 +19,31 @@ test('applies shared text and array filters', async () => {
 	), 'MIXED CASE / one + two / bxnxnx');
 });
 
+test('renders CSV values as YAML scalars', async () => {
+	assert.equal(await renderNoteTemplate(
+		[
+			'Name: {{name | yaml}}',
+			'Count: {{count | yaml}}',
+			'Complete: {{complete | yaml}}',
+			'Project: {{source["Project: status"] | yaml}}',
+			'Empty: {{empty | yaml}}',
+		].join('\n'),
+		{
+			name: 'A: value #1',
+			count: '42',
+			complete: 'true',
+			empty: '',
+			source: { 'Project: status': 'Ready' },
+		},
+	), [
+		'Name: "A: value #1"',
+		'Count: 42',
+		'Complete: true',
+		'Project: "Ready"',
+		'Empty: ',
+	].join('\n'));
+});
+
 test('formats and modifies dates', async () => {
 	assert.equal(await renderNoteTemplate(
 		'{{published|date:"YYYY/MM/DD"}} {{published|date_modify:"+2 days"}}',
@@ -62,6 +87,16 @@ test('accepts an explicit Markdown base URL parameter', async () => {
 		'{{html | markdown:"https://example.com/reference/"}}',
 		{ html: '<a href="page">Page</a>' },
 	), '[Page](page)');
+});
+
+test('passes an imported page URL to fragment links', async () => {
+	assert.equal(await renderNoteTemplate(
+		'{{selection | fragment_link}}',
+		{
+			selection: '"Selected text"',
+			url: 'https://example.com/article',
+		},
+	), 'Selected text [link](https://example.com/article#:~:text=Selected%20text)');
 });
 
 test('surfaces non-fatal Knap filter warnings', async (t) => {

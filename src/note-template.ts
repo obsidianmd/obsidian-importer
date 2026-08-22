@@ -3,6 +3,7 @@ import {
 	standardFilters,
 	TemplateRenderError,
 	type TemplateFilter,
+	type TemplateResult,
 	type TemplateVariables,
 } from '@obsidianmd/knap';
 import { htmlFilters } from '@obsidianmd/knap/html';
@@ -27,24 +28,49 @@ const markdownFilter: TemplateFilter<ImporterTemplateContext> = (value, param, f
 	);
 markdownFilter.metadata = {};
 
+const yamlFilter: TemplateFilter<ImporterTemplateContext> = value => {
+	const trimmed = value.trim();
+	if (trimmed === '') return '';
+	if (/^(?:true|false|null)$/iu.test(trimmed) || (trimmed !== '' && Number.isFinite(Number(trimmed)))) {
+		return trimmed;
+	}
+	return JSON.stringify(value);
+};
+yamlFilter.metadata = {};
+
+const fragmentLinkFilter: TemplateFilter<ImporterTemplateContext> = (value, param, filterContext) => {
+	const combinedParam = [param, filterContext?.context?.sourceUrl].filter(Boolean).join(':');
+	return standardFilters.fragment_link(value, combinedParam, filterContext);
+};
+fragmentLinkFilter.metadata = {};
+
 const engine = createEngine<ImporterTemplateContext>({
 	filters: {
 		...standardFilters,
 		...htmlFilters,
 		markdown: markdownFilter,
+		fragment_link: fragmentLinkFilter,
+		yaml: yamlFilter,
 	},
 });
+
+export async function renderNoteTemplateResult(
+	template: string,
+	variables: NoteTemplateVariables,
+): Promise<TemplateResult> {
+	const sourceUrl = typeof variables.url === 'string' ? variables.url : undefined;
+	return await engine.render(template, {
+		variables,
+		context: { sourceUrl },
+	});
+}
 
 /** Render a Markdown note template using the shared Knap template language. */
 export async function renderNoteTemplate(
 	template: string,
 	variables: NoteTemplateVariables,
 ): Promise<string> {
-	const sourceUrl = typeof variables.url === 'string' ? variables.url : undefined;
-	const result = await engine.render(template, {
-		variables,
-		context: { sourceUrl },
-	});
+	const result = await renderNoteTemplateResult(template, variables);
 
 	if (result.errors.length > 0) {
 		throw new TemplateRenderError(result.errors);

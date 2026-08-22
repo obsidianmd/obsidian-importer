@@ -1,5 +1,5 @@
 import { normalizePath, Notice, TFile, TFolder } from 'obsidian';
-import { DuplicateHandling, FormatImporter, leavesTheNoteAlone, NoteDisposition, PlannedNote } from '../format-importer';
+import { DuplicateHandling, FormatImporter, leavesTheNoteAlone, NoteDisposition, NoteTemplateSample, PlannedNote, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { defaultEvernoteOptions } from './evernote/options';
@@ -7,6 +7,11 @@ import { convertEnexFiles } from './evernote/convert';
 import { parseFilePath } from '../filesystem';
 import { availableFileName } from '../util';
 import { EvernoteOutput, PlacedAttachment } from './evernote/output';
+import { parseEnex } from './evernote/parse-enex';
+import { EvernoteNote, joinNoteContent } from './evernote/models/EvernoteNote';
+import { EvernoteRun } from './evernote/run';
+import { convertHtml2Md } from './evernote/convert-html-to-md';
+import { noteTimes } from './evernote/utils/note-times';
 
 
 interface EnexPlan {
@@ -88,6 +93,52 @@ export class EvernoteEnexImporter extends FormatImporter {
 				ctx.reportAttachmentSuccess(file.name);
 			},
 		};
+	}
+
+	protected override async templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]> {
+		const samples: NoteTemplateSample[] = [];
+		const output: EvernoteOutput = {
+			planFolder: (parent, name) => normalizePath(`${parent}/${name}`),
+			planNote: (folder, title) => normalizePath(`${folder}/${title}.md`),
+			willImport: () => true,
+			writeNote: async () => {},
+			placeAttachment: async fileName => ({ path: fileName, write: false }),
+			linkTo: path => path,
+			writeAttachment: async () => {},
+		};
+		const run = new EvernoteRun(defaultEvernoteOptions, output);
+
+		for (const file of this.files) {
+			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
+			await parseEnex(file, {
+				wanted: new Set(['note']),
+				isCancelled: () => samples.length >= TEMPLATE_PREVIEW_LIMIT || ctx.isCancelled(),
+				checkpoint: async () => samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop(),
+				onElement: (name, element) => {
+					if (name !== 'note' || typeof element === 'string' || samples.length >= TEMPLATE_PREVIEW_LIMIT) return;
+					try {
+						const note = element as EvernoteNote;
+						const title = note.title?.trim() || 'Untitled';
+						// Resources need decoding and placement. Leave an explicit marker
+						// while still converting the rest of the selected note.
+						const htmlContent = joinNoteContent(note.content)
+							.replace(/<en-media\b[^>]*\/?\s*>/gi, '<p>(attachment)</p>');
+						const content = convertHtml2Md(run, { title, content: htmlContent, htmlContent }).content;
+						samples.push({
+							title,
+							path: normalizePath(`${this.outputLocation}/${file.basename}/${title}.md`),
+							content,
+							times: noteTimes(note),
+						});
+					}
+					catch (error) {
+						console.warn(`Could not preview Evernote note from ${file.fullpath}`, error);
+					}
+				},
+			});
+		}
+
+		return samples;
 	}
 
 	async import(ctx: ImportContext) {

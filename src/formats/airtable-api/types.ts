@@ -29,6 +29,8 @@ export interface SelectRecordsOptions {
 	view?: string;
 	/** Fields to return; pass [] for record IDs only */
 	fields?: string[];
+	/** Stop after this many records. */
+	maxRecords?: number;
 	/** Callback called when records are fetched, receives the count of fetched records */
 	onProgress?: (fetchedCount: number) => void;
 }
@@ -255,4 +257,3 @@ export interface BaseFileContext {
 	formulas: Map<string, string>;
 	viewsShowingEveryRecord?: ReadonlySet<string>;
 }
-
