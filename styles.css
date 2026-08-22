@@ -454,6 +454,11 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 	padding: var(--size-4-1);
 }
 
+body.is-phone .importer-template-preview-nav button {
+	flex: 1 1 50%;
+	width: 50%;
+}
+
 .importer-template-preview {
 	min-height: 12rem;
 	max-height: 24rem;
@@ -544,6 +549,12 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 
 .import-section .importer-tree-filter input {
 	width: 100%;
+}
+
+.import-section .importer-tree-status {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	padding: var(--size-4-2) var(--setting-items-padding-x);
 }
 
 /* Tree redraws should not move the containing page. */

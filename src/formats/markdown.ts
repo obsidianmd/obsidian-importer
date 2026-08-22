@@ -100,12 +100,15 @@ export class MarkdownImporter extends FormatImporter {
 
 		this.draw(contentEl => this.folderPicker.draw(contentEl, this.addSetting('source')), 'source');
 
-		this.addSetting()
+		this.addSetting('template')
 			?.setName(i18n.importer.markdown.nameStandardizeFormatting())
 			.setDesc(i18n.importer.markdown.descStandardizeFormatting())
 			.addToggle(toggle => toggle
 				.setValue(this.standardizeFormatting)
-				.onChange(value => this.standardizeFormatting = value));
+				.onChange(value => {
+					this.standardizeFormatting = value;
+					this.templateSettingsChanged();
+				}));
 
 		this.addSetting('template')
 			?.setName(i18n.importer.markdown.nameTagsAsProperties())

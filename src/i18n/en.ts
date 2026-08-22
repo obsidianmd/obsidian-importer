@@ -233,6 +233,7 @@ export const en = {
 		nameTemplateFile: 'Template',
 		descTemplateFile: 'Choose a template from your vault.',
 		headingPreview: 'Preview',
+		statusLoadingPreview: 'Loading preview...',
 		buttonEditTemplate: 'Edit',
 		buttonSaveTemplate: 'Save',
 		nameTemplateEditor: 'Template source',

@@ -702,6 +702,10 @@ translation=
 original=Preview
 translation=
 
+[template.status-loading-preview]
+original=Loading preview...
+translation=
+
 [template.button-edit-template]
 original=Edit
 translation=
@@ -2202,13 +2206,13 @@ translation=移除指向缺失块的引用
 original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
 translation=某些引用指向的块不在导出文件中。如果已启用，这些引用将被移除；否则将保留 Roam 写入的原始内容。
 
-[importer.roam-json.name-keep-attributes]
-original=Keep attributes in the note
-translation=在笔记中保留属性
+[importer.roam-json.name-convert-attributes]
+original=Convert attributes to properties
+translation=
 
-[importer.roam-json.desc-keep-attributes]
-original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
-translation=页面顶部的属性会成为属性。如果已启用，它将以 Roam 写入的双冒号格式保留在笔记中。
+[importer.roam-json.desc-convert-attributes]
+original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.
+translation=
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links

@@ -702,6 +702,10 @@ translation=
 original=Preview
 translation=
 
+[template.status-loading-preview]
+original=Loading preview...
+translation=
+
 [template.button-edit-template]
 original=Edit
 translation=
@@ -2202,13 +2206,13 @@ translation=Hapus referensi ke blok yang hilang
 original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
 translation=Beberapa referensi merujuk ke blok yang tidak ada dalam ekspor. Jika diaktifkan, referensi tersebut dihapus; jika tidak, referensi dipertahankan seperti yang ditulis Roam.
 
-[importer.roam-json.name-keep-attributes]
-original=Keep attributes in the note
-translation=Simpan atribut di dalam catatan
+[importer.roam-json.name-convert-attributes]
+original=Convert attributes to properties
+translation=
 
-[importer.roam-json.desc-keep-attributes]
-original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
-translation=Atribut di bagian atas halaman menjadi properti. Jika diaktifkan, atribut tetap berada di catatan dengan tanda titik dua ganda seperti yang ditulis Roam.
+[importer.roam-json.desc-convert-attributes]
+original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.
+translation=
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links

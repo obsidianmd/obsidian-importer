@@ -67,3 +67,31 @@ test('an inline database and its rows are left out', () => {
 	assert.ok(!titles.includes('A row of the inline database'), "a dropped database's rows should go with it");
 	assert.ok(!titles.includes('A page inside a block'), 'a page in a block should be dropped');
 });
+
+test('a progressively rebuilt tree preserves selection and collapsed state', () => {
+	const parent = { id: 'parent', title: 'Parent', type: 'page', parentId: null } as const;
+	const child = { id: 'child', title: 'Child', type: 'page', parentId: 'parent' } as const;
+	const first = buildTree([parent]);
+	first[0].selected = true;
+	first[0].collapsed = false;
+
+	const next = buildTree([child, parent], first);
+
+	assert.equal(next[0].selected, true);
+	assert.equal(next[0].collapsed, false);
+	assert.equal(next[0].children[0].selected, true, 'new descendants inherit a selected parent');
+	assert.equal(next[0].children[0].disabled, true);
+});
+
+test('a selected child stays selected when its parent arrives later', () => {
+	const child = { id: 'child', title: 'Child', type: 'page', parentId: 'parent' } as const;
+	const parent = { id: 'parent', title: 'Parent', type: 'page', parentId: null } as const;
+	const first = buildTree([child]);
+	first[0].selected = true;
+
+	const next = buildTree([parent, child], first);
+
+	assert.equal(next[0].selected, false);
+	assert.equal(next[0].children[0].selected, true);
+	assert.equal(next[0].children[0].disabled, false);
+});

@@ -49,7 +49,9 @@ export class TreePicker<T extends ViewableNode<T>> {
 	private rowEl: HTMLElement;
 	private sectionEl: HTMLElement;
 	private filterEl: HTMLElement;
+	private statusEl: HTMLElement;
 	private search: SearchComponent;
+	private statusText: string = '';
 	private query: string = '';
 	private loadGeneration: number = 0;
 
@@ -88,6 +90,12 @@ export class TreePicker<T extends ViewableNode<T>> {
 				this.render();
 			});
 
+		this.statusEl = sectionEl.createDiv({
+			cls: 'importer-tree-status',
+			attr: { 'aria-live': 'polite' },
+		});
+		this.statusEl.hide();
+
 		this.treeEl = sectionEl.createDiv('publish-change-list');
 
 		showTreePlaceholder(this.treeEl, options.hint);
@@ -102,9 +110,21 @@ export class TreePicker<T extends ViewableNode<T>> {
 		this.sectionEl.toggle(shown);
 	}
 
-	async load(load: (isCurrent: () => boolean) => Promise<T[]>): Promise<void> {
+	async load(load: (
+		isCurrent: () => boolean,
+		publish: (nodes: T[]) => void,
+	) => Promise<T[]>): Promise<void> {
 		const generation = ++this.loadGeneration;
 		const isCurrent = () => generation === this.loadGeneration;
+		const publish = (nodes: T[]): void => {
+			if (!isCurrent()) return;
+
+			this.nodes = nodes;
+			this.render();
+			this.updateStatusPosition();
+			if (this.nodes.length > 0) this.toggleButton.buttonEl.show();
+			else this.toggleButton.buttonEl.hide();
+		};
 
 		this.nodes = [];
 		this.clearFilter();
@@ -113,12 +133,11 @@ export class TreePicker<T extends ViewableNode<T>> {
 		this.setStatus(this.options.loading);
 
 		try {
-			const nodes = await load(isCurrent);
+			const nodes = await load(isCurrent, publish);
 			if (!isCurrent()) return;
 
-			this.nodes = nodes;
-			this.render();
-			if (this.nodes.length > 0) this.toggleButton.buttonEl.show();
+			publish(nodes);
+			this.clearStatus();
 		}
 		catch (e) {
 			if (!isCurrent()) return;
@@ -133,7 +152,14 @@ export class TreePicker<T extends ViewableNode<T>> {
 	}
 
 	setStatus(text: string): void {
-		showTreePlaceholder(this.treeEl, text);
+		this.statusText = text;
+		if (this.nodes.length > 0) {
+			this.updateStatusPosition();
+		}
+		else {
+			this.statusEl.hide();
+			showTreePlaceholder(this.treeEl, text);
+		}
 	}
 
 	reset(): void {
@@ -150,6 +176,16 @@ export class TreePicker<T extends ViewableNode<T>> {
 		this.query = '';
 		this.search.setValue('');
 		this.filterEl.hide();
+	}
+
+	private clearStatus(): void {
+		this.statusText = '';
+		this.statusEl.hide();
+	}
+
+	private updateStatusPosition(): void {
+		this.statusEl.setText(this.statusText);
+		this.statusEl.toggle(this.nodes.length > 0 && this.statusText.length > 0);
 	}
 
 	render(): void {

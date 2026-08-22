@@ -403,7 +403,7 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 
 		try {
-			await this.picker.load(() => this.readPages());
+			await this.picker.load((isCurrent, publish) => this.readPages(isCurrent, publish));
 		}
 		catch (error) {
 			console.error('[Notion Importer] Failed to load pages:', error);
@@ -413,7 +413,10 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 	}
 
-	private async readPages(): Promise<NotionTreeNode[]> {
+	private async readPages(
+		isCurrent: () => boolean,
+		publish: (nodes: NotionTreeNode[]) => void,
+	): Promise<NotionTreeNode[]> {
 		this.initializeNotionClient();
 
 		const tempCtx = {
@@ -428,6 +431,7 @@ export class NotionAPIImporter extends FormatImporter {
 		const allRawItems: any[] = [];
 		let cursor: string | undefined = undefined;
 		let pageCount = 0;
+		let tree: NotionTreeNode[] = [];
 
 		do {
 			pageCount++;
@@ -443,12 +447,17 @@ export class NotionAPIImporter extends FormatImporter {
 				}),
 				tempCtx
 			);
+			if (!isCurrent()) return [];
 
 			allRawItems.push(...response.results);
+			tree = buildTree(collectItems(allRawItems), this.picker.nodes);
 			cursor = response.has_more ? response.next_cursor ?? undefined : undefined;
+			// TreePicker publishes the returned final tree. Publish here only when
+			// another request remains, avoiding a duplicate final redraw.
+			if (cursor) publish(tree);
 		} while (cursor);
 
-		return buildTree(collectItems(allRawItems));
+		return tree;
 	}
 
 	/**

@@ -337,10 +337,6 @@ export class NoteTemplateConfigurator {
 	async show(container: HTMLElement, buttonsEl: HTMLElement): Promise<NoteTemplateEditorConfig> {
 		return await new Promise(resolve => {
 			container.empty();
-			container.createDiv({
-				cls: 'importer-screen-desc',
-				text: i18n.template.msgNoteTemplateIntro(),
-			});
 
 			let editing = false;
 			let editorEl: HTMLTextAreaElement | null = null;
@@ -368,7 +364,8 @@ export class NoteTemplateConfigurator {
 			new MarkdownFileSuggest(this.options.app, pathInput);
 
 			const previewSetting = new Setting(previewGroup.listEl)
-				.setName(i18n.template.headingPreview());
+				.setName(i18n.template.headingPreview())
+				.setDesc(i18n.template.msgNoteTemplateIntro());
 			const editButton = new ButtonComponent(previewSetting.controlEl)
 				.setButtonText(i18n.template.buttonEditTemplate());
 			const previewDiagnostics = previewGroup.listEl.createDiv('importer-template-diagnostics');
@@ -390,7 +387,7 @@ export class NoteTemplateConfigurator {
 				const loading = preview.createDiv('importer-loading importer-template-preview-loading');
 				setIcon(loading.createDiv('loader-spinner'), 'loader-2');
 				loading.createDiv({
-					text: i18n.common.statusProcessing({ name: i18n.template.headingPreview() }),
+					text: i18n.template.statusLoadingPreview(),
 				});
 			};
 
