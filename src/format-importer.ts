@@ -936,8 +936,8 @@ export abstract class FormatImporter {
 					catch (error) {
 						console.error('Could not read the chosen Android folder', error);
 						const message = i18n.source.msgAndroidFolderReadFailed();
-						drawState(message);
 						new Notice(message);
+						updateFiles();
 					}
 				}
 				return;
@@ -965,9 +965,18 @@ export abstract class FormatImporter {
 		};
 
 		const setChosen = async (chosen: (PickedFile | PickedFolder)[]) => {
-			this.chosen = chosen;
+			const previousChosen = this.chosen;
+			const previousFiles = this.files;
+			try {
+				this.chosen = chosen;
 
-			if (await this.readChosen()) updateFiles();
+				if (await this.readChosen()) updateFiles();
+			}
+			catch (error) {
+				this.chosen = previousChosen;
+				this.files = previousFiles;
+				throw error;
+			}
 		};
 
 		const addChosen = (arriving: (PickedFile | PickedFolder)[]) => setChosen(this.joining(this.chosen, arriving));

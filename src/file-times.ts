@@ -17,11 +17,11 @@ export async function pickedFileTimes(file: PickedFile): Promise<FileTimes | und
 	}
 
 	if (file instanceof AndroidPickedFile) {
-		const ctime = file.ctime ?? file.mtime;
-		const mtime = file.mtime ?? file.ctime;
-		if (ctime === undefined || mtime === undefined || !Number.isFinite(ctime) || !Number.isFinite(mtime)) {
-			return undefined;
-		}
+		const valid = (time: number | undefined): time is number =>
+			typeof time === 'number' && Number.isFinite(time) && time > 0;
+		const ctime = valid(file.ctime) ? file.ctime : valid(file.mtime) ? file.mtime : undefined;
+		const mtime = valid(file.mtime) ? file.mtime : ctime;
+		if (ctime === undefined || mtime === undefined) return undefined;
 		return { ctime: Math.round(ctime), mtime: Math.round(mtime) };
 	}
 
