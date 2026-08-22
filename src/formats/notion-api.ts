@@ -185,6 +185,10 @@ export class NotionAPIImporter extends FormatImporter {
 	private picker: TreePicker<NotionTreeNode>;
 	private templatePreviewRead: NotionTemplatePreviewRead | null = null;
 
+	protected override get sourceIdSettingFirst(): boolean {
+		return true;
+	}
+
 	private get pickedTree(): NotionTreeNode[] {
 		return this.picker?.nodes ?? [];
 	}
@@ -287,21 +291,6 @@ export class NotionAPIImporter extends FormatImporter {
 
 		this.startGroup('template');
 
-		// Single line breaks option
-		this.addSetting('template')
-			?.setName(i18n.importer.notionApi.nameSingleLineBreaks())
-			.setDesc(i18n.importer.notionApi.descSingleLineBreaks())
-			.addToggle(toggle => {
-				toggle
-					.setValue(false)
-					.onChange(value => {
-						this.singleLineBreaks = value;
-						this.templateSettingsChanged();
-					});
-			});
-
-		this.startGroup('template');
-
 		// Cover property name
 		this.addSetting('template')
 			?.setName(i18n.importer.notionApi.nameCoverProperty())
@@ -325,6 +314,19 @@ export class NotionAPIImporter extends FormatImporter {
 					this.databasePropertyName = value.trim() || 'base';
 					this.notionPropertySettingsChanged();
 				}));
+
+		// Single line breaks option
+		this.addSetting('template')
+			?.setName(i18n.importer.notionApi.nameSingleLineBreaks())
+			.setDesc(i18n.importer.notionApi.descSingleLineBreaks())
+			.addToggle(toggle => {
+				toggle
+					.setValue(false)
+					.onChange(value => {
+						this.singleLineBreaks = value;
+						this.templateSettingsChanged();
+					});
+			});
 
 		this.addSetting()
 			?.setName(i18n.importer.notionApi.nameLinkedDatabases())

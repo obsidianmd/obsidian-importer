@@ -92,6 +92,36 @@ test('back resolves a configuration screen that is waiting for its own buttons',
 	assert.equal(importerFlow.current, null);
 });
 
+test('a nested configuration screen can temporarily handle Back itself', async () => {
+	const { flow: importerFlow } = flow();
+	const internals = importerFlow as unknown as FlowInternals;
+	let returnedToSetup = 0;
+	let returnedToNestedScreen = 0;
+
+	importerFlow.selectedId = 'csv';
+	internals.depth = 2;
+	internals.drawCurrent = () => returnedToSetup++;
+
+	const importer = {
+		showTemplateConfiguration: () => new Promise<boolean>(() => {}),
+	} as unknown as FormatImporter;
+
+	const starting = internals.startImportRun(importer);
+	await Promise.resolve();
+
+	importerFlow.setConfigurationBack(() => returnedToNestedScreen++);
+	importerFlow.back();
+	assert.equal(returnedToNestedScreen, 1);
+	assert.equal(returnedToSetup, 0);
+
+	importerFlow.setConfigurationBack(null);
+	importerFlow.back();
+	await starting;
+
+	assert.equal(returnedToSetup, 1);
+	assert.equal(importerFlow.current, null);
+});
+
 test('conversion options are folded into the output page instead of getting another step', async () => {
 	const outputEl = createDiv();
 	const optionsEl = createDiv();

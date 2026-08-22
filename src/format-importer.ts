@@ -101,6 +101,8 @@ export interface NoteTemplateSetup {
 	defaultTemplate?: string;
 	fields?: TemplateField[];
 	preview?: (template: string) => Promise<NoteTemplatePreview | NoteTemplatePreview[]>;
+	/** Resolve to close this screen without accepting it. */
+	cancel?: Promise<void>;
 	/** Importer-specific controls shown between the template chooser and preview. */
 	configure?: (container: HTMLElement, previewChanged: () => void) => void;
 }
@@ -183,6 +185,8 @@ export interface ImporterHost {
 	importerId: string;
 	helpPermalink?: string;
 	sourceChanged?(): void;
+	/** Temporarily replace Back while an importer shows a nested configuration screen. */
+	setConfigurationBack?(back: (() => unknown) | null): void;
 	abortController: AbortController;
 }
 
@@ -223,6 +227,10 @@ export abstract class FormatImporter {
 	idProperty: string | null = null;
 	/** Set in init() when an importer names its ID something more specific. */
 	idLabel: string = i18n.output.labelSourceId();
+	/** Put source identity before importer-owned settings in their shared group. */
+	protected get sourceIdSettingFirst(): boolean {
+		return false;
+	}
 
 	saveSourceId: boolean = true;
 
@@ -351,6 +359,30 @@ export abstract class FormatImporter {
 		}
 	}
 
+	/** Run a configuration page before a preview page, allowing Back to revisit it. */
+	protected async showConfigurationBeforePreview<T>(
+		initial: T,
+		configure: (current: T) => Promise<T | null>,
+		preview: (configured: T, back: Promise<void>) => Promise<boolean>,
+	): Promise<boolean> {
+		let current = initial;
+		while (true) {
+			const configured = await configure(current);
+			if (!configured) return false;
+			current = configured;
+
+			let goBack!: () => void;
+			const back = new Promise<void>(resolve => goBack = resolve);
+			this.host.setConfigurationBack?.(goBack);
+			try {
+				if (await preview(configured, back)) return true;
+			}
+			finally {
+				this.host.setConfigurationBack?.(null);
+			}
+		}
+	}
+
 	/** Read a small, side-effect-free sample from the current source selection. */
 	protected async templatePreviewSamples(_ctx: ImportContext): Promise<NoteTemplateSample[]> {
 		return [];
@@ -405,6 +437,7 @@ export abstract class FormatImporter {
 			template,
 			path: templatePath,
 			preview,
+			cancel: setup.cancel,
 			managedProperties: () => {
 				const properties = this.managedTemplateProperties();
 				if (!this.idProperty || !this.saveSourceId) return properties;
@@ -430,6 +463,7 @@ export abstract class FormatImporter {
 			},
 		}).show(container, buttonsEl);
 		if (previewChange && this.templatePreviewChanged === previewChange) this.templatePreviewChanged = null;
+		if (!configured) return false;
 
 		this.inlineTemplate = configured.template;
 		this.templatePath = configured.path;
@@ -630,6 +664,7 @@ export abstract class FormatImporter {
 		}
 
 		let externalEl: HTMLElement | null = null;
+		let secretComponentEl: HTMLElement | null = null;
 
 		if (external) {
 			setting.addButton(button => {
@@ -642,17 +677,22 @@ export abstract class FormatImporter {
 
 		const showLinking = (linked: boolean) => {
 			externalEl?.toggle(!linked);
-
-			for (const button of Array.from(setting.controlEl.querySelectorAll('button'))) {
-				if (button !== externalEl) button.toggleClass('mod-cta', !linked);
-			}
+			const secretButtonEl = secretComponentEl?.matches('button')
+				? secretComponentEl
+				: secretComponentEl?.querySelector('button');
+			secretButtonEl?.toggleClass('mod-cta', !linked);
 		};
+		// Plugin data may sync a secret id to another device, but SecretStorage is
+		// local. Treat it as linked only when this device can actually read it.
+		const isLinkedHere = (secretId: string | null): boolean =>
+			!!secretId && !!this.app.secretStorage.getSecret(secretId);
 
 		setting.addComponent(el => {
+			secretComponentEl = el;
 			let component = new SecretComponent(this.app, el)
 				.onChange(async secretId => {
 					this.secretId = secretId || null;
-					showLinking(!!this.secretId);
+					showLinking(isLinkedHere(this.secretId));
 					this.secretChanged();
 					this.sourceChanged();
 					await this.saveSecretId(this.secretId);
@@ -662,7 +702,7 @@ export abstract class FormatImporter {
 				.then(secretId => {
 					this.secretId = secretId;
 					component.setValue(secretId ?? '');
-					showLinking(!!secretId);
+					showLinking(isLinkedHere(secretId));
 					this.secretChanged();
 					this.sourceChanged();
 				})
@@ -1018,7 +1058,7 @@ export abstract class FormatImporter {
 			existing.remove();
 		}
 
-		new Setting(settingsEl)
+		const setting = new Setting(settingsEl)
 			.setClass('importer-save-source-id')
 			.setName(i18n.output.nameSaveSourceId({ label: this.idLabel }))
 			.setDesc(i18n.output.descSaveSourceId({ label: this.idLabel }))
@@ -1031,6 +1071,8 @@ export abstract class FormatImporter {
 						previewChanged?.();
 					});
 			});
+
+		if (this.sourceIdSettingFirst) settingsEl.prepend(setting.settingEl);
 	}
 
 	protected addOutputFolderSetting(contentEl: HTMLElement): void {

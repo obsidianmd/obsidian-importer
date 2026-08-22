@@ -413,50 +413,64 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Note content is empty by default - let user decide what to put there
 		const bodyTemplate = '';
 
-		// Create and show configurator
-		// Note: Airtable uses each table's primary field as note title (no custom template)
-		const configurator = new TemplateConfigurator({
-			fields,
-			defaults: {
-				titleTemplate: '', // Not used - each table's primary field is used directly
-				locationTemplate: '',
-				bodyTemplate,
-				propertyNames,
-				propertyValues,
-			},
-			placeholderSyntax: '{{field_name}}',
-			showTitleTemplate: false, // Airtable always uses primary field as note title
-			showLocationTemplate: false, // Records go to table folders automatically
-			actionText: i18n.modal.buttonContinue(),
-			configure: (contentEl, config, redrawProperties) => {
-				this.addAirtableTemplateSettings(contentEl, config, Array.from(allFieldsMap.values()), redrawProperties);
-			},
-		});
-
-		this.templateConfig = await configurator.show(container, buttonsEl);
-
-		// Return false if user cancelled
-		if (!this.templateConfig) return false;
 		const templateFields = fields.map(field => ({
 			...field,
 			sourceName: field.id,
 			id: sourceVariableExpression(field.id),
 		}));
-		const samples = this.loadTemplatePreviewSamples(ctx, picked).catch(error => {
-			console.error('Could not load Airtable template previews', error);
-			return [];
-		});
-		return await this.showNoteTemplateConfiguration(container, buttonsEl, {
-			fields: templateFields,
-			preview: async template => await this.previewLoadedSamples(template, samples, templateFields),
-		});
+		const defaults: TemplateConfig = {
+			titleTemplate: '', // Not used - each table's primary field is used directly
+			locationTemplate: '',
+			bodyTemplate,
+			propertyNames,
+			propertyValues,
+		};
+
+		return await this.showConfigurationBeforePreview(
+			defaults,
+			async current => {
+				// Airtable uses each table's primary field as the note title and its
+				// table hierarchy as the location, so this screen configures properties.
+				const configurator = new TemplateConfigurator({
+					fields,
+					defaults: current,
+					placeholderSyntax: '{{field_name}}',
+					showTitleTemplate: false,
+					showLocationTemplate: false,
+					showBodyTemplate: false,
+					actionText: i18n.modal.buttonContinue(),
+				});
+				const configured = await configurator.show(container, buttonsEl);
+				if (configured) this.templateConfig = configured;
+				return configured;
+			},
+			async (configured, back) => {
+				const samples = this.loadTemplatePreviewSamples(ctx, picked).catch(error => {
+					console.error('Could not load Airtable template previews', error);
+					return [];
+				});
+				return await this.showNoteTemplateConfiguration(container, buttonsEl, {
+					fields: templateFields,
+					preview: async template => await this.previewLoadedSamples(template, samples, templateFields),
+					cancel: back,
+					configure: (contentEl, previewChanged) => {
+						this.addAirtableViewPropertySetting(
+							contentEl,
+							configured,
+							Array.from(allFieldsMap.values()),
+							previewChanged,
+						);
+					},
+				});
+			},
+		);
 	}
 
-	private addAirtableTemplateSettings(
+	private addAirtableViewPropertySetting(
 		contentEl: HTMLElement,
 		config: TemplateConfig,
 		fields: Iterable<AirtableFieldSchema>,
-		redrawProperties: () => void,
+		previewChanged: () => void,
 	): void {
 		const group = new SettingGroup(contentEl);
 		new Setting(group.listEl)
@@ -471,7 +485,7 @@ export class AirtableAPIImporter extends FormatImporter {
 					const previous = this.viewPropertyName;
 					this.viewPropertyName = value.trim().replace(/["\\]/g, '') || 'Views';
 					this.updateAirtableViewPropertyConflict(config, fields, previous);
-					redrawProperties();
+					previewChanged();
 				}));
 	}
 

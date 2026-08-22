@@ -114,6 +114,11 @@ export class ImporterFlow implements ImporterHost {
 		return this.current !== null;
 	}
 
+	setConfigurationBack(back: (() => unknown) | null): void {
+		const cancel = this.configurationCancel;
+		this.goBack = back ?? (cancel ? () => cancel(true) : null);
+	}
+
 	get isHidden(): boolean {
 		return this.hidden;
 	}

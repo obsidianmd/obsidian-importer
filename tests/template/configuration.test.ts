@@ -61,6 +61,40 @@ class NoteSettingsImporter extends FormatImporter {
 	}
 }
 
+class SourceIdFirstSettingsImporter extends FormatImporter {
+	protected override get sourceIdSettingFirst(): boolean {
+		return true;
+	}
+
+	init(): void {
+		this.idProperty = 'notion-id';
+		this.idLabel = 'Notion ID';
+		this.startGroup('template');
+		this.addSetting('template')?.setName('Cover property');
+		this.addSetting('template')?.setName('Database base');
+		this.addSetting('template')?.setName('Single line breaks');
+	}
+
+	async import(): Promise<void> {}
+
+	showSettings(container: HTMLElement, buttonsEl: HTMLElement): Promise<boolean> {
+		return this.showNoteTemplateConfiguration(container, buttonsEl);
+	}
+}
+
+class NestedConfigurationImporter extends FormatImporter {
+	init(): void {}
+	async import(): Promise<void> {}
+
+	navigate<T>(
+		initial: T,
+		configure: (current: T) => Promise<T | null>,
+		preview: (configured: T, back: Promise<void>) => Promise<boolean>,
+	): Promise<boolean> {
+		return this.showConfigurationBeforePreview(initial, configure, preview);
+	}
+}
+
 test('the tags property uses Obsidian\'s tags icon instead of the generic list icon', () => {
 	assert.equal(propertyIcon('tags', ['one', 'two']), 'lucide-tags');
 	assert.equal(propertyIcon('Other list', ['one', 'two']), 'lucide-list');
@@ -82,6 +116,44 @@ test('the template screen is shown while only its preview is still loading', asy
 	subject.finishLoading();
 	const preview = await subject.preview as { content: string }[];
 	assert.equal(preview[0].content, 'Loaded content');
+});
+
+test('Back from a nested preview restores the preceding configuration', async () => {
+	const navigation: { back: (() => unknown) | null } = { back: null };
+	const subject = new NestedConfigurationImporter(memoryApp(new MemoryVault()), {
+		sourceEl: null,
+		outputEl: null,
+		optionsEl: null,
+		plugin: {
+			loadData: async () => ({ outputSettings: {}, outputLocations: {}, sourceFolders: {} }),
+			saveData: async () => {},
+		},
+		importerId: 'nested-configuration',
+		abortController: new AbortController(),
+		setConfigurationBack: (back: (() => unknown) | null) => navigation.back = back,
+	} as never);
+	const configuredValues: string[] = [];
+	let configureCalls = 0;
+
+	const configuring = subject.navigate(
+		'initial',
+		async current => {
+			configuredValues.push(current);
+			return ++configureCalls === 1 ? 'edited' : null;
+		},
+		async (configured, back) => {
+			configuredValues.push(`preview:${configured}`);
+			await back;
+			return false;
+		},
+	);
+	await Promise.resolve();
+	assert.ok(navigation.back);
+
+	navigation.back?.();
+	assert.equal(await configuring, false);
+	assert.deepEqual(configuredValues, ['initial', 'preview:edited', 'edited']);
+	assert.equal(navigation.back, null);
 });
 
 test('source identity is configured beside the template while existing-note behavior stays on output', async () => {
@@ -168,6 +240,25 @@ test('source identity is configured beside the template while existing-note beha
 			['source-id', '{{id}}'],
 			['tags', '{{tags}}'],
 		]);
+
+		const ordered = new SourceIdFirstSettingsImporter(memoryApp(new MemoryVault()), {
+			sourceEl: createDiv(),
+			outputEl: null,
+			optionsEl: null,
+			plugin: {
+				loadData: async () => ({ outputSettings: {}, outputLocations: {}, sourceFolders: {} }),
+				saveData: async () => {},
+			},
+			importerId: 'source-id-first-settings',
+			abortController: new AbortController(),
+		} as never);
+		await ordered.ready;
+		const orderedContainer = createDiv();
+		await ordered.showSettings(orderedContainer, createDiv());
+		assert.deepEqual(
+			Array.from(orderedContainer.querySelectorAll('.setting-item-name')).map(element => element.textContent),
+			['Save Notion ID', 'Cover property', 'Database base', 'Single line breaks'],
+		);
 	}
 	finally {
 		NoteTemplateConfigurator.prototype.show = realShow;
