@@ -722,6 +722,10 @@ translation=
 original=Save
 translation=
 
+[template.link-show-more]
+original=Show more
+translation=
+
 [template.name-template-editor]
 original=Template source
 translation=

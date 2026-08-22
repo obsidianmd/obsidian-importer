@@ -389,6 +389,8 @@ export class NoteTemplateConfigurator {
 			let sampleIndex = 0;
 			let samples: NoteTemplatePreview[] = [];
 			let renderComponent: MarkdownRenderChild | null = null;
+			let previewResizeObserver: ResizeObserver | null = null;
+			let previewExpanded = false;
 			let updatePreview = async (_showLoading?: boolean, _focusInvalid?: boolean): Promise<boolean> => false;
 			let actionButtonEl: HTMLButtonElement | null = null;
 			let settled = false;
@@ -398,6 +400,7 @@ export class NoteTemplateConfigurator {
 				++revision;
 				renderComponent?.unload();
 				renderComponent = null;
+				previewResizeObserver?.disconnect();
 				if (nativeEditor) void nativeEditor.destroy();
 				nativeEditor = null;
 				actionButtonEl?.remove();
@@ -447,14 +450,49 @@ export class NoteTemplateConfigurator {
 			const nextButton = previewNavButtons.createEl('button');
 			setIcon(nextButton, 'lucide-arrow-right');
 			nextButton.setAttr('aria-label', i18n.template.buttonNextPreview());
+			const previewContent = preview.createDiv('importer-template-preview-content');
+			const showMoreLink = preview.createEl('a', {
+				cls: 'importer-template-preview-more',
+				text: i18n.template.linkShowMore(),
+				href: '#',
+			});
+			showMoreLink.hide();
 			previewNav.toggle(false);
-			// The nav lives in the container a redraw clears, so it goes back in
-			// afterwards. It is positioned, so where it lands among the children
-			// does not matter.
 			const clearPreview = (): void => {
-				preview.empty();
-				preview.append(previewNav);
+				previewResizeObserver?.disconnect();
+				previewContent.empty();
+				previewEl.removeClass('has-more');
+				showMoreLink.hide();
 			};
+			const hideShowMore = (): void => {
+				previewEl.removeClass('has-more');
+				showMoreLink.hide();
+			};
+			const updateShowMore = (): void => {
+				const hasMore = !editing && !previewExpanded
+					&& previewContent.scrollHeight > previewContent.clientHeight + 1;
+				previewEl.toggleClass('has-more', hasMore);
+				showMoreLink.toggle(hasMore);
+			};
+			const watchPreviewHeight = (rendered: HTMLElement): void => {
+				previewResizeObserver?.disconnect();
+				if (typeof ResizeObserver !== 'undefined') {
+					previewResizeObserver = new ResizeObserver(updateShowMore);
+					previewResizeObserver.observe(rendered);
+				}
+				updateShowMore();
+				window.requestAnimationFrame?.(updateShowMore);
+			};
+			const collapsePreview = (): void => {
+				previewExpanded = false;
+				previewEl.removeClass('is-expanded');
+			};
+			showMoreLink.addEventListener('click', event => {
+				event.preventDefault();
+				previewExpanded = true;
+				previewEl.addClass('is-expanded');
+				hideShowMore();
+			});
 			const renderPreviewPath = (path: string | undefined): void => {
 				const displayedPath = path?.replace(/\.md$/iu, '') ?? '';
 				const segments = displayedPath.split('/').filter(Boolean);
@@ -473,6 +511,7 @@ export class NoteTemplateConfigurator {
 				renderComponent = null;
 				clearPreview();
 				previewDiagnostics.empty();
+				hideShowMore();
 				previewPathParent.empty();
 				previewPathName.empty();
 				previewPath.setAttr('title', '');
@@ -481,7 +520,7 @@ export class NoteTemplateConfigurator {
 				nextButton.disabled = true;
 				previewNavButtons.show();
 				previewNav.show();
-				const loading = preview.createDiv('importer-loading importer-template-preview-loading');
+				const loading = previewContent.createDiv('importer-loading importer-template-preview-loading');
 				setIcon(loading.createDiv('loader-spinner'), 'loader-2');
 				loading.createDiv({
 					text: i18n.template.statusLoadingPreview(),
@@ -521,7 +560,8 @@ export class NoteTemplateConfigurator {
 					renderComponent = candidateComponent;
 					candidateComponent = null;
 					clearPreview();
-					preview.append(rendered);
+					previewContent.append(rendered);
+					watchPreviewHeight(rendered);
 					renderPreviewPath(result.path);
 					previousButton.disabled = false;
 					nextButton.disabled = false;
@@ -545,7 +585,9 @@ export class NoteTemplateConfigurator {
 
 			const setEditing = (value: boolean): void => {
 				editing = value;
+				previewEl.toggleClass('is-editing', value);
 				previewPath.toggleClass('is-editing', value);
+				if (value) hideShowMore();
 				if (value) previewPath.show();
 				editButton.setButtonText(value
 					? i18n.template.buttonSaveTemplate()
@@ -576,7 +618,7 @@ export class NoteTemplateConfigurator {
 						!managedKeys.has(property.key.trim().toLowerCase())
 					),
 				];
-				const rendered = preview.createDiv('importer-template-rendered-note importer-template-editing-note');
+				const rendered = previewContent.createDiv('importer-template-rendered-note importer-template-editing-note');
 				titleEditorEl = rendered.createDiv({
 					cls: 'inline-title',
 					text: this.titleTemplate,
@@ -686,11 +728,13 @@ export class NoteTemplateConfigurator {
 			previousButton.addEventListener('click', () => {
 				if (samples.length < 2) return;
 				sampleIndex = (sampleIndex - 1 + samples.length) % samples.length;
+				collapsePreview();
 				void renderPreview(++revision);
 			});
 			nextButton.addEventListener('click', () => {
 				if (samples.length < 2) return;
 				sampleIndex = (sampleIndex + 1) % samples.length;
+				collapsePreview();
 				void renderPreview(++revision);
 			});
 

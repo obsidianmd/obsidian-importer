@@ -238,6 +238,7 @@ export const en = {
 		statusLoadingPreview: 'Loading preview...',
 		buttonEditTemplate: 'Edit',
 		buttonSaveTemplate: 'Save',
+		linkShowMore: 'Show more',
 		nameTemplateEditor: 'Template source',
 		labelEditImportTemplate: 'Edit import template',
 		buttonAddProperty: 'Add property',
