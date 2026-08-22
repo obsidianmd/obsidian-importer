@@ -649,6 +649,12 @@ a.importer-template-preview-more {
 	--file-margins: 0 24px;
 }
 
+.importer-template-editing-note
+.markdown-source-view.is-live-preview.show-properties
+.metadata-container[data-property-count="0"]:not(.mod-error) {
+	display: block;
+}
+
 .importer-template-native-editor {
 	display: flex;
 	flex: 1;
