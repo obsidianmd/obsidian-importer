@@ -27,12 +27,20 @@ test('renders CSV values as YAML scalars', async () => {
 			'Complete: {{complete | yaml}}',
 			'Project: {{source["Project: status"] | yaml}}',
 			'Empty: {{empty | yaml}}',
+			'Spaces: {{spaces | yaml}}',
+			'Zip: {{zip | yaml}}',
+			'SKU: {{sku | yaml}}',
+			'Exponent: {{exponent | yaml}}',
 		].join('\n'),
 		{
 			name: 'A: value #1',
 			count: '42',
 			complete: 'true',
 			empty: '',
+			spaces: ' ',
+			zip: '007',
+			sku: '0x1F',
+			exponent: '1e5',
 			source: { 'Project: status': 'Ready' },
 		},
 	), [
@@ -40,7 +48,11 @@ test('renders CSV values as YAML scalars', async () => {
 		'Count: 42',
 		'Complete: true',
 		'Project: "Ready"',
-		'Empty: ',
+		'Empty: ""',
+		'Spaces: " "',
+		'Zip: "007"',
+		'SKU: "0x1F"',
+		'Exponent: "1e5"',
 	].join('\n'));
 });
 

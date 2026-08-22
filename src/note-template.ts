@@ -30,10 +30,11 @@ markdownFilter.metadata = {};
 
 const yamlFilter: TemplateFilter<ImporterTemplateContext> = value => {
 	const trimmed = value.trim();
-	if (trimmed === '') return '';
-	if (/^(?:true|false|null)$/iu.test(trimmed) || (trimmed !== '' && Number.isFinite(Number(trimmed)))) {
-		return trimmed;
-	}
+	if (/^(?:true|false|null)$/iu.test(trimmed)) return trimmed;
+	// Only leave a number bare when parsing and serializing it is lossless.
+	// YAML would otherwise reinterpret identifiers such as 007, 0x1F, or 1e5.
+	const number = Number(trimmed);
+	if (Number.isFinite(number) && String(number) === trimmed) return trimmed;
 	return JSON.stringify(value);
 };
 yamlFilter.metadata = {};

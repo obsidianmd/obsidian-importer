@@ -131,17 +131,22 @@ export class TomboyImporter extends FormatImporter {
 		const samples: NoteTemplateSample[] = [];
 		for (const file of this.files) {
 			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
-			const note = this.coreConverter.parseTomboyXML(await file.readText());
-			samples.push({
-				title: note.title,
-				path: normalizePath([
-					this.outputLocation.trim(),
-					`${sanitizeFileName(note.title)}.md`,
-				].filter(Boolean).join('/')),
-				content: this.coreConverter.convertToMarkdown(note),
-				variables: { ...note },
-				sourceId: file.basename,
-			});
+			try {
+				const note = this.coreConverter.parseTomboyXML(await file.readText());
+				samples.push({
+					title: note.title,
+					path: normalizePath([
+						this.outputLocation.trim(),
+						`${sanitizeFileName(note.title)}.md`,
+					].filter(Boolean).join('/')),
+					content: this.coreConverter.convertToMarkdown(note),
+					variables: { ...note },
+					sourceId: file.basename,
+				});
+			}
+			catch (error) {
+				console.warn(`Could not preview Tomboy file ${file.fullpath}`, error);
+			}
 		}
 		return samples;
 	}

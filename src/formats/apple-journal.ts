@@ -87,11 +87,16 @@ export class AppleJournalImporter extends FormatImporter {
 		for (const file of this.files) {
 			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
 			if (file.name === 'index.html') continue;
-			samples.push({
-				title: file.basename,
-				path: normalizePath(`${this.outputLocation}/${file.basename}.md`),
-				content: convertJournalEntry(await file.readText(), { frontMatter: this.frontMatterEnabled }),
-			});
+			try {
+				samples.push({
+					title: file.basename,
+					path: normalizePath(`${this.outputLocation}/${file.basename}.md`),
+					content: convertJournalEntry(await file.readText(), { frontMatter: this.frontMatterEnabled }),
+				});
+			}
+			catch (error) {
+				console.warn(`Could not preview Apple Journal file ${file.fullpath}`, error);
+			}
 		}
 		return samples;
 	}

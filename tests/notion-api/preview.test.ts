@@ -107,6 +107,8 @@ test('Notion starts selected page samples early and reuses them in the preview',
 });
 
 test('Notion previews custom cover and database property names', async () => {
+	let databaseReads = 0;
+	let blockReads = 0;
 	const subject = Object.create(NotionAPIImporter.prototype) as NotionAPIImporter;
 	Object.assign(subject, {
 		outputLocation: 'Notion',
@@ -129,11 +131,17 @@ test('Notion previews custom cover and database property names', async () => {
 		initializeNotionClient: () => {},
 		notionClient: {
 			dataSources: {
-				query: async () => ({ results: [page], has_more: false, next_cursor: null }),
+				query: async () => {
+					databaseReads++;
+					return { results: [page], has_more: false, next_cursor: null };
+				},
 			},
 			blocks: {
 				children: {
-					list: async () => ({ results: [], has_more: false, next_cursor: null }),
+					list: async () => {
+						blockReads++;
+						return { results: [], has_more: false, next_cursor: null };
+					},
 				},
 			},
 		},
@@ -148,4 +156,16 @@ test('Notion previews custom cover and database property names', async () => {
 	assert.equal(frontMatter?.collection, '[[Projects.base]]');
 	assert.equal(frontMatter?.cover, undefined);
 	assert.equal(frontMatter?.base, undefined);
+
+	subject.coverPropertyName = 'banner';
+	subject.databasePropertyName = 'database';
+	const renamed = await (subject as unknown as {
+		templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]>;
+	}).templatePreviewSamples(new ImportContext());
+	const renamedFrontMatter = parseFrontMatterBlock(renamed[0].content)?.frontMatter;
+
+	assert.equal(databaseReads, 1, 'renaming a property should reuse the fetched page');
+	assert.equal(blockReads, 1, 'renaming a property should reuse the fetched blocks');
+	assert.equal(renamedFrontMatter?.banner, 'https://example.com/cover.jpg');
+	assert.equal(renamedFrontMatter?.database, '[[Projects.base]]');
 });

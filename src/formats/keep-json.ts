@@ -82,25 +82,30 @@ export class KeepImporter extends FormatImporter {
 		const samples: NoteTemplateSample[] = [];
 		const addFile = async (file: PickedFile): Promise<void> => {
 			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || file.extension !== 'json') return;
-			const note = JSON.parse(await file.readText()) as KeepJson;
-			if (!note?.userEditedTimestampUsec || !note.createdTimestampUsec) return;
-			if (note.isArchived && !this.importArchived) return;
-			if (note.isTrashed && !this.importTrashed) return;
+			try {
+				const note = JSON.parse(await file.readText()) as KeepJson;
+				if (!note?.userEditedTimestampUsec || !note.createdTimestampUsec) return;
+				if (note.isArchived && !this.importArchived) return;
+				if (note.isTrashed && !this.importTrashed) return;
 
-			const strictLineBreaks = this.vault.getConfig('strictLineBreaks') === true;
-			const { content, ctime, mtime } = convertKeepNote(
-				note,
-				file.basename,
-				strictLineBreaks,
-				sourcePath => sourcePath,
-			);
-			samples.push({
-				title: file.basename,
-				path: this.sanitizeFilePath(`${this.outputLocation}/${file.basename}.md`),
-				content,
-				variables: { ...note },
-				times: { ctime, mtime },
-			});
+				const strictLineBreaks = this.vault.getConfig('strictLineBreaks') === true;
+				const { content, ctime, mtime } = convertKeepNote(
+					note,
+					file.basename,
+					strictLineBreaks,
+					sourcePath => sourcePath,
+				);
+				samples.push({
+					title: file.basename,
+					path: this.sanitizeFilePath(`${this.outputLocation}/${file.basename}.md`),
+					content,
+					variables: { ...note },
+					times: { ctime, mtime },
+				});
+			}
+			catch (error) {
+				console.warn(`Could not preview Google Keep file ${file.fullpath}`, error);
+			}
 		};
 
 		for (const file of this.files) {

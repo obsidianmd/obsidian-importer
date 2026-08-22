@@ -50,10 +50,18 @@ function previewTitle(preview: NoteTemplatePreview): string {
 	return name.replace(/\.md$/i, '');
 }
 
-function displayPropertyValue(value: unknown): string {
+function previewIsValid(preview: NoteTemplatePreview): boolean {
+	return preview.valid ?? !preview.diagnostics?.length;
+}
+
+function propertyValueText(value: unknown): string {
 	if (value === null || value === undefined) return '';
-	if (typeof value === 'object') return JSON.stringify(value);
-	return String(value);
+	if (typeof value === 'string') return value;
+	if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+		return value.toString();
+	}
+	if (typeof value === 'object') return JSON.stringify(value) ?? '';
+	return '';
 }
 
 export function propertyIcon(key: string, value: unknown): string {
@@ -141,12 +149,6 @@ function serializeTemplate(properties: EditableProperty[], body: string): string
 	return restoreTemplateExpressions(`---\n${yaml}---\n${body}`, expressions);
 }
 
-function editablePropertyValue(value: unknown): string {
-	if (value === null || value === undefined) return '';
-	if (typeof value === 'object') return JSON.stringify(value);
-	return String(value);
-}
-
 function parseEditablePropertyValue(value: string): unknown {
 	if (!value) return '';
 	const expressions: string[] = [];
@@ -200,7 +202,7 @@ function renderProperties(container: HTMLElement, properties: Record<string, unk
 			for (const item of value) {
 				values.createDiv({
 					cls: 'multi-select-pill',
-					text: displayPropertyValue(item),
+					text: propertyValueText(item),
 				});
 			}
 		}
@@ -223,13 +225,13 @@ function renderProperties(container: HTMLElement, properties: Record<string, unk
 		else if (value && typeof value === 'object') {
 			valueEl.createSpan({
 				cls: 'metadata-property-value-item mod-unknown',
-				text: displayPropertyValue(value),
+				text: propertyValueText(value),
 			});
 		}
 		else {
 			valueEl.createEl('textarea', {
 				cls: 'metadata-input-text metadata-input-longtext',
-				text: displayPropertyValue(value),
+				text: propertyValueText(value),
 				attr: { readonly: true, tabindex: -1, rows: 1 },
 			});
 		}
@@ -287,7 +289,7 @@ function renderEditableProperties(container: HTMLElement, properties: EditablePr
 			valueEl.dataset.propertyType = 'text';
 			const valueInput = valueEl.createEl('textarea', {
 				cls: 'metadata-input-text metadata-input-longtext',
-				text: editablePropertyValue(property.value),
+				text: propertyValueText(property.value),
 				attr: { rows: 1 },
 			});
 			if (property.managed) {
@@ -348,7 +350,7 @@ export class NoteTemplateConfigurator {
 			let sampleIndex = 0;
 			let samples: NoteTemplatePreview[] = [];
 			let renderComponent: MarkdownRenderChild | null = null;
-			let updatePreview = async (_showLoading?: boolean): Promise<boolean> => false;
+			let updatePreview = async (_showLoading?: boolean, _focusInvalid?: boolean): Promise<boolean> => false;
 			let actionButtonEl: HTMLButtonElement | null = null;
 			let settled = false;
 			const finish = (result: NoteTemplateEditorConfig | null): void => {
@@ -383,7 +385,8 @@ export class NoteTemplateConfigurator {
 			const editButton = new ButtonComponent(previewSetting.controlEl)
 				.setButtonText(i18n.template.buttonEditTemplate());
 			const previewDiagnostics = previewGroup.listEl.createDiv('importer-template-diagnostics');
-			const previewNav = previewGroup.listEl.createDiv('importer-template-preview-nav');
+			const previewEl = previewGroup.listEl.createDiv('importer-template-preview');
+			const previewNav = previewEl.createDiv('importer-template-preview-nav');
 			const previousButton = previewNav.createEl('button');
 			setIcon(previousButton, 'lucide-chevron-left');
 			previousButton.setAttr('aria-label', i18n.template.buttonPreviousPreview());
@@ -391,7 +394,9 @@ export class NoteTemplateConfigurator {
 			setIcon(nextButton, 'lucide-chevron-right');
 			nextButton.setAttr('aria-label', i18n.template.buttonNextPreview());
 			previewNav.toggle(false);
-			const preview = previewGroup.listEl.createDiv('importer-template-preview');
+			// The nav sits inside the preview, so what a redraw clears is the
+			// content beside it rather than the preview itself.
+			const preview = previewEl.createDiv('importer-template-preview-content');
 			const showPreviewLoading = (): void => {
 				renderComponent?.unload();
 				renderComponent = null;
@@ -444,7 +449,7 @@ export class NoteTemplateConfigurator {
 					for (const diagnostic of result.diagnostics ?? []) {
 						previewDiagnostics.createDiv({ text: diagnostic });
 					}
-					return result.valid ?? !result.diagnostics?.length;
+					return previewIsValid(result);
 				}
 				catch (error) {
 					candidateComponent?.unload();
@@ -515,7 +520,7 @@ export class NoteTemplateConfigurator {
 				setEditing(false);
 			};
 
-			updatePreview = async (showLoading = true): Promise<boolean> => {
+			updatePreview = async (showLoading = true, focusInvalid = false): Promise<boolean> => {
 				const current = ++revision;
 				if (showLoading) showPreviewLoading();
 				try {
@@ -523,7 +528,13 @@ export class NoteTemplateConfigurator {
 					if (current !== revision) return false;
 					samples = Array.isArray(result) ? result : [result];
 					sampleIndex = Math.min(sampleIndex, Math.max(0, samples.length - 1));
-					return await renderPreview(current);
+					if (focusInvalid) {
+						const invalidIndex = samples.findIndex(sample => !previewIsValid(sample));
+						if (invalidIndex >= 0) sampleIndex = invalidIndex;
+					}
+					const rendered = await renderPreview(current);
+					const allValid = samples.every(previewIsValid);
+					return rendered && allValid;
 				}
 				catch (error) {
 					if (current !== revision) return false;
@@ -598,7 +609,7 @@ export class NoteTemplateConfigurator {
 			actionButtonEl = buttonsEl.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonImport() }, button => {
 				button.addEventListener('click', () => {
 					finishEditing();
-					void updatePreview().then(valid => {
+					void updatePreview(true, true).then(valid => {
 						if (!valid) return;
 						finish({ template: this.template, path: this.path });
 					});

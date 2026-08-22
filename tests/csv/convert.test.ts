@@ -22,6 +22,7 @@ import * as nodePath from 'node:path';
 import { convertRow, defaultNoteTemplate, defaultTemplateConfig, sanitizeYAMLKey } from '../../src/formats/csv/convert';
 import { parseCSV, parseCSVLine, splitCSVLines } from '../../src/formats/csv/parse';
 import { sanitizeFileName } from '../../src/util';
+import { renderNoteTemplate } from '../../src/note-template';
 import { expectedFor, expectTree, fixtures } from '../helpers';
 
 const FIXTURES = __dirname;
@@ -42,6 +43,18 @@ test('generates a Markdown template from CSV headers', () => {
 		'Project status: {{source["Project: status"] | yaml}}',
 		'---',
 	].join('\n'));
+});
+
+test('CSV defaults resolve safe source expressions for punctuated headers', async () => {
+	const config = defaultTemplateConfig(['Price ($)', 'Notes/Extra'], sanitizeYAMLKey);
+	const row = { 'Price ($)': '12', 'Notes/Extra': 'Ready' };
+	const converted = convertRow(row, config);
+
+	assert.equal(config.titleTemplate, '{{source["Price ($)"]}}');
+	assert.equal(await renderNoteTemplate(config.titleTemplate, { ...row, source: row }), '12');
+	assert.equal(converted.title, '12');
+	assert.match(converted.content, /Price : 12/u);
+	assert.match(converted.content, /NotesExtra: "Ready"/u);
 });
 
 for (const file of files) {

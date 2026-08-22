@@ -292,8 +292,13 @@ export class TemplateConfigurator {
 export function applyTemplate(template: string, data: Record<string, string>): string {
 	if (!template) return '';
 
-	return template.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (match, fieldName) => {
-		const trimmedName = fieldName.trim();
+	return template.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (match: string, fieldName: string) => {
+		let trimmedName = fieldName.trim();
+		const sourceMatch = /^source\[("(?:\\.|[^"\\])*")\]$/u.exec(trimmedName);
+		if (sourceMatch) {
+			const parsed: unknown = JSON.parse(sourceMatch[1]);
+			if (typeof parsed === 'string') trimmedName = parsed;
+		}
 		return data[trimmedName] !== undefined ? data[trimmedName] : match;
 	});
 }

@@ -56,6 +56,24 @@ interface ANFolderRow {
 	ZOWNER: number;
 }
 
+interface AppleNotesKeyRow {
+	Z_NAME: string;
+	Z_ENT: number;
+}
+
+interface AppleNotePreviewRow {
+	zhexdata: string;
+	ZTITLE1: string;
+	ZIDENTIFIER: string;
+	ZCREATIONDATE1: number;
+	ZCREATIONDATE2: number;
+	ZCREATIONDATE3: number;
+	ZMODIFICATIONDATE1: number;
+	ZISPASSWORDPROTECTED: number;
+	zfoldertitle: string | null;
+	zfolderidentifier: string | null;
+}
+
 export class AppleNotesImporter extends FormatImporter implements ANContext<TFile> {
 	interruption = 'pause' as const;
 
@@ -89,8 +107,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	private dataPath: string | null;
 
 	private picker: TreePicker<AppleNotesTreeNode>;
-	private templatePreviewMode = false;
-
 	selectedFolders: number[] = [];
 
 	get sourceReady(): boolean {
@@ -117,8 +133,8 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			void this.loadFolders();
 		}
 
-		const storedTitle = this.app.loadLocalStorage(NOTE_TITLE_STORAGE_KEY);
-		const storedPrefix = this.app.loadLocalStorage(FILE_PREFIX_STORAGE_KEY);
+		const storedTitle: unknown = this.app.loadLocalStorage(NOTE_TITLE_STORAGE_KEY);
+		const storedPrefix: unknown = this.app.loadLocalStorage(FILE_PREFIX_STORAGE_KEY);
 		this.noteTitleTemplate = typeof storedTitle === 'string'
 			? storedTitle
 			: typeof storedPrefix === 'string' && storedPrefix !== ''
@@ -134,7 +150,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				.onChange(async v => {
 					this.noteTitleTemplate = v;
 					this.app.saveLocalStorage(NOTE_TITLE_STORAGE_KEY, v);
-					this.templateSettingsChanged();
+					this.templateRenderingChanged();
 				})
 			);
 
@@ -348,15 +364,30 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		}
 
 		const originalDB = path.join(dataPath, NOTE_DB);
-		const clonedDB = path.join(os.tmpdir(), NOTE_DB);
+		const cloneDirectory = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), 'obsidian-importer-apple-notes-'),
+		);
+		const clonedDB = path.join(cloneDirectory, NOTE_DB);
 
 		// Copy the database and its WAL files so Notes cannot change them mid-import.
-		await fsPromises.copyFile(originalDB, clonedDB);
-		await fsPromises.copyFile(originalDB + '-shm', clonedDB + '-shm');
-		await fsPromises.copyFile(originalDB + '-wal', clonedDB + '-wal');
+		try {
+			await fsPromises.copyFile(originalDB, clonedDB);
+			await fsPromises.copyFile(originalDB + '-shm', clonedDB + '-shm');
+			await fsPromises.copyFile(originalDB + '-wal', clonedDB + '-wal');
 
-		//@ts-ignore
-		return new SQLiteTag(clonedDB, { readonly: true, persistent: true });
+			//@ts-ignore
+			const database = new SQLiteTag(clonedDB, { readonly: true, persistent: true }) as SQLiteTagSpawned;
+			const closeDatabase: () => void = database.close.bind(database);
+			database.close = () => {
+				closeDatabase();
+				void fsPromises.rm(cloneDirectory, { recursive: true, force: true });
+			};
+			return database;
+		}
+		catch (error) {
+			await fsPromises.rm(cloneDirectory, { recursive: true, force: true });
+			throw error;
+		}
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -431,15 +462,17 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	}
 
 	protected override async templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]> {
-		this.ctx = ctx;
-		this.protobufRoot = Root.fromJSON(descriptor);
 		const database = await this.getNotesDatabase();
 		if (!database) return [];
-		this.database = database;
+		const protobufRoot = Root.fromJSON(descriptor);
+		const previewContext = this.appleNotesPreviewContext(database, protobufRoot);
 
 		try {
-			this.keys = Object.fromEntries(
-				(await database.all`SELECT z_ent, z_name FROM z_primarykey`).map(k => [k.Z_NAME, k.Z_ENT])
+			const keyRows = await database.all`
+				SELECT z_ent, z_name FROM z_primarykey
+			` as unknown as AppleNotesKeyRow[];
+			const keys: Record<string, number> = Object.fromEntries(
+				keyRows.map(row => [row.Z_NAME, row.Z_ENT])
 			);
 			const rows = await database.all`
 				SELECT
@@ -454,20 +487,24 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				LEFT JOIN ziccloudsyncingobject AS folder ON folder.z_pk = note.zfolder
 				WHERE
 					note.z_pk = nd.znote
-					AND note.z_ent = ${this.keys.ICNote}
+					AND note.z_ent = ${keys.ICNote}
 					AND note.ztitle1 IS NOT NULL
 					AND note.zfolder IN (${this.selectedFolders})
 				LIMIT ${TEMPLATE_PREVIEW_LIMIT}
-			`;
+			` as unknown as AppleNotePreviewRow[];
 
-			this.templatePreviewMode = true;
 			const samples: NoteTemplateSample[] = [];
 			for (const row of rows) {
 				if (await ctx.shouldStop()) break;
 				if (row.ZISPASSWORDPROTECTED) continue;
 
-				const converter = this.decodeData(row.zhexdata, NoteConverter);
-				const storedTitle = String(row.ZTITLE1);
+				const converter = this.decodeDataWithContext(
+					row.zhexdata,
+					NoteConverter,
+					previewContext,
+					protobufRoot,
+				);
+				const storedTitle = row.ZTITLE1;
 				const ctime = this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1);
 				const title = noteTitle(converter.note.noteText, storedTitle);
 				const folder = row.zfolderidentifier?.startsWith('DefaultFolder')
@@ -495,9 +532,24 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			return samples;
 		}
 		finally {
-			this.templatePreviewMode = false;
 			database.close();
 		}
+	}
+
+	private appleNotesPreviewContext(database: SQLiteTagSpawned, protobufRoot: Root): ANContext {
+		let context: ANContext;
+		context = {
+			omitFirstLine: this.omitFirstLine,
+			includeHandwriting: this.includeHandwriting,
+			strictLineBreaks: this.strictLineBreaks,
+			database,
+			decodeData: <T extends ANConverter>(hexdata: string, converterType: ANConverterType<T>): T =>
+				this.decodeDataWithContext(hexdata, converterType, context, protobufRoot),
+			resolveAttachment: () => Promise.resolve(null),
+			resolveNote: () => Promise.resolve(null),
+			linkTo: () => '',
+		};
+		return context;
 	}
 
 	private async configuredNoteTitle(
@@ -594,7 +646,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	}
 
 	async resolveNote(id: number): Promise<TFile | null> {
-		if (this.templatePreviewMode) return null;
 		if (id in this.resolvedFiles) return this.resolvedFiles[id];
 
 		const row = await this.database.get`
@@ -687,7 +738,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	async resolveAttachment(
 		id: number, uti: ANAttachment | (string & {}), hasFallback = false
 	): Promise<TFile | null> {
-		if (this.templatePreviewMode) return null;
 		if (id in this.resolvedFiles) return this.resolvedFiles[id];
 
 		let sourcePath, outName, outExt, row, file;
@@ -858,9 +908,18 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	}
 
 	decodeData<T extends ANConverter>(hexdata: string, converterType: ANConverterType<T>): T {
+		return this.decodeDataWithContext(hexdata, converterType, this, this.protobufRoot);
+	}
+
+	private decodeDataWithContext<T extends ANConverter>(
+		hexdata: string,
+		converterType: ANConverterType<T>,
+		context: ANContext,
+		protobufRoot: Root,
+	): T {
 		const unzipped = zlib.unzipSync(Buffer.from(hexdata, 'hex'));
-		const decoded = this.protobufRoot.lookupType(converterType.protobufType).decode(unzipped);
-		return new converterType(this, decoded);
+		const decoded = protobufRoot.lookupType(converterType.protobufType).decode(unzipped);
+		return new converterType(context, decoded);
 	}
 
 	decodeTime(timestamp: number): number {

@@ -81,7 +81,7 @@ export function attachmentLocationAsSetting({ mode, path }: AttachmentLocation):
 }
 
 export function vaultAttachmentLocation(vault: Vault): AttachmentLocation {
-	const configured = vault.getConfig('attachmentFolderPath');
+	const configured: unknown = vault.getConfig('attachmentFolderPath');
 	const value = typeof configured === 'string' ? configured.trim() : '';
 
 	if (value === '' || value === '/') return { mode: 'vault', path: '' };
@@ -117,6 +117,21 @@ export interface NoteTemplateSample {
 	generatedProperties?: Record<string, unknown>;
 	sourceId?: string;
 	times?: Pick<NoteImport, 'ctime' | 'mtime'>;
+}
+
+/** Keep preview diagnostics out of the import report while sharing cancellation. */
+class TemplatePreviewContext extends ImportContext {
+	constructor(private readonly source: ImportContext) {
+		super();
+	}
+
+	override async shouldStop(): Promise<boolean> {
+		return await this.source.shouldStop();
+	}
+
+	override isCancelled(): boolean {
+		return this.source.isCancelled();
+	}
 }
 
 /**
@@ -336,10 +351,11 @@ export abstract class FormatImporter {
 		if (!this.supportsNoteTemplates) return null;
 
 		const fields: TemplateField[] = [];
+		const previewContext = new TemplatePreviewContext(ctx);
 		const loadSamples = (): Promise<NoteTemplateSample[]> =>
 			this.templatePreviewSamples === FormatImporter.prototype.templatePreviewSamples
 				? Promise.resolve([])
-				: Promise.resolve().then(() => this.templatePreviewSamples(ctx)).catch(error => {
+				: Promise.resolve().then(() => this.templatePreviewSamples(previewContext)).catch(error => {
 					console.error(`Could not load ${this.host.importerId} template previews`, error);
 					return [];
 				});
@@ -514,8 +530,14 @@ export abstract class FormatImporter {
 			content,
 			valid: result.errors.length === 0,
 			diagnostics: [
-				...result.errors.map(error => `Line ${error.line}: ${error.message}`),
-				...result.warnings.map(warning => `Line ${warning.line}: ${warning.message}`),
+				...result.errors.map(error => i18n.template.msgDiagnostic({
+					line: error.line,
+					message: error.message,
+				})),
+				...result.warnings.map(warning => i18n.template.msgDiagnostic({
+					line: warning.line,
+					message: warning.message,
+				})),
 			],
 		};
 	}
@@ -554,6 +576,11 @@ export abstract class FormatImporter {
 	protected templateSettingsChanged(): void {
 		if (this.templateSamplesChanged) this.templateSamplesChanged();
 		else this.templatePreviewChanged?.();
+	}
+
+	/** Re-render cached samples after a setting that does not change their source conversion. */
+	protected templateRenderingChanged(): void {
+		this.templatePreviewChanged?.();
 	}
 
 	/**

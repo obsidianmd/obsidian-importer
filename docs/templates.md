@@ -26,11 +26,22 @@ rewriting their contents.
 CSV generates a template from its headers. Each header becomes a variable and,
 by default, a frontmatter property. Its first row is used for the preview. The
 generated template uses bracket notation so punctuation in a header is safe,
-for example `{{source["Project: status"]}}`. The CSV-only `yaml` filter
-serializes a cell as a YAML scalar, for example
+for example `{{source["Project: status"]}}`. It uses the shared `yaml` filter
+to serialize each cell as a YAML scalar, for example
 `Status: {{source["Status"] | yaml}}`. **Note title** and **Note location** are
 configured on this same template page and use Knap syntax, including filters
 and logic.
+
+## Importer filters
+
+All importers can use the standard Knap and HTML filters, plus these
+Importer-provided filters:
+
+| Filter | Description |
+| --- | --- |
+| `yaml` | Serialize a value as a YAML scalar while preserving strings such as zero-padded IDs. |
+| `markdown` | Convert HTML to Markdown. An optional URL parameter supplies the page URL used while converting links. |
+| `fragment_link` | Create a text-fragment link, using the imported page URL when the template does not provide one. |
 
 ## Shared variables
 

@@ -24,7 +24,7 @@ import {
 import Airtable from 'airtable';
 import { fetchBases, fetchTableSchema, selectRecords } from './airtable-api/api-helpers';
 import { downloadAttachmentList, formatAttachmentsForBody, formatAttachmentsForYAML } from './airtable-api/attachment-helpers';
-import { buildBaseFile, mergedBaseViews, sanitizePropertyName } from './airtable-api/base-file';
+import { buildBaseFile, mergedBaseViews, sanitizePropertyName, sanitizeViewName } from './airtable-api/base-file';
 import { mapAirtableTypeToObsidian } from './airtable-api/field-converter';
 import { computeTableFormulas } from './airtable-api/table-formulas';
 import {
@@ -84,6 +84,10 @@ const EXAMPLE_VALUE_FOR_FIELD_TYPE: Record<string, string> = {
 	duration: '2:30:00',
 	barcode: '1234567890',
 };
+
+interface AirtableTemplatePreviewSample extends NoteTemplateSample {
+	viewReferences: string[];
+}
 
 export class AirtableAPIImporter extends FormatImporter {
 	interruption = 'pause' as const;
@@ -186,7 +190,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			.addDropdown(dropdown => dropdown
 				.addOption('hybrid', i18n.importer.airtableApi.optionFormulaHybrid())
 				.addOption('static', i18n.importer.airtableApi.optionFormulaStatic())
-				.setValue(this.formulaStrategy)
+				.setValue('hybrid')
 				.onChange(value => this.formulaStrategy = value as FormulaImportStrategy));
 
 		// Download attachments option
@@ -451,13 +455,20 @@ export class AirtableAPIImporter extends FormatImporter {
 				});
 				return await this.showNoteTemplateConfiguration(container, buttonsEl, {
 					fields: templateFields,
-					preview: async template => await this.previewLoadedSamples(template, samples, templateFields),
+					preview: async template => {
+						const loaded = await samples;
+						const withViews: NoteTemplateSample[] = loaded.map(sample => ({
+							...sample,
+							generatedProperties: sample.viewReferences.length > 0
+								? { [this.viewPropertyName]: sample.viewReferences }
+								: undefined,
+						}));
+						return await this.previewLoadedSamples(template, Promise.resolve(withViews), templateFields);
+					},
 					cancel: back,
 					configure: (contentEl, previewChanged) => {
 						this.addAirtableViewPropertySetting(
 							contentEl,
-							configured,
-							Array.from(allFieldsMap.values()),
 							previewChanged,
 						);
 					},
@@ -468,8 +479,6 @@ export class AirtableAPIImporter extends FormatImporter {
 
 	private addAirtableViewPropertySetting(
 		contentEl: HTMLElement,
-		config: TemplateConfig,
-		fields: Iterable<AirtableFieldSchema>,
 		previewChanged: () => void,
 	): void {
 		const group = new SettingGroup(contentEl);
@@ -482,39 +491,16 @@ export class AirtableAPIImporter extends FormatImporter {
 				.onChange(value => {
 					// Stripped rather than escaped: this name is embedded in a
 					// double-quoted Bases filter string in the generated .base file.
-					const previous = this.viewPropertyName;
 					this.viewPropertyName = value.trim().replace(/["\\]/g, '') || 'Views';
-					this.updateAirtableViewPropertyConflict(config, fields, previous);
 					previewChanged();
 				}));
-	}
-
-	private updateAirtableViewPropertyConflict(
-		config: TemplateConfig,
-		fields: Iterable<AirtableFieldSchema>,
-		previous: string,
-	): void {
-		for (const field of fields) {
-			const propertyName = sanitizePropertyName(field.name);
-			if (propertyName.toLowerCase() === this.viewPropertyName.toLowerCase()) {
-				config.propertyNames.delete(field.name);
-				config.propertyValues.delete(field.name);
-			}
-			else if (
-				propertyName.toLowerCase() === previous.toLowerCase()
-				&& !config.propertyNames.has(field.name)
-			) {
-				config.propertyNames.set(field.name, propertyName);
-				config.propertyValues.set(field.name, `{{${field.name}}}`);
-			}
-		}
 	}
 
 	private async loadTemplatePreviewSamples(
 		ctx: ImportContext,
 		picked: AirtableTreeNode[],
-	): Promise<NoteTemplateSample[]> {
-		const samples: NoteTemplateSample[] = [];
+	): Promise<AirtableTemplatePreviewSample[]> {
+		const samples: AirtableTemplatePreviewSample[] = [];
 		for (const group of this.groupSelectedNodesByBase(picked).values()) {
 			for (const table of group.tables) {
 				if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) return samples;
@@ -529,8 +515,17 @@ export class AirtableAPIImporter extends FormatImporter {
 					table.tableId || table.tableName,
 					{ maxRecords: TEMPLATE_PREVIEW_LIMIT - samples.length },
 				);
+				const viewReferences = await this.loadPreviewViewReferences(
+					ctx,
+					group.baseId,
+					table.tableId || table.tableName,
+					table.views,
+					records as AirtableRecord[],
+				);
 				const formulaFieldNames = new Set(this.computeTableFormulas(fields, table.primaryFieldId).keys());
-				const frontMatterFields = this.frontMatterFieldsForTable(fields, primaryFieldName);
+				// View membership is injected as a generated property at render time,
+				// so a field with the same name can reappear when the user renames it.
+				const frontMatterFields = this.frontMatterFieldsForTable(fields, primaryFieldName, '\0');
 
 				for (const record of records as AirtableRecord[]) {
 					if (isEmptyRecord(record)) continue;
@@ -559,6 +554,7 @@ export class AirtableAPIImporter extends FormatImporter {
 						path,
 						content,
 						variables: templateVariables,
+						viewReferences: viewReferences.get(record.id) ?? [],
 						sourceId: record.id,
 						times: recordTimestamps(record),
 					});
@@ -567,6 +563,46 @@ export class AirtableAPIImporter extends FormatImporter {
 			}
 		}
 		return samples;
+	}
+
+	private async loadPreviewViewReferences(
+		ctx: ImportContext,
+		baseId: string,
+		tableIdOrName: string,
+		views: AirtableViewInfo[],
+		records: AirtableRecord[],
+	): Promise<Map<string, string[]>> {
+		const recordIds = records.filter(record => !isEmptyRecord(record)).map(record => record.id);
+		const references = new Map<string, string[]>();
+		if (recordIds.length === 0) return references;
+
+		const comparisons = recordIds.map(id => `RECORD_ID()=${JSON.stringify(id)}`);
+		const filterByFormula = comparisons.length === 1
+			? comparisons[0]
+			: `OR(${comparisons.join(',')})`;
+
+		for (const view of views.filter(view => ['grid', 'gallery', 'list'].includes(view.type.toLowerCase()))) {
+			if (await ctx.shouldStop()) break;
+			try {
+				const members = await selectRecords(this.getAirtableBase(baseId), tableIdOrName, {
+					view: view.id,
+					fields: [],
+					filterByFormula,
+					maxRecords: recordIds.length,
+				}) as AirtableRecord[];
+				const token = sanitizeViewName(view.name);
+				for (const member of members) {
+					const current = references.get(member.id) ?? [];
+					current.push(token);
+					references.set(member.id, current);
+				}
+			}
+			catch (error) {
+				console.warn(`Could not load Airtable preview membership for view ${view.name}`, error);
+			}
+		}
+
+		return references;
 	}
 
 	/**
@@ -603,7 +639,8 @@ export class AirtableAPIImporter extends FormatImporter {
 	 */
 	private frontMatterFieldsForTable(
 		fields: AirtableFieldSchema[],
-		primaryFieldName: string
+		primaryFieldName: string,
+		viewPropertyName = this.viewPropertyName,
 	): Array<{ fieldName: string, propertyName: string }> {
 		if (!this.templateConfig) return [];
 
@@ -612,7 +649,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			primaryFieldName,
 			propertyNames: this.templateConfig.propertyNames,
 			propertyValues: this.templateConfig.propertyValues,
-			viewPropertyName: this.viewPropertyName,
+			viewPropertyName,
 			propertyNameForField: fieldName => this.propertyNameForField(fieldName),
 		});
 	}

@@ -17,8 +17,19 @@ test('record sampling asks Airtable for only the preview limit', async () => {
 		},
 	});
 
-	const result = await selectRecords(base, 'Table', { maxRecords: 5 });
+	const result = await selectRecords(base, 'Table', {
+		view: 'viwExample',
+		fields: [],
+		filterByFormula: 'RECORD_ID()="recExample"',
+		maxRecords: 5,
+	});
 
-	assert.deepEqual(selected, { maxRecords: 5, pageSize: 5 });
+	assert.deepEqual(selected, {
+		view: 'viwExample',
+		fields: [],
+		filterByFormula: 'RECORD_ID()="recExample"',
+		maxRecords: 5,
+		pageSize: 5,
+	});
 	assert.deepEqual(result, records);
 });

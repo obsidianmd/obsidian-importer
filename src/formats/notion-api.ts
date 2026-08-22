@@ -3,7 +3,7 @@ import { DuplicateHandling, FormatImporter, leavesTheNoteAlone, NoteTemplateSamp
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { BlockObjectResponse, Client, PageObjectResponse } from '@notionhq/client';
-import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath, parseFrontMatterBlock, plural } from '../util';
+import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath, plural } from '../util';
 import { areAnySelected, selectedNodes } from '../tree';
 import { describeRequestFailure } from '../request-failure';
 import { TreePicker } from '../tree-view';
@@ -68,7 +68,7 @@ function notionPreviewProperties(
 	if (databaseTag) properties[databasePropertyName] = `[[${databaseTag}]]`;
 	for (const [name, property] of Object.entries(page.properties)) {
 		if (property.type === 'title') continue;
-		const value = mapNotionPropertyToFrontmatter(property);
+		const value: unknown = mapNotionPropertyToFrontmatter(property);
 		if (value !== null && value !== undefined) properties[name] = value;
 	}
 
@@ -78,41 +78,56 @@ function notionPreviewProperties(
 	return properties;
 }
 
-function notionBlockPreview(block: BlockObjectResponse): string {
-	const data = (block as unknown as Record<string, any>)[block.type] ?? {};
-	const richText = Array.isArray(data.rich_text) ? convertRichText(data.rich_text) : '';
-	const caption = Array.isArray(data.caption) ? convertRichText(data.caption) : '';
+type NotionPreviewMediaType = 'image' | 'video' | 'audio' | 'file' | 'pdf';
 
+const NOTION_PREVIEW_MEDIA_LABELS: Record<NotionPreviewMediaType, () => string> = {
+	image: () => i18n.importer.notionApi.labelAttachmentImage(),
+	video: () => i18n.importer.notionApi.labelAttachmentVideo(),
+	audio: () => i18n.importer.notionApi.labelAttachmentAudio(),
+	file: () => i18n.importer.notionApi.labelAttachmentFile(),
+	pdf: () => i18n.importer.notionApi.labelAttachmentPdf(),
+};
+
+function notionMediaPreview(type: NotionPreviewMediaType, caption: string): string {
+	const label = NOTION_PREVIEW_MEDIA_LABELS[type]();
+	return caption
+		? i18n.importer.notionApi.msgPreviewContentNotLoadedWithCaption({ type: label, caption })
+		: i18n.importer.notionApi.msgPreviewContentNotLoaded({ type: label });
+}
+
+function notionBlockPreview(block: BlockObjectResponse): string {
 	switch (block.type) {
-		case 'paragraph': return richText;
-		case 'heading_1': return `# ${richText}`;
-		case 'heading_2': return `## ${richText}`;
-		case 'heading_3': return `### ${richText}`;
-		case 'bulleted_list_item': return `- ${richText}`;
-		case 'numbered_list_item': return `1. ${richText}`;
-		case 'to_do': return `- [${data.checked ? 'x' : ' '}] ${richText}`;
-		case 'quote': return `> ${richText}`;
-		case 'callout': return `> [!note]\n> ${richText}`;
-		case 'toggle': return `${richText}\n\n> (nested content not loaded in preview)`;
+		case 'paragraph': return convertRichText(block.paragraph.rich_text);
+		case 'heading_1': return `# ${convertRichText(block.heading_1.rich_text)}`;
+		case 'heading_2': return `## ${convertRichText(block.heading_2.rich_text)}`;
+		case 'heading_3': return `### ${convertRichText(block.heading_3.rich_text)}`;
+		case 'heading_4': return `#### ${convertRichText(block.heading_4.rich_text)}`;
+		case 'bulleted_list_item': return `- ${convertRichText(block.bulleted_list_item.rich_text)}`;
+		case 'numbered_list_item': return `1. ${convertRichText(block.numbered_list_item.rich_text)}`;
+		case 'to_do': return `- [${block.to_do.checked ? 'x' : ' '}] ${convertRichText(block.to_do.rich_text)}`;
+		case 'quote': return `> ${convertRichText(block.quote.rich_text)}`;
+		case 'callout': return `> [!note]\n> ${convertRichText(block.callout.rich_text)}`;
+		case 'toggle': return `${convertRichText(block.toggle.rich_text)}\n\n> ${i18n.importer.notionApi.msgPreviewNestedContent()}`;
 		case 'divider': return '---';
-		case 'equation': return data.expression ? `$$\n${data.expression}\n$$` : '';
+		case 'equation': return block.equation.expression ? `$$\n${block.equation.expression}\n$$` : '';
 		case 'code': {
-			const code = Array.isArray(data.rich_text)
-				? data.rich_text.map((item: { plain_text?: string }) => item.plain_text ?? '').join('')
-				: '';
-			return `\`\`\`${data.language ?? ''}\n${code}\n\`\`\``;
+			const code = block.code.rich_text.map(item => item.plain_text).join('');
+			return `\`\`\`${block.code.language}\n${code}\n\`\`\``;
 		}
-		case 'bookmark':
-		case 'embed':
-		case 'link_preview': return data.url ? `[${data.url}](${data.url})` : '';
-		case 'child_page': return `[[${data.title || 'Child page'}]]`;
-		case 'child_database': return `![[${data.title || 'Database'}.base]]`;
-		case 'image':
-		case 'video':
-		case 'audio':
-		case 'file':
-		case 'pdf': return `(${block.type}${caption ? `: ${caption}` : ''} not loaded in preview)`;
-		default: return richText || `(${block.type} not expanded in preview)`;
+		case 'bookmark': return block.bookmark.url ? `[${block.bookmark.url}](${block.bookmark.url})` : '';
+		case 'embed': return block.embed.url ? `[${block.embed.url}](${block.embed.url})` : '';
+		case 'link_preview': return block.link_preview.url ? `[${block.link_preview.url}](${block.link_preview.url})` : '';
+		case 'child_page': return `[[${block.child_page.title || i18n.importer.notionApi.labelPreviewChildPage()}]]`;
+		case 'child_database': return `![[${block.child_database.title || i18n.importer.notionApi.labelPreviewDatabase()}.base]]`;
+		case 'image': return notionMediaPreview(block.type, convertRichText(block.image.caption));
+		case 'video': return notionMediaPreview(block.type, convertRichText(block.video.caption));
+		case 'audio': return notionMediaPreview(block.type, convertRichText(block.audio.caption));
+		case 'file': return notionMediaPreview(block.type, convertRichText(block.file.caption));
+		case 'pdf': return notionMediaPreview(block.type, convertRichText(block.pdf.caption));
+		case 'template': return convertRichText(block.template.rich_text);
+		default: return i18n.importer.notionApi.msgPreviewBlockNotExpanded({
+			type: i18n.importer.notionApi.blockGeneric(),
+		});
 	}
 }
 
@@ -149,6 +164,33 @@ export function notionBlocksPreview(
 interface NotionTemplatePreviewRead {
 	key: string;
 	request: Promise<NoteTemplateSample[]>;
+	context: NotionTemplatePreviewContext;
+}
+
+interface NotionTemplatePreviewPage {
+	page: PageObjectResponse;
+	blocks: BlockObjectResponse[];
+	databaseTag?: string;
+}
+
+/** A prefetched request adopts the real configuration context when it arrives. */
+class NotionTemplatePreviewContext extends ImportContext {
+	private readonly sources = new Set<ImportContext>();
+
+	add(source: ImportContext): void {
+		this.sources.add(source);
+	}
+
+	override async shouldStop(): Promise<boolean> {
+		for (const source of this.sources) {
+			if (await source.shouldStop()) return true;
+		}
+		return false;
+	}
+
+	override isCancelled(): boolean {
+		return Array.from(this.sources).some(source => source.isCancelled());
+	}
 }
 
 export class NotionAPIImporter extends FormatImporter {
@@ -166,7 +208,7 @@ export class NotionAPIImporter extends FormatImporter {
 	importLinkedDatabases: boolean = false;
 	downloadExternalAttachments: boolean = false; // Download external attachments
 	singleLineBreaks: boolean = false; // Single line breaks between blocks (default: disabled)
-	private templatePreviewBlocks?: Map<string, BlockObjectResponse[]>;
+	private templatePreviewPages?: Map<string, NotionTemplatePreviewPage>;
 	coverPropertyName: string = 'cover'; // Custom property name for page cover
 	databasePropertyName: string = 'base'; // Property name for linking pages to their database
 	/**
@@ -339,7 +381,6 @@ export class NotionAPIImporter extends FormatImporter {
 	}
 
 	private notionPropertySettingsChanged(): void {
-		this.templatePreviewRead = null;
 		this.templateSettingsChanged();
 	}
 
@@ -394,6 +435,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 	protected secretChanged(): void {
 		this.templatePreviewRead = null;
+		this.templatePreviewPages = undefined;
 		if (this.notionToken) void this.loadPageTree();
 		else this.picker.reset();
 	}
@@ -503,11 +545,18 @@ export class NotionAPIImporter extends FormatImporter {
 	private async templateSampleForPage(
 		page: PageObjectResponse,
 		ctx: ImportContext,
+		cache: Map<string, NotionTemplatePreviewPage>,
 		databaseTag?: string,
 	): Promise<NoteTemplateSample> {
-		const title = sanitizeFileName(extractPageTitle(page));
 		const blocks = await fetchAllBlocks(this.notionClient!, page.id, ctx);
-		(this.templatePreviewBlocks ??= new Map()).set(page.id, blocks);
+		const cached = { page, blocks, databaseTag };
+		cache.set(page.id, cached);
+		return this.templateSampleFromPage(cached);
+	}
+
+	private templateSampleFromPage(cached: NotionTemplatePreviewPage): NoteTemplateSample {
+		const { page, blocks, databaseTag } = cached;
+		const title = sanitizeFileName(extractPageTitle(page));
 		return {
 			title,
 			path: normalizePath(`${this.outputLocation}/${title}.md`),
@@ -536,6 +585,7 @@ export class NotionAPIImporter extends FormatImporter {
 	private async loadTemplatePreviewSamples(
 		ctx: ImportContext,
 		picked: NotionTreeNode[],
+		cache: Map<string, NotionTemplatePreviewPage>,
 	): Promise<NoteTemplateSample[]> {
 		const samples: NoteTemplateSample[] = [];
 
@@ -568,6 +618,7 @@ export class NotionAPIImporter extends FormatImporter {
 						samples.push(await this.templateSampleForPage(
 							page,
 							ctx,
+							cache,
 							node.type === 'database' ? `${sanitizeFileName(node.title)}.base` : undefined,
 						));
 					}
@@ -590,8 +641,12 @@ export class NotionAPIImporter extends FormatImporter {
 		picked: NotionTreeNode[],
 	): Promise<NoteTemplateSample[]> {
 		this.initializeNotionClient();
-		const request = this.loadTemplatePreviewSamples(ctx, picked);
-		const read = { key, request };
+		const previewContext = new NotionTemplatePreviewContext();
+		previewContext.add(ctx);
+		const cache = new Map<string, NotionTemplatePreviewPage>();
+		this.templatePreviewPages = cache;
+		const request = this.loadTemplatePreviewSamples(previewContext, picked, cache);
+		const read = { key, request, context: previewContext };
 		this.templatePreviewRead = read;
 		void request.catch(() => {
 			if (this.templatePreviewRead === read) this.templatePreviewRead = null;
@@ -604,28 +659,29 @@ export class NotionAPIImporter extends FormatImporter {
 		if (!this.notionToken || picked.length === 0) return Promise.resolve([]);
 
 		const existing = this.templatePreviewRead;
-		return existing?.key === key
-			? existing.request
-			: this.startTemplatePreviewRead(ctx, key, picked);
+		if (existing?.key === key) {
+			existing.context.add(ctx);
+			return existing.request;
+		}
+		return this.startTemplatePreviewRead(ctx, key, picked);
 	}
 
 	override prefetchTemplatePreview(): void {
-		void this.templatePreviewSamplesForSelection(new ImportContext())
+		const ctx = new ImportContext();
+		const signal = this.host?.abortController.signal;
+		if (signal?.aborted) ctx.cancel();
+		else signal?.addEventListener('abort', () => ctx.cancel(), { once: true });
+		void this.templatePreviewSamplesForSelection(ctx)
 			.catch(error => console.warn('Could not read Notion previews ahead of time', error));
 	}
 
 	protected override async templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]> {
 		const samples = await this.templatePreviewSamplesForSelection(ctx);
 		return samples.map(sample => {
-			const blocks = sample.sourceId ? this.templatePreviewBlocks?.get(sample.sourceId) : undefined;
-			const properties = parseFrontMatterBlock(sample.content)?.frontMatter ?? {};
-			return {
-				...sample,
-				path: normalizePath(`${this.outputLocation}/${sample.title}.md`),
-				content: blocks
-					? serializeFrontMatter(properties) + notionBlocksPreview(blocks, this.singleLineBreaks)
-					: sample.content,
-			};
+			const cached = sample.sourceId ? this.templatePreviewPages?.get(sample.sourceId) : undefined;
+			return cached
+				? this.templateSampleFromPage(cached)
+				: { ...sample, path: normalizePath(`${this.outputLocation}/${sample.title}.md`) };
 		});
 	}
 

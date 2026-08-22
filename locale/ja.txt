@@ -730,6 +730,10 @@ translation=
 original=Next preview
 translation=
 
+[template.msg-diagnostic]
+original=Line {{line}}: {{message}}
+translation=
+
 [template.heading-properties]
 original=Properties
 translation=プロパティ
@@ -1966,6 +1970,10 @@ translation=画像の添付ファイル
 original=Video attachment
 translation=動画の添付ファイル
 
+[importer.notion-api.label-attachment-audio]
+original=Audio attachment
+translation=
+
 [importer.notion-api.label-attachment-file]
 original=File attachment
 translation=ファイルの添付ファイル
@@ -1973,6 +1981,30 @@ translation=ファイルの添付ファイル
 [importer.notion-api.label-attachment-pdf]
 original=PDF attachment
 translation=PDF の添付ファイル
+
+[importer.notion-api.label-preview-child-page]
+original=Child page
+translation=
+
+[importer.notion-api.label-preview-database]
+original=Database
+translation=
+
+[importer.notion-api.msg-preview-nested-content]
+original=Nested content is not loaded in the preview.
+translation=
+
+[importer.notion-api.msg-preview-content-not-loaded]
+original={{type}} is not loaded in the preview.
+translation=
+
+[importer.notion-api.msg-preview-content-not-loaded-with-caption]
+original={{type}}: {{caption}} is not loaded in the preview.
+translation=
+
+[importer.notion-api.msg-preview-block-not-expanded]
+original={{type}} is not expanded in the preview.
+translation=
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}

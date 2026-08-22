@@ -13,11 +13,11 @@ export function defaultTemplateConfig(headers: string[], sanitizeKey: (key: stri
 
 	for (const header of headers) {
 		propertyNames.set(header, sanitizeKey(header));
-		propertyValues.set(header, `{{${header}}}`);
+		propertyValues.set(header, `{{${sourceVariableExpression(header)}}}`);
 	}
 
 	return {
-		titleTemplate: headers.length > 0 ? `{{${headers[0]}}}` : '',
+		titleTemplate: headers.length > 0 ? `{{${sourceVariableExpression(headers[0])}}}` : '',
 		locationTemplate: '',
 		bodyTemplate: '',
 		propertyNames,

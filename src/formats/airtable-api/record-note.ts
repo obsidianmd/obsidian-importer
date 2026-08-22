@@ -229,17 +229,13 @@ export function frontMatterFieldsForTable(
 
 export function defaultPropertyConfig(
 	fields: Iterable<AirtableFieldSchema>,
-	viewPropertyName: string
+	_viewPropertyName?: string,
 ): { propertyNames: Map<string, string>, propertyValues: Map<string, string> } {
 	const propertyNames = new Map<string, string>();
 	const propertyValues = new Map<string, string>();
 
 	for (const field of fields) {
 		const sanitizedName = sanitizePropertyName(field.name);
-
-		if (sanitizedName.toLowerCase() === viewPropertyName.toLowerCase()) {
-			continue;
-		}
 
 		propertyNames.set(field.name, sanitizedName);
 		propertyValues.set(field.name, `{{${field.name}}}`);
