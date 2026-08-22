@@ -614,11 +614,6 @@ export abstract class FormatImporter {
 		else this.templatePreviewChanged?.();
 	}
 
-	/** Re-render cached samples after a setting that does not change their source conversion. */
-	protected templateRenderingChanged(): void {
-		this.templatePreviewChanged?.();
-	}
-
 	/**
 	 * Start any source reads that the template preview will need. Called after
 	 * the source step, while the user is completing the remaining settings.

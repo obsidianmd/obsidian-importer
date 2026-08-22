@@ -87,6 +87,10 @@ const EXAMPLE_VALUE_FOR_FIELD_TYPE: Record<string, string> = {
 };
 
 interface AirtableTemplatePreviewSample extends NoteTemplateSample {
+	record: AirtableRecord;
+	fields: AirtableFieldSchema[];
+	primaryFieldName: string;
+	formulaFieldNames: Set<string>;
 	viewReferences: string[];
 }
 
@@ -462,11 +466,14 @@ export class AirtableAPIImporter extends FormatImporter {
 					fields: templateFields,
 					preview: async (template, titleTemplate) => {
 						const loaded = await samples;
-						const withViews: NoteTemplateSample[] = loaded.map(sample => ({
-							...sample,
-							generatedProperties: sample.viewReferences.length > 0
-								? { [this.viewPropertyName]: sample.viewReferences }
-								: undefined,
+						const withViews: NoteTemplateSample[] = await Promise.all(loaded.map(async sample => {
+							const current = await this.refreshTemplatePreviewSample(sample);
+							return {
+								...current,
+								generatedProperties: current.viewReferences.length > 0
+									? { [this.viewPropertyName]: current.viewReferences }
+									: undefined,
+							};
 						}));
 						return await this.previewLoadedSamples(
 							template,
@@ -532,9 +539,6 @@ export class AirtableAPIImporter extends FormatImporter {
 					records as AirtableRecord[],
 				);
 				const formulaFieldNames = new Set(this.computeTableFormulas(fields, table.primaryFieldId).keys());
-				// View membership is injected as a generated property at render time,
-				// so a field with the same name can reappear when the user renames it.
-				const frontMatterFields = this.frontMatterFieldsForTable(fields, primaryFieldName, '\0');
 
 				for (const record of records as AirtableRecord[]) {
 					if (isEmptyRecord(record)) continue;
@@ -545,33 +549,46 @@ export class AirtableAPIImporter extends FormatImporter {
 						sanitizeFileName(table.tableName),
 						`${sanitizeFileName(title)}.md`,
 					].filter(Boolean).join('/'));
-					const { content, templateVariables } = await buildRecordNote(record, {
-						fields,
-						primaryFieldName,
-						viewReferences: [],
-						viewPropertyName: this.viewPropertyName,
-						formulaFieldNames,
-						frontMatterFields,
-						recordId: false,
-						bodyTemplate: this.templateConfig?.bodyTemplate,
-						resolveAttachments: async () => [],
-						formatAttachmentsForBody: () => [],
-						formatAttachmentsForYAML: () => [],
-					});
-					samples.push({
+					const sample: AirtableTemplatePreviewSample = {
 						title,
 						path,
-						content,
-						variables: templateVariables,
+						content: '',
+						variables: {},
+						record,
+						fields,
+						primaryFieldName,
+						formulaFieldNames,
 						viewReferences: viewReferences.get(record.id) ?? [],
 						sourceId: record.id,
 						times: recordTimestamps(record),
-					});
+					};
+					samples.push(await this.refreshTemplatePreviewSample(sample));
 					if (samples.length >= TEMPLATE_PREVIEW_LIMIT) return samples;
 				}
 			}
 		}
 		return samples;
+	}
+
+	/** Rebuild cached source data when a template-page property setting changes. */
+	private async refreshTemplatePreviewSample(
+		sample: AirtableTemplatePreviewSample,
+	): Promise<AirtableTemplatePreviewSample> {
+		const frontMatterFields = this.frontMatterFieldsForTable(sample.fields, sample.primaryFieldName);
+		const { content, templateVariables } = await buildRecordNote(sample.record, {
+			fields: sample.fields,
+			primaryFieldName: sample.primaryFieldName,
+			viewReferences: [],
+			viewPropertyName: this.viewPropertyName,
+			formulaFieldNames: sample.formulaFieldNames,
+			frontMatterFields,
+			recordId: false,
+			bodyTemplate: this.templateConfig?.bodyTemplate,
+			resolveAttachments: async () => [],
+			formatAttachmentsForBody: () => [],
+			formatAttachmentsForYAML: () => [],
+		});
+		return { ...sample, content, variables: templateVariables };
 	}
 
 	private async loadPreviewViewReferences(
@@ -599,6 +616,9 @@ export class AirtableAPIImporter extends FormatImporter {
 					filterByFormula,
 					maxRecords: recordIds.length,
 				}) as AirtableRecord[];
+				const memberIds = new Set(members.map(member => member.id));
+				if (recordIds.every(id => memberIds.has(id))) continue;
+
 				const token = sanitizeViewName(view.name);
 				for (const member of members) {
 					const current = references.get(member.id) ?? [];

@@ -20,6 +20,7 @@ import { i18n } from '../../src/i18n';
 import { ImportContext } from '../../src/import-context';
 import { PickedFolderLoad } from '../../src/picked-folder-tree';
 import { memoryApp, MemoryVault } from '../shims/vault';
+import { zipOf } from '../shims/zip';
 
 provideNodeModules({ fs: nodeFs, path: nodePath } as never);
 
@@ -38,6 +39,20 @@ test('a Markdown export is named as one rather than failing namelessly', async (
 
 	assert.deepEqual(converted, [], 'nothing in a Markdown export converts');
 	assert.ok(ctx.cancelled, 'the second pass over the zip should not run');
+});
+
+test('macOS metadata does not prevent stripping Notion\'s synthetic export root', async () => {
+	const root = 'Export-d2b14fbf-86de-4508-a1b2-6515ff8d7aab';
+	const ctx = new ImportContext();
+	const converted: string[] = [];
+	const source = await zipOf({
+		'__MACOSX/._Export': 'noise',
+		[`${root}/Page 0123456789abcdef0123456789abcdef.html`]: '<html></html>',
+	}, 'Notion.zip');
+
+	await processZips(ctx, [source], async file => void converted.push(file.filepath));
+
+	assert.deepEqual(converted, ['Page 0123456789abcdef0123456789abcdef.html']);
 });
 
 test('the source tree explains that a Markdown export cannot be imported', async () => {

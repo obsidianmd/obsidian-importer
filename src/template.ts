@@ -296,8 +296,14 @@ export function applyTemplate(template: string, data: Record<string, string>): s
 		let trimmedName = fieldName.trim();
 		const sourceMatch = /^source\[("(?:\\.|[^"\\])*")\]$/u.exec(trimmedName);
 		if (sourceMatch) {
-			const parsed: unknown = JSON.parse(sourceMatch[1]);
-			if (typeof parsed === 'string') trimmedName = parsed;
+			try {
+				const parsed: unknown = JSON.parse(sourceMatch[1]);
+				if (typeof parsed === 'string') trimmedName = parsed;
+			}
+			catch {
+				// Not every escape the expression matcher accepts is valid JSON.
+				// Keep the literal expression available as a field name instead.
+			}
 		}
 		return data[trimmedName] !== undefined ? data[trimmedName] : match;
 	});

@@ -1,7 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
+import { AppleNotesImporter } from '../../src/formats/apple-notes';
 import { describeFolderFailure } from '../../src/formats/apple-notes/errors';
+import { ImportContext } from '../../src/import-context';
 
 function sqliteError(reason: string): Error {
 	return Object.assign(new Error(`SQLITE_ERROR: ${reason}`), { code: 'SQLITE_ERROR' });
@@ -42,4 +44,22 @@ test('anything else repeats what sqlite said, without its label', () => {
 test('an error with nothing to say still names what failed', () => {
 	assert.equal(describeFolderFailure(new Error('')), 'Could not read your notes.');
 	assert.equal(describeFolderFailure(sqliteError('')), 'Could not read your notes.');
+});
+
+test('the cloned notes database is closed when an import fails', async () => {
+	let closes = 0;
+	const failure = new Error('could not read primary keys');
+	const database = {
+		all: async () => { throw failure; },
+		close: () => { closes++; },
+	};
+	const subject = Object.create(AppleNotesImporter.prototype) as AppleNotesImporter;
+	Object.assign(subject, {
+		selectedFolders: [1],
+		getOutputFolder: async () => ({ path: 'Apple Notes' }),
+		getNotesDatabase: async () => database,
+	});
+
+	await assert.rejects(subject.import(new ImportContext()), failure);
+	assert.equal(closes, 1);
 });

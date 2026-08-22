@@ -86,10 +86,14 @@ export async function readZip(file: PickedFile, callback: (zip: ZipReader<unknow
 /** macOS metadata and other hidden paths. */
 const HIDDEN = /(?:^|\/)(?:__MACOSX\/|\.)/;
 
+export function hiddenZipPath(path: string): boolean {
+	return HIDDEN.test(path);
+}
+
 /** Build the source tree while the archive backing its entries remains open. */
 export function zipContents(entries: ZipEntryFile[]): (PickedFile | PickedFolder)[] {
 	return pickedTree(entries
-		.filter(entry => !HIDDEN.test(entry.filepath))
+		.filter(entry => !hiddenZipPath(entry.filepath))
 		.map(entry => ({ path: entry.filepath, file: entry })));
 }
 

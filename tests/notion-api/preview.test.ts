@@ -37,6 +37,33 @@ const paragraphBlocks = [
 	},
 ] as unknown as BlockObjectResponse[];
 
+function previewPage(id: string, title: string): PageObjectResponse {
+	return {
+		...page,
+		id,
+		properties: {
+			Name: {
+				id: 'title',
+				type: 'title',
+				title: [{ plain_text: title }],
+			},
+		},
+	} as unknown as PageObjectResponse;
+}
+
+function previewNodes(...ids: string[]) {
+	return ids.map(id => ({
+		id,
+		title: id,
+		type: 'page',
+		parentId: null,
+		children: [],
+		selected: true,
+		disabled: false,
+		collapsed: false,
+	}));
+}
+
 test('Notion API previews reflect the line-break mode', () => {
 	assert.equal(notionBlocksPreview(paragraphBlocks), 'First paragraph\n\nSecond paragraph');
 	assert.equal(notionBlocksPreview(paragraphBlocks, true), 'First paragraph\nSecond paragraph');
@@ -104,6 +131,91 @@ test('Notion starts selected page samples early and reuses them in the preview',
 	assert.equal(blockReads, 1, 'changing line breaks should reuse the prefetched blocks');
 	assert.match(tightSamples[0].content, /First paragraph\nSecond paragraph/);
 	assert.doesNotMatch(tightSamples[0].content, /First paragraph\n\nSecond paragraph/);
+});
+
+test('a cancelled Notion preview read is discarded instead of staying permanently short', async () => {
+	const visibleContext = new ImportContext();
+	let cancelFirstRead = true;
+	let pageReads = 0;
+	const subject = Object.create(NotionAPIImporter.prototype) as NotionAPIImporter;
+	Object.assign(subject, {
+		outputLocation: 'Notion',
+		templatePreviewRead: null,
+		picker: { nodes: previewNodes('page-1', 'page-2') },
+		getSecret: () => 'token',
+		initializeNotionClient: () => {},
+		notionClient: {
+			pages: {
+				retrieve: async ({ page_id }: { page_id: string }) => {
+					pageReads++;
+					return previewPage(page_id, page_id);
+				},
+			},
+			blocks: {
+				children: {
+					list: async () => {
+						if (cancelFirstRead) visibleContext.cancel();
+						return { results: [], has_more: false, next_cursor: null };
+					},
+				},
+			},
+		},
+	});
+	const samples = async (ctx: ImportContext) => await (subject as unknown as {
+		templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]>;
+	}).templatePreviewSamples(ctx);
+
+	assert.equal((await samples(visibleContext)).length, 1);
+	assert.equal((subject as unknown as { templatePreviewRead: unknown }).templatePreviewRead, null);
+
+	cancelFirstRead = false;
+	assert.equal((await samples(new ImportContext())).length, 2);
+	assert.equal(pageReads, 3, 'the retry should read both pages instead of reusing one truncated page');
+});
+
+test('cancelling the visible Notion preview does not stop an active prefetch consumer', async () => {
+	let releaseFirstPage!: () => void;
+	const firstPagePaused = new Promise<void>(resolve => releaseFirstPage = resolve);
+	let firstPage = true;
+	const subject = Object.create(NotionAPIImporter.prototype) as NotionAPIImporter;
+	Object.assign(subject, {
+		outputLocation: 'Notion',
+		templatePreviewRead: null,
+		picker: { nodes: previewNodes('page-1', 'page-2') },
+		getSecret: () => 'token',
+		initializeNotionClient: () => {},
+		notionClient: {
+			pages: {
+				retrieve: async ({ page_id }: { page_id: string }) => {
+					if (firstPage) {
+						firstPage = false;
+						await firstPagePaused;
+					}
+					return previewPage(page_id, page_id);
+				},
+			},
+			blocks: {
+				children: {
+					list: async () => ({ results: [], has_more: false, next_cursor: null }),
+				},
+			},
+		},
+	});
+
+	subject.prefetchTemplatePreview();
+	const visibleContext = new ImportContext();
+	const visible = (subject as unknown as {
+		templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]>;
+	}).templatePreviewSamples(visibleContext);
+	visibleContext.cancel();
+	releaseFirstPage();
+
+	assert.equal((await visible).length, 2);
+	assert.notEqual(
+		(subject as unknown as { templatePreviewRead: unknown }).templatePreviewRead,
+		null,
+		'the complete shared read should remain reusable',
+	);
 });
 
 test('Notion previews custom cover and database property names', async () => {

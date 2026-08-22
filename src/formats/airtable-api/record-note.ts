@@ -214,7 +214,7 @@ export function frontMatterFieldsForTable(
 		const configured = propertyNames.get(field.name);
 		if (!configured?.trim()) continue;
 
-		if (configured === viewPropertyName) continue;
+		if (configured.toLocaleLowerCase() === viewPropertyName.toLocaleLowerCase()) continue;
 
 		if (!propertyValues.get(field.name)) continue;
 

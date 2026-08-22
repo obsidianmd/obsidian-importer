@@ -23,6 +23,7 @@ import { convertRow, defaultNoteTemplate, defaultTemplateConfig, sanitizeYAMLKey
 import { parseCSV, parseCSVLine, splitCSVLines } from '../../src/formats/csv/parse';
 import { sanitizeFileName } from '../../src/util';
 import { renderNoteTemplate } from '../../src/note-template';
+import { applyTemplate } from '../../src/template';
 import { expectedFor, expectTree, fixtures } from '../helpers';
 
 const FIXTURES = __dirname;
@@ -55,6 +56,11 @@ test('CSV defaults resolve safe source expressions for punctuated headers', asyn
 	assert.equal(converted.title, '12');
 	assert.match(converted.content, /Price : 12/u);
 	assert.match(converted.content, /NotesExtra: "Ready"/u);
+});
+
+test('an invalid quoted source escape falls back to its literal field name', () => {
+	const expression = String.raw`source["\q"]`;
+	assert.equal(applyTemplate(`{{${expression}}}`, { [expression]: 'literal' }), 'literal');
 });
 
 for (const file of files) {

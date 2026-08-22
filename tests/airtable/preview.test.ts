@@ -5,7 +5,7 @@ import { AirtableAPIImporter } from '../../src/formats/airtable-api';
 import { ImportContext } from '../../src/import-context';
 import type { AirtableRecord, AirtableViewInfo } from '../../src/formats/airtable-api/types';
 
-test('preview samples read bounded membership from supported Airtable views', async () => {
+test('preview samples read bounded membership and omit views containing every sample', async () => {
 	const records: AirtableRecord[] = [
 		{ id: 'recOne', createdTime: '', fields: { Name: 'One' } },
 		{ id: 'recTwo', createdTime: '', fields: { Name: 'Two' } },
@@ -49,8 +49,8 @@ test('preview samples read bounded membership from supported Airtable views', as
 		records,
 	);
 
-	assert.deepEqual(references.get('recOne'), ['Everything']);
-	assert.deepEqual(references.get('recTwo'), ['Everything', 'Next _up_']);
+	assert.equal(references.get('recOne'), undefined);
+	assert.deepEqual(references.get('recTwo'), ['Next _up_']);
 	assert.equal(selected.length, 2, 'unsupported views should not be queried');
 	for (const options of selected) {
 		assert.equal(options.maxRecords, 2);

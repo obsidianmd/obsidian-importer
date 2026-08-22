@@ -179,20 +179,32 @@ interface NotionTemplatePreviewPage {
 /** A prefetched request adopts the real configuration context when it arrives. */
 class NotionTemplatePreviewContext extends ImportContext {
 	private readonly sources = new Set<ImportContext>();
+	private stopped = false;
 
 	add(source: ImportContext): void {
 		this.sources.add(source);
 	}
 
+	remove(source: ImportContext): void {
+		this.sources.delete(source);
+	}
+
+	get wasStopped(): boolean {
+		return this.stopped;
+	}
+
 	override async shouldStop(): Promise<boolean> {
-		for (const source of this.sources) {
-			if (await source.shouldStop()) return true;
-		}
-		return false;
+		const shouldStop = this.sources.size === 0
+			|| Array.from(this.sources).every(source => source.isCancelled());
+		if (shouldStop) this.stopped = true;
+		return shouldStop;
 	}
 
 	override isCancelled(): boolean {
-		return Array.from(this.sources).some(source => source.isCancelled());
+		const cancelled = this.sources.size === 0
+			|| Array.from(this.sources).every(source => source.isCancelled());
+		if (cancelled) this.stopped = true;
+		return cancelled;
 	}
 }
 
@@ -642,7 +654,7 @@ export class NotionAPIImporter extends FormatImporter {
 		ctx: ImportContext,
 		key: string,
 		picked: NotionTreeNode[],
-	): Promise<NoteTemplateSample[]> {
+	): NotionTemplatePreviewRead {
 		this.initializeNotionClient();
 		const previewContext = new NotionTemplatePreviewContext();
 		previewContext.add(ctx);
@@ -651,22 +663,34 @@ export class NotionAPIImporter extends FormatImporter {
 		const request = this.loadTemplatePreviewSamples(previewContext, picked, cache);
 		const read = { key, request, context: previewContext };
 		this.templatePreviewRead = read;
-		void request.catch(() => {
-			if (this.templatePreviewRead === read) this.templatePreviewRead = null;
-		});
-		return request;
+		void request.then(
+			() => {
+				if (previewContext.wasStopped && this.templatePreviewRead === read) {
+					this.templatePreviewRead = null;
+				}
+			},
+			() => {
+				if (this.templatePreviewRead === read) this.templatePreviewRead = null;
+			},
+		);
+		return read;
 	}
 
-	private templatePreviewSamplesForSelection(ctx: ImportContext): Promise<NoteTemplateSample[]> {
+	private async templatePreviewSamplesForSelection(ctx: ImportContext): Promise<NoteTemplateSample[]> {
 		const { key, picked } = this.templatePreviewSelection();
-		if (!this.notionToken || picked.length === 0) return Promise.resolve([]);
+		if (!this.notionToken || picked.length === 0) return [];
 
 		const existing = this.templatePreviewRead;
-		if (existing?.key === key) {
-			existing.context.add(ctx);
-			return existing.request;
+		const read = existing?.key === key && !existing.context.wasStopped
+			? existing
+			: this.startTemplatePreviewRead(ctx, key, picked);
+		if (read === existing) read.context.add(ctx);
+		try {
+			return await read.request;
 		}
-		return this.startTemplatePreviewRead(ctx, key, picked);
+		finally {
+			read.context.remove(ctx);
+		}
 	}
 
 	override prefetchTemplatePreview(): void {

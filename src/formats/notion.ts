@@ -6,7 +6,7 @@ import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { PickedFolderNode, PickedFolderPicker, PickedFolderSelection, pickedFolderFileCount, pickedFolderNodes } from '../picked-folder-tree';
 import { extractErrorMessage } from '../util';
-import { readZip, ZipEntryFile, zipContents } from '../zip';
+import { hiddenZipPath, readZip, ZipEntryFile, zipContents } from '../zip';
 import { cleanDuplicates } from './notion/clean-duplicates';
 import { readToMarkdown } from './notion/convert-to-md';
 import { NotionResolverInfo } from './notion/notion-types';
@@ -279,8 +279,9 @@ export async function processZips(ctx: ImportContext, files: PickedFile[], callb
 		if (await ctx.shouldStop()) return;
 		try {
 			await readZip(zipFile, async (zip, entries) => {
-				stripSyntheticNotionExportRoot(entries);
-				for (let entry of entries) {
+				const visibleEntries = entries.filter(entry => !hiddenZipPath(entry.filepath));
+				stripSyntheticNotionExportRoot(visibleEntries);
+				for (let entry of visibleEntries) {
 					if (await ctx.shouldStop()) return;
 
 					// Notion's own default is Markdown & CSV, and this importer reads

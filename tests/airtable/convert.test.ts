@@ -64,6 +64,30 @@ interface BaseFixture {
 const VIEW_PROPERTY = 'Views';
 const OUTPUT_FOLDER = 'Airtable';
 
+test('the view property wins case-insensitively over an Airtable field property', () => {
+	const fields: AirtableFieldSchema[] = [
+		{ id: 'fldName', name: 'Name', type: 'singleLineText' },
+		{ id: 'fldViews', name: 'Source views', type: 'singleLineText' },
+	];
+	const propertyNames = new Map([
+		['Name', 'Name'],
+		['Source views', 'views'],
+	]);
+	const propertyValues = new Map([
+		['Name', '{{Name}}'],
+		['Source views', '{{Source views}}'],
+	]);
+
+	assert.deepEqual(frontMatterFieldsForTable({
+		fields,
+		primaryFieldName: 'Name',
+		propertyNames,
+		propertyValues,
+		viewPropertyName: 'Views',
+		propertyNameForField: fieldName => propertyNames.get(fieldName) ?? fieldName,
+	}), []);
+});
+
 /**
  * Stands in for downloading: names the file the way the importer would and puts
  * it where the default attachment setting does, without fetching anything.

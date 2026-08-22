@@ -393,56 +393,58 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		this.database = await this.getNotesDatabase() as SQLiteTagSpawned;
 		if (!this.database) return;
 
-		this.keys = Object.fromEntries(
-			(await this.database.all`SELECT z_ent, z_name FROM z_primarykey`).map(k => [k.Z_NAME, k.Z_ENT])
-		);
+		try {
+			this.keys = Object.fromEntries(
+				(await this.database.all`SELECT z_ent, z_name FROM z_primarykey`).map(k => [k.Z_NAME, k.Z_ENT])
+			);
 
-		const noteAccounts = await this.database.all`
-			SELECT z_pk FROM ziccloudsyncingobject WHERE z_ent = ${this.keys.ICAccount}
-		`;
-		const noteFolders = await this.database.all`
-			SELECT z_pk, ztitle2 FROM ziccloudsyncingobject
-			WHERE z_ent = ${this.keys.ICFolder} AND z_pk IN (${this.selectedFolders})
-		`;
+			const noteAccounts = await this.database.all`
+				SELECT z_pk FROM ziccloudsyncingobject WHERE z_ent = ${this.keys.ICAccount}
+			`;
+			const noteFolders = await this.database.all`
+				SELECT z_pk, ztitle2 FROM ziccloudsyncingobject
+				WHERE z_ent = ${this.keys.ICFolder} AND z_pk IN (${this.selectedFolders})
+			`;
 
-		for (let a of noteAccounts) await this.resolveAccount(a.Z_PK);
+			for (let a of noteAccounts) await this.resolveAccount(a.Z_PK);
 
-		// Break instead of returning so the database is closed below.
-		for (let f of noteFolders) {
-			if (await ctx.shouldStop()) break;
+			for (let f of noteFolders) {
+				if (await ctx.shouldStop()) break;
 
-			try {
-				await this.resolveFolder(f.Z_PK);
+				try {
+					await this.resolveFolder(f.Z_PK);
+				}
+				catch (e) {
+					this.ctx.reportFailed(f.ZTITLE2, extractErrorMessage(e));
+					console.error(e);
+				}
 			}
-			catch (e) {
-				this.ctx.reportFailed(f.ZTITLE2, extractErrorMessage(e));
-				console.error(e);
+
+			const notes = await this.database.all`
+				SELECT
+					z_pk, zfolder, ztitle1 FROM ziccloudsyncingobject
+				WHERE
+					z_ent = ${this.keys.ICNote}
+					AND ztitle1 IS NOT NULL
+					AND zfolder IN (${this.selectedFolders})
+			`;
+			this.noteCount = notes.length;
+
+			for (let n of notes) {
+				if (await ctx.shouldStop()) break;
+
+				try {
+					await this.resolveNote(n.Z_PK);
+				}
+				catch (e) {
+					this.ctx.reportFailed(n.ZTITLE1, extractErrorMessage(e));
+					console.error(e);
+				}
 			}
 		}
-
-		const notes = await this.database.all`
-			SELECT
-				z_pk, zfolder, ztitle1 FROM ziccloudsyncingobject
-			WHERE
-				z_ent = ${this.keys.ICNote}
-				AND ztitle1 IS NOT NULL
-				AND zfolder IN (${this.selectedFolders})
-		`;
-		this.noteCount = notes.length;
-
-		for (let n of notes) {
-			if (await ctx.shouldStop()) break;
-
-			try {
-				await this.resolveNote(n.Z_PK);
-			}
-			catch (e) {
-				this.ctx.reportFailed(n.ZTITLE1, extractErrorMessage(e));
-				console.error(e);
-			}
+		finally {
+			this.database.close();
 		}
-
-		this.database.close();
 	}
 
 	protected override async templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]> {

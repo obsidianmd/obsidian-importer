@@ -635,6 +635,12 @@ export class NoteTemplateConfigurator {
 				setEditing(true);
 				editButton.setDisabled(true);
 				actionButtonEl?.setAttr('disabled', true);
+				const abandonEditing = (): void => {
+					if (!editing || nativeEditor) return;
+					titleEditorEl = null;
+					managedEditorProperties = [];
+					setEditing(false);
+				};
 				try {
 					const candidate = await createNativeTemplateEditor(
 						this.options.app,
@@ -644,15 +650,17 @@ export class NoteTemplateConfigurator {
 					);
 					if (current !== revision || !editing) {
 						await candidate.destroy();
+						abandonEditing();
 						return;
 					}
 					nativeEditor = candidate;
 					nativeEditor.focus();
 				}
 				catch (error) {
-					if (current !== revision) return;
-					previewDiagnostics.setText(error instanceof Error ? error.message : String(error));
-					setEditing(false);
+					if (current === revision) {
+						previewDiagnostics.setText(error instanceof Error ? error.message : String(error));
+					}
+					abandonEditing();
 				}
 				finally {
 					editButton.setDisabled(false);
