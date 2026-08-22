@@ -412,7 +412,7 @@ translation={{count}} súbor bude importovaný.
 
 [source.msg-flat-files_plural]
 original={{count}} files will be imported.
-translation={{count}} súbory(ov) bude importovaných.
+translation={{count}} súborov bude importovaných.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.

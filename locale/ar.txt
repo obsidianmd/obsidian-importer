@@ -732,7 +732,7 @@ translation=عرض المزيد
 
 [template.name-template-editor]
 original=Template source
-translation=مصدري القالب
+translation=مصدر القالب
 
 [template.label-edit-import-template]
 original=Edit import template

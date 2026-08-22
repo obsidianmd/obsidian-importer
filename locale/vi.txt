@@ -2272,7 +2272,7 @@ translation=Một số tham chiếu trỏ đến khối không có trong bản x
 
 [importer.roam-json.name-convert-attributes]
 original=Convert attributes to properties
-translation=Chuyển đổi thuộc tính thành thuộc tính
+translation=Chuyển thuộc tính Roam thành thuộc tính Obsidian
 
 [importer.roam-json.desc-convert-attributes]
 original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.

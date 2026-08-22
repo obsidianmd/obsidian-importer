@@ -1240,7 +1240,7 @@ translation=সোর্স শিরোনাম
 
 [importer.csv.desc-source-title]
 original=Creates the {{title}} value used by the final note title template. Use CSV column variables like {{column_name}}.
-translation=চূড়ান্ত নোট শিরোনাম টেমপ্লেটে ব্যবহৃত {{title}} মান তৈরি করে। {{column_name}} এর মতো CSV শ্রেণী ভেরিয়েবল ব্যবহার করুন।
+translation=চূড়ান্ত নোটের শিরোনাম টেমপ্লেটে ব্যবহৃত {{title}} মান তৈরি করে। {{column_name}} এর মতো CSV কলাম ভেরিয়েবল ব্যবহার করুন।
 
 [importer.csv.msg-pick-file]
 original=Please pick at least one CSV file to import.

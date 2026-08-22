@@ -2272,7 +2272,7 @@ translation=일부 참조는 내보내기에 존재하지 않는 블록을 가�
 
 [importer.roam-json.name-convert-attributes]
 original=Convert attributes to properties
-translation=속성을 속성으로 변환
+translation=Roam 속성을 Obsidian 속성으로 변환
 
 [importer.roam-json.desc-convert-attributes]
 original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.

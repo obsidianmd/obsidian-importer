@@ -704,7 +704,7 @@ translation=pohja/pohjatiedosto
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=Valinnainen. Valitse pohja holviisi muotoilemaan muistiinpanon sisällön. Katso ohje pohjan syntaksista.
+translation=Valinnainen. Valitse holvistasi pohja muotoilemaan muistiinpanon sisältö. Katso ohje pohjan syntaksista.
 
 [template.heading-preview]
 original=Preview

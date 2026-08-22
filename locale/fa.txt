@@ -408,11 +408,11 @@ translation=هیچ پوشه‌ای یافت نشد.
 
 [source.msg-flat-files]
 original={{count}} file will be imported.
-translation=پرونده {{count}} وارد خواهد شد.
+translation={{count}} پرونده وارد خواهد شد.
 
 [source.msg-flat-files_plural]
 original={{count}} files will be imported.
-translation=پرونده {{count}} وارد خواهند شد.
+translation={{count}} پرونده وارد خواهد شد.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -2272,7 +2272,7 @@ translation=برخی ارجاعات به بلوکی اشاره می‌کنند �
 
 [importer.roam-json.name-convert-attributes]
 original=Convert attributes to properties
-translation=تبدیل ویژگی‌ها به ویژگی‌ها
+translation=تبدیل ویژگی‌های Roam به ویژگی‌های Obsidian
 
 [importer.roam-json.desc-convert-attributes]
 original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.

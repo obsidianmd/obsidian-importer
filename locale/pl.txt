@@ -408,11 +408,11 @@ translation=Nie znaleziono folderów.
 
 [source.msg-flat-files]
 original={{count}} file will be imported.
-translation=pliki: {{count}} zostaną zaimportowane.
+translation={{count}} plik zostanie zaimportowany.
 
 [source.msg-flat-files_plural]
 original={{count}} files will be imported.
-translation=pliki: {{count}} zostaną zaimportowane.
+translation={{count}} plików zostanie zaimportowanych.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -704,7 +704,7 @@ translation=szablon
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=Opcjonalnie. Wybierz szablon ze swojego skarbca, aby sformatować treść notatki. Składnia szablonów opisana jest w sekcji pomoc.
+translation=Opcjonalnie. Wybierz szablon ze swojego skarbca, aby sformatować treść notatki. Składnia szablonów opisana jest w sekcji pomocy.
 
 [template.heading-preview]
 original=Preview
@@ -2276,7 +2276,7 @@ translation=Konwertuj atrybuty na właściwości
 
 [importer.roam-json.desc-convert-attributes]
 original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.
-translation=Konwertuj kwalifikujące się atrybuty najwyższego poziomu Roam na atrybuty Obsidian. Atrybuty, do których istnieją odniesienia, pozostaną w notatce, aby łącza do nich nadal działały.
+translation=Konwertuj kwalifikujące się atrybuty najwyższego poziomu Roam na właściwości Obsidian. Atrybuty, do których istnieją odniesienia, pozostaną w notatce, aby łącza do nich nadal działały.
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links

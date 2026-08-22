@@ -2272,7 +2272,7 @@ translation=部分參照指向匯出中不存在的區塊。若已啟用，這�
 
 [importer.roam-json.name-convert-attributes]
 original=Convert attributes to properties
-translation=將屬性轉換為屬性
+translation=將 Roam 屬性轉換為 Obsidian 屬性
 
 [importer.roam-json.desc-convert-attributes]
 original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.
