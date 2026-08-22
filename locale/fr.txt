@@ -406,6 +406,14 @@ translation=Lecture des dossiers...
 original=No folders found.
 translation=Aucun dossier trouvé.
 
+[source.msg-flat-files]
+original={{count}} file will be imported.
+translation=
+
+[source.msg-flat-files_plural]
+original={{count}} files will be imported.
+translation=
+
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
 translation=Rien à importer ici. Choisissez des fichiers {{extensions}}, ou un dossier qui en contient.
@@ -2181,6 +2189,10 @@ translation=Résolution des liens et suppression des doublons
 [importer.notion.status-starting]
 original=Starting import
 translation=Démarrage de l'importation
+
+[importer.notion.msg-markdown-export]
+original=This is a Markdown export. Export your Notion workspace as HTML instead.
+translation=
 
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead

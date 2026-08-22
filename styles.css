@@ -445,10 +445,45 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 	z-index: 1;
 	display: flex;
 	align-items: center;
-	justify-content: flex-end;
+	justify-content: space-between;
 	gap: var(--size-4-2);
 	border-bottom: var(--border-width) solid var(--background-modifier-border);
-	padding: var(--size-4-1) var(--size-4-2);
+	padding: var(--size-4-1) var(--size-4-3);
+}
+
+.importer-template-preview-path {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	min-width: 0;
+	gap: var(--size-4-2);
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.importer-template-preview-path-icon {
+	display: flex;
+	flex-shrink: 0;
+	--icon-size: var(--icon-s);
+	color: var(--text-normal);
+}
+
+.importer-template-preview-path .view-header-title-container {
+	justify-content: flex-start;
+	font-family: var(--font-interface);
+	font-size: var(--font-ui-smaller);
+	font-weight: var(--font-normal);
+}
+
+.importer-template-preview-path :is(.view-header-breadcrumb, .view-header-title) {
+	pointer-events: none;
+}
+
+.importer-template-preview-nav-buttons {
+	display: flex;
+	flex-shrink: 0;
+	margin-inline-start: auto;
+	gap: var(--size-4-2);
 }
 
 .importer-template-preview-nav button {
@@ -458,9 +493,10 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 
 .importer-template-preview {
 	min-height: 12rem;
-	height: 24rem;
+	height: 30rem;
 	padding: 0 var(--setting-items-padding-x) var(--setting-items-padding-y);
 	display: flex;
+	margin-bottom: var(--size-4-12);
 }
 
 .importer-template-preview-container {
@@ -473,6 +509,7 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 	border-radius: var(--radius-m);
 	corner-shape: var(--corner-shape);
 	background-color: var(--background-primary);
+	box-shadow: var(--shadow-xs);
 }
 
 .importer-template-preview .markdown-preview-view {

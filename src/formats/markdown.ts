@@ -5,7 +5,7 @@ import { ImportContext } from '../import-context';
 import { ImportedPathIndex, normalizeTreePath, parentTreePath, resolveTreePath } from '../imported-path-index';
 import { i18n } from '../i18n';
 import { MarkdownFormatting, MarkdownLinkResolver } from '../markdown-output';
-import { isHiddenPickedItem, PickedFolderNode, PickedFolderPicker, pickedFolderNodes, plannedPickedItems, PlannedPickedItem } from '../picked-folder-tree';
+import { isHiddenPickedItem, PickedFolderLoad, PickedFolderPicker, pickedFolderFileCount, pickedFolderNodes, plannedPickedItems, PlannedPickedItem } from '../picked-folder-tree';
 import { sameBytes } from '../util';
 import { withZipContents, ZipEntryFile } from '../zip';
 import { convertMarkdownNote } from './markdown/convert';
@@ -81,15 +81,20 @@ export class MarkdownImporter extends FormatImporter {
 		this.folderPicker = new PickedFolderPicker(
 			() => this.source(),
 			async (source, isCurrent) => {
-				let nodes: PickedFolderNode[] = [];
+				let loaded: PickedFolderLoad = { nodes: [], files: 0 };
 				await withZipContents(source, async items => {
-					nodes = await pickedFolderNodes(items, {
+					const countFile = (file: PickedFile) => !isHiddenPickedItem(file) && isMarkdown(file);
+					const nodes = await pickedFolderNodes(items, {
 						includeFolder: (folder, chosen) => chosen || !isHiddenPickedItem(folder),
-						countFile: file => !isHiddenPickedItem(file) && isMarkdown(file),
+						countFile,
 						isCurrent,
 					});
+					loaded = {
+						nodes,
+						files: pickedFolderFileCount(items, nodes, countFile),
+					};
 				});
-				return nodes;
+				return loaded;
 			},
 		);
 

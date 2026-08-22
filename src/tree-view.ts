@@ -32,7 +32,7 @@ export interface TreePickerOptions<T extends ViewableNode<T>> {
 	desc?: string;
 	hint: string;
 	loading: string;
-	empty: string;
+	empty: string | (() => string);
 	failed(error: unknown): string;
 	view: Omit<TreeView<T>, 'redraw' | 'selectionChanged'>;
 	onChange?(): void;
@@ -193,7 +193,9 @@ export class TreePicker<T extends ViewableNode<T>> {
 
 		redrawTree(this.treeEl, () => {
 			if (this.nodes.length === 0) {
-				drawPlaceholder(this.treeEl, this.options.empty);
+				drawPlaceholder(this.treeEl, typeof this.options.empty === 'function'
+					? this.options.empty()
+					: this.options.empty);
 				return;
 			}
 

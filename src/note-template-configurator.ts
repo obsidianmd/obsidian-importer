@@ -168,6 +168,7 @@ function parseEditablePropertyValue(value: string): unknown {
 
 function renderProperties(container: HTMLElement, properties: Record<string, unknown>): void {
 	const propertyEntries = Object.entries(properties);
+	if (propertyEntries.length === 0) return;
 
 	// MetadataEditor is internal to Obsidian. Keep this read-only DOM aligned with
 	// its structure so the app and the user's theme provide the real appearance.
@@ -238,17 +239,6 @@ function renderProperties(container: HTMLElement, properties: Record<string, unk
 			});
 		}
 	}
-
-	const addProperty = content.createDiv({
-		cls: 'metadata-add-button text-icon-button',
-		attr: { tabindex: -1, 'aria-disabled': true },
-	});
-	const addIcon = addProperty.createSpan('text-button-icon');
-	setIcon(addIcon, 'lucide-plus');
-	addProperty.createSpan({
-		cls: 'text-button-label',
-		text: i18n.template.buttonAddProperty(),
-	});
 }
 
 function renderEditableProperties(container: HTMLElement, properties: EditableProperty[]): void {
@@ -393,10 +383,18 @@ export class NoteTemplateConfigurator {
 			const previewEl = previewGroup.listEl.createDiv('importer-template-preview');
 			const preview = previewEl.createDiv('importer-template-preview-container');
 			const previewNav = preview.createDiv('importer-template-preview-nav');
-			const previousButton = previewNav.createEl('button');
+			const previewPath = previewNav.createDiv('importer-template-preview-path');
+			const previewPathIcon = previewPath.createSpan('importer-template-preview-path-icon');
+			setIcon(previewPathIcon, 'lucide-file-text');
+			previewPathIcon.setAttr('aria-hidden', true);
+			const previewPathTitle = previewPath.createDiv('view-header-title-container');
+			const previewPathParent = previewPathTitle.createDiv('view-header-title-parent');
+			const previewPathName = previewPathTitle.createDiv('view-header-title');
+			const previewNavButtons = previewNav.createDiv('importer-template-preview-nav-buttons');
+			const previousButton = previewNavButtons.createEl('button');
 			setIcon(previousButton, 'lucide-chevron-left');
 			previousButton.setAttr('aria-label', i18n.template.buttonPreviousPreview());
-			const nextButton = previewNav.createEl('button');
+			const nextButton = previewNavButtons.createEl('button');
 			setIcon(nextButton, 'lucide-chevron-right');
 			nextButton.setAttr('aria-label', i18n.template.buttonNextPreview());
 			previewNav.toggle(false);
@@ -406,6 +404,19 @@ export class NoteTemplateConfigurator {
 			const clearPreview = (): void => {
 				preview.empty();
 				preview.append(previewNav);
+			};
+			const renderPreviewPath = (path: string | undefined): void => {
+				const displayedPath = path?.replace(/\.md$/iu, '') ?? '';
+				const segments = displayedPath.split('/').filter(Boolean);
+				const name = segments.pop() ?? '';
+				previewPathParent.empty();
+				for (const segment of segments) {
+					previewPathParent.createSpan({ cls: 'view-header-breadcrumb', text: segment });
+					previewPathParent.createSpan({ cls: 'view-header-breadcrumb-separator', text: '/' });
+				}
+				previewPathName.setText(name);
+				previewPath.setAttr('title', displayedPath);
+				previewPath.toggle(Boolean(displayedPath));
 			};
 			const showPreviewLoading = (): void => {
 				renderComponent?.unload();
@@ -454,7 +465,11 @@ export class NoteTemplateConfigurator {
 					candidateComponent = null;
 					clearPreview();
 					preview.append(rendered);
-					previewNav.toggle(samples.length > 1);
+					renderPreviewPath(result.path);
+					previousButton.disabled = false;
+					nextButton.disabled = false;
+					previewNavButtons.toggle(samples.length > 1);
+					previewNav.show();
 					previewDiagnostics.empty();
 					for (const diagnostic of result.diagnostics ?? []) {
 						previewDiagnostics.createDiv({ text: diagnostic });
@@ -465,6 +480,7 @@ export class NoteTemplateConfigurator {
 					candidateComponent?.unload();
 					if (current !== revision) return false;
 					clearPreview();
+					previewNav.hide();
 					previewDiagnostics.setText(error instanceof Error ? error.message : String(error));
 					return false;
 				}
@@ -485,7 +501,11 @@ export class NoteTemplateConfigurator {
 				renderComponent = null;
 				clearPreview();
 				previewDiagnostics.empty();
-				previewNav.hide();
+				previewPath.hide();
+				previousButton.disabled = true;
+				nextButton.disabled = true;
+				previewNavButtons.show();
+				previewNav.show();
 				const parsedTemplate = parseTemplateFrontMatter(this.template);
 				const managedProperties = (this.options.managedProperties?.() ?? [])
 					.map(property => ({ ...property, managed: true }));
@@ -558,6 +578,7 @@ export class NoteTemplateConfigurator {
 				catch (error) {
 					if (current !== revision) return false;
 					clearPreview();
+					previewNav.hide();
 					previewDiagnostics.setText(error instanceof Error ? error.message : String(error));
 					return false;
 				}

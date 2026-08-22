@@ -15,10 +15,12 @@ export class ZipEntryFile implements PickedFile {
 	name: string;
 	basename: string;
 	extension: string;
+	private sourcePath: string;
 
 	constructor(zip: PickedFile, entry: FileEntry) {
 		this.entry = entry;
 		this.fullpath = zip.fullpath + '/' + entry.filename;
+		this.sourcePath = entry.filename;
 		let { parent, name, basename, extension } = parseFilePath(entry.filename);
 		this.parent = parent;
 		this.name = name;
@@ -40,7 +42,17 @@ export class ZipEntryFile implements PickedFile {
 	}
 
 	get filepath() {
-		return this.entry.filename;
+		return this.sourcePath;
+	}
+
+	/** Use a logical source path while retaining fullpath for diagnostics. */
+	setFilepath(filepath: string): void {
+		this.sourcePath = filepath;
+		const parsed = parseFilePath(filepath);
+		this.parent = parsed.parent;
+		this.name = parsed.name;
+		this.basename = parsed.basename;
+		this.extension = parsed.extension;
 	}
 
 	get size() {

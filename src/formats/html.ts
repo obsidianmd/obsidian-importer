@@ -15,7 +15,7 @@ import { ImportedPathIndex, normalizeTreePath, parentTreePath, resolveTreePath }
 import { i18n } from '../i18n';
 import { MarkdownLinkResolver } from '../markdown-output';
 import { extensionForMime } from '../mime';
-import { isHiddenPickedItem, PickedFolderNode, PickedFolderPicker, pickedFolderNodes, plannedPickedItems, PlannedPickedItem } from '../picked-folder-tree';
+import { isHiddenPickedItem, PickedFolderLoad, PickedFolderPicker, pickedFolderFileCount, pickedFolderNodes, plannedPickedItems, PlannedPickedItem } from '../picked-folder-tree';
 import { withZipContents } from '../zip';
 import { sanitizeFileName } from '../util';
 
@@ -65,15 +65,21 @@ export class HtmlImporter extends FormatImporter {
 		this.folderPicker = new PickedFolderPicker(
 			() => this.source(),
 			async (source, isCurrent) => {
-				let nodes: PickedFolderNode[] = [];
+				let loaded: PickedFolderLoad = { nodes: [], files: 0 };
 				await withZipContents(source, async items => {
-					nodes = await pickedFolderNodes(items, {
+					const countFile = (file: PickedFile) =>
+						!isHiddenPickedItem(file) && HTML_EXTENSIONS.includes(file.extension);
+					const nodes = await pickedFolderNodes(items, {
 						includeFolder: (folder, chosen) => chosen || !isHiddenPickedItem(folder),
-						countFile: file => !isHiddenPickedItem(file) && HTML_EXTENSIONS.includes(file.extension),
+						countFile,
 						isCurrent,
 					});
+					loaded = {
+						nodes,
+						files: pickedFolderFileCount(items, nodes, countFile),
+					};
 				});
-				return nodes;
+				return loaded;
 			},
 		);
 

@@ -168,3 +168,14 @@ test('Notion export previews reflect the line-break setting', async () => {
 	assert.equal(tight.length, spaced.length);
 	assert.ok(tight.some((sample, index) => sample.content.length < spaced[index].content.length));
 });
+
+test('Notion export previews omit Notion\'s synthetic Export folder', async () => {
+	const { samples } = await previews(
+		NotionImporter,
+		'notion',
+		fixture('notion', 'notion-testspace.zip'),
+	);
+
+	assert.ok(samples.some(sample => sample.path === 'Import/Notion-Testspace.md'));
+	assert.ok(samples.every(sample => !/(?:^|\/)Export-[0-9a-f-]+(?:\/|$)/iu.test(sample.path)));
+});

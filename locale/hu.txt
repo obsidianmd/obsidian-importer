@@ -406,6 +406,14 @@ translation=Mappák olvasása...
 original=No folders found.
 translation=Nem található mappa.
 
+[source.msg-flat-files]
+original={{count}} file will be imported.
+translation=
+
+[source.msg-flat-files_plural]
+original={{count}} files will be imported.
+translation=
+
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
 translation=Nincs importálható tartalom. Válasszon {{extensions}} fájlokat, vagy egy ilyen fájlokat tartalmazó mappát.
@@ -2181,6 +2189,10 @@ translation=Hivatkozások feloldása és fájlok deduplikálása
 [importer.notion.status-starting]
 original=Starting import
 translation=Importálás indítása
+
+[importer.notion.msg-markdown-export]
+original=This is a Markdown export. Export your Notion workspace as HTML instead.
+translation=
 
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead

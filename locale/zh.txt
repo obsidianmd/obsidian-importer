@@ -406,6 +406,14 @@ translation=正在读取文件夹...
 original=No folders found.
 translation=未找到文件夹。
 
+[source.msg-flat-files]
+original={{count}} file will be imported.
+translation=
+
+[source.msg-flat-files_plural]
+original={{count}} files will be imported.
+translation=
+
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
 translation=没有可导入的内容。请选择 {{extensions}} 文件列表，或包含这些文件的文件夹。
@@ -2181,6 +2189,10 @@ translation=正在解析链接并去除重复文件
 [importer.notion.status-starting]
 original=Starting import
 translation=正在开始导入
+
+[importer.notion.msg-markdown-export]
+original=This is a Markdown export. Export your Notion workspace as HTML instead.
+translation=
 
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead
