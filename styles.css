@@ -510,6 +510,7 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 	padding: 0 var(--setting-items-padding-x) var(--setting-items-padding-y);
 	display: flex;
 	margin-bottom: var(--size-4-12);
+	--font-text-size: var(--font-ui-small);
 }
 
 .is-mobile .importer-template-preview {
@@ -531,7 +532,6 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 
 .importer-template-preview .markdown-preview-view {
 	padding: 18px 24px;
-	--font-text-size: var(--font-ui-small);
 }
 .importer-template-preview .markdown-rendered :is(h2,h3,h4,h5,h6) {
 	padding: 0;
@@ -552,29 +552,42 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 }
 
 
-.importer-template-editor {
-	display: block;
-	width: 100%;
-	min-height: 18rem;
-	padding: 0;
-	resize: vertical;
-	border: 0;
-	background: transparent;
-	color: var(--text-normal);
-	font-family: var(--font-monospace);
-	font-size: var(--font-ui-small);
-}
-
-.importer-template-editor:focus {
-	box-shadow: none;
-}
-
 .importer-template-rendered-note {
 	color: var(--text-normal);
 }
 
 .importer-template-rendered-note .inline-title {
 	display: block;
+}
+
+.importer-template-editing-note {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-height: 0;
+	padding: 18px 24px 0;
+	--file-margins: 0 24px;
+}
+
+.importer-template-native-editor {
+	display: flex;
+	flex: 1;
+	min-height: 0;
+	margin: 0 -24px;
+}
+
+.importer-template-native-editor > .view-content {
+	display: flex;
+	flex: 1;
+	min-height: 0;
+}
+
+.importer-template-native-editor .cm-s-obsidian {
+	width: 100%;
+}
+
+.importer-template-native-editor .metadata-property.is-generated {
+	--metadata-label-text-color: var(--text-muted);
 }
 
 .importer-template-properties:not(.is-editable) {

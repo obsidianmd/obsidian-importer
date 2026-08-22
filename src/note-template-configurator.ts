@@ -1,4 +1,4 @@
-import { App, ButtonComponent, MarkdownRenderChild, MarkdownRenderer, normalizePath, Notice, parseYaml, setIcon, Setting, SettingGroup, stringifyYaml, TFile } from 'obsidian';
+import { App, ButtonComponent, MarkdownRenderChild, MarkdownRenderer, MarkdownView, normalizePath, Notice, parseYaml, setIcon, Setting, SettingGroup, stringifyYaml, TFile, WorkspaceLeaf } from 'obsidian';
 import { i18n } from './i18n';
 import { MarkdownFileSuggest } from './markdown-file-suggest';
 import { parseFrontMatterBlock } from './util';
@@ -151,19 +151,142 @@ function serializeTemplate(properties: EditableProperty[], body: string): string
 	return restoreTemplateExpressions(`---\n${yaml}---\n${body}`, expressions);
 }
 
-function parseEditablePropertyValue(value: string): unknown {
-	if (!value) return '';
-	const expressions: string[] = [];
-	try {
-		const parsed: unknown = parseYaml(protectTemplateExpressions(value, expressions));
-		return transformTemplateExpressions(
-			parsed,
-			text => restoreTemplateExpressions(text, expressions),
-		);
+function nativeEditorTemplate(properties: EditableProperty[], body: string): string {
+	const entries = properties.filter(property => property.key.trim());
+	if (entries.length === 0) return body;
+	const frontMatter = Object.fromEntries(entries.map(property => [property.key.trim(), property.value]));
+	return `---\n${stringifyYaml(frontMatter)}---\n${body}`;
+}
+
+interface NativeMetadataEditor {
+	containerEl: HTMLElement;
+}
+
+interface NativeMarkdownSubView {
+	hide(): void;
+	show(): void;
+}
+
+type NativeMarkdownView = MarkdownView & {
+	metadataEditor: NativeMetadataEditor;
+	inlineTitleEl: HTMLElement;
+	currentMode: NativeMarkdownSubView;
+	modes: Record<string, NativeMarkdownSubView>;
+};
+
+interface NativeTemplateEditor {
+	getTemplate(): string;
+	getManagedKeys(): string[];
+	focus(): void;
+	destroy(): Promise<void>;
+}
+
+async function createNativeTemplateEditor(
+	app: App,
+	container: HTMLElement,
+	properties: EditableProperty[],
+	body: string,
+): Promise<NativeTemplateEditor> {
+	// Obsidian does not export MetadataEditor, but MarkdownView is public and owns
+	// the real component. A detached leaf is also how Obsidian mounts its temporary
+	// mobile editor during startup. This synthetic file is never read or written.
+	const Leaf = WorkspaceLeaf as unknown as new (app: App) => WorkspaceLeaf;
+	const File = TFile as unknown as new (vault: App['vault'], path: string) => TFile;
+	const leaf = new Leaf(app);
+	const view = new MarkdownView(leaf) as NativeMarkdownView;
+	view.file = new File(
+		app.vault,
+		normalizePath(`${app.vault.configDir}/plugins/obsidian-importer/template-preview.md`),
+	);
+	await leaf.open(view);
+
+	if (view.getMode() !== 'source') {
+		view.currentMode.hide();
+		view.currentMode = view.modes.source as typeof view.currentMode;
+		view.currentMode.show();
+		view.containerEl.dataset.mode = 'source';
 	}
-	catch {
-		return value;
-	}
+
+	const initialTemplate = nativeEditorTemplate(properties, body);
+	view.data = initialTemplate;
+	view.setViewData(initialTemplate, true);
+	view.inlineTitleEl.detach();
+	container.appendChild(view.contentEl);
+
+	const metadata = view.metadataEditor.containerEl;
+	const managedProperties = properties.filter(property => property.managed);
+	const lockManagedProperties = (): void => {
+		const availableRows = Array.from(metadata.querySelectorAll<HTMLElement>('.metadata-property'));
+		for (const [index, property] of managedProperties.entries()) {
+			let row = availableRows.find(candidate =>
+				candidate.dataset.importerManagedIndex === String(index)
+			);
+			row ??= availableRows.find(candidate =>
+				candidate.dataset.propertyKey === property.key.trim().toLowerCase()
+			);
+			if (!row) continue;
+			row.dataset.importerManagedIndex = String(index);
+			row.addClass('is-generated');
+
+			const icon = row.querySelector<HTMLElement>('.metadata-property-icon');
+			icon?.setAttr('aria-disabled', true);
+			const keyInput = row.querySelector<HTMLInputElement>('.metadata-property-key-input');
+			if (keyInput) {
+				keyInput.disabled = !property.onKeyChange;
+				if (property.onKeyChange && keyInput.dataset.importerManaged !== 'true') {
+					keyInput.dataset.importerManaged = 'true';
+					keyInput.addEventListener('input', () => {
+						property.key = keyInput.value;
+						property.onKeyChange?.(keyInput.value);
+					});
+				}
+			}
+
+			const value = row.querySelector<HTMLElement>('.metadata-property-value');
+			for (const input of Array.from(value?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | HTMLButtonElement>('input, textarea, select, button') ?? [])) {
+				input.disabled = true;
+			}
+			for (const editable of Array.from(value?.querySelectorAll<HTMLElement>('[contenteditable]') ?? [])) {
+				editable.contentEditable = 'false';
+			}
+		}
+	};
+	lockManagedProperties();
+	const observer = new MutationObserver(lockManagedProperties);
+	observer.observe(metadata, { childList: true, subtree: true });
+	metadata.addEventListener('mousedown', event => {
+		const target = event.target as HTMLElement;
+		if (!target.closest('.metadata-property.is-generated .metadata-property-icon')) return;
+		event.preventDefault();
+		event.stopImmediatePropagation();
+	}, { capture: true });
+	metadata.addEventListener('contextmenu', event => {
+		const target = event.target as HTMLElement;
+		if (!target.closest('.metadata-property.is-generated')) return;
+		event.preventDefault();
+		event.stopImmediatePropagation();
+	}, { capture: true });
+	metadata.addEventListener('keydown', event => {
+		const target = event.target as HTMLElement;
+		if (!target.closest('.metadata-property.is-generated')) return;
+		if (event.key !== 'Delete' && !(event.metaKey && event.key === 'Backspace')) return;
+		event.preventDefault();
+		event.stopImmediatePropagation();
+	}, { capture: true });
+
+	return {
+		getTemplate: () => view.getViewData(),
+		getManagedKeys: () => managedProperties.map((property, index) => {
+			const row = metadata.querySelector<HTMLElement>(`[data-importer-managed-index="${index}"]`);
+			return row?.querySelector<HTMLInputElement>('.metadata-property-key-input')?.value
+				?? property.key.trim();
+		}),
+		focus: () => view.editor.focus(),
+		destroy: async () => {
+			observer.disconnect();
+			await (view as unknown as { close(): Promise<void> }).close();
+		},
+	};
 }
 
 function renderProperties(container: HTMLElement, properties: Record<string, unknown>): void {
@@ -241,85 +364,6 @@ function renderProperties(container: HTMLElement, properties: Record<string, unk
 	}
 }
 
-function renderEditableProperties(container: HTMLElement, properties: EditableProperty[]): void {
-	const metadata = container.createDiv({
-		cls: 'metadata-container importer-template-properties is-editable',
-		attr: { tabindex: -1 },
-	});
-	metadata.createDiv('metadata-error-container').toggle(false);
-	const heading = metadata.createDiv({ cls: 'metadata-properties-heading', attr: { tabindex: -1 } });
-	const collapse = heading.createDiv('collapse-indicator collapse-icon');
-	setIcon(collapse, 'right-triangle');
-	heading.createDiv({ cls: 'metadata-properties-title', text: i18n.template.headingProperties() });
-
-	const content = metadata.createDiv('metadata-content');
-	const rows = content.createDiv('metadata-properties');
-	const renderRows = (focusIndex?: number): void => {
-		rows.empty();
-		metadata.dataset.propertyCount = String(properties.length);
-		for (const [index, property] of properties.entries()) {
-			const row = rows.createDiv({
-				cls: 'metadata-property importer-template-property',
-				attr: { 'data-property-key': property.key.toLowerCase() },
-			});
-			const keyEl = row.createDiv('metadata-property-key');
-			const icon = keyEl.createSpan('metadata-property-icon');
-			setIcon(icon, propertyIcon(property.key, property.value));
-			const keyInput = keyEl.createEl('input', {
-				cls: 'metadata-property-key-input',
-				type: 'text',
-				value: property.key,
-			});
-			if (property.managed && !property.onKeyChange) keyInput.disabled = true;
-			keyInput.addEventListener('input', () => {
-				property.key = keyInput.value;
-				row.dataset.propertyKey = property.key.toLowerCase();
-				property.onKeyChange?.(property.key);
-			});
-
-			const valueEl = row.createDiv('metadata-property-value importer-template-property-value');
-			valueEl.dataset.propertyType = 'text';
-			const valueInput = valueEl.createEl('textarea', {
-				cls: 'metadata-input-text metadata-input-longtext',
-				text: propertyValueText(property.value),
-				attr: { rows: 1 },
-			});
-			if (property.managed) {
-				row.addClass('is-generated');
-				valueInput.disabled = true;
-			}
-			else {
-				valueInput.addEventListener('input', () => {
-					property.value = parseEditablePropertyValue(valueInput.value);
-				});
-			}
-			if (focusIndex === index) keyInput.focus();
-		}
-	};
-
-	const addProperty = content.createDiv({
-		cls: 'metadata-add-button text-icon-button',
-		attr: { tabindex: 0, role: 'button' },
-	});
-	const addIcon = addProperty.createSpan('text-button-icon');
-	setIcon(addIcon, 'lucide-plus');
-	addProperty.createSpan({
-		cls: 'text-button-label',
-		text: i18n.template.buttonAddProperty(),
-	});
-	const add = (): void => {
-		properties.push({ key: '', value: '' });
-		renderRows(properties.length - 1);
-	};
-	addProperty.addEventListener('click', add);
-	addProperty.addEventListener('keydown', event => {
-		if (event.key !== 'Enter' && event.key !== ' ') return;
-		event.preventDefault();
-		add();
-	});
-	renderRows();
-}
-
 /** Shared Markdown-template preview and persistence screen used by every note-producing importer. */
 export class NoteTemplateConfigurator {
 	private template: string;
@@ -337,9 +381,9 @@ export class NoteTemplateConfigurator {
 			container.empty();
 
 			let editing = false;
-			let editorEl: HTMLTextAreaElement | null = null;
 			let titleEditorEl: HTMLElement | null = null;
-			let editorProperties: EditableProperty[] = [];
+			let nativeEditor: NativeTemplateEditor | null = null;
+			let managedEditorProperties: EditableProperty[] = [];
 			let revision = 0;
 			let templateLoadRevision = 0;
 			let sampleIndex = 0;
@@ -354,6 +398,8 @@ export class NoteTemplateConfigurator {
 				++revision;
 				renderComponent?.unload();
 				renderComponent = null;
+				if (nativeEditor) void nativeEditor.destroy();
+				nativeEditor = null;
 				actionButtonEl?.remove();
 				resolve(result);
 			};
@@ -495,10 +541,12 @@ export class NoteTemplateConfigurator {
 				else editButton.removeCta();
 			};
 
-			const startEditing = (): void => {
-				++revision;
+			const startEditing = async (): Promise<void> => {
+				const current = ++revision;
 				renderComponent?.unload();
 				renderComponent = null;
+				if (nativeEditor) void nativeEditor.destroy();
+				nativeEditor = null;
 				clearPreview();
 				previewDiagnostics.empty();
 				previewPath.hide();
@@ -507,17 +555,16 @@ export class NoteTemplateConfigurator {
 				previewNavButtons.show();
 				previewNav.show();
 				const parsedTemplate = parseTemplateFrontMatter(this.template);
-				const managedProperties = (this.options.managedProperties?.() ?? [])
+				managedEditorProperties = (this.options.managedProperties?.() ?? [])
 					.map(property => ({ ...property, managed: true }));
-				const managedKeys = new Set(managedProperties.map(property => property.key.trim().toLowerCase()));
-				editorProperties = [
-					...managedProperties,
+				const managedKeys = new Set(managedEditorProperties.map(property => property.key.trim().toLowerCase()));
+				const editorProperties = [
+					...managedEditorProperties,
 					...(parsedTemplate?.properties ?? []).filter(property =>
 						!managedKeys.has(property.key.trim().toLowerCase())
 					),
 				];
-				const rendered = preview.createDiv(
-					'markdown-preview-view markdown-rendered importer-template-rendered-note importer-template-editing-note');
+				const rendered = preview.createDiv('importer-template-rendered-note importer-template-editing-note');
 				titleEditorEl = rendered.createDiv({
 					cls: 'inline-title',
 					text: this.titleTemplate,
@@ -531,32 +578,63 @@ export class NoteTemplateConfigurator {
 					if (event.key !== 'Enter') return;
 					event.preventDefault();
 				});
-				renderEditableProperties(rendered, editorProperties);
-				editorEl = rendered.createEl('textarea', {
-					cls: 'importer-template-editor',
-					attr: {
-						'aria-label': i18n.template.nameTemplateEditor(),
-						spellcheck: false,
-					},
-				});
-				editorEl.value = parsedTemplate?.body ?? this.template;
 				setEditing(true);
-				editorEl.focus();
+				editButton.setDisabled(true);
+				actionButtonEl?.setAttr('disabled', true);
+				try {
+					const candidate = await createNativeTemplateEditor(
+						this.options.app,
+						rendered.createDiv('importer-template-native-editor'),
+						editorProperties,
+						parsedTemplate?.body ?? this.template,
+					);
+					if (current !== revision || !editing) {
+						await candidate.destroy();
+						return;
+					}
+					nativeEditor = candidate;
+					nativeEditor.focus();
+				}
+				catch (error) {
+					if (current !== revision) return;
+					previewDiagnostics.setText(error instanceof Error ? error.message : String(error));
+					setEditing(false);
+				}
+				finally {
+					editButton.setDisabled(false);
+					actionButtonEl?.removeAttribute('disabled');
+				}
 			};
 
-			const finishEditing = (): void => {
-				if (!editing || !editorEl) return;
+			const finishEditing = (): boolean => {
+				if (!editing || !nativeEditor) return false;
 				this.titleTemplate = titleEditorEl?.textContent?.trim() || '{{title}}';
-				const editedTemplate = serializeTemplate(editorProperties, editorEl.value);
+				const nativeTemplate = nativeEditor.getTemplate();
+				const parsedTemplate = parseTemplateFrontMatter(nativeTemplate);
+				const currentManagedKeys = nativeEditor.getManagedKeys();
+				for (const [index, property] of managedEditorProperties.entries()) {
+					const key = currentManagedKeys[index]?.trim();
+					if (!key) continue;
+					property.key = key;
+					property.onKeyChange?.(key);
+				}
+				const managedKeys = new Set(currentManagedKeys.map(key => key.trim().toLowerCase()));
+				const properties = (parsedTemplate?.properties ?? []).filter(property =>
+					!managedKeys.has(property.key.trim().toLowerCase())
+				);
+				const editedTemplate = serializeTemplate(properties, parsedTemplate?.body ?? nativeTemplate);
 				if (editedTemplate !== this.template) {
 					this.template = editedTemplate;
 					this.path = '';
 					pathInput.value = '';
 				}
-				editorEl = null;
+				void nativeEditor.destroy();
+				nativeEditor = null;
 				titleEditorEl = null;
+				managedEditorProperties = [];
 				++templateLoadRevision;
 				setEditing(false);
+				return true;
 			};
 
 			updatePreview = async (showLoading = true, focusInvalid = false): Promise<boolean> => {
@@ -586,12 +664,11 @@ export class NoteTemplateConfigurator {
 
 			editButton.onClick(() => {
 				if (!editing) {
-					startEditing();
+					void startEditing();
 					return;
 				}
 
-				finishEditing();
-				void updatePreview();
+				if (finishEditing()) void updatePreview();
 			});
 
 			previousButton.addEventListener('click', () => {
@@ -614,7 +691,8 @@ export class NoteTemplateConfigurator {
 					if (!hadTemplatePath) return;
 					this.template = this.options.defaultTemplate;
 					setEditing(false);
-					editorEl = null;
+					if (nativeEditor) void nativeEditor.destroy();
+					nativeEditor = null;
 					titleEditorEl = null;
 					await updatePreview();
 				};
@@ -637,7 +715,8 @@ export class NoteTemplateConfigurator {
 					this.path = file.path;
 					pathInput.value = file.path;
 					setEditing(false);
-					editorEl = null;
+					if (nativeEditor) void nativeEditor.destroy();
+					nativeEditor = null;
 					titleEditorEl = null;
 					await updatePreview();
 				}
