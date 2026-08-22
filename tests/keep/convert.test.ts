@@ -51,6 +51,7 @@ test('turns Keep state into tags', () => {
 		isPinned: true,
 		isArchived: true,
 		isTrashed: true,
+		tasks: [{ id: 'task-1' }],
 		labels: [{ name: 'Recipes' }],
 		title: 'Something',
 		textContent: 'body',
@@ -58,7 +59,7 @@ test('turns Keep state into tags', () => {
 		userEditedTimestampUsec: 0,
 	} as KeepJson, 'Something');
 
-	for (const tag of ['Keep/Color/Red', 'Keep/Pinned', 'Keep/Archived', 'Keep/Deleted', 'Keep/Label/Recipes']) {
+	for (const tag of ['Keep/Color/Red', 'Keep/Pinned', 'Keep/Task', 'Keep/Archived', 'Keep/Deleted', 'Keep/Label/Recipes']) {
 		assert.ok(content.includes(tag), `expected ${tag} in:\n${content}`);
 	}
 });
