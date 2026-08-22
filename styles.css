@@ -462,6 +462,8 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 	gap: var(--size-4-2);
 	border-bottom: var(--border-width) solid var(--background-modifier-border);
 	padding: var(--size-4-1) var(--size-4-3);
+	padding-inline-start: var(--size-4-4);
+	padding-inline-end: var(--size-4-1);
 }
 
 .importer-template-preview-path {
@@ -488,6 +490,18 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 	font-weight: var(--font-normal);
 }
 
+.importer-template-preview-edit-label {
+	display: none;
+}
+
+.importer-template-preview-path.is-editing :is(.view-header-title-parent, .view-header-title:not(.importer-template-preview-edit-label)) {
+	display: none;
+}
+
+.importer-template-preview-path.is-editing .importer-template-preview-edit-label {
+	display: block;
+}
+
 .importer-template-preview-path :is(.view-header-breadcrumb, .view-header-title) {
 	pointer-events: none;
 }
@@ -496,12 +510,21 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 	display: flex;
 	flex-shrink: 0;
 	margin-inline-start: auto;
-	gap: var(--size-4-2);
+	gap: 0;
 }
 
 .importer-template-preview-nav button {
 	--icon-size: var(--icon-s);
-	padding: var(--size-4-1);
+	height: auto;
+	padding: var(--size-2-3) var(--size-4-2);
+	background-color: transparent;
+	color: var(--text-muted);
+	@media (hover: hover) {
+		&:hover {
+			color: var(--text-normal);
+			background-color: var(--background-modifier-hover);
+		}
+	}
 }
 
 .importer-template-preview {

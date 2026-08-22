@@ -239,6 +239,7 @@ export const en = {
 		buttonEditTemplate: 'Edit',
 		buttonSaveTemplate: 'Save',
 		nameTemplateEditor: 'Template source',
+		labelEditImportTemplate: 'Edit import template',
 		buttonAddProperty: 'Add property',
 		buttonPreviousPreview: 'Previous preview',
 		buttonNextPreview: 'Next preview',

@@ -436,12 +436,16 @@ export class NoteTemplateConfigurator {
 			const previewPathTitle = previewPath.createDiv('view-header-title-container');
 			const previewPathParent = previewPathTitle.createDiv('view-header-title-parent');
 			const previewPathName = previewPathTitle.createDiv('view-header-title');
+			previewPathTitle.createDiv({
+				cls: 'view-header-title importer-template-preview-edit-label',
+				text: i18n.template.labelEditImportTemplate(),
+			});
 			const previewNavButtons = previewNav.createDiv('importer-template-preview-nav-buttons');
 			const previousButton = previewNavButtons.createEl('button');
-			setIcon(previousButton, 'lucide-chevron-left');
+			setIcon(previousButton, 'lucide-arrow-left');
 			previousButton.setAttr('aria-label', i18n.template.buttonPreviousPreview());
 			const nextButton = previewNavButtons.createEl('button');
-			setIcon(nextButton, 'lucide-chevron-right');
+			setIcon(nextButton, 'lucide-arrow-right');
 			nextButton.setAttr('aria-label', i18n.template.buttonNextPreview());
 			previewNav.toggle(false);
 			// The nav lives in the container a redraw clears, so it goes back in
@@ -534,6 +538,8 @@ export class NoteTemplateConfigurator {
 
 			const setEditing = (value: boolean): void => {
 				editing = value;
+				previewPath.toggleClass('is-editing', value);
+				if (value) previewPath.show();
 				editButton.setButtonText(value
 					? i18n.template.buttonSaveTemplate()
 					: i18n.template.buttonEditTemplate());
@@ -549,7 +555,6 @@ export class NoteTemplateConfigurator {
 				nativeEditor = null;
 				clearPreview();
 				previewDiagnostics.empty();
-				previewPath.hide();
 				previousButton.disabled = true;
 				nextButton.disabled = true;
 				previewNavButtons.show();

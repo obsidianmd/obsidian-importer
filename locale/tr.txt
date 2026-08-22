@@ -726,6 +726,10 @@ translation=
 original=Template source
 translation=
 
+[template.label-edit-import-template]
+original=Edit import template
+translation=
+
 [template.button-add-property]
 original=Add property
 translation=
