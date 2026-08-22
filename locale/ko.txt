@@ -414,6 +414,22 @@ translation=폴더를 읽는 중...
 original=No folders found.
 translation=폴더를 찾을 수 없어요.
 
+[source.msg-android-folder-failed]
+original=Could not choose that folder.
+translation=
+
+[source.msg-android-folder-read-failed]
+original=Could not read that folder.
+translation=
+
+[source.msg-android-folder-unavailable]
+original=Folder selection is unavailable on this device.
+translation=
+
+[source.msg-android-root-folder]
+original=Choose a folder other than the root of your device.
+translation=
+
 [source.msg-flat-files]
 original={{count}} file will be imported.
 translation={{count}}개 파일을 가져올 거예요.

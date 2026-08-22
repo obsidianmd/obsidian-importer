@@ -1,4 +1,4 @@
-import { fsPromises, NodePickedFile, PickedFile } from './filesystem';
+import { AndroidPickedFile, fsPromises, NodePickedFile, PickedFile } from './filesystem';
 import { ZipEntryFile } from './zip';
 
 export interface FileTimes {
@@ -14,6 +14,15 @@ export async function pickedFileTimes(file: PickedFile): Promise<FileTimes | und
 			ctime: (file.ctime ?? modified).getTime(),
 			mtime: modified.getTime(),
 		};
+	}
+
+	if (file instanceof AndroidPickedFile) {
+		const ctime = file.ctime ?? file.mtime;
+		const mtime = file.mtime ?? file.ctime;
+		if (ctime === undefined || mtime === undefined || !Number.isFinite(ctime) || !Number.isFinite(mtime)) {
+			return undefined;
+		}
+		return { ctime: Math.round(ctime), mtime: Math.round(mtime) };
 	}
 
 	if (!(file instanceof NodePickedFile)) return undefined;

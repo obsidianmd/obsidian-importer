@@ -1,5 +1,5 @@
 import { App, DataWriteOptions, debounce, normalizePath, Notice, Platform, SecretComponent, Setting, SettingGroup, TFile, TFolder, Vault } from 'obsidian';
-import { getAllFiles, NodePickedFile, NodePickedFolder, parseFilePath, PickedFile, PickedFolder, WebPickedFile, webPickedTree } from './filesystem';
+import { AndroidFolderPickerError, chooseAndroidFolder, getAllFiles, hasAndroidFolderPicker, NodePickedFile, NodePickedFolder, parseFilePath, PickedFile, PickedFolder, WebPickedFile, webPickedTree } from './filesystem';
 import { HostPlugin } from './plugin-data';
 import { AuthCallback, helpUrl } from './constants';
 import { FolderSuggest } from './folder-suggest';
@@ -860,8 +860,10 @@ export abstract class FormatImporter {
 		this.endGroupIn(contentEl);
 
 		const win = contentEl.doc.defaultView;
+		const canChooseAndroidFolder = hasAndroidFolderPicker();
 		const canChooseFolders = Platform.isDesktopApp
-			|| (!!win && 'webkitdirectory' in win.HTMLInputElement.prototype);
+			|| canChooseAndroidFolder
+			|| (!Platform.isAndroidApp && !!win && 'webkitdirectory' in win.HTMLInputElement.prototype);
 
 		const chooseFiles = async () => {
 			if (Platform.isDesktopApp) {
@@ -911,6 +913,36 @@ export abstract class FormatImporter {
 		};
 
 		const chooseFolders = async () => {
+			if (canChooseAndroidFolder) {
+				let folder: PickedFolder | null;
+				try {
+					folder = await chooseAndroidFolder();
+				}
+				catch (error) {
+					console.error('Could not choose an Android folder', error);
+					const message = error instanceof AndroidFolderPickerError && error.reason === 'root'
+						? i18n.source.msgAndroidRootFolder()
+						: error instanceof AndroidFolderPickerError && error.reason === 'unavailable'
+							? i18n.source.msgAndroidFolderUnavailable()
+							: i18n.source.msgAndroidFolderFailed();
+					new Notice(message);
+					return;
+				}
+
+				if (folder) {
+					try {
+						await addFolders([folder]);
+					}
+					catch (error) {
+						console.error('Could not read the chosen Android folder', error);
+						const message = i18n.source.msgAndroidFolderReadFailed();
+						drawState(message);
+						new Notice(message);
+					}
+				}
+				return;
+			}
+
 			if (!Platform.isDesktopApp) {
 				chooseFromWeb(true);
 				return;

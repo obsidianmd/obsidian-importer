@@ -1,5 +1,5 @@
 import { BlobReader, configure, Reader, ZipReader } from '@zip.js/zip.js';
-import { Platform } from 'obsidian';
+import { base64ToArrayBuffer, Platform } from 'obsidian';
 import { decodeChunks, decodeText } from './encoding';
 import { configureWebWorker } from './z-worker-inline';
 
@@ -43,6 +43,39 @@ export interface PickedFolder {
 	list: () => Promise<(PickedFile | PickedFolder)[]>;
 
 	toString(): string;
+}
+
+interface AndroidFileInfo {
+	name: string;
+	type: 'file' | 'directory';
+	size?: number;
+	ctime?: number;
+	mtime?: number;
+}
+
+export interface AndroidFilesystem {
+	choose(): Promise<{ path: string, uri: string, isRoot: boolean }>;
+	checkPerms(): Promise<void>;
+	requestPerms(): Promise<void>;
+	readdir(options: { path: string }): Promise<{ files: AndroidFileInfo[] }>;
+	readFile(options: { path: string }): Promise<{ data: string }>;
+}
+
+type CapacitorWindow = Window & {
+	Capacitor?: {
+		Plugins?: {
+			Filesystem?: AndroidFilesystem;
+		};
+	};
+};
+
+function androidFilesystem(): AndroidFilesystem | null {
+	if (typeof window === 'undefined') return null;
+	return (window as CapacitorWindow).Capacitor?.Plugins?.Filesystem ?? null;
+}
+
+export function hasAndroidFolderPicker(filesystem: AndroidFilesystem | null = androidFilesystem()): boolean {
+	return Platform.isAndroidApp && filesystem !== null;
 }
 
 // Tests replace these bindings to run conversion code outside Obsidian.
@@ -183,6 +216,133 @@ export class NodePickedFolder implements PickedFolder {
 
 	toString(): string {
 		return this.filepath;
+	}
+}
+
+function joinNativePath(parent: string, name: string): string {
+	return `${parent}/${name}`;
+}
+
+export class AndroidFolderPickerError extends Error {
+	constructor(readonly reason: 'root' | 'unavailable') {
+		super(reason);
+	}
+}
+
+export class AndroidPickedFile implements PickedFile {
+	readonly type = 'file' as const;
+
+	readonly fullpath: string;
+	readonly name: string;
+	readonly basename: string;
+	readonly extension: string;
+	readonly size?: number;
+	readonly ctime?: number;
+	readonly mtime?: number;
+
+	constructor(
+		readonly filepath: string,
+		private readonly filesystem: AndroidFilesystem,
+		fullpath?: string,
+		info?: AndroidFileInfo,
+	) {
+		this.fullpath = fullpath ?? parseFilePath(filepath).name;
+		const { name, basename, extension } = parseFilePath(filepath);
+		this.name = name;
+		this.basename = basename;
+		this.extension = extension;
+		this.size = info?.size;
+		this.ctime = info?.ctime;
+		this.mtime = info?.mtime;
+	}
+
+	async readText(): Promise<string> {
+		return decodeText(new Uint8Array(await this.read()));
+	}
+
+	async *readChunks(): AsyncIterable<string> {
+		// The native bridge has no ranged read. This limits decoder chunk size,
+		// but the bridge still materializes the whole file as base64 first.
+		const data = new Uint8Array(await this.read());
+
+		yield* decodeChunks(async function* () {
+			for (let at = 0; at < data.byteLength; at += READ_CHUNK) {
+				yield data.subarray(at, at + READ_CHUNK);
+			}
+		}());
+	}
+
+	async read(): Promise<ArrayBuffer> {
+		const { data } = await this.filesystem.readFile({ path: this.filepath });
+		return base64ToArrayBuffer(data);
+	}
+
+	async readZip(callback: (zip: ZipReader<unknown>) => Promise<void>): Promise<void> {
+		return callback(new ZipReader(new BlobReader(new Blob([await this.read()]))));
+	}
+
+	toString(): string {
+		return this.filepath;
+	}
+}
+
+export class AndroidPickedFolder implements PickedFolder {
+	readonly type = 'folder' as const;
+
+	readonly filepath: string;
+	readonly fullpath: string;
+	readonly name: string;
+
+	constructor(filepath: string, private readonly filesystem: AndroidFilesystem, fullpath?: string) {
+		this.filepath = filepath.replace(/\/+$/, '');
+		this.name = parseFilePath(this.filepath).name;
+		this.fullpath = fullpath ?? this.name;
+	}
+
+	async list(): Promise<(PickedFile | PickedFolder)[]> {
+		const { files } = await this.filesystem.readdir({ path: this.filepath });
+		const items: (PickedFile | PickedFolder)[] = [];
+
+		for (const file of files) {
+			const filepath = joinNativePath(this.filepath, file.name);
+			const fullpath = joinNativePath(this.fullpath, file.name);
+			if (file.type === 'file') items.push(new AndroidPickedFile(filepath, this.filesystem, fullpath, file));
+			else if (file.type === 'directory') items.push(new AndroidPickedFolder(filepath, this.filesystem, fullpath));
+		}
+
+		return items;
+	}
+
+	toString(): string {
+		return this.filepath;
+	}
+}
+
+function canceled(error: unknown): boolean {
+	return error instanceof Error && /cancell?ed/i.test(error.message);
+}
+
+export async function chooseAndroidFolder(
+	filesystem: AndroidFilesystem | null = androidFilesystem(),
+): Promise<AndroidPickedFolder | null> {
+	if (!filesystem) throw new AndroidFolderPickerError('unavailable');
+
+	try {
+		await filesystem.checkPerms();
+	}
+	catch {
+		await filesystem.requestPerms();
+	}
+
+	try {
+		const result = await filesystem.choose();
+		if (!result?.path) return null;
+		if (result.isRoot) throw new AndroidFolderPickerError('root');
+		return new AndroidPickedFolder(result.path, filesystem);
+	}
+	catch (error) {
+		if (canceled(error)) return null;
+		throw error;
 	}
 }
 
