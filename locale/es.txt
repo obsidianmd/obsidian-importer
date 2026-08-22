@@ -663,7 +663,7 @@ original=Configure how your data should be imported. Use {{syntax}} syntax to re
 translation=Configurar cómo se deben importar tus datos. Usa la sintaxis {{syntax}} para referenciar valores de campo.
 
 [template.msg-note-template-intro]
-original=Preview examples from your selection or choose a Markdown template from your vault.
+original=Review examples of how your notes will be imported.
 translation=
 
 [template.name-title]
@@ -671,7 +671,7 @@ original=Note title
 translation=Renombrar archivo
 
 [template.desc-title]
-original=Template for the note title. Use {{field_name}} to insert values.
+original=Template for the note title. Use variables like {{field_name}} to insert values.
 translation=Plantilla para el título de la nota. Usa {{field_name}} para insertar valores.
 
 [template.name-location]
@@ -687,7 +687,7 @@ original=Note content
 translation=Contenido de la nota
 
 [template.desc-content]
-original=Template for the note content. Use {{field_name}} to insert values.
+original=Template for the note content. Use variables like {{field_name}} to insert values.
 translation=Plantilla para el contenido de la nota. Usa {{field_name}} para insertar valores.
 
 [template.name-template-file]
@@ -695,7 +695,7 @@ original=Template
 translation=
 
 [template.desc-template-file]
-original=Choose a template from your vault.
+original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
 translation=
 
 [template.heading-preview]

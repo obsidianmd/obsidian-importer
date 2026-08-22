@@ -663,7 +663,7 @@ original=Configure how your data should be imported. Use {{syntax}} syntax to re
 translation=আপনার ডেটা কীভাবে ইমপোর্ট করা হবে তা সাজান। ফিল্ডের মান রেফারেন্স করতে {{syntax}} সিনট্যাক্স ব্যবহার করুন।
 
 [template.msg-note-template-intro]
-original=Preview examples from your selection or choose a Markdown template from your vault.
+original=Review examples of how your notes will be imported.
 translation=
 
 [template.name-title]
@@ -671,7 +671,7 @@ original=Note title
 translation=ফাইলের নাম পরিবর্তন করুন
 
 [template.desc-title]
-original=Template for the note title. Use {{field_name}} to insert values.
+original=Template for the note title. Use variables like {{field_name}} to insert values.
 translation=নোটের শিরোনামের জন্য টেমপ্লেট। মান যোগ করুন {{field_name}} ব্যবহার করে।
 
 [template.name-location]
@@ -687,7 +687,7 @@ original=Note content
 translation=নোটের বিষয়বস্তু
 
 [template.desc-content]
-original=Template for the note content. Use {{field_name}} to insert values.
+original=Template for the note content. Use variables like {{field_name}} to insert values.
 translation=নোটের বিষয়বস্তুর জন্য টেমপ্লেট। মান যোগ করুন {{field_name}} ব্যবহার করে।
 
 [template.name-template-file]
@@ -695,7 +695,7 @@ original=Template
 translation=
 
 [template.desc-template-file]
-original=Choose a template from your vault.
+original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
 translation=
 
 [template.heading-preview]

@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { en } from '../../src/i18n/en';
 import { Bundle, camelToKebab, decodeNewlines, encodeNewlines, flatten, interpolate, parseLocale, stringifyLocale } from '../../src/i18n/util';
 import { availableLanguages, bundleFor, i18n, setLanguage } from '../../src/i18n';
+import { helpLanguage } from '../../src/constants';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -94,6 +95,34 @@ test('a regional code falls back to its base language', () => {
 	setLanguage('fr-CA');
 	assert.equal(i18n(key), translated);
 	setLanguage('en');
+});
+
+test('Obsidian\'s Khmer code reads the Khmer strings', () => {
+	const [key, translated] = Object.entries(bundleFor('km')!)[0];
+
+	setLanguage('kh');
+	assert.equal(i18n(key), translated);
+	setLanguage('en');
+});
+
+test('a help page is read in the reader\'s language where there is one', () => {
+	assert.equal(helpLanguage('fr'), 'fr');
+	assert.equal(helpLanguage('pt-BR'), 'pt-BR');
+	assert.equal(helpLanguage('zh-TW'), 'zh-TW');
+});
+
+test('a help page falls back to English rather than to a language the site has no pages in', () => {
+	// Obsidian is translated into far more languages than the help site is.
+	assert.equal(helpLanguage('hi'), 'en');
+	assert.equal(helpLanguage('en-GB'), 'en');
+});
+
+test('a regional code with no help site of its own reads its base language', () => {
+	assert.equal(helpLanguage('fr-CA'), 'fr');
+});
+
+test('the Khmer help site is reached under the code Obsidian does not use', () => {
+	assert.equal(helpLanguage('kh'), 'km');
 });
 
 test('a count of anything but one takes the plural variant', () => {

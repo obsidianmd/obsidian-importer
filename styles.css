@@ -442,11 +442,14 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 }
 
 .importer-template-preview-nav {
+	position: absolute;
+	z-index: 1;
+	top: var(--size-4-2);
+	right: calc(var(--setting-items-padding-x) + var(--size-4-2));
 	display: flex;
 	align-items: center;
 	justify-content: flex-end;
 	gap: var(--size-4-2);
-	margin-bottom: var(--size-4-2);
 }
 
 .importer-template-preview-nav button {
@@ -454,23 +457,37 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 	padding: var(--size-4-1);
 }
 
-body.is-phone .importer-template-preview-nav button {
-	flex: 1 1 50%;
-	width: 50%;
+.importer-template-preview {
+	position: relative;
+	min-height: 12rem;
+	height: 24rem;
+	padding: 0 var(--setting-items-padding-x) var(--setting-items-padding-y);
+	display: flex;
 }
 
-.importer-template-preview {
-	min-height: 12rem;
-	max-height: 24rem;
-	overflow: auto;
-	padding: var(--size-4-3);
-	border: var(--border-width) solid var(--background-modifier-border);
-	border-radius: var(--radius-s);
-	background: var(--background-primary-alt);
+.importer-template-preview-content {
+	display: flex;
+	flex: 1;
+	min-width: 0;
 }
 
 .importer-template-preview .markdown-preview-view {
+	padding: 18px 24px;
+	border: var(--border-width) solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background-color: var(--background-primary);
+	--font-text-size: var(--font-ui-small);
+}
+.importer-template-preview .markdown-rendered :is(h2,h3,h4,h5,h6) {
 	padding: 0;
+}
+.importer-template-preview .markdown-preview-view .metadata-container {
+	display: block;
+	margin-bottom: var(--size-4-1);
+}
+
+.importer-template-markdown {
+	pointer-events: none;
 }
 
 .importer-template-preview .importer-template-preview-loading {
@@ -479,9 +496,6 @@ body.is-phone .importer-template-preview-nav button {
 	padding: 0;
 }
 
-.importer-template-preview .markdown-preview-view .metadata-container {
-	display: block;
-}
 
 .importer-template-editor {
 	display: block;
@@ -553,7 +567,7 @@ body.is-phone .importer-template-preview-nav button {
 
 .import-section .importer-tree-status {
 	color: var(--text-muted);
-	font-size: var(--font-ui-small);
+	font-size: var(--font-ui-smaller);
 	padding: var(--size-4-2) var(--setting-items-padding-x);
 }
 

@@ -1,5 +1,7 @@
 import { App, FrontMatterCache, getLanguage, parseYaml, Platform, stringifyYaml, Vault, normalizePath } from 'obsidian';
 
+import { normalizeLanguage } from './i18n';
+
 const FRONT_MATTER_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 
 export function parseFrontMatterBlock(content: string): { frontMatter: FrontMatterCache, body: string } | null {
@@ -218,7 +220,7 @@ export function serializeFrontMatter(frontMatter: FrontMatterCache): string {
 
 /** Format a standalone count in the selected language. */
 export function countText(value: number): string {
-	return value.toLocaleString(getLanguage());
+	return value.toLocaleString(normalizeLanguage(getLanguage()));
 }
 
 export function sameBytes(left: ArrayBuffer, right: ArrayBuffer): boolean {
