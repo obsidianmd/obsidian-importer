@@ -19,9 +19,7 @@ run. To add or edit one by hand:
 A regional code falls back to its base language, so `pt-BR` is used for a reader
 set to `pt-BR`, and `pt` covers the rest.
 
-A file is named the way Help names the language, which is the app's code but for
-Khmer: Help and ISO 639 spell it `km`, while Obsidian's own table is `kh`. The
-plugin translates the one into the other, so `km.txt` is the file to edit.
+A file is named the way Help names the language, which is the app's code but for Khmer: Help and ISO 639 spell it `km`, while Obsidian's own table is `kh`. The plugin translates the one into the other, so `km.txt` is the file to edit.
 
 ## Automated updates
 
