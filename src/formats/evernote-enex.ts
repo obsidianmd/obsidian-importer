@@ -119,8 +119,7 @@ export class EvernoteEnexImporter extends FormatImporter {
 					try {
 						const note = element as EvernoteNote;
 						const title = note.title?.trim() || 'Untitled';
-						// Resources need decoding and placement. Leave an explicit marker
-						// while still converting the rest of the selected note.
+						// Mark unresolved resources while previewing the rest of the note.
 						const htmlContent = joinNoteContent(note.content)
 							.replace(/<en-media\b[^>]*\/?\s*>/gi, '<p>(attachment)</p>');
 						const content = convertHtml2Md(run, { title, content: htmlContent, htmlContent }).content;

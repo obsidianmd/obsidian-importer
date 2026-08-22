@@ -96,8 +96,11 @@ export class CSVImporter extends FormatImporter {
 			configure: (contentEl, previewChanged) => {
 				const templates = new SettingGroup(contentEl);
 				new Setting(templates.listEl)
-					.setName(i18n.template.nameTitle())
-					.setDesc(i18n.template.descTitle({ field_name: '{{column_name}}' }))
+					.setName(i18n.importer.csv.nameSourceTitle())
+					.setDesc(i18n.importer.csv.descSourceTitle({
+						title: '{{title}}',
+						column_name: '{{source["column_name"]}}',
+					}))
 					.addText(text => text
 						.setPlaceholder('{{Title}}')
 						.setValue(this.config!.titleTemplate)

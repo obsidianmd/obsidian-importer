@@ -31,8 +31,7 @@ markdownFilter.metadata = {};
 const yamlFilter: TemplateFilter<ImporterTemplateContext> = value => {
 	const trimmed = value.trim();
 	if (/^(?:true|false|null)$/iu.test(trimmed)) return trimmed;
-	// Only leave a number bare when parsing and serializing it is lossless.
-	// YAML would otherwise reinterpret identifiers such as 007, 0x1F, or 1e5.
+	// Quote strings YAML would reinterpret, such as 007 or 1e5.
 	const number = Number(trimmed);
 	if (Number.isFinite(number) && String(number) === trimmed) return trimmed;
 	return JSON.stringify(value);
@@ -66,7 +65,6 @@ export async function renderNoteTemplateResult(
 	});
 }
 
-/** Render a Markdown note template using the shared Knap template language. */
 export async function renderNoteTemplate(
 	template: string,
 	variables: NoteTemplateVariables,

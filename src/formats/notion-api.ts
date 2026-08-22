@@ -64,9 +64,7 @@ function notionPreviewProperties(
 	databasePropertyName: string,
 	databaseTag?: string,
 ): FrontMatterCache {
-	// Source identity is added by the shared renderer only when the user has
-	// asked to save it. Keeping it out of the cached sample lets the toggle
-	// update the preview without fetching the page again.
+	// Add source identity during rendering so its toggle can reuse cached samples.
 	const properties: FrontMatterCache = {};
 	if (databaseTag) properties[databasePropertyName] = `[[${databaseTag}]]`;
 	for (const [name, property] of Object.entries(page.properties)) {
@@ -176,7 +174,6 @@ interface NotionTemplatePreviewPage {
 	databaseTag?: string;
 }
 
-/** A prefetched request adopts the real configuration context when it arrives. */
 class NotionTemplatePreviewContext extends ImportContext {
 	private readonly sources = new Set<ImportContext>();
 	private stopped = false;
@@ -372,7 +369,6 @@ export class NotionAPIImporter extends FormatImporter {
 					this.notionPropertySettingsChanged();
 				}));
 
-		// Single line breaks option
 		this.addSetting('template')
 			?.setName(i18n.importer.notionApi.nameSingleLineBreaks())
 			.setDesc(i18n.importer.notionApi.descSingleLineBreaks())
@@ -511,8 +507,7 @@ export class NotionAPIImporter extends FormatImporter {
 			allRawItems.push(...response.results);
 			tree = buildTree(collectItems(allRawItems), this.picker.nodes);
 			cursor = response.has_more ? response.next_cursor ?? undefined : undefined;
-			// TreePicker publishes the returned final tree. Publish here only when
-			// another request remains, avoiding a duplicate final redraw.
+			// The picker publishes the final tree; publish only intermediate pages here.
 			if (cursor) publish(tree);
 		} while (cursor);
 

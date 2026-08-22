@@ -1,6 +1,5 @@
 import { AbstractInputSuggest, App, FuzzyMatch, prepareFuzzySearch, renderMatches, sortSearchResults, TFile } from 'obsidian';
 
-/** Suggest Markdown files already present in the vault. */
 export class MarkdownFileSuggest extends AbstractInputSuggest<FuzzyMatch<TFile>> {
 	private readonly inputEl: HTMLInputElement;
 

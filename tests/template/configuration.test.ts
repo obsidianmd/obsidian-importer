@@ -119,6 +119,58 @@ test('the template screen is shown while only its preview is still loading', asy
 	assert.equal(preview[0].content, 'Loaded content');
 });
 
+test('an interrupted editor mount returns to a usable Edit state', async () => {
+	let previewChanged!: () => void;
+	let cancel!: () => void;
+	const cancelled = new Promise<void>(resolve => cancel = resolve);
+	const pendingEditors: Array<(editor: {
+		getTemplate(): string;
+		getManagedKeys(): string[];
+		focus(): void;
+		destroy(): Promise<void>;
+	}) => void> = [];
+	let editorStarts = 0;
+	const editor = () => ({
+		getTemplate: () => '{{content}}',
+		getManagedKeys: () => [],
+		focus: () => {},
+		destroy: async () => {},
+	});
+	const configurator = new NoteTemplateConfigurator({
+		app: memoryApp(new MemoryVault()),
+		defaultTemplate: '{{content}}',
+		template: '{{content}}',
+		titleTemplate: '{{title}}',
+		preview: async () => await new Promise(() => {}),
+		cancel: cancelled,
+		configure: (_container, changed) => previewChanged = changed,
+	}, async () => {
+		editorStarts++;
+		return await new Promise(resolve => pendingEditors.push(resolve));
+	});
+	const container = createDiv();
+	const showing = configurator.show(container, createDiv());
+	const editButton = Array.from(container.querySelectorAll('button'))
+		.find(button => button.textContent === 'Edit');
+	assert.ok(editButton);
+
+	editButton.click();
+	await Promise.resolve();
+	assert.equal(editButton.textContent, 'Save');
+	previewChanged();
+	pendingEditors[0](editor());
+	await new Promise(resolve => setTimeout(resolve, 0));
+
+	assert.equal(editButton.textContent, 'Edit');
+	assert.equal(editButton.disabled, false);
+	editButton.click();
+	await Promise.resolve();
+	assert.equal(editorStarts, 2, 'Edit should start a new editor after the stale one is discarded');
+
+	cancel();
+	assert.equal(await showing, null);
+});
+
 test('Back from a nested preview restores the preceding configuration', async () => {
 	const navigation: { back: (() => unknown) | null } = { back: null };
 	const subject = new NestedConfigurationImporter(memoryApp(new MemoryVault()), {

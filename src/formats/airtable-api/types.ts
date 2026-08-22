@@ -29,9 +29,7 @@ export interface SelectRecordsOptions {
 	view?: string;
 	/** Fields to return; pass [] for record IDs only */
 	fields?: string[];
-	/** Restrict records with an Airtable formula. */
 	filterByFormula?: string;
-	/** Stop after this many records. */
 	maxRecords?: number;
 	/** Callback called when records are fetched, receives the count of fetched records */
 	onProgress?: (fetchedCount: number) => void;

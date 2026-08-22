@@ -93,7 +93,6 @@ export function vaultAttachmentLocation(vault: Vault): AttachmentLocation {
 
 export interface NoteImport extends DataWriteOptions {
 	sourceId?: string;
-	/** Importer-specific values made available to a selected Markdown template. */
 	templateVariables?: NoteTemplateVariables;
 }
 
@@ -101,9 +100,7 @@ export interface NoteTemplateSetup {
 	defaultTemplate?: string;
 	fields?: TemplateField[];
 	preview?: (template: string, titleTemplate: string) => Promise<NoteTemplatePreview | NoteTemplatePreview[]>;
-	/** Resolve to close this screen without accepting it. */
 	cancel?: Promise<void>;
-	/** Importer-specific controls shown between the template chooser and preview. */
 	configure?: (container: HTMLElement, previewChanged: () => void) => void;
 }
 
@@ -119,7 +116,7 @@ export interface NoteTemplateSample {
 	times?: Pick<NoteImport, 'ctime' | 'mtime'>;
 }
 
-/** Keep preview diagnostics out of the import report while sharing cancellation. */
+/** Share cancellation without adding preview failures to the import report. */
 class TemplatePreviewContext extends ImportContext {
 	constructor(private readonly source: ImportContext) {
 		super();
@@ -200,7 +197,6 @@ export interface ImporterHost {
 	importerId: string;
 	helpPermalink?: string;
 	sourceChanged?(): void;
-	/** Temporarily replace Back while an importer shows a nested configuration screen. */
 	setConfigurationBack?(back: (() => unknown) | null): void;
 	abortController: AbortController;
 }
@@ -217,13 +213,9 @@ export abstract class FormatImporter {
 	chosen: (PickedFile | PickedFolder)[] = [];
 
 	outputLocation: string = '';
-	/** Vault-relative path of the optional Markdown template for this importer. */
 	templatePath: string = '';
-	/** Inline template used for this import run. */
 	protected inlineTemplate: string | null = null;
-	/** Whether the inline template is a user customization worth remembering. */
 	private customInlineTemplate: boolean = false;
-	/** Knap expression used to name imported notes. */
 	noteTitleTemplate: string = '{{title}}';
 	notAvailable: boolean = false;
 
@@ -246,7 +238,6 @@ export abstract class FormatImporter {
 	idProperty: string | null = null;
 	/** Set in init() when an importer names its ID something more specific. */
 	idLabel: string = i18n.output.labelSourceId();
-	/** Put source identity before importer-owned settings in their shared group. */
 	protected get sourceIdSettingFirst(): boolean {
 		return false;
 	}
@@ -346,7 +337,6 @@ export abstract class FormatImporter {
 		return this.supportsNoteTemplates || this.requiresImporterConfiguration;
 	}
 
-	/** Whether this importer needs source-specific configuration that a scripted run cannot provide. */
 	get requiresImporterConfiguration(): boolean {
 		return this.showTemplateConfiguration !== FormatImporter.prototype.showTemplateConfiguration;
 	}
@@ -380,7 +370,6 @@ export abstract class FormatImporter {
 		}
 	}
 
-	/** Run a configuration page before a preview page, allowing Back to revisit it. */
 	protected async showConfigurationBeforePreview<T>(
 		initial: T,
 		configure: (current: T) => Promise<T | null>,
@@ -404,7 +393,7 @@ export abstract class FormatImporter {
 		}
 	}
 
-	/** Read a small, side-effect-free sample from the current source selection. */
+	/** Sample the current selection without writing. */
 	protected async templatePreviewSamples(_ctx: ImportContext): Promise<NoteTemplateSample[]> {
 		return [];
 	}
@@ -419,7 +408,6 @@ export abstract class FormatImporter {
 		);
 	}
 
-	/** Render real samples when available, otherwise retain the generated example. */
 	protected async previewLoadedSamples(
 		template: string,
 		titleTemplate: string,
@@ -501,7 +489,7 @@ export abstract class FormatImporter {
 		return true;
 	}
 
-	/** Importer-owned properties shown in Edit mode but applied outside the user's template. */
+	/** Importer-owned properties applied outside the editable template. */
 	protected managedTemplateProperties(): ManagedTemplateProperty[] {
 		return [];
 	}
@@ -608,16 +596,11 @@ export abstract class FormatImporter {
 		this.host.sourceChanged?.();
 	}
 
-	/** Re-read samples after a setting that changes generated properties is edited. */
 	protected templateSettingsChanged(): void {
 		if (this.templateSamplesChanged) this.templateSamplesChanged();
 		else this.templatePreviewChanged?.();
 	}
 
-	/**
-	 * Start any source reads that the template preview will need. Called after
-	 * the source step, while the user is completing the remaining settings.
-	 */
 	prefetchTemplatePreview(): void {}
 
 	protected stepEl(step: ImporterStep): HTMLElement | null {
@@ -740,8 +723,7 @@ export abstract class FormatImporter {
 				: secretComponentEl?.querySelector('button');
 			secretButtonEl?.toggleClass('mod-cta', !linked);
 		};
-		// Plugin data may sync a secret id to another device, but SecretStorage is
-		// local. Treat it as linked only when this device can actually read it.
+		// SecretStorage is device-local even when plugin data syncs.
 		const isLinkedHere = (secretId: string | null): boolean =>
 			!!secretId && !!this.app.secretStorage.getSecret(secretId);
 
@@ -1091,9 +1073,7 @@ export abstract class FormatImporter {
 
 		this.drawOutputSettings(contentEl);
 
-		// Importer-specific conversion settings used to occupy a separate page.
-		// Keep optionsEl as their construction target so subclass initialization
-		// stays ordered, then move its groups below destination and attachments.
+		// Preserve subclass setup order, then move conversion settings onto this page.
 		const optionsEl = this.stepEl('options');
 		if (optionsEl) contentEl.append(...Array.from(optionsEl.childNodes));
 	}
@@ -1109,9 +1089,7 @@ export abstract class FormatImporter {
 	private addSaveSourceIdSetting(settingsEl: HTMLElement, previewChanged?: () => void): void {
 		if (!this.idProperty) return;
 
-		// The same importer instance can reopen the template step. Its importer-owned
-		// setting nodes are reused, so replace this runtime setting to avoid appending
-		// another copy and to bind it to the current preview.
+		// Reopening reuses these nodes, so replace the runtime-bound setting.
 		for (const existing of Array.from(settingsEl.querySelectorAll('.importer-save-source-id'))) {
 			existing.remove();
 		}
@@ -1225,7 +1203,6 @@ export abstract class FormatImporter {
 
 	private async loadOutputSettings(): Promise<void> {
 		this.outputLocation = this.defaultOutputFolder;
-		// An importer may set a migrated value in init().
 		this.noteTitleTemplate ||= '{{title}}';
 		this.loadedTemplate = null;
 		// init() may remove the field default from duplicateModes.
@@ -1567,7 +1544,6 @@ export abstract class FormatImporter {
 		return { title, desiredPath, targetPath, file, sourceId };
 	}
 
-	/** Render the configured note-title expression against one source note. */
 	protected async configuredNoteTitle(
 		title: string,
 		folder: TFolder | string,
@@ -1588,7 +1564,6 @@ export abstract class FormatImporter {
 		return rendered.trim() || title;
 	}
 
-	/** Apply the title template before reserving a note path. */
 	protected async planTemplatedNote(
 		folder: TFolder | string,
 		title: string,
@@ -1737,9 +1712,7 @@ export abstract class FormatImporter {
 		const properties = parsed?.frontMatter ?? {};
 		const source = { ...properties, ...provided };
 		const variables: NoteTemplateVariables = {
-			// Source values are convenient at the top level. Common variables are
-			// applied afterwards so a property named "content" cannot hide the
-			// imported Markdown; collisions remain available below {{source}}.
+			// Common variables override collisions; source values remain under {{source}}.
 			...source,
 			title,
 			noteName: basename,

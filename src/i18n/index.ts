@@ -30,14 +30,9 @@ export function bundleFor(language: string): Bundle | undefined {
 	return bundle;
 }
 
-/**
- * Obsidian names its Khmer table `kh`, the country code; every other list the
- * plugin follows — the help site, obsidian-help's locales, ISO 639 — spells the
- * language `km`. Left alone, a Khmer reader matches nothing and gets English.
- */
+/** Obsidian uses `kh` for Khmer; the plugin and help site use `km`. */
 const ALIASES: Record<string, string> = { kh: 'km' };
 
-/** An app language code under the name the rest of the plugin knows it by. */
 export function normalizeLanguage(language: string): string {
 	return ALIASES[language] ?? language;
 }

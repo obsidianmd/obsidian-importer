@@ -16,16 +16,7 @@ export const ATTACHMENT_EXTS = [
 
 export type AuthCallback = (data: ObsidianProtocolData) => void;
 
-/**
- * Which language a help page is read in. Obsidian speaks more languages than
- * the help site is published in, so a code it does not have a site for reads
- * the English page rather than a URL that is not there.
- *
- * The plugin is translated into exactly the languages the help site publishes —
- * `locale/README.md` says so, and the workflow that fills those files discovers
- * the list from obsidian-help — so the bundled locales are the same question
- * already answered, and a language added there needs nothing added here.
- */
+/** Use a bundled help language, falling back to English. */
 export function helpLanguage(language: string): string {
 	const code = normalizeLanguage(language);
 	const languages = availableLanguages();

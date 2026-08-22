@@ -120,8 +120,7 @@ export class RoamJSONImporter extends FormatImporter {
 					dropQueries: this.dropQueries,
 					tagsAsLinks: this.tagsAsLinks,
 					emptyTitleReason: i18n.importer.roamJson.reasonEmptyTitle(),
-					// Attachment downloading and folder preparation are deliberately
-					// omitted; unresolved source links are useful enough in a preview.
+					// Keep unresolved attachment links in the preview without writing files.
 				});
 				const remaining = TEMPLATE_PREVIEW_LIMIT - samples.length;
 				const converted = await converter.convert(pages.slice(0, remaining));

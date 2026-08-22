@@ -45,7 +45,6 @@ export class ZipEntryFile implements PickedFile {
 		return this.sourcePath;
 	}
 
-	/** Use a logical source path while retaining fullpath for diagnostics. */
 	setFilepath(filepath: string): void {
 		this.sourcePath = filepath;
 		const parsed = parseFilePath(filepath);

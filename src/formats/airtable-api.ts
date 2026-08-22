@@ -191,8 +191,6 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		this.picker.onLoad(() => void this.loadTree());
 
-		// Formula conversion affects import processing rather than the property
-		// names configured on the template page.
 		this.addSetting()
 			?.setName(i18n.importer.airtableApi.nameFormulas())
 			.setDesc(i18n.importer.airtableApi.descFormulas())
@@ -442,8 +440,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		return await this.showConfigurationBeforePreview(
 			defaults,
 			async current => {
-				// Airtable uses each table's primary field as the note title and its
-				// table hierarchy as the location, so this screen configures properties.
 				const configurator = new TemplateConfigurator({
 					fields,
 					defaults: current,
@@ -505,8 +501,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				.setPlaceholder('Views')
 				.setValue(this.viewPropertyName)
 				.onChange(value => {
-					// Stripped rather than escaped: this name is embedded in a
-					// double-quoted Bases filter string in the generated .base file.
+					// Quotes and backslashes would break the generated Bases filter.
 					this.viewPropertyName = value.trim().replace(/["\\]/g, '') || 'Views';
 					previewChanged();
 				}));
@@ -570,7 +565,6 @@ export class AirtableAPIImporter extends FormatImporter {
 		return samples;
 	}
 
-	/** Rebuild cached source data when a template-page property setting changes. */
 	private async refreshTemplatePreviewSample(
 		sample: AirtableTemplatePreviewSample,
 	): Promise<AirtableTemplatePreviewSample> {

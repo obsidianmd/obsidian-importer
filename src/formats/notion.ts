@@ -322,7 +322,6 @@ export async function processZips(ctx: ImportContext, files: PickedFile[], callb
 	}
 }
 
-/** Notion wraps the user's workspace in an implementation-only Export-<UUID> directory. */
 function stripSyntheticNotionExportRoot(entries: ZipEntryFile[]): void {
 	if (entries.length === 0) return;
 

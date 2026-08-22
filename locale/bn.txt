@@ -722,6 +722,10 @@ translation=
 original=Save
 translation=
 
+[template.button-reset-template]
+original=Reset to default
+translation=
+
 [template.link-show-more]
 original=Show more
 translation=
@@ -1229,6 +1233,14 @@ translation=CSV-তে হেডার সারি আছে
 [importer.csv.desc-header-row]
 original=If enabled, the first row of the CSV file will be treated as column headers.
 translation=সক্রিয় থাকলে, CSV ফাইলের প্রথম সারি শ্রেণী হেডার হিসেবে ব্যবহৃত হবে।
+
+[importer.csv.name-source-title]
+original=Source title
+translation=
+
+[importer.csv.desc-source-title]
+original=Creates the {{title}} value used by the final note title template. Use CSV column variables like {{column_name}}.
+translation=
 
 [importer.csv.msg-pick-file]
 original=Please pick at least one CSV file to import.

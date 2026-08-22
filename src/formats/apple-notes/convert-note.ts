@@ -46,8 +46,7 @@ export function noteTitle(noteText: string, stored: string): string {
 	// Apple truncates the stored title, so prefer the note's first text line (#541).
 	const line = firstLine(noteText ?? '');
 	if (!line) return stored;
-	// A plain-text first line such as "- task" becomes a Markdown list when
-	// imported. Keep that syntax in the body, but not in the note's file name.
+	// Keep list syntax in the body, but not in the file name.
 	const title = line.replace(LEADING_LIST_MARKER, '').trimStart() || line;
 
 	return title.length > TITLE_LIMIT ? title.slice(0, TITLE_LIMIT).trimEnd() : title;

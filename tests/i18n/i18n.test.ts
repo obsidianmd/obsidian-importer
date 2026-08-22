@@ -112,7 +112,6 @@ test('a help page is read in the reader\'s language where there is one', () => {
 });
 
 test('a help page falls back to English rather than to a language the site has no pages in', () => {
-	// Obsidian is translated into far more languages than the help site is.
 	assert.equal(helpLanguage('hi'), 'en');
 	assert.equal(helpLanguage('en-GB'), 'en');
 });

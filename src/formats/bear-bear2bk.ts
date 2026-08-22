@@ -141,7 +141,6 @@ export class Bear2bkImporter extends FormatImporter {
 		return samples;
 	}
 
-	/** Inline small raster images from the backup without writing preview files to the vault. */
 	private previewAssetResolver(entries: ZipEntryFile[]): (assetPath: string) => Promise<string> {
 		const assets = new Map(entries.map(entry => [normalizePath(entry.filepath), entry]));
 		const resolved = new Map<string, Promise<string>>();

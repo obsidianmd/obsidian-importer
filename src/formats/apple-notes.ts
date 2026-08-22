@@ -359,7 +359,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			await fsPromises.copyFile(originalDB + '-shm', clonedDB + '-shm');
 			await fsPromises.copyFile(originalDB + '-wal', clonedDB + '-wal');
 
-			//@ts-ignore
+			// @ts-expect-error SQLite is internal to Obsidian.
 			const database = new SQLiteTag(clonedDB, { readonly: true, persistent: true }) as SQLiteTagSpawned;
 			const closeDatabase: () => void = database.close.bind(database);
 			database.close = () => {

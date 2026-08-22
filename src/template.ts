@@ -10,13 +10,11 @@ export interface TemplateField {
 	id: string;
 	/** Human-readable label for the field */
 	label: string;
-	/** Raw key below `source`, when `id` is a safe source-access expression. */
 	sourceName?: string;
 	/** Optional example value to show in the UI */
 	exampleValue?: string;
 }
 
-/** A Knap expression that safely reads an importer value with any field name. */
 export function sourceVariableExpression(name: string): string {
 	return `source[${JSON.stringify(name)}]`;
 }
@@ -51,13 +49,9 @@ export interface TemplateOptions {
 	showTitleTemplate?: boolean;
 	/** Whether to show the location template field (default: true) */
 	showLocationTemplate?: boolean;
-	/** Whether to show the structured property mapping table (default: true). */
 	showProperties?: boolean;
-	/** Whether to show the legacy body template field (default: true). */
 	showBodyTemplate?: boolean;
-	/** Label for the action that accepts this configuration. */
 	actionText?: string;
-	/** Additional importer-specific controls shown before the property mapping. */
 	configure?: (container: HTMLElement, config: TemplateConfig, redrawProperties: () => void) => void;
 }
 
@@ -180,7 +174,6 @@ export class TemplateConfigurator {
 
 				const columnContainer = properties.listEl.createDiv('importer-column-list');
 
-				// Add header row
 				const headerRow = columnContainer.createDiv('importer-column-header-row');
 				headerRow.createDiv('importer-column-name-col').setText(i18n.template.columnPropertyName());
 				headerRow.createDiv('importer-column-value-col').setText(i18n.template.columnPropertyValue());
@@ -190,7 +183,6 @@ export class TemplateConfigurator {
 				for (const field of this.fields) {
 					const rowEl = columnContainer.createDiv('importer-column-row');
 
-					// Property name input column
 					const nameCol = rowEl.createDiv('importer-column-name-col');
 					const nameInput = nameCol.createEl('input', {
 						type: 'text',
@@ -201,7 +193,6 @@ export class TemplateConfigurator {
 						this.config.propertyNames.set(field.id, nameInput.value);
 					});
 
-					// Property value input column
 					const valueCol = rowEl.createDiv('importer-column-value-col');
 					const valueInput = valueCol.createEl('input', {
 						type: 'text',
@@ -212,7 +203,6 @@ export class TemplateConfigurator {
 						this.config.propertyValues.set(field.id, valueInput.value);
 					});
 
-					// Example value column
 					const exampleCol = rowEl.createDiv('importer-column-example-col');
 					const exampleValue = field.exampleValue || '';
 					const truncated = exampleValue.length > 50
@@ -220,7 +210,6 @@ export class TemplateConfigurator {
 						: exampleValue;
 					exampleCol.setText(truncated || '—');
 
-					// Delete button column
 					const deleteCol = rowEl.createDiv('importer-column-delete-col');
 					const deleteButton = deleteCol.createEl('button', {
 						cls: 'clickable-icon',
@@ -228,10 +217,8 @@ export class TemplateConfigurator {
 					});
 					setIcon(deleteButton, 'trash-2');
 					deleteButton.addEventListener('click', () => {
-						// Remove from configuration
 						this.config.propertyNames.delete(field.id);
 						this.config.propertyValues.delete(field.id);
-						// Remove from UI
 						rowEl.remove();
 					});
 				}
@@ -301,8 +288,7 @@ export function applyTemplate(template: string, data: Record<string, string>): s
 				if (typeof parsed === 'string') trimmedName = parsed;
 			}
 			catch {
-				// Not every escape the expression matcher accepts is valid JSON.
-				// Keep the literal expression available as a field name instead.
+				// Invalid escapes remain available as literal field names.
 			}
 		}
 		return data[trimmedName] !== undefined ? data[trimmedName] : match;

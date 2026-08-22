@@ -722,6 +722,10 @@ translation=
 original=Save
 translation=
 
+[template.button-reset-template]
+original=Reset to default
+translation=
+
 [template.link-show-more]
 original=Show more
 translation=
@@ -1228,6 +1232,14 @@ translation=
 
 [importer.csv.desc-header-row]
 original=If enabled, the first row of the CSV file will be treated as column headers.
+translation=
+
+[importer.csv.name-source-title]
+original=Source title
+translation=
+
+[importer.csv.desc-source-title]
+original=Creates the {{title}} value used by the final note title template. Use CSV column variables like {{column_name}}.
 translation=
 
 [importer.csv.msg-pick-file]

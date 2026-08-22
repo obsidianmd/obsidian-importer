@@ -25,7 +25,6 @@ export function defaultTemplateConfig(headers: string[], sanitizeKey: (key: stri
 	};
 }
 
-/** Build the inline Markdown template shown before a CSV import. */
 export function defaultNoteTemplate(headers: string[], sanitizeKey: (key: string) => string): string {
 	const properties = headers
 		.map(header => ({ header, property: sanitizeKey(header).trim() }))

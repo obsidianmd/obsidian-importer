@@ -67,7 +67,11 @@ test('note title and location are configured on the CSV template page', async ()
 
 		const names = Array.from(container.querySelectorAll('.setting-item-name'))
 			.map(element => element.textContent);
-		assert.deepEqual(names, ['Note title', 'Note location']);
+		assert.deepEqual(names, ['Source title', 'Note location']);
+		assert.match(
+			container.querySelector('.setting-item-description')?.textContent ?? '',
+			/Creates the \{\{title\}\} value/u,
+		);
 
 		const inputs = Array.from(container.querySelectorAll('input'));
 		assert.equal(inputs[0].value, '{{source["Name"]}}');

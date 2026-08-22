@@ -165,8 +165,7 @@ export class OneNoteFileImporter extends FormatImporter {
 								isCancelled: () => ctx.isCancelled(),
 								resolveInternalLink: linkedTitle => sanitizeFileName(linkedTitle),
 								onSkipped: () => {},
-								// The semantic converter has already decoded the attachment.
-								// Keep its suggested name without placing or writing it.
+								// The converter already decoded it; preview only needs its name.
 								saveAttachment: async (_bytes, suggested) => ({ path: suggested, name: suggested }),
 							});
 							const within = [...entry.groups, section.name || entry.title]

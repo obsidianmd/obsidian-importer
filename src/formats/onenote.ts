@@ -546,15 +546,13 @@ export class OneNoteImporter extends FormatImporter {
 						await this.previewPageContent(page);
 					}
 					catch {
-						// The visible preview retries with its progress context, which
-						// can honor OneNote's requested rate-limit delay.
+						// Retry later with the visible preview's rate-limit handling.
 					}
 				}
 			})
 			.catch(error => console.warn('Could not read OneNote previews ahead of time', error));
 	}
 
-	/** Find only as many selected pages as the preview can display. */
 	private async readPreviewPages(generation: number): Promise<OnenotePage[]> {
 		const queue: OnenotePage[] = [];
 		const sections = [...this.selectedSections];
@@ -610,8 +608,7 @@ export class OneNoteImporter extends FormatImporter {
 			return await existing.request;
 		}
 		catch (error) {
-			// A speculative request intentionally does not wait through Graph's
-			// minute-long throttling response. Retry here once the user is waiting.
+			// Background reads skip Graph throttling delays; visible previews retry them.
 			if (!progress || !existing.background) throw error;
 			return await this.startPreviewPageContent(page.id, progress).request;
 		}
