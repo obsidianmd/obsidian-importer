@@ -964,24 +964,13 @@ export abstract class FormatImporter {
 			await addChosen(this.keepsFolders ? folders : await this.filesInside(folders));
 		};
 
-		const setChosen = async (chosen: (PickedFile | PickedFolder)[]) => {
-			const previousChosen = this.chosen;
-			const previousFiles = this.files;
-			try {
-				this.chosen = chosen;
-
-				if (await this.readChosen()) updateFiles();
-			}
-			catch (error) {
-				this.chosen = previousChosen;
-				this.files = previousFiles;
-				throw error;
-			}
+		const setChosenAndUpdate = async (chosen: (PickedFile | PickedFolder)[]) => {
+			if (await this.setChosen(chosen)) updateFiles();
 		};
 
-		const addChosen = (arriving: (PickedFile | PickedFolder)[]) => setChosen(this.joining(this.chosen, arriving));
+		const addChosen = (arriving: (PickedFile | PickedFolder)[]) => setChosenAndUpdate(this.joining(this.chosen, arriving));
 		const removeChosen = (item: PickedFile | PickedFolder) =>
-			void setChosen(this.chosen.filter(other => other !== item));
+			void setChosenAndUpdate(this.chosen.filter(other => other !== item));
 
 		const drawState = (text: string) => {
 			listEl.empty();
@@ -1071,6 +1060,24 @@ export abstract class FormatImporter {
 
 		this.files = files;
 		return true;
+	}
+
+	private async setChosen(chosen: (PickedFile | PickedFolder)[]): Promise<boolean> {
+		const previousChosen = this.chosen;
+		const previousFiles = this.files;
+		this.chosen = chosen;
+
+		try {
+			return await this.readChosen();
+		}
+		catch (error) {
+			// Do not roll back a newer selection.
+			if (this.chosen === chosen) {
+				this.chosen = previousChosen;
+				this.files = previousFiles;
+			}
+			throw error;
+		}
 	}
 
 	takeDropped(dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): void {

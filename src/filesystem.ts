@@ -261,8 +261,7 @@ export class AndroidPickedFile implements PickedFile {
 	}
 
 	async *readChunks(): AsyncIterable<string> {
-		// The native bridge has no ranged read. This limits decoder chunk size,
-		// but the bridge still materializes the whole file as base64 first.
+		// The bridge reads whole files; chunks only limit decoding work.
 		const data = new Uint8Array(await this.read());
 
 		yield* decodeChunks(async function* () {

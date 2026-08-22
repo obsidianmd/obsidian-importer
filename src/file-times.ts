@@ -6,6 +6,10 @@ export interface FileTimes {
 	mtime: number;
 }
 
+function validFileTime(time: number | undefined): time is number {
+	return typeof time === 'number' && Number.isFinite(time) && time > 0;
+}
+
 export async function pickedFileTimes(file: PickedFile): Promise<FileTimes | undefined> {
 	if (file instanceof ZipEntryFile) {
 		const modified = file.mtime ?? file.ctime;
@@ -17,10 +21,9 @@ export async function pickedFileTimes(file: PickedFile): Promise<FileTimes | und
 	}
 
 	if (file instanceof AndroidPickedFile) {
-		const valid = (time: number | undefined): time is number =>
-			typeof time === 'number' && Number.isFinite(time) && time > 0;
-		const ctime = valid(file.ctime) ? file.ctime : valid(file.mtime) ? file.mtime : undefined;
-		const mtime = valid(file.mtime) ? file.mtime : ctime;
+		const ctime = validFileTime(file.ctime) ? file.ctime
+			: validFileTime(file.mtime) ? file.mtime : undefined;
+		const mtime = validFileTime(file.mtime) ? file.mtime : ctime;
 		if (ctime === undefined || mtime === undefined) return undefined;
 		return { ctime: Math.round(ctime), mtime: Math.round(mtime) };
 	}
