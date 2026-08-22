@@ -34,6 +34,14 @@ export class RoamJSONImporter extends FormatImporter {
 	dropQueries: boolean = roamDefaults.dropQueries;
 	tagsAsLinks: boolean = roamDefaults.tagsAsLinks;
 
+	get convertAttributesToProperties(): boolean {
+		return !this.keepAttributesInOutline;
+	}
+
+	set convertAttributesToProperties(value: boolean) {
+		this.keepAttributesInOutline = !value;
+	}
+
 	init() {
 		this.addInstructions(this.addExportSetting(i18n.importer.roamJson.descExport()));
 
@@ -70,12 +78,12 @@ export class RoamJSONImporter extends FormatImporter {
 		this.startGroup();
 
 		this.addSetting('template')
-			?.setName(i18n.importer.roamJson.nameKeepAttributes())
-			.setDesc(i18n.importer.roamJson.descKeepAttributes())
+			?.setName(i18n.importer.roamJson.nameConvertAttributes())
+			.setDesc(i18n.importer.roamJson.descConvertAttributes())
 			.addToggle(toggle => toggle
-				.setValue(this.keepAttributesInOutline)
+				.setValue(this.convertAttributesToProperties)
 				.onChange(value => {
-					this.keepAttributesInOutline = value;
+					this.convertAttributesToProperties = value;
 					this.templateSettingsChanged();
 				}));
 

@@ -81,6 +81,7 @@ const attributedGraph = [
 
 test('a page\'s attributes become its properties, and the graph gets a Base over them', async () => {
 	const { vault, subject } = await importer('Roam');
+	assert.equal(subject.convertAttributesToProperties, true, 'attribute conversion should be enabled by default');
 	subject.files = [graphFile('MyGraph', attributedGraph)];
 
 	await subject.import(new ImportContext());

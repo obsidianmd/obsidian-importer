@@ -44,6 +44,30 @@ test('a soft return in the first line does not reach the file name', () => {
 	assert.doesNotMatch(sanitizeFileName(title), /[\u2028\u2029]/);
 });
 
+test('a Markdown list marker stays in the body but not in the note title', async () => {
+	const run = await importing(
+		[{
+			title: '- why meetup',
+			runs: [
+				{ text: '- why meetup\n' },
+				{ text: '- what comes in the box' },
+			],
+		}],
+		DuplicateHandling.CreateCopy,
+	);
+
+	try {
+		run.subject.omitFirstLine = false;
+		const file = await run.resolve(run.notePks[0]);
+
+		assert.equal(file?.path, 'why meetup.md');
+		assert.match(String(run.vault.contents.get(file!.path)), /- why meetup/);
+	}
+	finally {
+		run.close();
+	}
+});
+
 /**
  * A vault an older importer wrote holds the note under the abbreviated title it
  * used. Recognising a note is by path, so naming it from the first line now
@@ -90,6 +114,24 @@ test('a note is named after its first line, not the abbreviation Apple stores', 
 		assert.ok(file, 'the note should be imported');
 		assert.doesNotMatch(file.path, /…/, 'the name was cut short with an ellipsis');
 		assert.deepEqual(run.vault.paths(), [`${LONG_LINE}.md`]);
+	}
+	finally {
+		run.close();
+	}
+});
+
+test('a note title can combine Apple Notes variables with Knap filters', async () => {
+	const run = await importing(
+		[{ title: 'Planning', runs: [{ text: 'Planning\n' }, { text: 'The details.' }] }],
+		DuplicateHandling.CreateCopy,
+	);
+
+	try {
+		run.subject.noteTitleTemplate = '{{ctime | date:"YYYY-MM-DD"}} {{title | upper}}';
+		const file = await run.resolve(run.notePks[0]);
+
+		assert.ok(file);
+		assert.match(file.path, /^\d{4}-\d{2}-\d{2} PLANNING\.md$/);
 	}
 	finally {
 		run.close();

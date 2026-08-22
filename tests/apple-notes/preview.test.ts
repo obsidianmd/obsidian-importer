@@ -27,6 +27,10 @@ class PreviewingAppleNotes extends AppleNotesImporter {
 	async samples(): Promise<NoteTemplateSample[]> {
 		return await this.templatePreviewSamples(new ImportContext());
 	}
+
+	async render(sample: NoteTemplateSample) {
+		return await this.renderTemplatePreview('{{content}}', sample);
+	}
 }
 
 test('template previews decode the lowercase SQLite data alias', async () => {
@@ -61,7 +65,17 @@ test('template previews decode the lowercase SQLite data alias', async () => {
 		assert.equal(samples.length, 1);
 		assert.equal(samples[0].title, 'Preview note');
 		assert.match(samples[0].content, /Selected Apple Notes content\./);
+		assert.doesNotMatch(samples[0].content, /Preview note/);
 		assert.equal(samples[0].sourceId, `NOTE-${store.notePks[0]}`);
+
+		subject.omitFirstLine = false;
+		const previewsWithFirstLine = await subject.samples();
+		assert.match(previewsWithFirstLine[0].content, /Preview note/);
+
+		subject.noteTitleTemplate = '{{ctime | date:"YYYY"}} {{title | upper}}';
+		const preview = await subject.render(samples[0]);
+		assert.ok(preview.path);
+		assert.match(preview.path, /(?:^|\/)\d{4} PREVIEW NOTE\.md$/);
 	}
 	finally {
 		store.close();

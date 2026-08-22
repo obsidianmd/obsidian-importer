@@ -229,6 +229,27 @@ test('source identity is added after rendering the template', async () => {
 	assert.equal(vault.contents.get(file.path), '---\nsource-id: abc-123\n---\n# Note\n\nBody');
 });
 
+test('the managed source identity overrides the same property in a template', async () => {
+	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
+	await vault.create('Template.md', '---\nsource-id: editable value\n---\n{{body}}');
+	subject.templatePath = 'Template.md';
+	subject.idProperty = 'source-id';
+	subject.saveSourceId = true;
+
+	const { file } = await subject.writeNote(ctx, vault.root, 'Note', 'Body', { sourceId: 'abc-123' });
+
+	assert.equal(vault.contents.get(file.path), '---\nsource-id: abc-123\n---\nBody');
+});
+
+test('{{id}} is an alias for the source identifier', async () => {
+	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
+	subject.useInlineTemplate('{{id}} / {{sourceId}}');
+
+	const { file } = await subject.writeNote(ctx, vault.root, 'Note', 'Body', { sourceId: 'abc-123' });
+
+	assert.equal(vault.contents.get(file.path), 'abc-123 / abc-123');
+});
+
 test('the template preview includes source identity when it will be saved', async () => {
 	const { subject } = importer(DuplicateHandling.CreateCopy);
 	subject.idProperty = 'apple-notes-id';

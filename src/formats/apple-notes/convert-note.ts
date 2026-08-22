@@ -31,6 +31,7 @@ const EMPHASIS_MARKERS: Record<ANEmphasisColor, string> = {
 };
 
 const TITLE_LIMIT = 200;
+const LEADING_LIST_MARKER = /^(?:[-+*]|\d+[.)])\s+/;
 
 const URL_LINE = /^https?:\/\/\S+$/;
 
@@ -45,8 +46,11 @@ export function noteTitle(noteText: string, stored: string): string {
 	// Apple truncates the stored title, so prefer the note's first text line (#541).
 	const line = firstLine(noteText ?? '');
 	if (!line) return stored;
+	// A plain-text first line such as "- task" becomes a Markdown list when
+	// imported. Keep that syntax in the body, but not in the note's file name.
+	const title = line.replace(LEADING_LIST_MARKER, '').trimStart() || line;
 
-	return line.length > TITLE_LIMIT ? line.slice(0, TITLE_LIMIT).trimEnd() : line;
+	return title.length > TITLE_LIMIT ? title.slice(0, TITLE_LIMIT).trimEnd() : title;
 }
 
 const LIST_STYLES = [

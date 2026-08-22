@@ -6,6 +6,8 @@ export interface OutputSettings {
 	attachments: AttachmentLocation;
 	duplicates: DuplicateHandling;
 	saveSourceId: boolean;
+	/** Frontmatter key used for the importer's managed source identity. */
+	idProperty?: string;
 	template?: string;
 }
 

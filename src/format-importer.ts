@@ -9,6 +9,7 @@ import { createMarkdown, formattedMarkdown, MarkdownFormatting, MarkdownLinkReso
 import { i18n } from './i18n';
 import { NoteTemplateVariables, renderNoteTemplate, renderNoteTemplateResult } from './note-template';
 import { NoteTemplateConfigurator, NoteTemplatePreview } from './note-template-configurator';
+import type { ManagedTemplateProperty } from './note-template-configurator';
 import { TemplateField } from './template';
 import { availableFileName, getUniqueFilePath, parseFrontMatterBlock, sanitizeFileName, sanitizeFilePath, serializeFrontMatter } from './util';
 
@@ -100,6 +101,8 @@ export interface NoteTemplateSetup {
 	defaultTemplate?: string;
 	fields?: TemplateField[];
 	preview?: (template: string) => Promise<NoteTemplatePreview | NoteTemplatePreview[]>;
+	/** Importer-specific controls shown between the template chooser and preview. */
+	configure?: (container: HTMLElement, previewChanged: () => void) => void;
 }
 
 export interface NoteTemplateSample {
@@ -108,6 +111,8 @@ export interface NoteTemplateSample {
 	path: string;
 	content: string;
 	variables?: NoteTemplateVariables;
+	/** Properties generated after rendering the user's template. */
+	generatedProperties?: Record<string, unknown>;
 	sourceId?: string;
 	times?: Pick<NoteImport, 'ctime' | 'mtime'>;
 }
@@ -400,9 +405,24 @@ export abstract class FormatImporter {
 			template,
 			path: templatePath,
 			preview,
+			managedProperties: () => {
+				const properties = this.managedTemplateProperties();
+				if (!this.idProperty || !this.saveSourceId) return properties;
+				return [{
+					key: this.idProperty,
+					value: '{{id}}',
+					onKeyChange: key => {
+						const property = key.trim();
+						if (!property) return;
+						this.idProperty = property;
+						this.saveOutputSettings();
+					},
+				}, ...properties];
+			},
 			configure: (contentEl, previewChanged) => {
 				previewChange = previewChanged;
 				this.templatePreviewChanged = previewChanged;
+				setup.configure?.(contentEl, previewChanged);
 				const settingsEl = this.appendTemplateSettings(contentEl);
 				if (this.idProperty) {
 					this.addSaveSourceIdSetting(settingsEl ?? this.settingsIn(contentEl), previewChanged);
@@ -416,6 +436,11 @@ export abstract class FormatImporter {
 		this.loadedTemplate = null;
 		this.saveOutputSettings();
 		return true;
+	}
+
+	/** Importer-owned properties shown in Edit mode but applied outside the user's template. */
+	protected managedTemplateProperties(): ManagedTemplateProperty[] {
+		return [];
 	}
 
 	protected async exampleTemplatePreview(
@@ -447,16 +472,29 @@ export abstract class FormatImporter {
 			sample.times ?? {},
 		);
 		const result = await renderNoteTemplateResult(template, variables);
+		let content = this.withGeneratedProperties(result.output, sample.generatedProperties);
+		content = this.withSourceId(content, sample.sourceId);
 		return {
 			label: sample.label,
 			path: sample.path,
-			content: this.withSourceId(result.output, sample.sourceId),
+			content,
 			valid: result.errors.length === 0,
 			diagnostics: [
 				...result.errors.map(error => `Line ${error.line}: ${error.message}`),
 				...result.warnings.map(warning => `Line ${warning.line}: ${warning.message}`),
 			],
 		};
+	}
+
+	private withGeneratedProperties(
+		content: string,
+		generated: Record<string, unknown> | undefined,
+	): string {
+		if (!generated || Object.keys(generated).length === 0) return content;
+
+		const parsed = parseFrontMatterBlock(content);
+		if (!parsed) return serializeFrontMatter(generated) + content;
+		return serializeFrontMatter({ ...parsed.frontMatter, ...generated }) + parsed.body;
 	}
 
 	/**
@@ -973,7 +1011,15 @@ export abstract class FormatImporter {
 	private addSaveSourceIdSetting(settingsEl: HTMLElement, previewChanged?: () => void): void {
 		if (!this.idProperty) return;
 
+		// The same importer instance can reopen the template step. Its importer-owned
+		// setting nodes are reused, so replace this runtime setting to avoid appending
+		// another copy and to bind it to the current preview.
+		for (const existing of Array.from(settingsEl.querySelectorAll('.importer-save-source-id'))) {
+			existing.remove();
+		}
+
 		new Setting(settingsEl)
+			.setClass('importer-save-source-id')
 			.setName(i18n.output.nameSaveSourceId({ label: this.idLabel }))
 			.setDesc(i18n.output.descSaveSourceId({ label: this.idLabel }))
 			.addToggle(toggle => {
@@ -1109,6 +1155,7 @@ export abstract class FormatImporter {
 				this.duplicateHandling = saved.duplicates;
 			}
 			if (saved.saveSourceId !== undefined) this.saveSourceId = saved.saveSourceId;
+			if (this.idProperty && saved.idProperty?.trim()) this.idProperty = saved.idProperty.trim();
 			this.outputFolder = null;
 		}
 		catch (e) {
@@ -1127,6 +1174,7 @@ export abstract class FormatImporter {
 						attachments: { ...this.attachmentLocation },
 						duplicates: this.duplicateHandling,
 						saveSourceId: this.saveSourceId,
+						idProperty: this.idProperty ?? undefined,
 						template: this.templatePath,
 					},
 				};
@@ -1378,7 +1426,9 @@ export abstract class FormatImporter {
 		const parsed = parseFrontMatterBlock(content);
 		if (!parsed) return serializeFrontMatter({ [idProperty]: sourceId }) + content;
 
-		return serializeFrontMatter({ [idProperty]: sourceId, ...parsed.frontMatter }) + parsed.body;
+		const properties = { ...parsed.frontMatter };
+		delete properties[idProperty];
+		return serializeFrontMatter({ [idProperty]: sourceId, ...properties }) + parsed.body;
 	}
 
 	/**
@@ -1555,6 +1605,7 @@ export abstract class FormatImporter {
 			ctime: timestampVariable(times.ctime),
 			mtime: timestampVariable(times.mtime),
 			importer: this.host.importerId,
+			id: sourceId ?? '',
 			sourceId: sourceId ?? '',
 		};
 

@@ -7,7 +7,8 @@ import assert from 'node:assert/strict';
 import { FormatImporter, NoteTemplateSample, NoteTemplateSetup } from '../../src/format-importer';
 import { ImportContext } from '../../src/import-context';
 import { memoryApp, MemoryVault } from '../shims/vault';
-import { NoteTemplateConfigurator } from '../../src/note-template-configurator';
+import { NoteTemplateConfigurator, propertyIcon } from '../../src/note-template-configurator';
+import type { ManagedTemplateProperty } from '../../src/note-template-configurator';
 import { Setting } from 'obsidian';
 
 class LoadingPreviewImporter extends FormatImporter {
@@ -51,10 +52,19 @@ class NoteSettingsImporter extends FormatImporter {
 
 	async import(): Promise<void> {}
 
+	protected override managedTemplateProperties(): ManagedTemplateProperty[] {
+		return [{ key: 'tags', value: '{{tags}}' }];
+	}
+
 	showSettings(container: HTMLElement, buttonsEl: HTMLElement): Promise<boolean> {
 		return this.showNoteTemplateConfiguration(container, buttonsEl);
 	}
 }
+
+test('the tags property uses Obsidian\'s tags icon instead of the generic list icon', () => {
+	assert.equal(propertyIcon('tags', ['one', 'two']), 'lucide-tags');
+	assert.equal(propertyIcon('Other list', ['one', 'two']), 'lucide-list');
+});
 
 test('the template screen is shown while only its preview is still loading', async () => {
 	const subject = Object.create(LoadingPreviewImporter.prototype) as LoadingPreviewImporter;
@@ -96,11 +106,16 @@ test('source identity is configured beside the template while existing-note beha
 		callback(component);
 		return this;
 	};
+	let managedProperties: ManagedTemplateProperty[] = [];
 	NoteTemplateConfigurator.prototype.show = async function(container) {
 		const options = (this as unknown as {
-			options: { configure?: (el: HTMLElement, changed: () => void) => void };
+			options: {
+				configure?: (el: HTMLElement, changed: () => void) => void;
+				managedProperties?: () => ManagedTemplateProperty[];
+			};
 		}).options;
 		options.configure?.(container, () => {});
+		managedProperties = options.managedProperties?.() ?? [];
 		return { template: '{{content}}', path: '' };
 	};
 	const subject = new NoteSettingsImporter(memoryApp(new MemoryVault()), {
@@ -123,7 +138,14 @@ test('source identity is configured beside the template while existing-note beha
 		}).addDuplicateHandlingSetting(outputEl);
 		const container = createDiv();
 		await subject.showSettings(container, createDiv());
-		const templateNames = Array.from(container.querySelectorAll('.setting-item-name'))
+		const reopenedContainer = createDiv();
+		await subject.showSettings(reopenedContainer, createDiv());
+		assert.equal(
+			reopenedContainer.querySelectorAll('.importer-save-source-id').length,
+			1,
+			'reopening the template step should not duplicate its source ID setting',
+		);
+		const templateNames = Array.from(reopenedContainer.querySelectorAll('.setting-item-name'))
 			.map(element => element.textContent);
 		const outputNames = Array.from(outputEl.querySelectorAll('.setting-item-name'))
 			.map(element => element.textContent);
@@ -133,7 +155,7 @@ test('source identity is configured beside the template while existing-note beha
 		assert.ok(outputNames.includes('Existing notes'));
 		assert.ok(!outputNames.includes('Save source ID'));
 
-		const propertyGroupNames = Array.from(container.querySelectorAll('.setting-group'))
+		const propertyGroupNames = Array.from(reopenedContainer.querySelectorAll('.setting-group'))
 			.map(group => Array.from(group.querySelectorAll('.setting-item-name'))
 				.map(element => element.textContent))
 			.find(names => names.includes('Cover property name'));
@@ -141,6 +163,10 @@ test('source identity is configured beside the template while existing-note beha
 			'Cover property name',
 			'Database property name',
 			'Save source ID',
+		]);
+		assert.deepEqual(managedProperties.map(property => [property.key, property.value]), [
+			['source-id', '{{id}}'],
+			['tags', '{{tags}}'],
 		]);
 	}
 	finally {

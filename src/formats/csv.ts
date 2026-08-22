@@ -1,18 +1,17 @@
-import { BasesConfigFile, normalizePath, Notice, TFolder } from 'obsidian';
+import { BasesConfigFile, normalizePath, Notice, Setting, SettingGroup, TFolder } from 'obsidian';
 import { FormatImporter, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { CSVRow, parseCSV } from './csv/parse';
-import { convertRow, defaultNoteTemplate, defaultTemplateConfig, sanitizeYAMLKey } from './csv/convert';
+import { defaultNoteTemplate, defaultTemplateConfig, sanitizeYAMLKey } from './csv/convert';
 import {
-	TemplateConfigurator,
 	TemplateConfig,
 	TemplateField,
-	applyTemplate,
 	sourceVariableExpression,
 } from '../template';
 import { createBaseFile } from '../base';
 import { sanitizeFileName } from '../util';
+import { renderNoteTemplate } from '../note-template';
 
 export class CSVImporter extends FormatImporter {
 	static extensions = ['csv'];
@@ -62,11 +61,10 @@ export class CSVImporter extends FormatImporter {
 		const csvContent = await file.readText();
 		const parsedData = parseCSV(csvContent, this.hasHeaderRow);
 
-		// Store all rows for later processing
-		if (this.csvHeaders.length === 0 && parsedData.rows.length > 0) {
-			this.csvHeaders = parsedData.headers;
-		}
-		this.csvRows.push(...parsedData.rows);
+		const headersChanged = this.csvHeaders.length !== parsedData.headers.length
+			|| this.csvHeaders.some((header, index) => header !== parsedData.headers[index]);
+		this.csvHeaders = parsedData.headers;
+		this.csvRows = parsedData.rows;
 
 		if (this.csvHeaders.length === 0 || this.csvRows.length === 0) {
 			new Notice(i18n.importer.csv.msgNoData({ name: file.name }));
@@ -80,20 +78,9 @@ export class CSVImporter extends FormatImporter {
 			exampleValue: this.findExampleValue(header),
 		}));
 
-		// Create and show configurator
-		const configurator = new TemplateConfigurator({
-			fields,
-			defaults: defaultTemplateConfig(this.csvHeaders, sanitizeYAMLKey),
-			placeholderSyntax: '{{column_name}}',
-			showProperties: false,
-			showBodyTemplate: false,
-			actionText: i18n.modal.buttonContinue(),
-		});
-
-		this.config = await configurator.show(container, buttonsEl);
-
-		// Return false if user cancelled
-		if (!this.config) return false;
+		if (!this.config || headersChanged) {
+			this.config = defaultTemplateConfig(this.csvHeaders, sanitizeYAMLKey);
+		}
 
 		return await this.showNoteTemplateConfiguration(container, buttonsEl, {
 			defaultTemplate: defaultNoteTemplate(this.csvHeaders, sanitizeYAMLKey),
@@ -105,12 +92,36 @@ export class CSVImporter extends FormatImporter {
 			preview: async template => await Promise.all(
 				this.csvRows.slice(0, TEMPLATE_PREVIEW_LIMIT).map(row => this.previewTemplate(template, row))
 			),
+			configure: (contentEl, previewChanged) => {
+				const templates = new SettingGroup(contentEl);
+				new Setting(templates.listEl)
+					.setName(i18n.template.nameTitle())
+					.setDesc(i18n.template.descTitle({ field_name: '{{column_name}}' }))
+					.addText(text => text
+						.setPlaceholder('{{Title}}')
+						.setValue(this.config!.titleTemplate)
+						.onChange(value => {
+							this.config!.titleTemplate = value;
+							previewChanged();
+						}));
+				new Setting(templates.listEl)
+					.setName(i18n.template.nameLocation())
+					.setDesc(i18n.template.descLocation({ field_name: '{{column_name}}' }))
+					.addText(text => text
+						.setPlaceholder('{{Category}}/{{Subcategory}}')
+						.setValue(this.config!.locationTemplate)
+						.onChange(value => {
+							this.config!.locationTemplate = value;
+							previewChanged();
+						}));
+			},
 		});
 	}
 
 	private async previewTemplate(template: string, row: CSVRow) {
-		const title = applyTemplate(this.config!.titleTemplate, row) || i18n.importer.csv.reasonEmptyTitle();
-		const location = this.sanitizeFilePath(applyTemplate(this.config!.locationTemplate, row));
+		const title = await this.renderRowTemplate(this.config!.titleTemplate, row)
+			|| i18n.importer.csv.reasonEmptyTitle();
+		const location = this.sanitizeFilePath(await this.renderRowTemplate(this.config!.locationTemplate, row));
 		const root = this.outputLocation.trim();
 		const path = normalizePath([
 			root,
@@ -123,6 +134,10 @@ export class CSVImporter extends FormatImporter {
 			content: '',
 			variables: row,
 		});
+	}
+
+	private async renderRowTemplate(template: string, row: CSVRow): Promise<string> {
+		return await renderNoteTemplate(template, { ...row, source: row });
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -169,7 +184,8 @@ export class CSVImporter extends FormatImporter {
 			const row = this.csvRows[i];
 
 			try {
-				const { title, location } = convertRow(row, this.config);
+				const title = await this.renderRowTemplate(this.config.titleTemplate, row);
+				const location = await this.renderRowTemplate(this.config.locationTemplate, row);
 				if (!title.trim()) {
 					ctx.reportSkipped(i18n.importer.csv.labelRow({ number: i + 1 }), i18n.importer.csv.reasonEmptyTitle());
 					continue;

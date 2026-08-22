@@ -47,7 +47,7 @@ const DRAWINGS: StoreSpec = {
 };
 
 /** Build an importer with a fixture database and attachment directory. */
-async function importing(spec: StoreSpec, writeFiles = true, prefixFormat = '') {
+async function importing(spec: StoreSpec, writeFiles = true, noteTitleTemplate = '{{title}}') {
 	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
 	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), spec);
 
@@ -94,7 +94,7 @@ async function importing(spec: StoreSpec, writeFiles = true, prefixFormat = '') 
 		subject.protobufRoot = Root.fromJSON(descriptor);
 		subject.keys = keys;
 		subject.duplicateHandling = mode;
-		subject.filePrefixFormat = prefixFormat;
+		subject.noteTitleTemplate = noteTitleTemplate;
 		subject.database = store.database;
 		subject.resolvedAccounts = { 1: { name: 'Test account', uuid: 'ACCOUNT-1', path: account } };
 		subject.owners = { [store.folderPk]: 1 };
@@ -400,18 +400,21 @@ test('a drawing is imported whichever UTI it carries', async () => {
 	}
 });
 
-test('a date prefix holding slashes does not cut the attachment name short', async () => {
-	// The format is typed by hand, and "YYYY/MM/DD" is a natural thing to type.
-	// Attachment naming reads a slash as a folder, so an unsanitized prefix
-	// would leave only the day: "05 CLIP-1.png".
-	const run = await importing(NO_EXTENSION, true, 'YYYY/MM/DD');
+test('a note title template does not rename attachments', async () => {
+	const run = await importing(
+		NO_EXTENSION,
+		true,
+		'{{ctime | date:"YYYY/MM/DD"}} {{title}}',
+	);
 
 	try {
-		await run.resolve(run.notePks[0]);
+		const note = await run.resolve(run.notePks[0]);
 
+		assert.ok(note);
+		assert.match(note.path, /^\d{4}-\d{2}-\d{2} Clipped\.md$/);
 		const attachment = run.vault.paths().find(path => path.endsWith('.png'));
 		assert.ok(attachment, `no attachment was written: ${JSON.stringify(run.vault.paths())}`);
-		assert.match(attachment, /^\d{4}-\d{2}-\d{2} /, `the date prefix was cut short: ${attachment}`);
+		assert.equal(attachment, '0A32B83C-3BCC-4F65-B77D-B2EA8D76B37B.png');
 	}
 	finally {
 		run.close();

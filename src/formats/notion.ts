@@ -23,6 +23,7 @@ export class NotionImporter extends FormatImporter {
 
 	init() {
 		this.parentsInSubfolders = true;
+		this.singleLineBreaks = false;
 
 		this.addInstructions(this.addExportSetting(i18n.importer.notion.descExport()));
 
@@ -38,13 +39,15 @@ export class NotionImporter extends FormatImporter {
 				.setValue(this.parentsInSubfolders)
 				.onChange((value) => (this.parentsInSubfolders = value)));
 
-		this.addSetting()
+		this.startGroup('template');
+		this.addSetting('template')
 			?.setName(i18n.importer.notion.nameSingleLineBreaks())
 			.setDesc(i18n.importer.notion.descSingleLineBreaks())
 			.addToggle((toggle) => toggle
 				.setValue(this.singleLineBreaks)
 				.onChange((value) => {
 					this.singleLineBreaks = value;
+					this.templateSettingsChanged();
 				}));
 	}
 

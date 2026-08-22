@@ -1,9 +1,9 @@
-import { DataWriteOptions, Notice, Platform, TFile, TFolder, moment, normalizePath } from 'obsidian';
+import { DataWriteOptions, Notice, Platform, TFile, TFolder, normalizePath } from 'obsidian';
 import { NoteConverter, noteTitle } from './apple-notes/convert-note';
 import { ANAccount, ANAttachment, ANContext, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../import-context';
-import { fs, fsPromises, nodeBufferToArrayBuffer, os, path, splitext, zlib } from '../filesystem';
+import { fs, fsPromises, nodeBufferToArrayBuffer, os, parseFilePath, path, splitext, zlib } from '../filesystem';
 import { countText, extensionFromBytes, extractErrorMessage, sanitizeFileName } from '../util';
 import { describeFolderFailure, noAccessHint } from './apple-notes/errors';
 import { i18n } from '../i18n';
@@ -13,13 +13,16 @@ import { TreePicker, ViewableNode } from '../tree-view';
 import { Root } from 'protobufjs';
 import SQLiteTag from './apple-notes/sqlite/index';
 import { SQLiteTagSpawned } from './apple-notes/models';
+import { NoteTemplateVariables, renderNoteTemplate } from '../note-template';
 
 const NOTE_FOLDER_PATH = 'Library/Group Containers/group.com.apple.notes';
 const NOTE_DB = 'NoteStore.sqlite';
 /** Additional amount of seconds that Apple CoreTime datatypes start at, to convert them into Unix timestamps. */
 const CORETIME_OFFSET = 978307200;
 const NOTE_ID_PROPERTY = 'apple-notes-id';
-const LOCAL_STORAGE_KEY = 'apple-notes-importer-file-prefix';
+const FILE_PREFIX_STORAGE_KEY = 'apple-notes-importer-file-prefix';
+const NOTE_TITLE_STORAGE_KEY = 'apple-notes-importer-note-title';
+const DEFAULT_NOTE_TITLE_TEMPLATE = '{{title}}';
 
 interface AppleNotesTreeNode extends ViewableNode<AppleNotesTreeNode> {
 	id: number;
@@ -80,7 +83,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		return this.vault.getConfig('strictLineBreaks') === true;
 	}
 
-	filePrefixFormat: string;
+	noteTitleTemplate: string;
 
 	// Do not initialize fields set by init(); the base constructor calls it first.
 	private dataPath: string | null;
@@ -98,6 +101,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		this.defaultOutputFolder = 'Apple Notes';
 		this.idProperty = NOTE_ID_PROPERTY;
 		this.idLabel = i18n.importer.appleNotes.labelId();
+		this.noteTitleTemplate = DEFAULT_NOTE_TITLE_TEMPLATE;
 
 		if (!Platform.isMacOS || !Platform.isDesktop) {
 			this.addExportSetting(i18n.importer.appleNotes.msgPlatform());
@@ -113,27 +117,36 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			void this.loadFolders();
 		}
 
-		const storedPrefix: string = this.app.loadLocalStorage(LOCAL_STORAGE_KEY) ?? '';
-		this.filePrefixFormat = storedPrefix;
+		const storedTitle = this.app.loadLocalStorage(NOTE_TITLE_STORAGE_KEY);
+		const storedPrefix = this.app.loadLocalStorage(FILE_PREFIX_STORAGE_KEY);
+		this.noteTitleTemplate = typeof storedTitle === 'string'
+			? storedTitle
+			: typeof storedPrefix === 'string' && storedPrefix !== ''
+				? `{{ctime | date:${JSON.stringify(storedPrefix)}}} {{title}}`
+				: DEFAULT_NOTE_TITLE_TEMPLATE;
 
-		this.addSetting()
-			?.setName(i18n.importer.appleNotes.namePrefixFormat())
-			.setDesc(i18n.importer.appleNotes.descPrefixFormat())
+		this.addSetting('template')
+			?.setName(i18n.template.nameTitle())
+			.setDesc(i18n.template.descTitle({ field_name: '{{title}}' }))
 			.addText(t => t
-				.setValue(storedPrefix)
-				.setPlaceholder('YYYY-MM-DD')
+				.setValue(this.noteTitleTemplate)
+				.setPlaceholder(DEFAULT_NOTE_TITLE_TEMPLATE)
 				.onChange(async v => {
-					this.filePrefixFormat = v;
-					this.app.saveLocalStorage(LOCAL_STORAGE_KEY, v);
+					this.noteTitleTemplate = v;
+					this.app.saveLocalStorage(NOTE_TITLE_STORAGE_KEY, v);
+					this.templateSettingsChanged();
 				})
 			);
 
-		this.addSetting()
+		this.addSetting('template')
 			?.setName(i18n.importer.appleNotes.nameOmitFirstLine())
 			.setDesc(i18n.importer.appleNotes.descOmitFirstLine())
 			.addToggle(t => t
-				.setValue(true)
-				.onChange(async v => this.omitFirstLine = v)
+				.setValue(this.omitFirstLine)
+				.onChange(async v => {
+					this.omitFirstLine = v;
+					this.templateSettingsChanged();
+				})
 			);
 
 		this.addSetting()
@@ -456,10 +469,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				const converter = this.decodeData(row.zhexdata, NoteConverter);
 				const storedTitle = String(row.ZTITLE1);
 				const ctime = this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1);
-				const prefix = this.filePrefixFormat
-					? `${moment(ctime).format(this.filePrefixFormat)} `
-					: '';
-				const title = prefix + noteTitle(converter.note.noteText, storedTitle);
+				const title = noteTitle(converter.note.noteText, storedTitle);
 				const folder = row.zfolderidentifier?.startsWith('DefaultFolder')
 					? ''
 					: sanitizeFileName(String(row.zfoldertitle ?? ''));
@@ -488,6 +498,45 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			this.templatePreviewMode = false;
 			database.close();
 		}
+	}
+
+	private async configuredNoteTitle(
+		title: string,
+		folder: TFolder | string,
+		content: string,
+		provided: NoteTemplateVariables,
+		sourceId: string,
+		times: Pick<DataWriteOptions, 'ctime' | 'mtime'>,
+	): Promise<string> {
+		const folderPath = typeof folder === 'string' ? folder : folder.path;
+		const parent = folderPath === '/' ? '' : folderPath;
+		const fileName = `${sanitizeFileName(title, parent).replace(/\.md$/iu, '')}.md`;
+		const targetPath = normalizePath(parent ? `${parent}/${fileName}` : fileName);
+		const rendered = await renderNoteTemplate(
+			this.noteTitleTemplate || DEFAULT_NOTE_TITLE_TEMPLATE,
+			this.noteTemplateVariables(title, targetPath, content, provided, sourceId, times),
+		);
+
+		return rendered.trim() || title;
+	}
+
+	protected override async renderTemplatePreview(
+		template: string,
+		sample: NoteTemplateSample,
+	) {
+		const { parent } = parseFilePath(sample.path);
+		const title = await this.configuredNoteTitle(
+			sample.title,
+			parent,
+			'',
+			sample.variables ?? {},
+			sample.sourceId ?? '',
+			sample.times ?? {},
+		);
+		const fileName = `${sanitizeFileName(title, parent).replace(/\.md$/iu, '')}.md`;
+		const targetPath = normalizePath(parent ? `${parent}/${fileName}` : fileName);
+
+		return await super.renderTemplatePreview(template, { ...sample, title, path: targetPath });
 	}
 
 	async resolveAccount(id: number): Promise<void> {
@@ -572,18 +621,23 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 		const converter = this.decodeData(row.zhexdata, NoteConverter);
 
-		// Get creation date and format it according to user preference
-		let prefix = '';
-		if (this.filePrefixFormat) {
-			const creationTimestamp = this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1);
-			prefix = `${moment(creationTimestamp).format(this.filePrefixFormat)} `;
-		}
-
 		const storedTitle = String(row.ZTITLE1);
-		const title = prefix + noteTitle(converter.note.noteText, storedTitle);
+		const sourceTitle = noteTitle(converter.note.noteText, storedTitle);
+		const times = {
+			ctime: this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1),
+			mtime: this.decodeTime(row.ZMODIFICATIONDATE1),
+		};
+		const title = await this.configuredNoteTitle(
+			sourceTitle,
+			folder,
+			'',
+			{ originalTitle: storedTitle },
+			row.ZIDENTIFIER,
+			times,
+		);
 
 		const existingFile = this.existingNoteFor(
-			folder, [`${title}.md`, `${prefix}${storedTitle}.md`], row.ZIDENTIFIER
+			folder, [`${title}.md`, `${sourceTitle}.md`, `${storedTitle}.md`], row.ZIDENTIFIER
 		);
 
 		if (existingFile) {
@@ -613,10 +667,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 		// Notes may reference other notes, so we want them in resolvedFiles before we parse to avoid cycles
 		const body = await converter.format(false, file.path);
-		const times = {
-			ctime: this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1),
-			mtime: this.decodeTime(row.ZMODIFICATIONDATE1),
-		};
 		const content = await this.applyNoteTemplate(
 			title,
 			file.path,
@@ -741,16 +791,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			return null;
 		}
 
-		// Apply date prefix to attachment name if configured
-		let finalAttachmentName = outName;
-		if (this.filePrefixFormat && row.ZCREATIONDATE) {
-			const creationTimestamp = this.decodeTime(row.ZCREATIONDATE);
-			// The format is typed by hand and may hold characters a file name
-			// cannot; a slash would otherwise cut the name short.
-			const datePrefix = sanitizeFileName(moment(creationTimestamp).format(this.filePrefixFormat));
-			finalAttachmentName = `${datePrefix} ${outName}`;
-		}
-
 		try {
 			let binary;
 
@@ -760,7 +800,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				outExt = extensionFromBytes(binary) ?? '';
 			}
 
-			const attachmentName = outExt ? `${finalAttachmentName}.${outExt}` : finalAttachmentName;
+			const attachmentName = outExt ? `${outName}.${outExt}` : outName;
 
 			const notePath = this.resolvedFiles[row.ZNOTE]?.path;
 			const ctime = this.decodeTime(row.ZCREATIONDATE);
@@ -780,7 +820,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 						: 'same');
 
 			if (reuse) {
-				this.ctx.reportSkipped(finalAttachmentName, this.duplicateHandling === DuplicateHandling.Skip
+				this.ctx.reportSkipped(outName, this.duplicateHandling === DuplicateHandling.Skip
 					? i18n.importer.appleNotes.reasonAttachmentExists()
 					: i18n.importer.appleNotes.reasonAttachmentUnchanged());
 				return reuse;

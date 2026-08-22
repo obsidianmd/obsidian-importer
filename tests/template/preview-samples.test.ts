@@ -18,6 +18,7 @@ import { OneNoteFileImporter } from '../../src/formats/onenote-file';
 import { RoamJSONImporter } from '../../src/formats/roam-json';
 import { TextbundleImporter } from '../../src/formats/textbundle';
 import { ImportContext } from '../../src/import-context';
+import { parseFrontMatterBlock } from '../../src/util';
 import { memoryApp, MemoryVault } from '../shims/vault';
 
 provideNodeModules({
@@ -41,7 +42,8 @@ async function previews(
 	Importer: ImporterConstructor,
 	id: string,
 	fixture: string,
-): Promise<{ samples: NoteTemplateSample[], vault: MemoryVault }> {
+	configure?: (subject: FormatImporter) => void,
+): Promise<{ samples: NoteTemplateSample[], vault: MemoryVault, subject: FormatImporter }> {
 	const vault = new MemoryVault();
 	const subject = new Importer(memoryApp(vault), {
 		sourceEl: null,
@@ -50,11 +52,12 @@ async function previews(
 		plugin: null,
 		importerId: id,
 		abortController: new AbortController(),
-	} as never) as unknown as Previewable;
+	} as never) as unknown as Previewable & FormatImporter;
 	await subject.ready;
 	subject.outputLocation = 'Import';
 	subject.files = [new NodePickedFile(fixture)];
-	return { samples: await subject.templatePreviewSamples(new ImportContext()), vault };
+	configure?.(subject);
+	return { samples: await subject.templatePreviewSamples(new ImportContext()), vault, subject };
 }
 
 function fixture(...parts: string[]): string {
@@ -115,3 +118,53 @@ for (const entry of cases) {
 		assert.deepEqual(vault.paths(), []);
 	});
 }
+
+test('Bear previews inline images from the selected backup', async () => {
+	const { samples, vault } = await previews(
+		Bear2bkImporter,
+		'bear',
+		fixture('bear', 'backup.bear2bk'),
+	);
+	const withImage = samples.find(sample => sample.content.includes('data:image/jpeg;base64,'));
+
+	assert.ok(withImage, 'expected an image from the Bear backup in the preview');
+	assert.doesNotMatch(withImage.content, /\.textbundle\/assets\//);
+	assert.deepEqual(vault.paths(), []);
+});
+
+test('Bear tag properties appear in the rendered preview', async () => {
+	const { samples, subject } = await previews(
+		Bear2bkImporter,
+		'bear',
+		fixture('bear', 'backup.bear2bk'),
+		importer => {
+			(importer as unknown as { tagPlacement: string }).tagPlacement = 'property';
+		},
+	);
+	const tagged = samples.find(sample => Array.isArray(sample.generatedProperties?.tags));
+	assert.ok(tagged, 'expected a tagged Bear note');
+
+	const rendered = await (subject as unknown as {
+		renderTemplatePreview(template: string, sample: NoteTemplateSample): Promise<{ content: string }>;
+	}).renderTemplatePreview('{{content}}', tagged);
+	const parsed = parseFrontMatterBlock(rendered.content);
+
+	assert.deepEqual(parsed?.frontMatter.tags, tagged.generatedProperties?.tags);
+	assert.ok(!(parsed?.body ?? '').includes('#tag'));
+});
+
+test('Notion export previews reflect the line-break setting', async () => {
+	const fixturePath = fixture('notion', 'notion-testspace.zip');
+	const { samples: spaced } = await previews(NotionImporter, 'notion', fixturePath);
+	const { samples: tight } = await previews(
+		NotionImporter,
+		'notion',
+		fixturePath,
+		importer => {
+			(importer as NotionImporter).singleLineBreaks = true;
+		},
+	);
+
+	assert.equal(tight.length, spaced.length);
+	assert.ok(tight.some((sample, index) => sample.content.length < spaced[index].content.length));
+});

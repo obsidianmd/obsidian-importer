@@ -3,7 +3,7 @@ import { DuplicateHandling, FormatImporter, leavesTheNoteAlone, NoteTemplateSamp
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { BlockObjectResponse, Client, PageObjectResponse } from '@notionhq/client';
-import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath, plural } from '../util';
+import { extractErrorMessage, sanitizeFileName, serializeFrontMatter, getUniqueFilePath, parseFrontMatterBlock, plural } from '../util';
 import { areAnySelected, selectedNodes } from '../tree';
 import { describeRequestFailure } from '../request-failure';
 import { TreePicker } from '../tree-view';
@@ -116,8 +116,34 @@ function notionBlockPreview(block: BlockObjectResponse): string {
 	}
 }
 
-function notionBlocksPreview(blocks: BlockObjectResponse[]): string {
-	return blocks.map(notionBlockPreview).filter(Boolean).join('\n\n');
+function notionPreviewNeedsSpacing(currentType: string, nextType: string, singleLineBreaks: boolean): boolean {
+	const listTypes = ['bulleted_list_item', 'numbered_list_item', 'to_do'];
+	const currentIsList = listTypes.includes(currentType);
+	const nextIsList = listTypes.includes(nextType);
+	if (!singleLineBreaks) return !(currentIsList && nextIsList);
+	if (['callout', 'toggle', 'quote'].includes(currentType)) return true;
+	if (currentIsList && !nextIsList) return true;
+	if (currentType === 'table' || nextType === 'table') return true;
+	return nextType === 'divider';
+}
+
+export function notionBlocksPreview(
+	blocks: BlockObjectResponse[],
+	singleLineBreaks = false,
+): string {
+	const rendered = blocks
+		.map(block => ({ block, markdown: notionBlockPreview(block) }))
+		.filter(item => item.markdown !== '');
+	const lines: string[] = [];
+	for (let index = 0; index < rendered.length; index++) {
+		const current = rendered[index];
+		lines.push(current.markdown);
+		const next = rendered[index + 1];
+		if (next && notionPreviewNeedsSpacing(current.block.type, next.block.type, singleLineBreaks)) {
+			lines.push('');
+		}
+	}
+	return lines.join('\n');
 }
 
 interface NotionTemplatePreviewRead {
@@ -140,6 +166,7 @@ export class NotionAPIImporter extends FormatImporter {
 	importLinkedDatabases: boolean = false;
 	downloadExternalAttachments: boolean = false; // Download external attachments
 	singleLineBreaks: boolean = false; // Single line breaks between blocks (default: disabled)
+	private templatePreviewBlocks?: Map<string, BlockObjectResponse[]>;
 	coverPropertyName: string = 'cover'; // Custom property name for page cover
 	databasePropertyName: string = 'base'; // Property name for linking pages to their database
 	/**
@@ -258,8 +285,10 @@ export class NotionAPIImporter extends FormatImporter {
 					});
 			});
 
+		this.startGroup('template');
+
 		// Single line breaks option
-		this.addSetting()
+		this.addSetting('template')
 			?.setName(i18n.importer.notionApi.nameSingleLineBreaks())
 			.setDesc(i18n.importer.notionApi.descSingleLineBreaks())
 			.addToggle(toggle => {
@@ -267,6 +296,7 @@ export class NotionAPIImporter extends FormatImporter {
 					.setValue(false)
 					.onChange(value => {
 						this.singleLineBreaks = value;
+						this.templateSettingsChanged();
 					});
 			});
 
@@ -466,6 +496,7 @@ export class NotionAPIImporter extends FormatImporter {
 	): Promise<NoteTemplateSample> {
 		const title = sanitizeFileName(extractPageTitle(page));
 		const blocks = await fetchAllBlocks(this.notionClient!, page.id, ctx);
+		(this.templatePreviewBlocks ??= new Map()).set(page.id, blocks);
 		return {
 			title,
 			path: normalizePath(`${this.outputLocation}/${title}.md`),
@@ -474,7 +505,7 @@ export class NotionAPIImporter extends FormatImporter {
 				this.coverPropertyName,
 				this.databasePropertyName,
 				databaseTag,
-			)) + notionBlocksPreview(blocks),
+			)) + notionBlocksPreview(blocks, this.singleLineBreaks),
 			sourceId: page.id,
 			times: {
 				ctime: page.created_time ? new Date(page.created_time).getTime() : undefined,
@@ -574,10 +605,17 @@ export class NotionAPIImporter extends FormatImporter {
 
 	protected override async templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]> {
 		const samples = await this.templatePreviewSamplesForSelection(ctx);
-		return samples.map(sample => ({
-			...sample,
-			path: normalizePath(`${this.outputLocation}/${sample.title}.md`),
-		}));
+		return samples.map(sample => {
+			const blocks = sample.sourceId ? this.templatePreviewBlocks?.get(sample.sourceId) : undefined;
+			const properties = parseFrontMatterBlock(sample.content)?.frontMatter ?? {};
+			return {
+				...sample,
+				path: normalizePath(`${this.outputLocation}/${sample.title}.md`),
+				content: blocks
+					? serializeFrontMatter(properties) + notionBlocksPreview(blocks, this.singleLineBreaks)
+					: sample.content,
+			};
+		});
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
