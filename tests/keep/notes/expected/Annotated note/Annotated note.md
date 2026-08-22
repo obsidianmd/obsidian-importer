@@ -1,6 +1,7 @@
 ---
 tags:
   - Keep/Pinned
+  - Keep/Task
 ---
 
 Links I saved from Keep.

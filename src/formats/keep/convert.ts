@@ -17,6 +17,7 @@ function collectTags(keepJson: KeepJson): string[] {
 		tags.push(`Keep/Color/${toSentenceCase(keepJson.color.toLowerCase())}`);
 	}
 	if (keepJson.isPinned) tags.push('Keep/Pinned');
+	if (keepJson.tasks?.length) tags.push('Keep/Task');
 	if (keepJson.attachments) tags.push('Keep/Attachment');
 	if (keepJson.isArchived) tags.push('Keep/Archived');
 	if (keepJson.isTrashed) tags.push('Keep/Deleted');
