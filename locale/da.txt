@@ -408,11 +408,11 @@ translation=Ingen mapper fundet.
 
 [source.msg-flat-files]
 original={{count}} file will be imported.
-translation=
+translation={{count}} fil vil blive importeret.
 
 [source.msg-flat-files_plural]
 original={{count}} files will be imported.
-translation=
+translation={{count}} filer vil blive importeret.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -456,19 +456,19 @@ translation=Hvor importerede noter vil blive gemt. Lad feltet være tomt for at 
 
 [output.name-template]
 original=Template
-translation=
+translation=skabelon
 
 [output.desc-template]
 original=Optional Markdown template from this vault. Use variables such as {{title}}, {{content}}, and {{date}}.
-translation=
+translation=Valgfri Markdown-skabelon fra denne boks. Brug variabler som {{title}}, {{content}} og {{date}}.
 
 [output.placeholder-template]
 original=Templates/Import.md
-translation=
+translation=Skabeloner/Import.md
 
 [output.msg-template-not-found]
 original=Template must be a Markdown file in this vault: {{path}}
-translation=
+translation=Skabelon skal være en Markdown-fil i denne boks: {{path}}
 
 [output.name-attachments]
 original=Attachment location
@@ -672,7 +672,7 @@ translation=Konfigurer, hvordan dine data skal importeres. Brug {{syntax}}-synta
 
 [template.msg-note-template-intro]
 original=Review examples of how your notes will be imported.
-translation=
+translation=Gennemgå eksempler på, hvordan dine noter vil blive importeret.
 
 [template.name-title]
 original=Note title
@@ -680,7 +680,7 @@ translation=Notetitel
 
 [template.desc-title]
 original=Template for the note title. Use variables like {{field_name}} to insert values.
-translation=Skabelon til notetitlen. Brug {{field_name}} til at indsætte værdier.
+translation=Skabelon til notetitlen. Brug variabler som {{field_name}} til at indsætte værdier.
 
 [template.name-location]
 original=Note location
@@ -696,63 +696,63 @@ translation=Noteindhold
 
 [template.desc-content]
 original=Template for the note content. Use variables like {{field_name}} to insert values.
-translation=Skabelon til noteindholdet. Brug {{field_name}} til at indsætte værdier.
+translation=Skabelon til noteindholdet. Brug variabler som {{field_name}} til at indsætte værdier.
 
 [template.name-template-file]
 original=Template
-translation=
+translation=skabelon
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=
+translation=Valgfrit. Vælg en skabelon fra din boks til at formatere noteindholdet. Se Hjælp for skabelonsyntaks.
 
 [template.heading-preview]
 original=Preview
-translation=
+translation=Forhåndsvis
 
 [template.status-loading-preview]
 original=Loading preview...
-translation=
+translation=Indlæser forhåndsvisning...
 
 [template.button-edit-template]
 original=Edit
-translation=
+translation=Rediger
 
 [template.button-save-template]
 original=Save
-translation=
+translation=Gem
 
 [template.button-reset-template]
 original=Reset to default
-translation=
+translation=Nulstil til standard
 
 [template.link-show-more]
 original=Show more
-translation=
+translation=Vis mere
 
 [template.name-template-editor]
 original=Template source
-translation=
+translation=Skabelonkilde
 
 [template.label-edit-import-template]
 original=Edit import template
-translation=
+translation=Rediger importskabelon
 
 [template.button-add-property]
 original=Add property
-translation=
+translation=Tilføj egenskab
 
 [template.button-previous-preview]
 original=Previous preview
-translation=
+translation=Forrige forhåndsvisning
 
 [template.button-next-preview]
 original=Next preview
-translation=
+translation=Næste forhåndsvisning
 
 [template.msg-diagnostic]
 original=Line {{line}}: {{message}}
-translation=
+translation=Linje {{line}}: {{message}}
 
 [template.heading-properties]
 original=Properties
@@ -1236,11 +1236,11 @@ translation=Hvis aktiveret, vil den første række i CSV-filen blive behandlet s
 
 [importer.csv.name-source-title]
 original=Source title
-translation=
+translation=Kildetitel
 
 [importer.csv.desc-source-title]
 original=Creates the {{title}} value used by the final note title template. Use CSV column variables like {{column_name}}.
-translation=
+translation=Opretter {{title}}-værdien, der bruges af den endelige notetitelskabelon. Brug CSV-kolonnevariabler som {{column_name}}.
 
 [importer.csv.msg-pick-file]
 original=Please pick at least one CSV file to import.
@@ -2000,7 +2000,7 @@ translation=Videovedhæftning
 
 [importer.notion-api.label-attachment-audio]
 original=Audio attachment
-translation=
+translation=Lydvedhæftning
 
 [importer.notion-api.label-attachment-file]
 original=File attachment
@@ -2012,27 +2012,27 @@ translation=PDF-vedhæftning
 
 [importer.notion-api.label-preview-child-page]
 original=Child page
-translation=
+translation=Underside
 
 [importer.notion-api.label-preview-database]
 original=Database
-translation=
+translation=Database
 
 [importer.notion-api.msg-preview-nested-content]
 original=Nested content is not loaded in the preview.
-translation=
+translation=Indlejret indhold indlæses ikke i forhåndsvisningen.
 
 [importer.notion-api.msg-preview-content-not-loaded]
 original={{type}} is not loaded in the preview.
-translation=
+translation={{type}} indlæses ikke i forhåndsvisningen.
 
 [importer.notion-api.msg-preview-content-not-loaded-with-caption]
 original={{type}}: {{caption}} is not loaded in the preview.
-translation=
+translation={{type}}: {{caption}} indlæses ikke i forhåndsvisningen.
 
 [importer.notion-api.msg-preview-block-not-expanded]
 original={{type}} is not expanded in the preview.
-translation=
+translation={{type}} er ikke udvidet i forhåndsvisningen.
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}
@@ -2212,7 +2212,7 @@ translation=Starter import
 
 [importer.notion.msg-markdown-export]
 original=This is a Markdown export. Export your Notion workspace as HTML instead.
-translation=
+translation=Dette er en Markdown-eksport. Eksportér dit Notion-arbejdsområde som HTML i stedet.
 
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead
@@ -2272,11 +2272,11 @@ translation=Nogle referencer navngiver en blok, der ikke findes i eksporten. Hvi
 
 [importer.roam-json.name-convert-attributes]
 original=Convert attributes to properties
-translation=
+translation=Konvertér attributter til egenskaber
 
 [importer.roam-json.desc-convert-attributes]
 original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.
-translation=
+translation=Konvertér kvalificerede Roam-attributter på øverste niveau til Obsidian-egenskaber. Refererede attributter forbliver i noten, så links til dem fortsat virker.
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links

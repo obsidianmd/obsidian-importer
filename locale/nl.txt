@@ -408,11 +408,11 @@ translation=Geen mappen gevonden.
 
 [source.msg-flat-files]
 original={{count}} file will be imported.
-translation=
+translation={{count}} bestand wordt geïmporteerd.
 
 [source.msg-flat-files_plural]
 original={{count}} files will be imported.
-translation=
+translation={{count}} bestanden worden geïmporteerd.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -456,19 +456,19 @@ translation=Waar geïmporteerde notities worden opgeslagen. Laat Blanco om het h
 
 [output.name-template]
 original=Template
-translation=
+translation=sjabloon
 
 [output.desc-template]
 original=Optional Markdown template from this vault. Use variables such as {{title}}, {{content}}, and {{date}}.
-translation=
+translation=Optioneel Markdown-sjabloon uit deze kluis. Gebruik variabelen zoals {{title}}, {{content}} en {{date}}.
 
 [output.placeholder-template]
 original=Templates/Import.md
-translation=
+translation=Sjablonen/Import.md
 
 [output.msg-template-not-found]
 original=Template must be a Markdown file in this vault: {{path}}
-translation=
+translation=Sjabloon moet een Markdown-bestand in deze kluis zijn: {{path}}
 
 [output.name-attachments]
 original=Attachment location
@@ -672,7 +672,7 @@ translation=Configureer hoe je gegevens geïmporteerd moeten worden. Gebruik {{s
 
 [template.msg-note-template-intro]
 original=Review examples of how your notes will be imported.
-translation=
+translation=Bekijk voorbeelden van hoe uw notities worden geïmporteerd.
 
 [template.name-title]
 original=Note title
@@ -680,7 +680,7 @@ translation=Bestand hernoemen
 
 [template.desc-title]
 original=Template for the note title. Use variables like {{field_name}} to insert values.
-translation=Sjabloon voor de notitietitel. Gebruik {{field_name}} om waarden in te voegen.
+translation=Sjabloon voor de notitietitel. Gebruik variabelen zoals {{field_name}} om waarden in te voegen.
 
 [template.name-location]
 original=Note location
@@ -696,63 +696,63 @@ translation=Notitie-inhoud
 
 [template.desc-content]
 original=Template for the note content. Use variables like {{field_name}} to insert values.
-translation=Sjabloon voor de notitie-inhoud. Gebruik {{field_name}} om waarden in te voegen.
+translation=Sjabloon voor de notitie-inhoud. Gebruik variabelen zoals {{field_name}} om waarden in te voegen.
 
 [template.name-template-file]
 original=Template
-translation=
+translation=sjabloon
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=
+translation=Optioneel. Kies een sjabloon uit uw kluis om de notitie-inhoud op te maken. Zie Help voor sjabloonsyntaxis.
 
 [template.heading-preview]
 original=Preview
-translation=
+translation=Voorbeschouwen
 
 [template.status-loading-preview]
 original=Loading preview...
-translation=
+translation=Voorbeschouwen laden...
 
 [template.button-edit-template]
 original=Edit
-translation=
+translation=Bewerken
 
 [template.button-save-template]
 original=Save
-translation=
+translation=Opslaan
 
 [template.button-reset-template]
 original=Reset to default
-translation=
+translation=Standaard herstellen
 
 [template.link-show-more]
 original=Show more
-translation=
+translation=Meer weergeven
 
 [template.name-template-editor]
 original=Template source
-translation=
+translation=Sjabloonbron
 
 [template.label-edit-import-template]
 original=Edit import template
-translation=
+translation=Importsjabloon bewerken
 
 [template.button-add-property]
 original=Add property
-translation=
+translation=Voeg eigenschap toe
 
 [template.button-previous-preview]
 original=Previous preview
-translation=
+translation=Vorige voorbeschouwen
 
 [template.button-next-preview]
 original=Next preview
-translation=
+translation=Volgende voorbeschouwen
 
 [template.msg-diagnostic]
 original=Line {{line}}: {{message}}
-translation=
+translation=Regel {{line}}: {{message}}
 
 [template.heading-properties]
 original=Properties
@@ -1236,11 +1236,11 @@ translation=Indien ingeschakeld, wordt de eerste rij van het CSV-bestand als kol
 
 [importer.csv.name-source-title]
 original=Source title
-translation=
+translation=Brontitel
 
 [importer.csv.desc-source-title]
 original=Creates the {{title}} value used by the final note title template. Use CSV column variables like {{column_name}}.
-translation=
+translation=Maakt de {{title}}-waarde aan die door het uiteindelijke notitietitelsjabloon wordt gebruikt. Gebruik CSV-kolomvariabelen zoals {{column_name}}.
 
 [importer.csv.msg-pick-file]
 original=Please pick at least one CSV file to import.
@@ -2000,7 +2000,7 @@ translation=Videobijlage
 
 [importer.notion-api.label-attachment-audio]
 original=Audio attachment
-translation=
+translation=Audiobijlage
 
 [importer.notion-api.label-attachment-file]
 original=File attachment
@@ -2012,27 +2012,27 @@ translation=PDF-bijlage
 
 [importer.notion-api.label-preview-child-page]
 original=Child page
-translation=
+translation=Subpagina
 
 [importer.notion-api.label-preview-database]
 original=Database
-translation=
+translation=Database
 
 [importer.notion-api.msg-preview-nested-content]
 original=Nested content is not loaded in the preview.
-translation=
+translation=Geneste inhoud wordt niet geladen in de voorbeschouwen.
 
 [importer.notion-api.msg-preview-content-not-loaded]
 original={{type}} is not loaded in the preview.
-translation=
+translation={{type}} wordt niet geladen in de voorbeschouwen.
 
 [importer.notion-api.msg-preview-content-not-loaded-with-caption]
 original={{type}}: {{caption}} is not loaded in the preview.
-translation=
+translation={{type}}: {{caption}} wordt niet geladen in de voorbeschouwen.
 
 [importer.notion-api.msg-preview-block-not-expanded]
 original={{type}} is not expanded in the preview.
-translation=
+translation={{type}} wordt niet uitgevouwen in de voorbeschouwen.
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}
@@ -2212,7 +2212,7 @@ translation=Import starten
 
 [importer.notion.msg-markdown-export]
 original=This is a Markdown export. Export your Notion workspace as HTML instead.
-translation=
+translation=Dit is een Markdown-export. Exporteer uw Notion-werkruimte in plaats daarvan als HTML.
 
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead
@@ -2272,11 +2272,11 @@ translation=Sommige verwijzingen noemen een blok dat niet in de export staat. In
 
 [importer.roam-json.name-convert-attributes]
 original=Convert attributes to properties
-translation=
+translation=Attributen naar eigenschappen converteren
 
 [importer.roam-json.desc-convert-attributes]
 original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.
-translation=
+translation=Converteer in aanmerking komende Roam-attributen op het hoogste niveau naar Obsidian-eigenschappen. Gerefereerde attributen blijven in de notitie zodat links ernaar blijven werken.
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links

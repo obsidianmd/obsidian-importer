@@ -408,11 +408,11 @@ translation=לא נמצאו תיקיות.
 
 [source.msg-flat-files]
 original={{count}} file will be imported.
-translation=
+translation={{count}} קובץ ייובא.
 
 [source.msg-flat-files_plural]
 original={{count}} files will be imported.
-translation=
+translation={{count}} קבצים ייובאו.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -456,19 +456,19 @@ translation=כאשר הערות מיובאות יישמרו. עזוב ריק ל�
 
 [output.name-template]
 original=Template
-translation=
+translation=תבנית
 
 [output.desc-template]
 original=Optional Markdown template from this vault. Use variables such as {{title}}, {{content}}, and {{date}}.
-translation=
+translation=תבנית Markdown אופציונלית מכספת זו. השתמש במשתנים כגון {{title}},‏ {{content}} ו-{{date}}.
 
 [output.placeholder-template]
 original=Templates/Import.md
-translation=
+translation=Templates/Import.md
 
 [output.msg-template-not-found]
 original=Template must be a Markdown file in this vault: {{path}}
-translation=
+translation=התבנית חייבת להיות קובץ Markdown בכספת זו: {{path}}
 
 [output.name-attachments]
 original=Attachment location
@@ -672,7 +672,7 @@ translation=הגדר כיצד הנתונים שלך ייובאו. השתמש ב�
 
 [template.msg-note-template-intro]
 original=Review examples of how your notes will be imported.
-translation=
+translation=סקור דוגמאות לאופן שבו ההערות שלך ייובאו.
 
 [template.name-title]
 original=Note title
@@ -680,7 +680,7 @@ translation=כותרת ההערה
 
 [template.desc-title]
 original=Template for the note title. Use variables like {{field_name}} to insert values.
-translation=תבנית לכותרת ההערה. השתמש ב-{{field_name}} להוספה של ערכים.
+translation=תבנית לכותרת ההערה. השתמש במשתנים כמו {{field_name}} כדי להוסיף ערכים.
 
 [template.name-location]
 original=Note location
@@ -696,63 +696,63 @@ translation=תוכן ההערה
 
 [template.desc-content]
 original=Template for the note content. Use variables like {{field_name}} to insert values.
-translation=תבנית לתוכן ההערה. השתמש ב-{{field_name}} להוספה של ערכים.
+translation=תבנית לתוכן ההערה. השתמש במשתנים כמו {{field_name}} כדי להוסיף ערכים.
 
 [template.name-template-file]
 original=Template
-translation=
+translation=תבנית
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=
+translation=אופציונלי. בחר תבנית מהכספת שלך לעיצוב תוכן ההערה. ראה עזרה לתחביר תבניות.
 
 [template.heading-preview]
 original=Preview
-translation=
+translation=תצוגה מקדימה
 
 [template.status-loading-preview]
 original=Loading preview...
-translation=
+translation=טוען תצוגה מקדימה...
 
 [template.button-edit-template]
 original=Edit
-translation=
+translation=ערוך
 
 [template.button-save-template]
 original=Save
-translation=
+translation=שמור
 
 [template.button-reset-template]
 original=Reset to default
-translation=
+translation=אפס לברירת מחדל
 
 [template.link-show-more]
 original=Show more
-translation=
+translation=הצג עוד
 
 [template.name-template-editor]
 original=Template source
-translation=
+translation=מקור התבנית
 
 [template.label-edit-import-template]
 original=Edit import template
-translation=
+translation=ערוך תבנית ייבוא
 
 [template.button-add-property]
 original=Add property
-translation=
+translation=הוסף מאפיין
 
 [template.button-previous-preview]
 original=Previous preview
-translation=
+translation=תצוגה מקדימה הקודם
 
 [template.button-next-preview]
 original=Next preview
-translation=
+translation=תצוגה מקדימה הבא
 
 [template.msg-diagnostic]
 original=Line {{line}}: {{message}}
-translation=
+translation=שורה {{line}}: {{message}}
 
 [template.heading-properties]
 original=Properties
@@ -1236,11 +1236,11 @@ translation=אם מופעל, השורה הראשונה בקובץ ה-CSV תטו�
 
 [importer.csv.name-source-title]
 original=Source title
-translation=
+translation=כותרת מקור
 
 [importer.csv.desc-source-title]
 original=Creates the {{title}} value used by the final note title template. Use CSV column variables like {{column_name}}.
-translation=
+translation=יוצר את ערך {{title}} המשמש את תבנית כותרת ההערה הסופית. השתמש במשתני עמודה של CSV כמו {{column_name}}.
 
 [importer.csv.msg-pick-file]
 original=Please pick at least one CSV file to import.
@@ -2000,7 +2000,7 @@ translation=וידאו מצורף
 
 [importer.notion-api.label-attachment-audio]
 original=Audio attachment
-translation=
+translation=קובץ מצורף שמע
 
 [importer.notion-api.label-attachment-file]
 original=File attachment
@@ -2012,27 +2012,27 @@ translation=קובץ PDF מצורף
 
 [importer.notion-api.label-preview-child-page]
 original=Child page
-translation=
+translation=עמוד צאצא
 
 [importer.notion-api.label-preview-database]
 original=Database
-translation=
+translation=מסד נתונים
 
 [importer.notion-api.msg-preview-nested-content]
 original=Nested content is not loaded in the preview.
-translation=
+translation=תוכן מקונן אינו נטען בתצוגה המקדימה.
 
 [importer.notion-api.msg-preview-content-not-loaded]
 original={{type}} is not loaded in the preview.
-translation=
+translation={{type}} אינו נטען בתצוגה המקדימה.
 
 [importer.notion-api.msg-preview-content-not-loaded-with-caption]
 original={{type}}: {{caption}} is not loaded in the preview.
-translation=
+translation={{type}}: {{caption}} אינו נטען בתצוגה המקדימה.
 
 [importer.notion-api.msg-preview-block-not-expanded]
 original={{type}} is not expanded in the preview.
-translation=
+translation={{type}} אינו מורחב בתצוגה המקדימה.
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}
@@ -2212,7 +2212,7 @@ translation=מתחיל ייבוא
 
 [importer.notion.msg-markdown-export]
 original=This is a Markdown export. Export your Notion workspace as HTML instead.
-translation=
+translation=זהו ייצוא Markdown. ייצא את מרחב העבודה של Notion כ-HTML במקום.
 
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead
@@ -2272,11 +2272,11 @@ translation=חלק מההפניות מצביעות על בלוק שאינו נמ
 
 [importer.roam-json.name-convert-attributes]
 original=Convert attributes to properties
-translation=
+translation=המר תכונות למאפיינים
 
 [importer.roam-json.desc-convert-attributes]
 original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.
-translation=
+translation=המר תכונות Roam ברמה עליונה מתאימות למאפייני Obsidian. תכונות מקושרות נשארות בהערה כדי שקישורים אליהן ימשיכו לעבוד.
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links

@@ -408,11 +408,11 @@ translation=フォルダが見つかりません。
 
 [source.msg-flat-files]
 original={{count}} file will be imported.
-translation=
+translation={{count}} ファイルがインポートされます。
 
 [source.msg-flat-files_plural]
 original={{count}} files will be imported.
-translation=
+translation={{count}} ファイルがインポートされます。
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -456,19 +456,19 @@ translation=インポートしたノートの保存先。ブランクにする�
 
 [output.name-template]
 original=Template
-translation=
+translation=テンプレート
 
 [output.desc-template]
 original=Optional Markdown template from this vault. Use variables such as {{title}}, {{content}}, and {{date}}.
-translation=
+translation=この保管庫からの任意の Markdown テンプレート。{{title}}、{{content}}、{{date}} などの変数を使用できます。
 
 [output.placeholder-template]
 original=Templates/Import.md
-translation=
+translation=Templates/Import.md
 
 [output.msg-template-not-found]
 original=Template must be a Markdown file in this vault: {{path}}
-translation=
+translation=テンプレートはこの保管庫内の Markdown ファイルである必要があります: {{path}}
 
 [output.name-attachments]
 original=Attachment location
@@ -672,7 +672,7 @@ translation=データのインポート方法を設定します。フィール�
 
 [template.msg-note-template-intro]
 original=Review examples of how your notes will be imported.
-translation=
+translation=ノートがどのようにインポートされるか例を確認してください。
 
 [template.name-title]
 original=Note title
@@ -680,7 +680,7 @@ translation=ファイル名を変更
 
 [template.desc-title]
 original=Template for the note title. Use variables like {{field_name}} to insert values.
-translation=ノートのタイトルのテンプレートです。{{field_name}} で値を挿入できます。
+translation=ノートタイトルのテンプレート。{{field_name}} のような変数を使って値を挿入できます。
 
 [template.name-location]
 original=Note location
@@ -696,63 +696,63 @@ translation=ノートの内容
 
 [template.desc-content]
 original=Template for the note content. Use variables like {{field_name}} to insert values.
-translation=ノートの内容のテンプレートです。{{field_name}} で値を挿入できます。
+translation=ノート内容のテンプレート。{{field_name}} のような変数を使って値を挿入できます。
 
 [template.name-template-file]
 original=Template
-translation=
+translation=テンプレート
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=
+translation=任意。保管庫からテンプレートを選択してノート内容をフォーマットします。テンプレート構文についてはヘルプを参照してください。
 
 [template.heading-preview]
 original=Preview
-translation=
+translation=プレビュー
 
 [template.status-loading-preview]
 original=Loading preview...
-translation=
+translation=プレビューを読み込み中...
 
 [template.button-edit-template]
 original=Edit
-translation=
+translation=編集
 
 [template.button-save-template]
 original=Save
-translation=
+translation=保存
 
 [template.button-reset-template]
 original=Reset to default
-translation=
+translation=デフォルトにリセット
 
 [template.link-show-more]
 original=Show more
-translation=
+translation=さらに表示
 
 [template.name-template-editor]
 original=Template source
-translation=
+translation=テンプレートソース
 
 [template.label-edit-import-template]
 original=Edit import template
-translation=
+translation=インポートテンプレートを編集
 
 [template.button-add-property]
 original=Add property
-translation=
+translation=プロパティを追加
 
 [template.button-previous-preview]
 original=Previous preview
-translation=
+translation=前のプレビュー
 
 [template.button-next-preview]
 original=Next preview
-translation=
+translation=次のプレビュー
 
 [template.msg-diagnostic]
 original=Line {{line}}: {{message}}
-translation=
+translation=行 {{line}}: {{message}}
 
 [template.heading-properties]
 original=Properties
@@ -1236,11 +1236,11 @@ translation=有効にすると、CSV ファイルの最初の行が列ヘッダ�
 
 [importer.csv.name-source-title]
 original=Source title
-translation=
+translation=ソースタイトル
 
 [importer.csv.desc-source-title]
 original=Creates the {{title}} value used by the final note title template. Use CSV column variables like {{column_name}}.
-translation=
+translation=最終的なノートタイトルテンプレートで使用される {{title}} の値を作成します。{{column_name}} のような CSV 列変数を使用できます。
 
 [importer.csv.msg-pick-file]
 original=Please pick at least one CSV file to import.
@@ -2000,7 +2000,7 @@ translation=動画の添付ファイル
 
 [importer.notion-api.label-attachment-audio]
 original=Audio attachment
-translation=
+translation=音声添付ファイル
 
 [importer.notion-api.label-attachment-file]
 original=File attachment
@@ -2012,27 +2012,27 @@ translation=PDF の添付ファイル
 
 [importer.notion-api.label-preview-child-page]
 original=Child page
-translation=
+translation=子ページ
 
 [importer.notion-api.label-preview-database]
 original=Database
-translation=
+translation=データベース
 
 [importer.notion-api.msg-preview-nested-content]
 original=Nested content is not loaded in the preview.
-translation=
+translation=ネストされたコンテンツはプレビューに読み込まれません。
 
 [importer.notion-api.msg-preview-content-not-loaded]
 original={{type}} is not loaded in the preview.
-translation=
+translation={{type}} はプレビューに読み込まれません。
 
 [importer.notion-api.msg-preview-content-not-loaded-with-caption]
 original={{type}}: {{caption}} is not loaded in the preview.
-translation=
+translation={{type}}: {{caption}} はプレビューに読み込まれません。
 
 [importer.notion-api.msg-preview-block-not-expanded]
 original={{type}} is not expanded in the preview.
-translation=
+translation={{type}} はプレビューで展開されません。
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}
@@ -2212,7 +2212,7 @@ translation=インポートを開始中
 
 [importer.notion.msg-markdown-export]
 original=This is a Markdown export. Export your Notion workspace as HTML instead.
-translation=
+translation=これは Markdown エクスポートです。Notion ワークスペースは代わりに HTML としてエクスポートしてください。
 
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead
@@ -2272,11 +2272,11 @@ translation=エクスポートに含まれないブロックを参照してい�
 
 [importer.roam-json.name-convert-attributes]
 original=Convert attributes to properties
-translation=
+translation=属性をプロパティに変換
 
 [importer.roam-json.desc-convert-attributes]
 original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.
-translation=
+translation=対象となるトップレベルの Roam 属性を Obsidian プロパティに変換します。参照されている属性はリンクが機能し続けるようノート内に残ります。
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links

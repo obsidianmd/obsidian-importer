@@ -408,11 +408,11 @@ translation=Kansioita ei löytynyt.
 
 [source.msg-flat-files]
 original={{count}} file will be imported.
-translation=
+translation={{count}} tiedosto tuodaan.
 
 [source.msg-flat-files_plural]
 original={{count}} files will be imported.
-translation=
+translation={{count}} tiedostoa tuodaan.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -456,19 +456,19 @@ translation=Minne tuodut muistiinpanot tallennetaan. Jätä tyhjäksi, jos halua
 
 [output.name-template]
 original=Template
-translation=
+translation=pohja/pohjatiedosto
 
 [output.desc-template]
 original=Optional Markdown template from this vault. Use variables such as {{title}}, {{content}}, and {{date}}.
-translation=
+translation=Valinnainen Markdown-pohja tästä holvista. Käytä muuttujia kuten {{title}}, {{content}} ja {{date}}.
 
 [output.placeholder-template]
 original=Templates/Import.md
-translation=
+translation=Templates/Import.md
 
 [output.msg-template-not-found]
 original=Template must be a Markdown file in this vault: {{path}}
-translation=
+translation=Pohjan on oltava Markdown-tiedosto tässä holvissa: {{path}}
 
 [output.name-attachments]
 original=Attachment location
@@ -672,7 +672,7 @@ translation=Määritä, miten tiedot tuodaan. Käytä {{syntax}}-syntaksia kentt
 
 [template.msg-note-template-intro]
 original=Review examples of how your notes will be imported.
-translation=
+translation=Tarkastele esimerkkejä siitä, miten muistiinpanosi tuodaan.
 
 [template.name-title]
 original=Note title
@@ -680,7 +680,7 @@ translation=Tiedoston otsikko
 
 [template.desc-title]
 original=Template for the note title. Use variables like {{field_name}} to insert values.
-translation=Muistiinpanon otsikon pohja. Käytä {{field_name}} arvojen lisäämiseen.
+translation=Pohja muistiinpanon otsikkoa varten. Käytä muuttujia kuten {{field_name}} arvojen lisäämiseen.
 
 [template.name-location]
 original=Note location
@@ -696,63 +696,63 @@ translation=Muistiinpanon sisältö
 
 [template.desc-content]
 original=Template for the note content. Use variables like {{field_name}} to insert values.
-translation=Muistiinpanon sisällön pohja. Käytä {{field_name}} arvojen lisäämiseen.
+translation=Pohja muistiinpanon sisältöä varten. Käytä muuttujia kuten {{field_name}} arvojen lisäämiseen.
 
 [template.name-template-file]
 original=Template
-translation=
+translation=pohja/pohjatiedosto
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=
+translation=Valinnainen. Valitse pohja holviisi muotoilemaan muistiinpanon sisällön. Katso ohje pohjan syntaksista.
 
 [template.heading-preview]
 original=Preview
-translation=
+translation=Esikatsele
 
 [template.status-loading-preview]
 original=Loading preview...
-translation=
+translation=Ladataan esikatselua...
 
 [template.button-edit-template]
 original=Edit
-translation=
+translation=Muokkaa
 
 [template.button-save-template]
 original=Save
-translation=
+translation=Tallenna
 
 [template.button-reset-template]
 original=Reset to default
-translation=
+translation=Palauta oletukseen
 
 [template.link-show-more]
 original=Show more
-translation=
+translation=Näytä lisää
 
 [template.name-template-editor]
 original=Template source
-translation=
+translation=Pohjan lähdekoodi
 
 [template.label-edit-import-template]
 original=Edit import template
-translation=
+translation=Muokkaa tuontipohjaa
 
 [template.button-add-property]
 original=Add property
-translation=
+translation=Lisää määre
 
 [template.button-previous-preview]
 original=Previous preview
-translation=
+translation=Edellinen esikatselu
 
 [template.button-next-preview]
 original=Next preview
-translation=
+translation=Seuraava esikatselu
 
 [template.msg-diagnostic]
 original=Line {{line}}: {{message}}
-translation=
+translation=Rivi {{line}}: {{message}}
 
 [template.heading-properties]
 original=Properties
@@ -1236,11 +1236,11 @@ translation=Kun käytössä, CSV-tiedoston ensimmäistä riviä käsitellään s
 
 [importer.csv.name-source-title]
 original=Source title
-translation=
+translation=Lähteen otsikko
 
 [importer.csv.desc-source-title]
 original=Creates the {{title}} value used by the final note title template. Use CSV column variables like {{column_name}}.
-translation=
+translation=Luo {{title}}-arvon, jota lopullisen muistiinpanon otsikkopohja käyttää. Käytä CSV-sarakemuuttujia kuten {{column_name}}.
 
 [importer.csv.msg-pick-file]
 original=Please pick at least one CSV file to import.
@@ -2000,7 +2000,7 @@ translation=Videoliite
 
 [importer.notion-api.label-attachment-audio]
 original=Audio attachment
-translation=
+translation=Ääniliite
 
 [importer.notion-api.label-attachment-file]
 original=File attachment
@@ -2012,27 +2012,27 @@ translation=PDF-liite
 
 [importer.notion-api.label-preview-child-page]
 original=Child page
-translation=
+translation=Alisivut
 
 [importer.notion-api.label-preview-database]
 original=Database
-translation=
+translation=Tietokanta
 
 [importer.notion-api.msg-preview-nested-content]
 original=Nested content is not loaded in the preview.
-translation=
+translation=Sisäkkäistä sisältöä ei ladata esikatselussa.
 
 [importer.notion-api.msg-preview-content-not-loaded]
 original={{type}} is not loaded in the preview.
-translation=
+translation={{type}} ei ladata esikatselussa.
 
 [importer.notion-api.msg-preview-content-not-loaded-with-caption]
 original={{type}}: {{caption}} is not loaded in the preview.
-translation=
+translation={{type}}: {{caption}} ei ladata esikatselussa.
 
 [importer.notion-api.msg-preview-block-not-expanded]
 original={{type}} is not expanded in the preview.
-translation=
+translation={{type}} ei laajenneta esikatselussa.
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}
@@ -2212,7 +2212,7 @@ translation=Aloitetaan tuonti
 
 [importer.notion.msg-markdown-export]
 original=This is a Markdown export. Export your Notion workspace as HTML instead.
-translation=
+translation=Tämä on Markdown-vienti. Vie Notion-työtilasi HTML-muodossa sen sijaan.
 
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead
@@ -2272,11 +2272,11 @@ translation=Jotkin viittaukset osoittavat lohkoon, jota ei ole viennissä. Jos k
 
 [importer.roam-json.name-convert-attributes]
 original=Convert attributes to properties
-translation=
+translation=Muunna attribuutit määreiksi
 
 [importer.roam-json.desc-convert-attributes]
 original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.
-translation=
+translation=Muunna kelvolliset ylätason Roam-attribuutit Obsidian-määreiksi. Viitatut attribuutit säilyvät muistiinpanossa, jotta linkit niihin toimivat edelleen.
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links

@@ -408,11 +408,11 @@ translation=ไม่พบโฟลเดอร์
 
 [source.msg-flat-files]
 original={{count}} file will be imported.
-translation=
+translation={{count}} ไฟล์จะถูกนำเข้า
 
 [source.msg-flat-files_plural]
 original={{count}} files will be imported.
-translation=
+translation={{count}} ไฟล์จะถูกนำเข้า
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -456,19 +456,19 @@ translation=ที่ที่โน้ตที่นำเข้าจะถ�
 
 [output.name-template]
 original=Template
-translation=
+translation=เทมเพลต
 
 [output.desc-template]
 original=Optional Markdown template from this vault. Use variables such as {{title}}, {{content}}, and {{date}}.
-translation=
+translation=เทมเพลต Markdown จากห้องนิรภัยนี้ (ไม่บังคับ) ใช้ตัวแปร เช่น {{title}}, {{content}} และ {{date}}
 
 [output.placeholder-template]
 original=Templates/Import.md
-translation=
+translation=Templates/Import.md
 
 [output.msg-template-not-found]
 original=Template must be a Markdown file in this vault: {{path}}
-translation=
+translation=เทมเพลตต้องเป็นไฟล์ Markdown ในห้องนิรภัยนี้: {{path}}
 
 [output.name-attachments]
 original=Attachment location
@@ -672,7 +672,7 @@ translation=กำหนดค่าวิธีการนำเข้าข�
 
 [template.msg-note-template-intro]
 original=Review examples of how your notes will be imported.
-translation=
+translation=ดูตัวอย่างว่าโน้ตของคุณจะถูกนำเข้าอย่างไร
 
 [template.name-title]
 original=Note title
@@ -680,7 +680,7 @@ translation=เปลี่ยนชื่อไฟล์
 
 [template.desc-title]
 original=Template for the note title. Use variables like {{field_name}} to insert values.
-translation=เทมเพลตสำหรับชื่อโน้ต ใช้ {{field_name}} เพื่อแทรกค่า
+translation=เทมเพลตสำหรับเปลี่ยนชื่อไฟล์ ใช้ตัวแปร เช่น {{field_name}} เพื่อแทรกค่า
 
 [template.name-location]
 original=Note location
@@ -696,63 +696,63 @@ translation=เนื้อหาโน้ต
 
 [template.desc-content]
 original=Template for the note content. Use variables like {{field_name}} to insert values.
-translation=เทมเพลตสำหรับเนื้อหาโน้ต ใช้ {{field_name}} เพื่อแทรกค่า
+translation=เทมเพลตสำหรับเนื้อหาโน้ต ใช้ตัวแปร เช่น {{field_name}} เพื่อแทรกค่า
 
 [template.name-template-file]
 original=Template
-translation=
+translation=เทมเพลต
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=
+translation=ไม่บังคับ เลือกเทมเพลตจากห้องนิรภัยของคุณเพื่อจัดรูปแบบเนื้อหาโน้ต ดูวิธีใช้สำหรับไวยากรณ์เทมเพลต
 
 [template.heading-preview]
 original=Preview
-translation=
+translation=พรีวิว
 
 [template.status-loading-preview]
 original=Loading preview...
-translation=
+translation=กำลังโหลดพรีวิว...
 
 [template.button-edit-template]
 original=Edit
-translation=
+translation=แก้ไข
 
 [template.button-save-template]
 original=Save
-translation=
+translation=เซฟ
 
 [template.button-reset-template]
 original=Reset to default
-translation=
+translation=รีเซ็ตเป็นค่าเริ่มต้น
 
 [template.link-show-more]
 original=Show more
-translation=
+translation=แสดงเพิ่มเติม
 
 [template.name-template-editor]
 original=Template source
-translation=
+translation=โหมดซอร์สเทมเพลต
 
 [template.label-edit-import-template]
 original=Edit import template
-translation=
+translation=แก้ไขเทมเพลตการนำเข้า
 
 [template.button-add-property]
 original=Add property
-translation=
+translation=เพิ่มคุณสมบัติ
 
 [template.button-previous-preview]
 original=Previous preview
-translation=
+translation=พรีวิวก่อนหน้า
 
 [template.button-next-preview]
 original=Next preview
-translation=
+translation=พรีวิวถัดไป
 
 [template.msg-diagnostic]
 original=Line {{line}}: {{message}}
-translation=
+translation=บรรทัด {{line}}: {{message}}
 
 [template.heading-properties]
 original=Properties
@@ -1236,11 +1236,11 @@ translation=หากเปิดใช้งาน แถวแรกของ�
 
 [importer.csv.name-source-title]
 original=Source title
-translation=
+translation=ชื่อต้นทาง
 
 [importer.csv.desc-source-title]
 original=Creates the {{title}} value used by the final note title template. Use CSV column variables like {{column_name}}.
-translation=
+translation=สร้างค่า {{title}} ที่ใช้โดยเทมเพลตเปลี่ยนชื่อไฟล์สุดท้าย ใช้ตัวแปรคอลัมน์ CSV เช่น {{column_name}}
 
 [importer.csv.msg-pick-file]
 original=Please pick at least one CSV file to import.
@@ -2000,7 +2000,7 @@ translation=ไฟล์แนบวิดีโอ
 
 [importer.notion-api.label-attachment-audio]
 original=Audio attachment
-translation=
+translation=ไฟล์แนบเสียง
 
 [importer.notion-api.label-attachment-file]
 original=File attachment
@@ -2012,27 +2012,27 @@ translation=ไฟล์แนบ PDF
 
 [importer.notion-api.label-preview-child-page]
 original=Child page
-translation=
+translation=หน้าย่อย
 
 [importer.notion-api.label-preview-database]
 original=Database
-translation=
+translation=ฐานข้อมูล
 
 [importer.notion-api.msg-preview-nested-content]
 original=Nested content is not loaded in the preview.
-translation=
+translation=เนื้อหาที่ซ้อนอยู่ไม่ได้โหลดในพรีวิว
 
 [importer.notion-api.msg-preview-content-not-loaded]
 original={{type}} is not loaded in the preview.
-translation=
+translation={{type}} ไม่ได้โหลดในพรีวิว
 
 [importer.notion-api.msg-preview-content-not-loaded-with-caption]
 original={{type}}: {{caption}} is not loaded in the preview.
-translation=
+translation={{type}}: {{caption}} ไม่ได้โหลดในพรีวิว
 
 [importer.notion-api.msg-preview-block-not-expanded]
 original={{type}} is not expanded in the preview.
-translation=
+translation={{type}} ไม่ได้ขยายในพรีวิว
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}
@@ -2212,7 +2212,7 @@ translation=กำลังเริ่มการนำเข้า
 
 [importer.notion.msg-markdown-export]
 original=This is a Markdown export. Export your Notion workspace as HTML instead.
-translation=
+translation=นี่คือการส่งออก Markdown ให้ส่งออกพื้นที่ทำงาน Notion ของคุณเป็น HTML แทน
 
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead
@@ -2272,11 +2272,11 @@ translation=การอ้างอิงบางรายการอ้า�
 
 [importer.roam-json.name-convert-attributes]
 original=Convert attributes to properties
-translation=
+translation=แปลงแอตทริบิวต์เป็นคุณสมบัติ
 
 [importer.roam-json.desc-convert-attributes]
 original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.
-translation=
+translation=แปลงแอตทริบิวต์ระดับบนสุดของ Roam ที่เข้าเกณฑ์ให้เป็นคุณสมบัติ Obsidian แอตทริบิวต์ที่ถูกอ้างอิงจะยังคงอยู่ในโน้ตเพื่อให้ลิงก์ไปยังแอตทริบิวต์เหล่านั้นยังใช้งานได้
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links

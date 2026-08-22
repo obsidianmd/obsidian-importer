@@ -408,11 +408,11 @@ translation=Папки не найдены.
 
 [source.msg-flat-files]
 original={{count}} file will be imported.
-translation=
+translation={{count}} файл будет импортирован.
 
 [source.msg-flat-files_plural]
 original={{count}} files will be imported.
-translation=
+translation={{count}} файлов будет импортировано.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -456,19 +456,19 @@ translation=Где будут сохранены импортированные 
 
 [output.name-template]
 original=Template
-translation=
+translation=шаблон
 
 [output.desc-template]
 original=Optional Markdown template from this vault. Use variables such as {{title}}, {{content}}, and {{date}}.
-translation=
+translation=Необязательный шаблон Markdown из этого хранилища. Используйте переменные, такие как {{title}}, {{content}} и {{date}}.
 
 [output.placeholder-template]
 original=Templates/Import.md
-translation=
+translation=Шаблоны/Import.md
 
 [output.msg-template-not-found]
 original=Template must be a Markdown file in this vault: {{path}}
-translation=
+translation=Шаблон должен быть файлом Markdown в этом хранилище: {{path}}
 
 [output.name-attachments]
 original=Attachment location
@@ -672,7 +672,7 @@ translation=Настройте способ импорта данных. Исп�
 
 [template.msg-note-template-intro]
 original=Review examples of how your notes will be imported.
-translation=
+translation=Просмотрите примеры того, как ваши заметки будут импортированы.
 
 [template.name-title]
 original=Note title
@@ -680,7 +680,7 @@ translation=Переименовать файл
 
 [template.desc-title]
 original=Template for the note title. Use variables like {{field_name}} to insert values.
-translation=Шаблон заголовка заметки. Используйте {{field_name}} для вставки значений.
+translation=Шаблон для заголовка заметки. Используйте переменные вида {{field_name}} для вставки значений.
 
 [template.name-location]
 original=Note location
@@ -696,63 +696,63 @@ translation=Содержимое заметки
 
 [template.desc-content]
 original=Template for the note content. Use variables like {{field_name}} to insert values.
-translation=Шаблон содержимого заметки. Используйте {{field_name}} для вставки значений.
+translation=Шаблон для содержимого заметки. Используйте переменные вида {{field_name}} для вставки значений.
 
 [template.name-template-file]
 original=Template
-translation=
+translation=шаблон
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=
+translation=Необязательно. Выберите шаблон из вашего хранилища для форматирования содержимого заметки. Синтаксис шаблонов описан в разделе «Помощь».
 
 [template.heading-preview]
 original=Preview
-translation=
+translation=Просмотр
 
 [template.status-loading-preview]
 original=Loading preview...
-translation=
+translation=Загрузка просмотра...
 
 [template.button-edit-template]
 original=Edit
-translation=
+translation=Редактировать
 
 [template.button-save-template]
 original=Save
-translation=
+translation=Сохранить
 
 [template.button-reset-template]
 original=Reset to default
-translation=
+translation=Сбросить по умолчанию
 
 [template.link-show-more]
 original=Show more
-translation=
+translation=Показать ещё
 
 [template.name-template-editor]
 original=Template source
-translation=
+translation=Исходный код шаблона
 
 [template.label-edit-import-template]
 original=Edit import template
-translation=
+translation=Редактировать шаблон импорта
 
 [template.button-add-property]
 original=Add property
-translation=
+translation=Добавить свойство
 
 [template.button-previous-preview]
 original=Previous preview
-translation=
+translation=Предыдущий просмотр
 
 [template.button-next-preview]
 original=Next preview
-translation=
+translation=Следующий просмотр
 
 [template.msg-diagnostic]
 original=Line {{line}}: {{message}}
-translation=
+translation=Строка {{line}}: {{message}}
 
 [template.heading-properties]
 original=Properties
@@ -1236,11 +1236,11 @@ translation=Если включено, первая строка CSV-файла 
 
 [importer.csv.name-source-title]
 original=Source title
-translation=
+translation=Исходный заголовок
 
 [importer.csv.desc-source-title]
 original=Creates the {{title}} value used by the final note title template. Use CSV column variables like {{column_name}}.
-translation=
+translation=Создаёт значение {{title}}, используемое в итоговом шаблоне заголовка заметки. Используйте переменные столбцов CSV, такие как {{column_name}}.
 
 [importer.csv.msg-pick-file]
 original=Please pick at least one CSV file to import.
@@ -2000,7 +2000,7 @@ translation=Вложенное видео
 
 [importer.notion-api.label-attachment-audio]
 original=Audio attachment
-translation=
+translation=Аудиовложение
 
 [importer.notion-api.label-attachment-file]
 original=File attachment
@@ -2012,27 +2012,27 @@ translation=Вложение PDF
 
 [importer.notion-api.label-preview-child-page]
 original=Child page
-translation=
+translation=Дочерняя страница
 
 [importer.notion-api.label-preview-database]
 original=Database
-translation=
+translation=База данных
 
 [importer.notion-api.msg-preview-nested-content]
 original=Nested content is not loaded in the preview.
-translation=
+translation=Вложенное содержимое не загружается в просмотре.
 
 [importer.notion-api.msg-preview-content-not-loaded]
 original={{type}} is not loaded in the preview.
-translation=
+translation={{type}} не загружен в просмотре.
 
 [importer.notion-api.msg-preview-content-not-loaded-with-caption]
 original={{type}}: {{caption}} is not loaded in the preview.
-translation=
+translation={{type}}: {{caption}} не загружен в просмотре.
 
 [importer.notion-api.msg-preview-block-not-expanded]
 original={{type}} is not expanded in the preview.
-translation=
+translation={{type}} не развёрнут в просмотре.
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}
@@ -2212,7 +2212,7 @@ translation=Начало импорта
 
 [importer.notion.msg-markdown-export]
 original=This is a Markdown export. Export your Notion workspace as HTML instead.
-translation=
+translation=Это экспорт в формате Markdown. Вместо этого экспортируйте рабочее пространство Notion в формате HTML.
 
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead
@@ -2272,11 +2272,11 @@ translation=Некоторые ссылки указывают на блок, к
 
 [importer.roam-json.name-convert-attributes]
 original=Convert attributes to properties
-translation=
+translation=Конвертировать атрибуты в свойства
 
 [importer.roam-json.desc-convert-attributes]
 original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.
-translation=
+translation=Конвертирует подходящие атрибуты верхнего уровня Roam в свойства Obsidian. Атрибуты-ссылки остаются в заметке, чтобы ссылки на них продолжали работать.
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links

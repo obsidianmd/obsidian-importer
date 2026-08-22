@@ -408,11 +408,11 @@ translation=Nem található mappa.
 
 [source.msg-flat-files]
 original={{count}} file will be imported.
-translation=
+translation={{count}} fájl lesz importálva.
 
 [source.msg-flat-files_plural]
 original={{count}} files will be imported.
-translation=
+translation={{count}} fájl lesz importálva.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -456,19 +456,19 @@ translation=Az importált jegyzetek mentési helye. Hagyja üresen a széf legfe
 
 [output.name-template]
 original=Template
-translation=
+translation=sablon
 
 [output.desc-template]
 original=Optional Markdown template from this vault. Use variables such as {{title}}, {{content}}, and {{date}}.
-translation=
+translation=Opcionális Markdown sablon ebből a széfből. Használj változókat, mint {{title}}, {{content}} és {{date}}.
 
 [output.placeholder-template]
 original=Templates/Import.md
-translation=
+translation=Sablonok/Import.md
 
 [output.msg-template-not-found]
 original=Template must be a Markdown file in this vault: {{path}}
-translation=
+translation=A sablonnak egy Markdown fájlnak kell lennie ebben a széfben: {{path}}
 
 [output.name-attachments]
 original=Attachment location
@@ -672,7 +672,7 @@ translation=Állítsa be, hogyan történjen az adatok importálása. Használja
 
 [template.msg-note-template-intro]
 original=Review examples of how your notes will be imported.
-translation=
+translation=Tekintsd át a példákat, hogyan lesznek importálva a jegyzeteid.
 
 [template.name-title]
 original=Note title
@@ -680,7 +680,7 @@ translation=Fájl átnevezése
 
 [template.desc-title]
 original=Template for the note title. Use variables like {{field_name}} to insert values.
-translation=Sablon a jegyzet címéhez. Használja a {{field_name}} jelölést értékek beszúrásához.
+translation=Sablon a jegyzet címéhez. Használj változókat, mint {{field_name}}, értékek beszúrásához.
 
 [template.name-location]
 original=Note location
@@ -696,63 +696,63 @@ translation=Jegyzet tartalma
 
 [template.desc-content]
 original=Template for the note content. Use variables like {{field_name}} to insert values.
-translation=Sablon a jegyzet tartalmához. Használja a {{field_name}} jelölést értékek beszúrásához.
+translation=Sablon a jegyzet tartalmához. Használj változókat, mint {{field_name}}, értékek beszúrásához.
 
 [template.name-template-file]
 original=Template
-translation=
+translation=sablon
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=
+translation=Opcionális. Válassz egy sablont a széfedből a jegyzet tartalmának formázásához. A sablon szintaxisát lásd a Súgóban.
 
 [template.heading-preview]
 original=Preview
-translation=
+translation=Előnézet
 
 [template.status-loading-preview]
 original=Loading preview...
-translation=
+translation=Előnézet betöltése...
 
 [template.button-edit-template]
 original=Edit
-translation=
+translation=Szerkesztés
 
 [template.button-save-template]
 original=Save
-translation=
+translation=Mentés
 
 [template.button-reset-template]
 original=Reset to default
-translation=
+translation=Visszaállítás alapértelmezettre
 
 [template.link-show-more]
 original=Show more
-translation=
+translation=Továbbiak megjelenítése
 
 [template.name-template-editor]
 original=Template source
-translation=
+translation=Sablon forrása
 
 [template.label-edit-import-template]
 original=Edit import template
-translation=
+translation=Importálási sablon szerkesztése
 
 [template.button-add-property]
 original=Add property
-translation=
+translation=Tulajdonság hozzáadása
 
 [template.button-previous-preview]
 original=Previous preview
-translation=
+translation=Előző előnézet
 
 [template.button-next-preview]
 original=Next preview
-translation=
+translation=Következő előnézet
 
 [template.msg-diagnostic]
 original=Line {{line}}: {{message}}
-translation=
+translation={{line}}. sor: {{message}}
 
 [template.heading-properties]
 original=Properties
@@ -1236,11 +1236,11 @@ translation=Ha engedélyezve van, a CSV fájl első sora oszlopfejlécként lesz
 
 [importer.csv.name-source-title]
 original=Source title
-translation=
+translation=Forrás címe
 
 [importer.csv.desc-source-title]
 original=Creates the {{title}} value used by the final note title template. Use CSV column variables like {{column_name}}.
-translation=
+translation=Létrehozza a {{title}} értéket, amelyet a végleges jegyzetcím-sablon használ. Használj CSV oszlopváltozókat, mint {{column_name}}.
 
 [importer.csv.msg-pick-file]
 original=Please pick at least one CSV file to import.
@@ -2000,7 +2000,7 @@ translation=Videó melléklet
 
 [importer.notion-api.label-attachment-audio]
 original=Audio attachment
-translation=
+translation=Hangmelléklet
 
 [importer.notion-api.label-attachment-file]
 original=File attachment
@@ -2012,27 +2012,27 @@ translation=PDF melléklet
 
 [importer.notion-api.label-preview-child-page]
 original=Child page
-translation=
+translation=Aloldal
 
 [importer.notion-api.label-preview-database]
 original=Database
-translation=
+translation=Adatbázis
 
 [importer.notion-api.msg-preview-nested-content]
 original=Nested content is not loaded in the preview.
-translation=
+translation=A beágyazott tartalom nem töltődik be az előnézetben.
 
 [importer.notion-api.msg-preview-content-not-loaded]
 original={{type}} is not loaded in the preview.
-translation=
+translation={{type}} nem töltődik be az előnézetben.
 
 [importer.notion-api.msg-preview-content-not-loaded-with-caption]
 original={{type}}: {{caption}} is not loaded in the preview.
-translation=
+translation={{type}}: {{caption}} nem töltődik be az előnézetben.
 
 [importer.notion-api.msg-preview-block-not-expanded]
 original={{type}} is not expanded in the preview.
-translation=
+translation={{type}} nincs kibontva az előnézetben.
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}
@@ -2212,7 +2212,7 @@ translation=Importálás indítása
 
 [importer.notion.msg-markdown-export]
 original=This is a Markdown export. Export your Notion workspace as HTML instead.
-translation=
+translation=Ez egy Markdown exportálás. Exportáld a Notion munkaterületedet HTML formátumban.
 
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead
@@ -2272,11 +2272,11 @@ translation=Egyes hivatkozások olyan blokkra mutatnak, amely nem szerepel az ex
 
 [importer.roam-json.name-convert-attributes]
 original=Convert attributes to properties
-translation=
+translation=Attribútumok konvertálása tulajdonságokká
 
 [importer.roam-json.desc-convert-attributes]
 original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.
-translation=
+translation=A megfelelő legfelső szintű Roam attribútumok konvertálása Obsidian tulajdonságokká. A hivatkozott attribútumok megmaradnak a jegyzetben, hogy a rájuk mutató hivatkozások működjenek.
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links

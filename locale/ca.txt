@@ -408,11 +408,11 @@ translation=No s'han trobat carpetes.
 
 [source.msg-flat-files]
 original={{count}} file will be imported.
-translation=
+translation=S'importarà {{count}} fitxer.
 
 [source.msg-flat-files_plural]
 original={{count}} files will be imported.
-translation=
+translation=S'importaran {{count}} fitxers.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -456,19 +456,19 @@ translation=On es desaran les notes importades. Deixa-ho en blanc per utilitzar 
 
 [output.name-template]
 original=Template
-translation=
+translation=plantilla
 
 [output.desc-template]
 original=Optional Markdown template from this vault. Use variables such as {{title}}, {{content}}, and {{date}}.
-translation=
+translation=Plantilla Markdown opcional d'aquesta cambra forta. Utilitzeu variables com {{title}}, {{content}} i {{date}}.
 
 [output.placeholder-template]
 original=Templates/Import.md
-translation=
+translation=Plantilles/Import.md
 
 [output.msg-template-not-found]
 original=Template must be a Markdown file in this vault: {{path}}
-translation=
+translation=La plantilla ha de ser un fitxer Markdown d'aquesta cambra forta: {{path}}
 
 [output.name-attachments]
 original=Attachment location
@@ -672,7 +672,7 @@ translation=Configurar com s'han d'importar les dades. Utilitzeu la sintaxi {{sy
 
 [template.msg-note-template-intro]
 original=Review examples of how your notes will be imported.
-translation=
+translation=Reviseu exemples de com s'importaran les vostres notes.
 
 [template.name-title]
 original=Note title
@@ -680,7 +680,7 @@ translation=Canvia el nom de l'arxiu
 
 [template.desc-title]
 original=Template for the note title. Use variables like {{field_name}} to insert values.
-translation=Plantilla per al títol de la nota. Utilitzeu {{field_name}} per insertar valors.
+translation=Plantilla per al títol de la nota. Utilitzeu variables com {{field_name}} per inserir valors.
 
 [template.name-location]
 original=Note location
@@ -696,63 +696,63 @@ translation=Contingut de la nota
 
 [template.desc-content]
 original=Template for the note content. Use variables like {{field_name}} to insert values.
-translation=Plantilla per al contingut de la nota. Utilitzeu {{field_name}} per insertar valors.
+translation=Plantilla per al contingut de la nota. Utilitzeu variables com {{field_name}} per inserir valors.
 
 [template.name-template-file]
 original=Template
-translation=
+translation=plantilla
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=
+translation=Opcional. Trieu una plantilla de la vostra cambra forta per formatar el contingut de la nota. Consulteu l'ajuda per a la sintaxi de plantilles.
 
 [template.heading-preview]
 original=Preview
-translation=
+translation=Previsualitza
 
 [template.status-loading-preview]
 original=Loading preview...
-translation=
+translation=Carregant previsualització...
 
 [template.button-edit-template]
 original=Edit
-translation=
+translation=Edita
 
 [template.button-save-template]
 original=Save
-translation=
+translation=Desa
 
 [template.button-reset-template]
 original=Reset to default
-translation=
+translation=Restableix per defecte
 
 [template.link-show-more]
 original=Show more
-translation=
+translation=Mostra'n més
 
 [template.name-template-editor]
 original=Template source
-translation=
+translation=Font de la plantilla
 
 [template.label-edit-import-template]
 original=Edit import template
-translation=
+translation=Edita la plantilla d'importació
 
 [template.button-add-property]
 original=Add property
-translation=
+translation=Afegir propietat
 
 [template.button-previous-preview]
 original=Previous preview
-translation=
+translation=Previsualització anterior
 
 [template.button-next-preview]
 original=Next preview
-translation=
+translation=Previsualització següent
 
 [template.msg-diagnostic]
 original=Line {{line}}: {{message}}
-translation=
+translation=Línia {{line}}: {{message}}
 
 [template.heading-properties]
 original=Properties
@@ -1236,11 +1236,11 @@ translation=Si està activat, la primera fila del fitxer CSV es tractarà com a 
 
 [importer.csv.name-source-title]
 original=Source title
-translation=
+translation=Títol de la font
 
 [importer.csv.desc-source-title]
 original=Creates the {{title}} value used by the final note title template. Use CSV column variables like {{column_name}}.
-translation=
+translation=Crea el valor {{title}} utilitzat per la plantilla final del títol de la nota. Utilitzeu variables de columna CSV com {{column_name}}.
 
 [importer.csv.msg-pick-file]
 original=Please pick at least one CSV file to import.
@@ -2000,7 +2000,7 @@ translation=Adjunt de vídeo
 
 [importer.notion-api.label-attachment-audio]
 original=Audio attachment
-translation=
+translation=Adjunt d'àudio
 
 [importer.notion-api.label-attachment-file]
 original=File attachment
@@ -2012,27 +2012,27 @@ translation=Adjunt PDF
 
 [importer.notion-api.label-preview-child-page]
 original=Child page
-translation=
+translation=Pàgina filla
 
 [importer.notion-api.label-preview-database]
 original=Database
-translation=
+translation=Base de dades
 
 [importer.notion-api.msg-preview-nested-content]
 original=Nested content is not loaded in the preview.
-translation=
+translation=El contingut imbricat no es carrega a la previsualització.
 
 [importer.notion-api.msg-preview-content-not-loaded]
 original={{type}} is not loaded in the preview.
-translation=
+translation={{type}} no es carrega a la previsualització.
 
 [importer.notion-api.msg-preview-content-not-loaded-with-caption]
 original={{type}}: {{caption}} is not loaded in the preview.
-translation=
+translation={{type}}: {{caption}} no es carrega a la previsualització.
 
 [importer.notion-api.msg-preview-block-not-expanded]
 original={{type}} is not expanded in the preview.
-translation=
+translation={{type}} no s'expandeix a la previsualització.
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}
@@ -2212,7 +2212,7 @@ translation=Iniciant la importació
 
 [importer.notion.msg-markdown-export]
 original=This is a Markdown export. Export your Notion workspace as HTML instead.
-translation=
+translation=Això és una exportació Markdown. Exporteu el vostre espai de treball de Notion com a HTML.
 
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead
@@ -2272,11 +2272,11 @@ translation=Algunes referències apunten a un bloc que no és a l'exportació. S
 
 [importer.roam-json.name-convert-attributes]
 original=Convert attributes to properties
-translation=
+translation=Converteix atributs a propietats
 
 [importer.roam-json.desc-convert-attributes]
 original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.
-translation=
+translation=Converteix els atributs de nivell superior de Roam elegibles en propietats d'Obsidian. Els atributs referenciats es mantenen a la nota perquè els enllaços continuïn funcionant.
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links

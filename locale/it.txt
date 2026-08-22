@@ -408,11 +408,11 @@ translation=Nessuna cartella trovata.
 
 [source.msg-flat-files]
 original={{count}} file will be imported.
-translation=
+translation={{count}} file verrà importato.
 
 [source.msg-flat-files_plural]
 original={{count}} files will be imported.
-translation=
+translation={{count}} file verranno importati.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -456,19 +456,19 @@ translation=dove verranno salvate le note importate. Lascia vuoto per usare il l
 
 [output.name-template]
 original=Template
-translation=
+translation=modello
 
 [output.desc-template]
 original=Optional Markdown template from this vault. Use variables such as {{title}}, {{content}}, and {{date}}.
-translation=
+translation=Modello Markdown opzionale da questo vault. Usa variabili come {{title}}, {{content}} e {{date}}.
 
 [output.placeholder-template]
 original=Templates/Import.md
-translation=
+translation=Modelli/Import.md
 
 [output.msg-template-not-found]
 original=Template must be a Markdown file in this vault: {{path}}
-translation=
+translation=Il modello deve essere un file Markdown in questo vault: {{path}}
 
 [output.name-attachments]
 original=Attachment location
@@ -672,7 +672,7 @@ translation=Configura come importare i tuoi dati. Usa la sintassi {{syntax}} per
 
 [template.msg-note-template-intro]
 original=Review examples of how your notes will be imported.
-translation=
+translation=Esamina degli esempi di come verranno importate le tue note.
 
 [template.name-title]
 original=Note title
@@ -680,7 +680,7 @@ translation=Rinomina file
 
 [template.desc-title]
 original=Template for the note title. Use variables like {{field_name}} to insert values.
-translation=Modello per il titolo della nota. Usa {{field_name}} per inserire i valori.
+translation=Modello per il titolo della nota. Usa variabili come {{field_name}} per inserire i valori.
 
 [template.name-location]
 original=Note location
@@ -696,63 +696,63 @@ translation=Contenuto della nota
 
 [template.desc-content]
 original=Template for the note content. Use variables like {{field_name}} to insert values.
-translation=Modello per il contenuto della nota. Usa {{field_name}} per inserire i valori.
+translation=Modello per il contenuto della nota. Usa variabili come {{field_name}} per inserire i valori.
 
 [template.name-template-file]
 original=Template
-translation=
+translation=modello
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=
+translation=Opzionale. Scegli un modello dal tuo vault per formattare il contenuto della nota. Consulta l'Aiuto per la sintassi dei modelli.
 
 [template.heading-preview]
 original=Preview
-translation=
+translation=Anteprima
 
 [template.status-loading-preview]
 original=Loading preview...
-translation=
+translation=Caricamento anteprima...
 
 [template.button-edit-template]
 original=Edit
-translation=
+translation=Modifica
 
 [template.button-save-template]
 original=Save
-translation=
+translation=Salva
 
 [template.button-reset-template]
 original=Reset to default
-translation=
+translation=Ripristina predefinito
 
 [template.link-show-more]
 original=Show more
-translation=
+translation=Mostra altro
 
 [template.name-template-editor]
 original=Template source
-translation=
+translation=Sorgente del modello
 
 [template.label-edit-import-template]
 original=Edit import template
-translation=
+translation=Modifica modello di importazione
 
 [template.button-add-property]
 original=Add property
-translation=
+translation=Aggiungi proprietà
 
 [template.button-previous-preview]
 original=Previous preview
-translation=
+translation=Anteprima precedente
 
 [template.button-next-preview]
 original=Next preview
-translation=
+translation=Anteprima successiva
 
 [template.msg-diagnostic]
 original=Line {{line}}: {{message}}
-translation=
+translation=Riga {{line}}: {{message}}
 
 [template.heading-properties]
 original=Properties
@@ -1236,11 +1236,11 @@ translation=Se abilitato, la prima riga del file CSV verrà trattata come intest
 
 [importer.csv.name-source-title]
 original=Source title
-translation=
+translation=Titolo sorgente
 
 [importer.csv.desc-source-title]
 original=Creates the {{title}} value used by the final note title template. Use CSV column variables like {{column_name}}.
-translation=
+translation=Crea il valore {{title}} usato dal modello finale del titolo della nota. Usa variabili di colonna CSV come {{column_name}}.
 
 [importer.csv.msg-pick-file]
 original=Please pick at least one CSV file to import.
@@ -2000,7 +2000,7 @@ translation=Allegato video
 
 [importer.notion-api.label-attachment-audio]
 original=Audio attachment
-translation=
+translation=Allegato audio
 
 [importer.notion-api.label-attachment-file]
 original=File attachment
@@ -2012,27 +2012,27 @@ translation=Allegato PDF
 
 [importer.notion-api.label-preview-child-page]
 original=Child page
-translation=
+translation=Pagina figlia
 
 [importer.notion-api.label-preview-database]
 original=Database
-translation=
+translation=Database
 
 [importer.notion-api.msg-preview-nested-content]
 original=Nested content is not loaded in the preview.
-translation=
+translation=Il contenuto annidato non viene caricato nell'anteprima.
 
 [importer.notion-api.msg-preview-content-not-loaded]
 original={{type}} is not loaded in the preview.
-translation=
+translation={{type}} non viene caricato nell'anteprima.
 
 [importer.notion-api.msg-preview-content-not-loaded-with-caption]
 original={{type}}: {{caption}} is not loaded in the preview.
-translation=
+translation={{type}}: {{caption}} non viene caricato nell'anteprima.
 
 [importer.notion-api.msg-preview-block-not-expanded]
 original={{type}} is not expanded in the preview.
-translation=
+translation={{type}} non viene espanso nell'anteprima.
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}
@@ -2212,7 +2212,7 @@ translation=Avvio dell'importazione
 
 [importer.notion.msg-markdown-export]
 original=This is a Markdown export. Export your Notion workspace as HTML instead.
-translation=
+translation=Questa è un'esportazione Markdown. Esporta invece il tuo spazio di lavoro Notion come HTML.
 
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead
@@ -2272,11 +2272,11 @@ translation=Alcuni riferimenti indicano un blocco che non è presente nell'espor
 
 [importer.roam-json.name-convert-attributes]
 original=Convert attributes to properties
-translation=
+translation=Converti gli attributi in proprietà
 
 [importer.roam-json.desc-convert-attributes]
 original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.
-translation=
+translation=Converte gli attributi Roam di primo livello idonei in proprietà di Obsidian. Gli attributi referenziati rimangono nella nota affinché i collegamenti ad essi continuino a funzionare.
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links

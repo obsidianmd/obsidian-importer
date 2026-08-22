@@ -408,11 +408,11 @@ translation=Теки не знайдено.
 
 [source.msg-flat-files]
 original={{count}} file will be imported.
-translation=
+translation={{count}} файл буде імпортовано.
 
 [source.msg-flat-files_plural]
 original={{count}} files will be imported.
-translation=
+translation={{count}} файлів буде імпортовано.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -456,19 +456,19 @@ translation=Де зберігатимуться імпортовані нота�
 
 [output.name-template]
 original=Template
-translation=
+translation=шаблон
 
 [output.desc-template]
 original=Optional Markdown template from this vault. Use variables such as {{title}}, {{content}}, and {{date}}.
-translation=
+translation=Необов'язковий шаблон Markdown із цього сховища. Використовуйте змінні, такі як {{title}}, {{content}} і {{date}}.
 
 [output.placeholder-template]
 original=Templates/Import.md
-translation=
+translation=Шаблони/Import.md
 
 [output.msg-template-not-found]
 original=Template must be a Markdown file in this vault: {{path}}
-translation=
+translation=Шаблон має бути файлом Markdown у цьому сховищі: {{path}}
 
 [output.name-attachments]
 original=Attachment location
@@ -672,7 +672,7 @@ translation=Налаштуйте спосіб імпорту даних. Вик�
 
 [template.msg-note-template-intro]
 original=Review examples of how your notes will be imported.
-translation=
+translation=Перегляньте приклади того, як будуть імпортовані ваші нотатки.
 
 [template.name-title]
 original=Note title
@@ -680,7 +680,7 @@ translation=Перейменувати файл
 
 [template.desc-title]
 original=Template for the note title. Use variables like {{field_name}} to insert values.
-translation=Шаблон для назви нотатки. Використовуйте {{field_name}} для вставки значень.
+translation=Шаблон для назви нотатки. Використовуйте змінні на кшталт {{field_name}} для вставки значень.
 
 [template.name-location]
 original=Note location
@@ -696,63 +696,63 @@ translation=Вміст нотатки
 
 [template.desc-content]
 original=Template for the note content. Use variables like {{field_name}} to insert values.
-translation=Шаблон для вмісту нотатки. Використовуйте {{field_name}} для вставки значень.
+translation=Шаблон для вмісту нотатки. Використовуйте змінні на кшталт {{field_name}} для вставки значень.
 
 [template.name-template-file]
 original=Template
-translation=
+translation=шаблон
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=
+translation=Необов'язково. Оберіть шаблон зі свого сховища для форматування вмісту нотатки. Перегляньте довідку щодо синтаксису шаблонів.
 
 [template.heading-preview]
 original=Preview
-translation=
+translation=Перегляд
 
 [template.status-loading-preview]
 original=Loading preview...
-translation=
+translation=Завантаження перегляду...
 
 [template.button-edit-template]
 original=Edit
-translation=
+translation=Редагувати
 
 [template.button-save-template]
 original=Save
-translation=
+translation=Зберегти
 
 [template.button-reset-template]
 original=Reset to default
-translation=
+translation=Скинути за замовчуванням
 
 [template.link-show-more]
 original=Show more
-translation=
+translation=Показати більше
 
 [template.name-template-editor]
 original=Template source
-translation=
+translation=Джерельний код шаблону
 
 [template.label-edit-import-template]
 original=Edit import template
-translation=
+translation=Редагувати шаблон імпорту
 
 [template.button-add-property]
 original=Add property
-translation=
+translation=Додати властивість
 
 [template.button-previous-preview]
 original=Previous preview
-translation=
+translation=Попередній перегляд
 
 [template.button-next-preview]
 original=Next preview
-translation=
+translation=Наступний перегляд
 
 [template.msg-diagnostic]
 original=Line {{line}}: {{message}}
-translation=
+translation=Рядок {{line}}: {{message}}
 
 [template.heading-properties]
 original=Properties
@@ -1236,11 +1236,11 @@ translation=Якщо увімкнено, перший рядок CSV-файлу 
 
 [importer.csv.name-source-title]
 original=Source title
-translation=
+translation=Вихідна назва
 
 [importer.csv.desc-source-title]
 original=Creates the {{title}} value used by the final note title template. Use CSV column variables like {{column_name}}.
-translation=
+translation=Створює значення {{title}}, яке використовується в кінцевому шаблоні назви нотатки. Використовуйте змінні стовпців CSV на кшталт {{column_name}}.
 
 [importer.csv.msg-pick-file]
 original=Please pick at least one CSV file to import.
@@ -2000,7 +2000,7 @@ translation=Вкладене відео
 
 [importer.notion-api.label-attachment-audio]
 original=Audio attachment
-translation=
+translation=Аудіовкладення
 
 [importer.notion-api.label-attachment-file]
 original=File attachment
@@ -2012,27 +2012,27 @@ translation=Вкладений PDF
 
 [importer.notion-api.label-preview-child-page]
 original=Child page
-translation=
+translation=Дочірня сторінка
 
 [importer.notion-api.label-preview-database]
 original=Database
-translation=
+translation=База даних
 
 [importer.notion-api.msg-preview-nested-content]
 original=Nested content is not loaded in the preview.
-translation=
+translation=Вкладений вміст не завантажується у перегляді.
 
 [importer.notion-api.msg-preview-content-not-loaded]
 original={{type}} is not loaded in the preview.
-translation=
+translation={{type}} не завантажено у перегляді.
 
 [importer.notion-api.msg-preview-content-not-loaded-with-caption]
 original={{type}}: {{caption}} is not loaded in the preview.
-translation=
+translation={{type}}: {{caption}} не завантажено у перегляді.
 
 [importer.notion-api.msg-preview-block-not-expanded]
 original={{type}} is not expanded in the preview.
-translation=
+translation={{type}} не розгорнуто у перегляді.
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}
@@ -2212,7 +2212,7 @@ translation=Початок імпорту
 
 [importer.notion.msg-markdown-export]
 original=This is a Markdown export. Export your Notion workspace as HTML instead.
-translation=
+translation=Це експорт у Markdown. Натомість експортуйте свій робочий простір Notion як HTML.
 
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead
@@ -2272,11 +2272,11 @@ translation=Деякі посилання вказують на блок, яко
 
 [importer.roam-json.name-convert-attributes]
 original=Convert attributes to properties
-translation=
+translation=Перетворити атрибути на властивості
 
 [importer.roam-json.desc-convert-attributes]
 original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.
-translation=
+translation=Перетворює відповідні атрибути верхнього рівня Roam на властивості Obsidian. Атрибути з посиланнями залишаються в нотатці, щоб посилання на них продовжували працювати.
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links

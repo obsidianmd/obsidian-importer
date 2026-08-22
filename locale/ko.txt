@@ -408,11 +408,11 @@ translation=폴더를 찾을 수 없어요.
 
 [source.msg-flat-files]
 original={{count}} file will be imported.
-translation=
+translation={{count}}개 파일을 가져올 거예요.
 
 [source.msg-flat-files_plural]
 original={{count}} files will be imported.
-translation=
+translation={{count}}개 파일을 가져올 거예요.
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -456,19 +456,19 @@ translation=가져온 노트가 저장될 위치예요. 비워 두면 보관함 
 
 [output.name-template]
 original=Template
-translation=
+translation=템플릿
 
 [output.desc-template]
 original=Optional Markdown template from this vault. Use variables such as {{title}}, {{content}}, and {{date}}.
-translation=
+translation=이 보관함에 있는 마크다운 템플릿(선택 사항)이에요. {{title}}, {{content}}, {{date}} 같은 변수를 사용할 수 있어요.
 
 [output.placeholder-template]
 original=Templates/Import.md
-translation=
+translation=Templates/Import.md
 
 [output.msg-template-not-found]
 original=Template must be a Markdown file in this vault: {{path}}
-translation=
+translation=템플릿은 이 보관함에 있는 마크다운 파일이어야 해요: {{path}}
 
 [output.name-attachments]
 original=Attachment location
@@ -672,7 +672,7 @@ translation=데이터를 가져올 방법을 설정하세요. {{syntax}} 구문�
 
 [template.msg-note-template-intro]
 original=Review examples of how your notes will be imported.
-translation=
+translation=노트가 어떻게 가져와지는지 예시를 확인해 보세요.
 
 [template.name-title]
 original=Note title
@@ -680,7 +680,7 @@ translation=파일 이름 변경
 
 [template.desc-title]
 original=Template for the note title. Use variables like {{field_name}} to insert values.
-translation=노트 제목 템플릿이에요. {{field_name}}을 사용하여 값을 삽입하세요.
+translation=노트 제목 템플릿이에요. {{field_name}} 같은 변수를 사용하여 값을 삽입할 수 있어요.
 
 [template.name-location]
 original=Note location
@@ -696,63 +696,63 @@ translation=노트 내용
 
 [template.desc-content]
 original=Template for the note content. Use variables like {{field_name}} to insert values.
-translation=노트 내용 템플릿이에요. {{field_name}}을 사용하여 값을 삽입하세요.
+translation=노트 내용 템플릿이에요. {{field_name}} 같은 변수를 사용하여 값을 삽입할 수 있어요.
 
 [template.name-template-file]
 original=Template
-translation=
+translation=템플릿
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=
+translation=선택 사항이에요. 보관함에서 템플릿을 선택하여 노트 내용의 서식을 지정하세요. 템플릿 구문은 도움말을 참고하세요.
 
 [template.heading-preview]
 original=Preview
-translation=
+translation=미리보기
 
 [template.status-loading-preview]
 original=Loading preview...
-translation=
+translation=미리보기 로드 중...
 
 [template.button-edit-template]
 original=Edit
-translation=
+translation=편집
 
 [template.button-save-template]
 original=Save
-translation=
+translation=저장
 
 [template.button-reset-template]
 original=Reset to default
-translation=
+translation=기본값으로 초기화
 
 [template.link-show-more]
 original=Show more
-translation=
+translation=더 보기
 
 [template.name-template-editor]
 original=Template source
-translation=
+translation=템플릿 원본
 
 [template.label-edit-import-template]
 original=Edit import template
-translation=
+translation=가져오기 템플릿 편집
 
 [template.button-add-property]
 original=Add property
-translation=
+translation=속성 추가
 
 [template.button-previous-preview]
 original=Previous preview
-translation=
+translation=이전 미리보기
 
 [template.button-next-preview]
 original=Next preview
-translation=
+translation=다음 미리보기
 
 [template.msg-diagnostic]
 original=Line {{line}}: {{message}}
-translation=
+translation={{line}}번째 줄: {{message}}
 
 [template.heading-properties]
 original=Properties
@@ -1236,11 +1236,11 @@ translation=활성화됨이면 CSV 파일의 첫 번째 행이 열 머리글로 
 
 [importer.csv.name-source-title]
 original=Source title
-translation=
+translation=원본 제목
 
 [importer.csv.desc-source-title]
 original=Creates the {{title}} value used by the final note title template. Use CSV column variables like {{column_name}}.
-translation=
+translation=최종 노트 제목 템플릿에서 사용하는 {{title}} 값을 생성해요. {{column_name}} 같은 CSV 열 변수를 사용할 수 있어요.
 
 [importer.csv.msg-pick-file]
 original=Please pick at least one CSV file to import.
@@ -2000,7 +2000,7 @@ translation=동영상 첨부 파일
 
 [importer.notion-api.label-attachment-audio]
 original=Audio attachment
-translation=
+translation=오디오 첨부 파일
 
 [importer.notion-api.label-attachment-file]
 original=File attachment
@@ -2012,27 +2012,27 @@ translation=PDF 첨부 파일
 
 [importer.notion-api.label-preview-child-page]
 original=Child page
-translation=
+translation=하위 페이지
 
 [importer.notion-api.label-preview-database]
 original=Database
-translation=
+translation=데이터베이스
 
 [importer.notion-api.msg-preview-nested-content]
 original=Nested content is not loaded in the preview.
-translation=
+translation=중첩된 콘텐츠는 미리보기에 로드되지 않아요.
 
 [importer.notion-api.msg-preview-content-not-loaded]
 original={{type}} is not loaded in the preview.
-translation=
+translation={{type}}은(는) 미리보기에 로드되지 않아요.
 
 [importer.notion-api.msg-preview-content-not-loaded-with-caption]
 original={{type}}: {{caption}} is not loaded in the preview.
-translation=
+translation={{type}}: {{caption}}은(는) 미리보기에 로드되지 않아요.
 
 [importer.notion-api.msg-preview-block-not-expanded]
 original={{type}} is not expanded in the preview.
-translation=
+translation={{type}}은(는) 미리보기에서 펼쳐지지 않아요.
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}
@@ -2212,7 +2212,7 @@ translation=가져오기 시작 중
 
 [importer.notion.msg-markdown-export]
 original=This is a Markdown export. Export your Notion workspace as HTML instead.
-translation=
+translation=이것은 마크다운 내보내기예요. Notion 작업 공간을 HTML로 내보내세요.
 
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead
@@ -2272,11 +2272,11 @@ translation=일부 참조는 내보내기에 존재하지 않는 블록을 가�
 
 [importer.roam-json.name-convert-attributes]
 original=Convert attributes to properties
-translation=
+translation=속성을 속성으로 변환
 
 [importer.roam-json.desc-convert-attributes]
 original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.
-translation=
+translation=적합한 최상위 Roam Research 속성을 Obsidian 속성으로 변환해요. 참조된 속성은 노트에 그대로 남아 링크가 계속 작동해요.
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links

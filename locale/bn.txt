@@ -408,11 +408,11 @@ translation=কোনো ফোল্ডার পাওয়া যায়�
 
 [source.msg-flat-files]
 original={{count}} file will be imported.
-translation=
+translation={{count}}টা ফাইল ইমপোর্ট করা হবে।
 
 [source.msg-flat-files_plural]
 original={{count}} files will be imported.
-translation=
+translation={{count}}টা ফাইল ইমপোর্ট করা হবে।
 
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
@@ -456,19 +456,19 @@ translation=যেখানে ইম্পোর্ট করা নোট স�
 
 [output.name-template]
 original=Template
-translation=
+translation=টেমপ্লেট
 
 [output.desc-template]
 original=Optional Markdown template from this vault. Use variables such as {{title}}, {{content}}, and {{date}}.
-translation=
+translation=এই ভল্ট থেকে ঐচ্ছিক Markdown টেমপ্লেট। {{title}}, {{content}}, এবং {{date}} এর মতো ভেরিয়েবল ব্যবহার করুন।
 
 [output.placeholder-template]
 original=Templates/Import.md
-translation=
+translation=Templates/Import.md
 
 [output.msg-template-not-found]
 original=Template must be a Markdown file in this vault: {{path}}
-translation=
+translation=টেমপ্লেটটি এই ভল্টে একটি Markdown ফাইল হতে হবে: {{path}}
 
 [output.name-attachments]
 original=Attachment location
@@ -672,7 +672,7 @@ translation=আপনার ডেটা কীভাবে ইমপোর্�
 
 [template.msg-note-template-intro]
 original=Review examples of how your notes will be imported.
-translation=
+translation=আপনার নোটগুলো কীভাবে ইমপোর্ট হবে তার উদাহরণ পর্যালোচনা করুন।
 
 [template.name-title]
 original=Note title
@@ -680,7 +680,7 @@ translation=ফাইলের নাম পরিবর্তন করুন
 
 [template.desc-title]
 original=Template for the note title. Use variables like {{field_name}} to insert values.
-translation=নোটের শিরোনামের জন্য টেমপ্লেট। মান যোগ করুন {{field_name}} ব্যবহার করে।
+translation=নোটের শিরোনামের জন্য টেমপ্লেট। মান যোগ করতে {{field_name}} এর মতো ভেরিয়েবল ব্যবহার করুন।
 
 [template.name-location]
 original=Note location
@@ -696,63 +696,63 @@ translation=নোটের বিষয়বস্তু
 
 [template.desc-content]
 original=Template for the note content. Use variables like {{field_name}} to insert values.
-translation=নোটের বিষয়বস্তুর জন্য টেমপ্লেট। মান যোগ করুন {{field_name}} ব্যবহার করে।
+translation=নোটের বিষয়বস্তুর জন্য টেমপ্লেট। মান যোগ করতে {{field_name}} এর মতো ভেরিয়েবল ব্যবহার করুন।
 
 [template.name-template-file]
 original=Template
-translation=
+translation=টেমপ্লেট
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=
+translation=ঐচ্ছিক। নোটের বিষয়বস্তু ফরম্যাট করতে আপনার ভল্ট থেকে একটি টেমপ্লেট নির্বাচন করুন। টেমপ্লেট সিনট্যাক্সের জন্য সহায়তা দেখুন।
 
 [template.heading-preview]
 original=Preview
-translation=
+translation=প্রিভিউ
 
 [template.status-loading-preview]
 original=Loading preview...
-translation=
+translation=প্রিভিউ লোড হচ্ছে...
 
 [template.button-edit-template]
 original=Edit
-translation=
+translation=সম্পাদনা
 
 [template.button-save-template]
 original=Save
-translation=
+translation=সংরক্ষণ
 
 [template.button-reset-template]
 original=Reset to default
-translation=
+translation=ডিফল্টে রিসেট করুন
 
 [template.link-show-more]
 original=Show more
-translation=
+translation=আরো দেখুন
 
 [template.name-template-editor]
 original=Template source
-translation=
+translation=টেমপ্লেট সোর্স
 
 [template.label-edit-import-template]
 original=Edit import template
-translation=
+translation=ইমপোর্ট টেমপ্লেট সম্পাদনা করুন
 
 [template.button-add-property]
 original=Add property
-translation=
+translation=প্রপার্টি যোগ করুন
 
 [template.button-previous-preview]
 original=Previous preview
-translation=
+translation=পূর্ববর্তী প্রিভিউ
 
 [template.button-next-preview]
 original=Next preview
-translation=
+translation=পরবর্তী প্রিভিউ
 
 [template.msg-diagnostic]
 original=Line {{line}}: {{message}}
-translation=
+translation=লাইন {{line}}: {{message}}
 
 [template.heading-properties]
 original=Properties
@@ -1236,11 +1236,11 @@ translation=সক্রিয় থাকলে, CSV ফাইলের প্
 
 [importer.csv.name-source-title]
 original=Source title
-translation=
+translation=সোর্স শিরোনাম
 
 [importer.csv.desc-source-title]
 original=Creates the {{title}} value used by the final note title template. Use CSV column variables like {{column_name}}.
-translation=
+translation=চূড়ান্ত নোট শিরোনাম টেমপ্লেটে ব্যবহৃত {{title}} মান তৈরি করে। {{column_name}} এর মতো CSV শ্রেণী ভেরিয়েবল ব্যবহার করুন।
 
 [importer.csv.msg-pick-file]
 original=Please pick at least one CSV file to import.
@@ -2000,7 +2000,7 @@ translation=ভিডিও আটাচমেন্ট
 
 [importer.notion-api.label-attachment-audio]
 original=Audio attachment
-translation=
+translation=অডিও আটাচমেন্ট
 
 [importer.notion-api.label-attachment-file]
 original=File attachment
@@ -2012,27 +2012,27 @@ translation=PDF আটাচমেন্ট
 
 [importer.notion-api.label-preview-child-page]
 original=Child page
-translation=
+translation=চাইল্ড পেজ
 
 [importer.notion-api.label-preview-database]
 original=Database
-translation=
+translation=ডেটাবেস
 
 [importer.notion-api.msg-preview-nested-content]
 original=Nested content is not loaded in the preview.
-translation=
+translation=নেস্টেড বিষয়বস্তু প্রিভিউতে লোড করা হয়নি।
 
 [importer.notion-api.msg-preview-content-not-loaded]
 original={{type}} is not loaded in the preview.
-translation=
+translation={{type}} প্রিভিউতে লোড করা হয়নি।
 
 [importer.notion-api.msg-preview-content-not-loaded-with-caption]
 original={{type}}: {{caption}} is not loaded in the preview.
-translation=
+translation={{type}}: {{caption}} প্রিভিউতে লোড করা হয়নি।
 
 [importer.notion-api.msg-preview-block-not-expanded]
 original={{type}} is not expanded in the preview.
-translation=
+translation={{type}} প্রিভিউতে প্রসারিত করা হয়নি।
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}
@@ -2212,7 +2212,7 @@ translation=ইম্পোর্ট শুরু হচ্ছে
 
 [importer.notion.msg-markdown-export]
 original=This is a Markdown export. Export your Notion workspace as HTML instead.
-translation=
+translation=এটি একটি Markdown এক্সপোর্ট। এর পরিবর্তে আপনার Notion কর্মক্ষেত্র HTML হিসেবে এক্সপোর্ট করুন।
 
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead
@@ -2272,11 +2272,11 @@ translation=কিছু রেফারেন্স এমন ব্লকক�
 
 [importer.roam-json.name-convert-attributes]
 original=Convert attributes to properties
-translation=
+translation=অ্যাট্রিবিউটগুলো প্রপার্টিতে রূপান্তর করুন
 
 [importer.roam-json.desc-convert-attributes]
 original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.
-translation=
+translation=যোগ্য শীর্ষ-স্তরের Roam অ্যাট্রিবিউটগুলো Obsidian প্রপার্টিতে রূপান্তর করুন। রেফারেন্সকৃত অ্যাট্রিবিউটগুলো নোটে থাকবে যাতে সেগুলোর লিঙ্ক কাজ করতে থাকে।
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links
