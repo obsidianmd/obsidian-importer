@@ -50,8 +50,8 @@ export class EvernoteEnexImporter extends FormatImporter {
 				return folder;
 			},
 
-			planNote: (folder, title, reportAs) => {
-				const planned = this.planNote(folder, title);
+			planNote: async (folder, title, reportAs) => {
+				const planned = await this.planTemplatedNote(folder, title);
 				plans.set(planned.targetPath, { planned, reportAs, disposition: 'create' });
 
 				return planned.targetPath;
@@ -99,7 +99,7 @@ export class EvernoteEnexImporter extends FormatImporter {
 		const samples: NoteTemplateSample[] = [];
 		const output: EvernoteOutput = {
 			planFolder: (parent, name) => normalizePath(`${parent}/${name}`),
-			planNote: (folder, title) => normalizePath(`${folder}/${title}.md`),
+			planNote: async (folder, title) => normalizePath(`${folder}/${title}.md`),
 			willImport: () => true,
 			writeNote: async () => {},
 			placeAttachment: async fileName => ({ path: fileName, write: false }),

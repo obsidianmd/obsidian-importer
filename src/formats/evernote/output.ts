@@ -12,7 +12,7 @@ export interface EvernoteOutput {
 	planFolder(parent: string, name: string): string;
 
 	/** `reportAs` includes the notebook for import reporting. */
-	planNote(folder: string, title: string, reportAs: string): string;
+	planNote(folder: string, title: string, reportAs: string): Promise<string>;
 
 	willImport(path: string, sourceMtime?: number): boolean;
 

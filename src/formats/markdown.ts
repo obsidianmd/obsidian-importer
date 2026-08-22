@@ -240,7 +240,7 @@ export class MarkdownImporter extends FormatImporter {
 			const { file } = item;
 			if (!file || !isMarkdown(file)) continue;
 
-			item.note = this.planNote(item.parent || '/', file.basename);
+			item.note = await this.planTemplatedNote(item.parent || '/', file.basename);
 			this.notePlannedPath(item.source, item.note.targetPath);
 			if (item.note.file) this.importedPaths.remember(item.source, item.note.file);
 		}

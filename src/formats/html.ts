@@ -284,8 +284,12 @@ export class HtmlImporter extends FormatImporter {
 				item.baseUrl = this.sourceUrl(file, item.source);
 				const metadata = inspectHtmlDocument(await file.readText(), item.baseUrl);
 				this.sourceDocuments.remember(item.source, { path: item.source, ...metadata });
-				item.note = this.planNote(
-					item.parent || '/', htmlNoteTitle(metadata.title, file.basename), item.source);
+				item.note = await this.planTemplatedNote(
+					item.parent || '/',
+					htmlNoteTitle(metadata.title, file.basename),
+					'',
+					{ sourceId: item.source },
+				);
 				if (item.note.file) this.rememberImported(item.source, file, item.note.file);
 			}
 			catch (error) {

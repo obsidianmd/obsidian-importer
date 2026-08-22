@@ -3,7 +3,7 @@ import { NoteConverter, noteTitle } from './apple-notes/convert-note';
 import { ANAccount, ANAttachment, ANContext, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
 import { descriptor } from './apple-notes/descriptor';
 import { ImportContext } from '../import-context';
-import { fs, fsPromises, nodeBufferToArrayBuffer, os, parseFilePath, path, splitext, zlib } from '../filesystem';
+import { fs, fsPromises, nodeBufferToArrayBuffer, os, path, splitext, zlib } from '../filesystem';
 import { countText, extensionFromBytes, extractErrorMessage, sanitizeFileName } from '../util';
 import { describeFolderFailure, noAccessHint } from './apple-notes/errors';
 import { i18n } from '../i18n';
@@ -13,7 +13,6 @@ import { TreePicker, ViewableNode } from '../tree-view';
 import { Root } from 'protobufjs';
 import SQLiteTag from './apple-notes/sqlite/index';
 import { SQLiteTagSpawned } from './apple-notes/models';
-import { NoteTemplateVariables, renderNoteTemplate } from '../note-template';
 
 const NOTE_FOLDER_PATH = 'Library/Group Containers/group.com.apple.notes';
 const NOTE_DB = 'NoteStore.sqlite';
@@ -101,8 +100,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		return this.vault.getConfig('strictLineBreaks') === true;
 	}
 
-	noteTitleTemplate: string;
-
 	// Do not initialize fields set by init(); the base constructor calls it first.
 	private dataPath: string | null;
 
@@ -140,19 +137,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			: typeof storedPrefix === 'string' && storedPrefix !== ''
 				? `{{ctime | date:${JSON.stringify(storedPrefix)}}} {{title}}`
 				: DEFAULT_NOTE_TITLE_TEMPLATE;
-
-		this.addSetting('template')
-			?.setName(i18n.template.nameTitle())
-			.setDesc(i18n.template.descTitle({ field_name: '{{title}}' }))
-			.addText(t => t
-				.setValue(this.noteTitleTemplate)
-				.setPlaceholder(DEFAULT_NOTE_TITLE_TEMPLATE)
-				.onChange(async v => {
-					this.noteTitleTemplate = v;
-					this.app.saveLocalStorage(NOTE_TITLE_STORAGE_KEY, v);
-					this.templateRenderingChanged();
-				})
-			);
 
 		this.addSetting('template')
 			?.setName(i18n.importer.appleNotes.nameOmitFirstLine())
@@ -550,45 +534,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			linkTo: () => '',
 		};
 		return context;
-	}
-
-	private async configuredNoteTitle(
-		title: string,
-		folder: TFolder | string,
-		content: string,
-		provided: NoteTemplateVariables,
-		sourceId: string,
-		times: Pick<DataWriteOptions, 'ctime' | 'mtime'>,
-	): Promise<string> {
-		const folderPath = typeof folder === 'string' ? folder : folder.path;
-		const parent = folderPath === '/' ? '' : folderPath;
-		const fileName = `${sanitizeFileName(title, parent).replace(/\.md$/iu, '')}.md`;
-		const targetPath = normalizePath(parent ? `${parent}/${fileName}` : fileName);
-		const rendered = await renderNoteTemplate(
-			this.noteTitleTemplate || DEFAULT_NOTE_TITLE_TEMPLATE,
-			this.noteTemplateVariables(title, targetPath, content, provided, sourceId, times),
-		);
-
-		return rendered.trim() || title;
-	}
-
-	protected override async renderTemplatePreview(
-		template: string,
-		sample: NoteTemplateSample,
-	) {
-		const { parent } = parseFilePath(sample.path);
-		const title = await this.configuredNoteTitle(
-			sample.title,
-			parent,
-			'',
-			sample.variables ?? {},
-			sample.sourceId ?? '',
-			sample.times ?? {},
-		);
-		const fileName = `${sanitizeFileName(title, parent).replace(/\.md$/iu, '')}.md`;
-		const targetPath = normalizePath(parent ? `${parent}/${fileName}` : fileName);
-
-		return await super.renderTemplatePreview(template, { ...sample, title, path: targetPath });
 	}
 
 	async resolveAccount(id: number): Promise<void> {

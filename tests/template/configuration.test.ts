@@ -29,7 +29,7 @@ class LoadingPreviewImporter extends FormatImporter {
 		setup: NoteTemplateSetup,
 	): Promise<boolean> {
 		this.configurationShown = true;
-		this.preview = setup.preview!('{{content}}');
+		this.preview = setup.preview!('{{content}}', '{{title}}');
 		return true;
 	}
 
@@ -188,7 +188,7 @@ test('source identity is configured beside the template while existing-note beha
 		}).options;
 		options.configure?.(container, () => {});
 		managedProperties = options.managedProperties?.() ?? [];
-		return { template: '{{content}}', path: '' };
+		return { template: '{{content}}', path: '', titleTemplate: '{{title}}' };
 	};
 	const subject = new NoteSettingsImporter(memoryApp(new MemoryVault()), {
 		sourceEl: createDiv(),

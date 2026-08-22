@@ -13,8 +13,8 @@ class WritingImporter extends FormatImporter {
 	useInlineTemplate(template: string): void {
 		this.inlineTemplate = template;
 	}
-	async preview(template = '{{content}}') {
-		return await this.exampleTemplatePreview(template, []);
+	async preview(template = '{{content}}', titleTemplate = this.noteTitleTemplate) {
+		return await this.exampleTemplatePreview(template, [], titleTemplate);
 	}
 }
 
@@ -189,6 +189,25 @@ test('an inline template renders importer-specific source values', async () => {
 		'---',
 		'# Roadmap',
 	].join('\n'));
+});
+
+test('the shared title template names the imported file with Knap variables and filters', async () => {
+	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
+	subject.noteTitleTemplate = '{{source.project}} - {{title | upper}}';
+
+	const { file } = await subject.writeNote(ctx, vault.root, 'Roadmap', 'Body', {
+		templateVariables: { project: 'Importer' },
+	});
+
+	assert.equal(file.path, 'Importer - ROADMAP.md');
+});
+
+test('the template preview uses the editable title template', async () => {
+	const { subject } = importer(DuplicateHandling.CreateCopy);
+	const preview = await subject.preview('{{content}}', '{{title | upper}}');
+
+	assert.equal(preview.label, 'IMPORTED NOTE');
+	assert.equal(preview.path, 'Import/IMPORTED NOTE.md');
 });
 
 test('shared template timestamps reflect source file times', async () => {

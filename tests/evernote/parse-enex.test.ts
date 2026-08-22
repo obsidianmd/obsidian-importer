@@ -38,7 +38,10 @@ function inPieces(text: string, size: number): PickedFile {
 
 async function notesFrom(file: PickedFile): Promise<EnexElement[]> {
 	const found: EnexElement[] = [];
-	await parseEnex(file, { wanted: new Set(['note']), onElement: (_name, element) => found.push(element) });
+	await parseEnex(file, {
+		wanted: new Set(['note']),
+		onElement: (_name, element) => { found.push(element); },
+	});
 
 	return found;
 }
@@ -93,7 +96,7 @@ test('a read stopped between pieces gives back only what it had reached', async 
 
 	await parseEnex(inPieces(ENEX, 8), {
 		wanted: new Set(['note']),
-		onElement: (_name, element) => found.push(element),
+		onElement: (_name, element) => { found.push(element); },
 		checkpoint: async () => ++pieces > 3,
 	});
 

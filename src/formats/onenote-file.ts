@@ -1,5 +1,5 @@
 import { Notice, Platform, TFile, TFolder, normalizePath } from 'obsidian';
-import { PickedFile, fs, os, path as nodePath } from '../filesystem';
+import { PickedFile, fs, os, parseFilePath, path as nodePath } from '../filesystem';
 import { FormatImporter, leavesTheNoteAlone, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
@@ -302,9 +302,13 @@ export class OneNoteFileImporter extends FormatImporter {
 
 		try {
 			// Preflight before conversion so skipped notes write no attachments.
-			const planned = this.planNote(sectionFolder, title, page.id);
+			const planned = await this.planTemplatedNote(sectionFolder, title, '', {
+				sourceId: page.id,
+				mtime: page.lastModifiedUtc?.getTime(),
+			});
 			const disposition = this.preflightNote(ctx, planned, page.lastModifiedUtc?.getTime());
-			if (leavesTheNoteAlone(disposition)) return title;
+			const plannedTitle = parseFilePath(planned.targetPath).basename;
+			if (leavesTheNoteAlone(disposition)) return plannedTitle;
 
 			const notePath = planned.targetPath;
 			const converted = await convertPage(page, {
@@ -325,7 +329,7 @@ export class OneNoteFileImporter extends FormatImporter {
 			});
 
 			if (written) ctx.reportNoteSuccess(title);
-			return title;
+			return plannedTitle;
 		}
 		catch (error) {
 			ctx.reportFailed(title, error);

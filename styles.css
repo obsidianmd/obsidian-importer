@@ -442,14 +442,13 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 }
 
 .importer-template-preview-nav {
-	position: absolute;
 	z-index: 1;
-	top: var(--size-4-2);
-	right: calc(var(--setting-items-padding-x) + var(--size-4-2));
 	display: flex;
 	align-items: center;
 	justify-content: flex-end;
 	gap: var(--size-4-2);
+	border-bottom: var(--border-width) solid var(--background-modifier-border);
+	padding: var(--size-4-1) var(--size-4-2);
 }
 
 .importer-template-preview-nav button {
@@ -458,24 +457,26 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 }
 
 .importer-template-preview {
-	position: relative;
 	min-height: 12rem;
 	height: 24rem;
 	padding: 0 var(--setting-items-padding-x) var(--setting-items-padding-y);
 	display: flex;
 }
 
-.importer-template-preview-content {
+.importer-template-preview-container {
+	position: relative;
 	display: flex;
+	flex-direction: column;
 	flex: 1;
 	min-width: 0;
+	border: var(--border-width) solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	corner-shape: var(--corner-shape);
+	background-color: var(--background-primary);
 }
 
 .importer-template-preview .markdown-preview-view {
 	padding: 18px 24px;
-	border: var(--border-width) solid var(--background-modifier-border);
-	border-radius: var(--radius-s);
-	background-color: var(--background-primary);
 	--font-text-size: var(--font-ui-small);
 }
 .importer-template-preview .markdown-rendered :is(h2,h3,h4,h5,h6) {

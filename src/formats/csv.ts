@@ -89,8 +89,9 @@ export class CSVImporter extends FormatImporter {
 				sourceName: field.id,
 				id: sourceVariableExpression(field.id),
 			})),
-			preview: async template => await Promise.all(
-				this.csvRows.slice(0, TEMPLATE_PREVIEW_LIMIT).map(row => this.previewTemplate(template, row))
+			preview: async (template, titleTemplate) => await Promise.all(
+				this.csvRows.slice(0, TEMPLATE_PREVIEW_LIMIT)
+					.map(row => this.previewTemplate(template, titleTemplate, row))
 			),
 			configure: (contentEl, previewChanged) => {
 				const templates = new SettingGroup(contentEl);
@@ -118,7 +119,7 @@ export class CSVImporter extends FormatImporter {
 		});
 	}
 
-	private async previewTemplate(template: string, row: CSVRow) {
+	private async previewTemplate(template: string, titleTemplate: string, row: CSVRow) {
 		const title = await this.renderRowTemplate(this.config!.titleTemplate, row)
 			|| i18n.importer.csv.reasonEmptyTitle();
 		const location = this.sanitizeFilePath(await this.renderRowTemplate(this.config!.locationTemplate, row));
@@ -133,7 +134,7 @@ export class CSVImporter extends FormatImporter {
 			path,
 			content: '',
 			variables: row,
-		});
+		}, titleTemplate);
 	}
 
 	private async renderRowTemplate(template: string, row: CSVRow): Promise<string> {

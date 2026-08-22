@@ -30,6 +30,7 @@ import { computeTableFormulas } from './airtable-api/table-formulas';
 import {
 	buildRecordNote,
 	defaultPropertyConfig,
+	extractStringValue,
 	frontMatterFieldsForTable,
 	isEmptyRecord,
 	RECORD_ID_PROPERTY,
@@ -455,7 +456,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				});
 				return await this.showNoteTemplateConfiguration(container, buttonsEl, {
 					fields: templateFields,
-					preview: async template => {
+					preview: async (template, titleTemplate) => {
 						const loaded = await samples;
 						const withViews: NoteTemplateSample[] = loaded.map(sample => ({
 							...sample,
@@ -463,7 +464,12 @@ export class AirtableAPIImporter extends FormatImporter {
 								? { [this.viewPropertyName]: sample.viewReferences }
 								: undefined,
 						}));
-						return await this.previewLoadedSamples(template, Promise.resolve(withViews), templateFields);
+						return await this.previewLoadedSamples(
+							template,
+							titleTemplate,
+							Promise.resolve(withViews),
+							templateFields,
+						);
 					},
 					cancel: back,
 					configure: (contentEl, previewChanged) => {
@@ -1005,7 +1011,21 @@ export class AirtableAPIImporter extends FormatImporter {
 
 				// Including the note an earlier import wrote, wherever the user
 				// has since moved it to.
-				const note = this.planNote(tablePath, recordTitle(record, primaryFieldName), record.id);
+				const note = await this.planTemplatedNote(
+					tablePath,
+					recordTitle(record, primaryFieldName),
+					'',
+					{
+						sourceId: record.id,
+						...recordTimestamps(record),
+						templateVariables: Object.fromEntries(
+							Object.entries(record.fields ?? {}).map(([name, value]) => [
+								name,
+								extractStringValue(value),
+							]),
+						),
+					},
+				);
 				const { basename } = parseFilePath(note.targetPath);
 
 				this.recordIdToPath.set(`${baseId}:${record.id}`, note.targetPath.replace(/\.md$/, ''));

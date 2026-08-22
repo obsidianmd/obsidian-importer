@@ -58,7 +58,7 @@ export class FsOutput implements EvernoteOutput {
 		return folder;
 	}
 
-	planNote(folder: string, title: string, reportAs: string): string {
+	async planNote(folder: string, title: string, reportAs: string): Promise<string> {
 		const name = `${sanitizeFileName(title, folder).replace(/\.md$/i, '')}.md`;
 		const desired = `${folder}/${name}`;
 

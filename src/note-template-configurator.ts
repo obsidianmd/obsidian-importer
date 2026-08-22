@@ -15,6 +15,7 @@ export interface NoteTemplatePreview {
 export interface NoteTemplateEditorConfig {
 	template: string;
 	path: string;
+	titleTemplate: string;
 }
 
 export interface NoteTemplateConfiguratorOptions {
@@ -22,8 +23,9 @@ export interface NoteTemplateConfiguratorOptions {
 	/** Generated template restored when the selected file is cleared. */
 	defaultTemplate: string;
 	template: string;
+	titleTemplate: string;
 	path?: string;
-	preview: (template: string) => Promise<NoteTemplatePreview | NoteTemplatePreview[]>;
+	preview: (template: string, titleTemplate: string) => Promise<NoteTemplatePreview | NoteTemplatePreview[]>;
 	/** Resolve to close the editor without accepting its current template. */
 	cancel?: Promise<void>;
 	/** Additional note-writing settings shown between the template file and preview. */
@@ -332,10 +334,12 @@ function renderEditableProperties(container: HTMLElement, properties: EditablePr
 export class NoteTemplateConfigurator {
 	private template: string;
 	private path: string;
+	private titleTemplate: string;
 
 	constructor(private readonly options: NoteTemplateConfiguratorOptions) {
 		this.template = options.template;
 		this.path = options.path ?? '';
+		this.titleTemplate = options.titleTemplate;
 	}
 
 	async show(container: HTMLElement, buttonsEl: HTMLElement): Promise<NoteTemplateEditorConfig | null> {
@@ -344,6 +348,7 @@ export class NoteTemplateConfigurator {
 
 			let editing = false;
 			let editorEl: HTMLTextAreaElement | null = null;
+			let titleEditorEl: HTMLElement | null = null;
 			let editorProperties: EditableProperty[] = [];
 			let revision = 0;
 			let templateLoadRevision = 0;
@@ -386,7 +391,8 @@ export class NoteTemplateConfigurator {
 				.setButtonText(i18n.template.buttonEditTemplate());
 			const previewDiagnostics = previewGroup.listEl.createDiv('importer-template-diagnostics');
 			const previewEl = previewGroup.listEl.createDiv('importer-template-preview');
-			const previewNav = previewEl.createDiv('importer-template-preview-nav');
+			const preview = previewEl.createDiv('importer-template-preview-container');
+			const previewNav = preview.createDiv('importer-template-preview-nav');
 			const previousButton = previewNav.createEl('button');
 			setIcon(previousButton, 'lucide-chevron-left');
 			previousButton.setAttr('aria-label', i18n.template.buttonPreviousPreview());
@@ -394,13 +400,17 @@ export class NoteTemplateConfigurator {
 			setIcon(nextButton, 'lucide-chevron-right');
 			nextButton.setAttr('aria-label', i18n.template.buttonNextPreview());
 			previewNav.toggle(false);
-			// The nav sits inside the preview, so what a redraw clears is the
-			// content beside it rather than the preview itself.
-			const preview = previewEl.createDiv('importer-template-preview-content');
+			// The nav lives in the container a redraw clears, so it goes back in
+			// afterwards. It is positioned, so where it lands among the children
+			// does not matter.
+			const clearPreview = (): void => {
+				preview.empty();
+				preview.append(previewNav);
+			};
 			const showPreviewLoading = (): void => {
 				renderComponent?.unload();
 				renderComponent = null;
-				preview.empty();
+				clearPreview();
 				previewDiagnostics.empty();
 				previewNav.hide();
 				const loading = preview.createDiv('importer-loading importer-template-preview-loading');
@@ -442,7 +452,7 @@ export class NoteTemplateConfigurator {
 					renderComponent?.unload();
 					renderComponent = candidateComponent;
 					candidateComponent = null;
-					preview.empty();
+					clearPreview();
 					preview.append(rendered);
 					previewNav.toggle(samples.length > 1);
 					previewDiagnostics.empty();
@@ -454,7 +464,7 @@ export class NoteTemplateConfigurator {
 				catch (error) {
 					candidateComponent?.unload();
 					if (current !== revision) return false;
-					preview.empty();
+					clearPreview();
 					previewDiagnostics.setText(error instanceof Error ? error.message : String(error));
 					return false;
 				}
@@ -473,10 +483,9 @@ export class NoteTemplateConfigurator {
 				++revision;
 				renderComponent?.unload();
 				renderComponent = null;
-				preview.empty();
+				clearPreview();
 				previewDiagnostics.empty();
 				previewNav.hide();
-				const sample = samples[sampleIndex];
 				const parsedTemplate = parseTemplateFrontMatter(this.template);
 				const managedProperties = (this.options.managedProperties?.() ?? [])
 					.map(property => ({ ...property, managed: true }));
@@ -489,10 +498,18 @@ export class NoteTemplateConfigurator {
 				];
 				const rendered = preview.createDiv(
 					'markdown-preview-view markdown-rendered importer-template-rendered-note importer-template-editing-note');
-				rendered.createDiv({
+				titleEditorEl = rendered.createDiv({
 					cls: 'inline-title',
-					text: sample ? previewTitle(sample) : '',
-					attr: { contenteditable: false, tabindex: -1 },
+					text: this.titleTemplate,
+					attr: {
+						contenteditable: true,
+						'aria-label': i18n.template.nameTitle(),
+						spellcheck: false,
+					},
+				});
+				titleEditorEl.addEventListener('keydown', event => {
+					if (event.key !== 'Enter') return;
+					event.preventDefault();
 				});
 				renderEditableProperties(rendered, editorProperties);
 				editorEl = rendered.createEl('textarea', {
@@ -509,6 +526,7 @@ export class NoteTemplateConfigurator {
 
 			const finishEditing = (): void => {
 				if (!editing || !editorEl) return;
+				this.titleTemplate = titleEditorEl?.textContent?.trim() || '{{title}}';
 				const editedTemplate = serializeTemplate(editorProperties, editorEl.value);
 				if (editedTemplate !== this.template) {
 					this.template = editedTemplate;
@@ -516,6 +534,7 @@ export class NoteTemplateConfigurator {
 					pathInput.value = '';
 				}
 				editorEl = null;
+				titleEditorEl = null;
 				++templateLoadRevision;
 				setEditing(false);
 			};
@@ -524,7 +543,7 @@ export class NoteTemplateConfigurator {
 				const current = ++revision;
 				if (showLoading) showPreviewLoading();
 				try {
-					const result = await this.options.preview(this.template);
+					const result = await this.options.preview(this.template, this.titleTemplate);
 					if (current !== revision) return false;
 					samples = Array.isArray(result) ? result : [result];
 					sampleIndex = Math.min(sampleIndex, Math.max(0, samples.length - 1));
@@ -538,7 +557,7 @@ export class NoteTemplateConfigurator {
 				}
 				catch (error) {
 					if (current !== revision) return false;
-					preview.empty();
+					clearPreview();
 					previewDiagnostics.setText(error instanceof Error ? error.message : String(error));
 					return false;
 				}
@@ -575,6 +594,7 @@ export class NoteTemplateConfigurator {
 					this.template = this.options.defaultTemplate;
 					setEditing(false);
 					editorEl = null;
+					titleEditorEl = null;
 					await updatePreview();
 				};
 				if (!path) {
@@ -597,6 +617,7 @@ export class NoteTemplateConfigurator {
 					pathInput.value = file.path;
 					setEditing(false);
 					editorEl = null;
+					titleEditorEl = null;
 					await updatePreview();
 				}
 				catch (error) {
@@ -611,7 +632,11 @@ export class NoteTemplateConfigurator {
 					finishEditing();
 					void updatePreview(true, true).then(valid => {
 						if (!valid) return;
-						finish({ template: this.template, path: this.path });
+						finish({
+							template: this.template,
+							path: this.path,
+							titleTemplate: this.titleTemplate,
+						});
 					});
 				});
 			});

@@ -100,7 +100,7 @@ export interface NoteImport extends DataWriteOptions {
 export interface NoteTemplateSetup {
 	defaultTemplate?: string;
 	fields?: TemplateField[];
-	preview?: (template: string) => Promise<NoteTemplatePreview | NoteTemplatePreview[]>;
+	preview?: (template: string, titleTemplate: string) => Promise<NoteTemplatePreview | NoteTemplatePreview[]>;
 	/** Resolve to close this screen without accepting it. */
 	cancel?: Promise<void>;
 	/** Importer-specific controls shown between the template chooser and preview. */
@@ -221,6 +221,8 @@ export abstract class FormatImporter {
 	templatePath: string = '';
 	/** Inline template configured for this import run. */
 	protected inlineTemplate: string | null = null;
+	/** Knap expression used to name imported notes. */
+	noteTitleTemplate: string = '{{title}}';
 	notAvailable: boolean = false;
 
 	/** Set in init(), not in a subclass field initializer. */
@@ -367,7 +369,8 @@ export abstract class FormatImporter {
 		this.templateSamplesChanged = samplesChanged;
 		try {
 			return await this.showNoteTemplateConfiguration(container, buttonsEl, {
-				preview: async template => await this.previewLoadedSamples(template, samples, fields),
+				preview: async (template, titleTemplate) =>
+					await this.previewLoadedSamples(template, titleTemplate, samples, fields),
 			});
 		}
 		finally {
@@ -406,24 +409,26 @@ export abstract class FormatImporter {
 
 	protected previewForSamples(
 		samples: NoteTemplateSample[],
+		titleTemplate = this.noteTitleTemplate,
 	): NoteTemplateSetup['preview'] | undefined {
 		if (samples.length === 0) return undefined;
-		return async template => await Promise.all(
-			samples.map(sample => this.renderTemplatePreview(template, sample))
+		return async (template, candidateTitleTemplate = titleTemplate) => await Promise.all(
+			samples.map(sample => this.renderTemplatePreview(template, sample, candidateTitleTemplate))
 		);
 	}
 
 	/** Render real samples when available, otherwise retain the generated example. */
 	protected async previewLoadedSamples(
 		template: string,
+		titleTemplate: string,
 		samples: Promise<NoteTemplateSample[]>,
 		fields: TemplateField[] = [],
 	): Promise<NoteTemplatePreview | NoteTemplatePreview[]> {
 		const loaded = await samples;
-		const preview = this.previewForSamples(loaded);
+		const preview = this.previewForSamples(loaded, titleTemplate);
 		return preview
-			? await preview(template)
-			: await this.exampleTemplatePreview(template, fields);
+			? await preview(template, titleTemplate)
+			: await this.exampleTemplatePreview(template, fields, titleTemplate);
 	}
 
 	protected async showNoteTemplateConfiguration(
@@ -445,12 +450,14 @@ export abstract class FormatImporter {
 		}
 
 		const preview = setup.preview
-			?? (async candidate => await this.exampleTemplatePreview(candidate, setup.fields ?? []));
+			?? (async (candidate, titleTemplate) =>
+				await this.exampleTemplatePreview(candidate, setup.fields ?? [], titleTemplate));
 		let previewChange: (() => void) | null = null;
 		const configured = await new NoteTemplateConfigurator({
 			app: this.app,
 			defaultTemplate,
 			template,
+			titleTemplate: this.noteTitleTemplate,
 			path: templatePath,
 			preview,
 			cancel: setup.cancel,
@@ -483,6 +490,7 @@ export abstract class FormatImporter {
 
 		this.inlineTemplate = configured.template;
 		this.templatePath = configured.path;
+		this.noteTitleTemplate = configured.titleTemplate;
 		this.loadedTemplate = null;
 		this.saveOutputSettings();
 		return true;
@@ -496,6 +504,7 @@ export abstract class FormatImporter {
 	protected async exampleTemplatePreview(
 		template: string,
 		fields: TemplateField[],
+		titleTemplate = this.noteTitleTemplate,
 	): Promise<NoteTemplatePreview> {
 		const content = '# Imported note\n\nImported content';
 		const source = Object.fromEntries(fields.map(field => [field.sourceName ?? field.id, field.exampleValue ?? '']));
@@ -506,16 +515,30 @@ export abstract class FormatImporter {
 			content,
 			variables: source,
 			sourceId,
-		});
+		}, titleTemplate);
 	}
 
 	protected async renderTemplatePreview(
 		template: string,
 		sample: NoteTemplateSample,
+		titleTemplate = this.noteTitleTemplate,
 	): Promise<NoteTemplatePreview> {
-		const variables = this.noteTemplateVariables(
+		const { parent } = parseFilePath(sample.path);
+		const titleVariables = this.noteTemplateVariables(
 			sample.title,
 			sample.path,
+			sample.content,
+			sample.variables ?? {},
+			sample.sourceId,
+			sample.times ?? {},
+		);
+		const titleResult = await renderNoteTemplateResult(titleTemplate || '{{title}}', titleVariables);
+		const title = titleResult.output.trim() || sample.title;
+		const fileName = `${sanitizeFileName(title, parent).replace(/\.md$/iu, '')}.md`;
+		const targetPath = normalizePath(parent ? `${parent}/${fileName}` : fileName);
+		const variables = this.noteTemplateVariables(
+			title,
+			targetPath,
 			sample.content,
 			sample.variables ?? {},
 			sample.sourceId,
@@ -525,11 +548,19 @@ export abstract class FormatImporter {
 		let content = this.withGeneratedProperties(result.output, sample.generatedProperties);
 		content = this.withSourceId(content, sample.sourceId);
 		return {
-			label: sample.label,
-			path: sample.path,
+			label: title,
+			path: targetPath,
 			content,
-			valid: result.errors.length === 0,
+			valid: titleResult.errors.length === 0 && result.errors.length === 0,
 			diagnostics: [
+				...titleResult.errors.map(error => i18n.template.msgDiagnostic({
+					line: error.line,
+					message: error.message,
+				})),
+				...titleResult.warnings.map(warning => i18n.template.msgDiagnostic({
+					line: warning.line,
+					message: warning.message,
+				})),
 				...result.errors.map(error => i18n.template.msgDiagnostic({
 					line: error.line,
 					message: error.message,
@@ -1194,7 +1225,8 @@ export abstract class FormatImporter {
 
 	private async loadOutputSettings(): Promise<void> {
 		this.outputLocation = this.defaultOutputFolder;
-		this.templatePath = '';
+		// An importer may set a migrated value in init().
+		this.noteTitleTemplate ||= '{{title}}';
 		this.loadedTemplate = null;
 		// init() may remove the field default from duplicateModes.
 		if (!this.duplicateModes.includes(this.duplicateHandling)) {
@@ -1219,6 +1251,7 @@ export abstract class FormatImporter {
 
 			if (saved.folder !== undefined) this.outputLocation = saved.folder;
 			if (saved.template !== undefined) this.templatePath = saved.template;
+			if (saved.titleTemplate !== undefined) this.noteTitleTemplate = saved.titleTemplate || '{{title}}';
 			if (saved.attachments) this.attachmentLocation = { ...saved.attachments };
 			if (saved.duplicates && this.duplicateModes.includes(saved.duplicates)) {
 				this.duplicateHandling = saved.duplicates;
@@ -1245,6 +1278,7 @@ export abstract class FormatImporter {
 						saveSourceId: this.saveSourceId,
 						idProperty: this.idProperty ?? undefined,
 						template: this.templatePath,
+						titleTemplate: this.noteTitleTemplate,
 					},
 				};
 				await this.host.plugin.saveData(data);
@@ -1526,6 +1560,45 @@ export abstract class FormatImporter {
 		return { title, desiredPath, targetPath, file, sourceId };
 	}
 
+	/** Render the configured note-title expression against one source note. */
+	protected async configuredNoteTitle(
+		title: string,
+		folder: TFolder | string,
+		content: string,
+		provided: NoteTemplateVariables = {},
+		sourceId = '',
+		times: Pick<DataWriteOptions, 'ctime' | 'mtime'> = {},
+	): Promise<string> {
+		const folderPath = typeof folder === 'string' ? normalizePath(folder) : folder.path;
+		const parent = folderPath === '/' ? '' : folderPath;
+		const fileName = `${sanitizeFileName(title, parent).replace(/\.md$/iu, '')}.md`;
+		const targetPath = normalizePath(parent ? `${parent}/${fileName}` : fileName);
+		const rendered = await renderNoteTemplate(
+			this.noteTitleTemplate || '{{title}}',
+			this.noteTemplateVariables(title, targetPath, content, provided, sourceId, times),
+		);
+
+		return rendered.trim() || title;
+	}
+
+	/** Apply the title template before reserving a note path. */
+	protected async planTemplatedNote(
+		folder: TFolder | string,
+		title: string,
+		content = '',
+		options: NoteImport = {},
+	): Promise<PlannedNote> {
+		const configuredTitle = await this.configuredNoteTitle(
+			title,
+			folder,
+			content,
+			options.templateVariables,
+			options.sourceId,
+			options,
+		);
+		return this.planNote(folder, configuredTitle, options.sourceId);
+	}
+
 	protected freeFilePath(parent: string, name: string): string {
 		const unique = getUniqueFilePath(this.vault, parent, name);
 		if (!this.hasClaimed(unique)) return unique;
@@ -1706,7 +1779,7 @@ export abstract class FormatImporter {
 	/** Write, update, or match an imported note according to the duplicate mode. */
 	async writeNote(ctx: ImportContext, folder: TFolder, title: string, content: string, options: NoteImport = {}): Promise<NoteWritten> {
 		const { sourceId, ...writeOptions } = options;
-		const resolved = this.planNote(folder, title, sourceId);
+		const resolved = await this.planTemplatedNote(folder, title, content, options);
 
 		return await this.writePlannedNote(ctx, resolved, content, { ...writeOptions, sourceId });
 	}

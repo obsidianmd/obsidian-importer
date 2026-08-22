@@ -64,7 +64,10 @@ function notionPreviewProperties(
 	databasePropertyName: string,
 	databaseTag?: string,
 ): FrontMatterCache {
-	const properties: FrontMatterCache = { [NOTION_ID_PROPERTY]: page.id };
+	// Source identity is added by the shared renderer only when the user has
+	// asked to save it. Keeping it out of the cached sample lets the toggle
+	// update the preview without fetching the page again.
+	const properties: FrontMatterCache = {};
 	if (databaseTag) properties[databasePropertyName] = `[[${databaseTag}]]`;
 	for (const [name, property] of Object.entries(page.properties)) {
 		if (property.type === 'title') continue;
@@ -927,15 +930,30 @@ export class NotionAPIImporter extends FormatImporter {
 
 			// "Create a copy" is not looking for a note to write over, but one
 			// this run wrote before it was interrupted is still its own.
-			const desiredPath = normalizePath(homeFolder ? `${homeFolder}/${sanitizedTitle}.md` : `${sanitizedTitle}.md`);
+			const sourceMtime = page.last_edited_time ? new Date(page.last_edited_time).getTime() : undefined;
+			const configuredTitle = await this.configuredNoteTitle(
+				sanitizedTitle,
+				homeFolder,
+				'',
+				notionPreviewProperties(
+					page,
+					this.coverPropertyName,
+					this.databasePropertyName,
+					databaseTag,
+				),
+				pageId,
+				{ mtime: sourceMtime },
+			);
+			const desiredPath = normalizePath(
+				homeFolder ? `${homeFolder}/${sanitizeFileName(configuredTitle)}.md` : `${sanitizeFileName(configuredTitle)}.md`,
+			);
 			const recovered = this.duplicateHandling === DuplicateHandling.CreateCopy
 				&& await this.alreadyWrittenByAnUnfinishedImport(desiredPath, pageId, ctx);
 
 			// Notion says when it last changed the page, and an import writes
 			// that onto the note, so a page nobody has touched at either end is
 			// known to be unchanged without reading a word of it.
-			const sourceMtime = page.last_edited_time ? new Date(page.last_edited_time).getTime() : undefined;
-			const planned = recovered ? null : this.planNote(homeFolder, sanitizedTitle, pageId);
+			const planned = recovered ? null : this.planNote(homeFolder, configuredTitle, pageId);
 			const disposition = planned ? this.preflightNote(ctx, planned, sourceMtime) : 'skip';
 			const mdFilePath = planned ? planned.targetPath : desiredPath;
 
@@ -1704,7 +1722,16 @@ export class NotionAPIImporter extends FormatImporter {
 			return recovered;
 		}
 
-		const planned = this.planNote(folderPath, this.syncedBlockTitle(folderPath, fileName), blockId);
+		const planned = await this.planTemplatedNote(
+			folderPath,
+			this.syncedBlockTitle(folderPath, fileName),
+			'',
+			{
+				sourceId: blockId,
+				ctime: createdTime ? new Date(createdTime).getTime() : undefined,
+				mtime: lastEditedTime ? new Date(lastEditedTime).getTime() : undefined,
+			},
+		);
 		const sourceMtime = lastEditedTime ? new Date(lastEditedTime).getTime() : undefined;
 		const disposition = this.preflightNote(ctx, planned, sourceMtime);
 

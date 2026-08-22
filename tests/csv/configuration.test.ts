@@ -79,7 +79,7 @@ test('note title and location are configured on the CSV template page', async ()
 		inputs[1].dispatchEvent(new window.Event('input'));
 		assert.equal(subject.previewChanges, 2);
 
-		const rendered = await subject.setup.preview!('{{content}}');
+		const rendered = await subject.setup.preview!('{{content}}', '{{title}}');
 		const previews = Array.isArray(rendered) ? rendered : [rendered];
 		assert.equal(previews[0].path, 'CSV import/groups/work/ALPHA.md');
 	}

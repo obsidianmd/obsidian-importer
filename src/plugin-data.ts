@@ -9,6 +9,8 @@ export interface OutputSettings {
 	/** Frontmatter key used for the importer's managed source identity. */
 	idProperty?: string;
 	template?: string;
+	/** Knap expression used to name imported notes. */
+	titleTemplate?: string;
 }
 
 export interface ImporterData {

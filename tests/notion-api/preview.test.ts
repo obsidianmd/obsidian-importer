@@ -169,3 +169,28 @@ test('Notion previews custom cover and database property names', async () => {
 	assert.equal(renamedFrontMatter?.banner, 'https://example.com/cover.jpg');
 	assert.equal(renamedFrontMatter?.database, '[[Projects.base]]');
 });
+
+test('Notion ID appears in the rendered preview only when enabled', async () => {
+	const subject = Object.create(NotionAPIImporter.prototype) as NotionAPIImporter;
+	Object.assign(subject, {
+		coverPropertyName: 'cover',
+		databasePropertyName: 'base',
+		host: { importerId: 'notion-api' },
+		idProperty: 'notion-id',
+		saveSourceId: false,
+	});
+	const sample = (subject as unknown as {
+		templateSampleFromPage(cached: {
+			page: PageObjectResponse;
+			blocks: BlockObjectResponse[];
+		}): NoteTemplateSample;
+	}).templateSampleFromPage({ page, blocks: paragraphBlocks });
+	const render = async () => await (subject as unknown as {
+		renderTemplatePreview(template: string, sample: NoteTemplateSample): Promise<{ content: string }>;
+	}).renderTemplatePreview('{{content}}', sample);
+
+	assert.equal(parseFrontMatterBlock((await render()).content)?.frontMatter['notion-id'], undefined);
+
+	subject.saveSourceId = true;
+	assert.equal(parseFrontMatterBlock((await render()).content)?.frontMatter['notion-id'], page.id);
+});
