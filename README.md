@@ -23,8 +23,7 @@ Import guides are hosted on the [official Obsidian Help site](https://obsidian.m
 - Import from Apple Journal (HTML export)
 - Import from Tomboy/Gnote (.note)
 
-See [Import templates](/docs/templates.md) for the shared template variables
-and the additional values provided by each importer.
+See [Import templates](/docs/templates.md) for the shared template variables and the additional values provided by each importer.
 
 ## Developers
 
