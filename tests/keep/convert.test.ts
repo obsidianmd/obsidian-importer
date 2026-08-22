@@ -19,7 +19,7 @@ import assert from 'node:assert/strict';
 import * as nodeFs from 'node:fs';
 import * as nodePath from 'node:path';
 
-import { convertKeepNote } from '../../src/formats/keep/convert';
+import { convertKeepNote, formatAnnotations, keepTemplateVariables } from '../../src/formats/keep/convert';
 import { KeepJson } from '../../src/formats/keep/models';
 import { sanitizeFileName } from '../../src/util';
 import { expectedFor, expectFile, fixtures } from '../helpers';
@@ -71,6 +71,35 @@ test('converts microseconds to the milliseconds the vault wants', () => {
 
 	assert.equal(ctime, 1690425909718);
 	assert.equal(mtime, 1690864927360);
+});
+
+test('offers simple list values to the shared template metadata editor', () => {
+	const variables = keepTemplateVariables({
+		labels: [{ name: 'Recipes' }, { name: 'Later' }],
+		tasks: [{ id: 'task-1' }],
+		annotations: [{ url: 'https://example.com/' }, { title: 'No URL' }],
+		createdTimestampUsec: 1690425909718000,
+		userEditedTimestampUsec: 1690864927360000,
+	} as KeepJson);
+
+	assert.deepEqual(variables.labelNames, ['Recipes', 'Later']);
+	assert.deepEqual(variables.taskIds, ['task-1']);
+	assert.deepEqual(variables.annotationUrls, ['https://example.com/']);
+});
+
+test('formats annotation fallbacks and skips empty annotations', () => {
+	assert.equal(formatAnnotations([
+		{},
+		{ title: 'Example [Docs]', url: 'https://example.com/docs' },
+		{ url: 'https://example.com/path(with-parens)' },
+		{ description: 'Only *a* description' },
+	]), [
+		'## Annotations',
+		'',
+		'- [Example \\[Docs\\]](<https://example.com/docs>)',
+		'- <https://example.com/path(with-parens)>',
+		'- Only \\*a\\* description',
+	].join('\n'));
 });
 
 test('preserves Keep line breaks when the vault uses strict Markdown line breaks', () => {
