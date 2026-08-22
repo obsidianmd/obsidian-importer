@@ -1,8 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
+import { PickedFile } from '../../src/filesystem';
 import {
 	pickedFolderNodes,
+	pickedFolderFileCount,
 	pickedFolderSelection,
 	PickedFolderNode,
 	plannedPickedItems,
@@ -11,7 +13,9 @@ import {
 import { SourceFile, SourceFolder } from '../shims/picked';
 
 test('builds a selectable folder tree with importer-defined file counts', async () => {
-	const nodes = await pickedFolderNodes([
+	const items = [
+		new SourceFile('Root.md'),
+		new SourceFile('image.png'),
 		new SourceFolder('.chosen', [
 			new SourceFile('Index.md'),
 			new SourceFolder('.hidden', [new SourceFile('Secret.md')]),
@@ -21,9 +25,11 @@ test('builds a selectable folder tree with importer-defined file counts', async 
 			new SourceFile('image.png'),
 			new SourceFolder('More', [new SourceFile('Other.md')]),
 		]),
-	], {
+	];
+	const countFile = (file: PickedFile) => file.extension === 'md';
+	const nodes = await pickedFolderNodes(items, {
 		includeFolder: (folder, chosen) => chosen || !isHiddenPickedItem(folder),
-		countFile: file => file.extension === 'md',
+		countFile,
 	});
 
 	assert.deepEqual(nodes.map(node => ({
@@ -37,6 +43,7 @@ test('builds a selectable folder tree with importer-defined file counts', async 
 		{ title: 'Docs', path: 'Docs', files: 2, collapsed: false, children: ['Docs/More'] },
 	]);
 	assert.equal(nodes[1].children?.[0].collapsed, true);
+	assert.equal(pickedFolderFileCount(items, nodes, countFile), 4);
 });
 
 function folder(path: string, selected: boolean, children: PickedFolderNode[] = []): PickedFolderNode {

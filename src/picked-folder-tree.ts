@@ -24,16 +24,22 @@ export interface PickedFolderSelection {
 	skipped: Set<string>;
 }
 
+export interface PickedFolderLoad {
+	nodes: PickedFolderNode[];
+	files: number;
+}
+
 export class PickedFolderPicker {
 	private picker: TreePicker<PickedFolderNode> | null = null;
 	private loadedFrom: string = '';
+	private files: number = 0;
 
 	constructor(
 		private readonly source: () => (PickedFile | PickedFolder)[],
 		private readonly loadNodes: (
 			items: (PickedFile | PickedFolder)[],
 			isCurrent: () => boolean,
-		) => Promise<PickedFolderNode[]>,
+		) => Promise<PickedFolderLoad>,
 	) {}
 
 	draw(containerEl: HTMLElement, setting?: Setting | null): void {
@@ -43,7 +49,7 @@ export class PickedFolderPicker {
 			desc: i18n.source.descFolders(),
 			hint: i18n.source.msgPickSourceFirst(),
 			loading: i18n.source.msgReadingFolders(),
-			empty: i18n.source.msgNoFolders(),
+			empty: () => i18n.source.msgFlatFiles({ count: this.files }),
 			failed: error => describeReason(error),
 			view: {
 				icon: node => node.children?.length && !node.collapsed ? 'folder-open' : 'folder',
@@ -71,16 +77,30 @@ export class PickedFolderPicker {
 
 		const source = this.source();
 		if (source.length === 0) {
+			this.files = 0;
 			this.picker.reset();
 			return;
 		}
 
-		await this.picker.load(isCurrent => this.loadNodes(source, isCurrent));
+		await this.picker.load(async isCurrent => {
+			const loaded = await this.loadNodes(source, isCurrent);
+			if (isCurrent()) this.files = loaded.files;
+			return loaded.nodes;
+		});
 	}
 
 	selection(): PickedFolderSelection {
 		return pickedFolderSelection(this.picker?.nodes ?? []);
 	}
+}
+
+export function pickedFolderFileCount(
+	items: (PickedFile | PickedFolder)[],
+	nodes: PickedFolderNode[],
+	countFile: (file: PickedFile, parent: string) => boolean,
+): number {
+	return items.filter((item): item is PickedFile => item.type === 'file' && countFile(item, '')).length
+		+ nodes.reduce((total, node) => total + node.files, 0);
 }
 
 export interface PlannedPickedItem {

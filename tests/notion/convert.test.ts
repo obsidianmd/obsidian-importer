@@ -75,6 +75,16 @@ test('there are exports to convert', () => {
 	assert.ok(exports_.length > 0, 'expected at least one .zip in tests/notion');
 });
 
+test('single line breaks compact adjacent Notion paragraphs', () => {
+	const html = '<!doctype html><html><body><div class="page-body"><p>First paragraph</p><p>Second paragraph</p></div></body></html>';
+	const spaced = convertHtmlToMarkdown(new NotionResolverInfo('', false), html);
+	const tight = convertHtmlToMarkdown(new NotionResolverInfo('', true), html);
+
+	assert.match(spaced, /First paragraph\n\nSecond paragraph/);
+	assert.match(tight, /First paragraph\nSecond paragraph/);
+	assert.doesNotMatch(tight, /First paragraph\n\nSecond paragraph/);
+});
+
 for (const exported of exports_) {
 	test(`converts ${exported.name}`, async () => {
 		const entries = await readExport(nodeFs.readFileSync(exported.path));

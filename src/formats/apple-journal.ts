@@ -1,8 +1,8 @@
-import { Notice } from 'obsidian';
+import { normalizePath, Notice } from 'obsidian';
 import type { TFolder } from 'obsidian';
 import type { PickedFile } from '../filesystem';
 import { fs, os, path } from '../filesystem';
-import { FormatImporter } from '../format-importer';
+import { FormatImporter, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { i18n } from '../i18n';
 import type { ImportContext } from '../import-context';
 import { convertJournalEntry } from './apple-journal/convert';
@@ -27,15 +27,16 @@ export class AppleJournalImporter extends FormatImporter {
 			defaultImportPath
 		);
 
-		this.startGroup('options', i18n.importer.appleJournal.headingMetadata());
+		this.startGroup('template', i18n.importer.appleJournal.headingMetadata());
 
-		this.addSetting()
+		this.addSetting('template')
 			?.setName(i18n.importer.appleJournal.nameFrontMatter())
 			.setDesc(i18n.importer.appleJournal.descFrontMatter())
 			.addToggle(toggle => {
 				toggle.setValue(this.frontMatterEnabled);
 				toggle.onChange(value => {
 					this.frontMatterEnabled = value;
+					this.templateSettingsChanged();
 				});
 			});
 
@@ -79,6 +80,25 @@ export class AppleJournalImporter extends FormatImporter {
 
 			ctx.reportProgress(index + 1, this.files.length);
 		}
+	}
+
+	protected override async templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]> {
+		const samples: NoteTemplateSample[] = [];
+		for (const file of this.files) {
+			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
+			if (file.name === 'index.html') continue;
+			try {
+				samples.push({
+					title: file.basename,
+					path: normalizePath(`${this.outputLocation}/${file.basename}.md`),
+					content: convertJournalEntry(await file.readText(), { frontMatter: this.frontMatterEnabled }),
+				});
+			}
+			catch (error) {
+				console.warn(`Could not preview Apple Journal file ${file.fullpath}`, error);
+			}
+		}
+		return samples;
 	}
 
 	private async importEntry(ctx: ImportContext, folder: TFolder, file: PickedFile): Promise<boolean> {

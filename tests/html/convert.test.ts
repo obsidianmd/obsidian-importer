@@ -259,3 +259,31 @@ test('falls back to the original document when extraction alters a protected ref
 	assert.match(prepared.content, /href="kept\.html"/u);
 	assert.doesNotMatch(prepared.content, /obsidian-importer\.invalid/u);
 });
+
+test('exposes Defuddle metadata and custom extractor variables to note templates', async t => {
+	t.mock.method(Defuddle.prototype, 'parse', () => ({
+		title: 'A recorded talk',
+		author: 'Ada',
+		content: '<main><p>Talk notes</p></main>',
+		description: 'An example',
+		domain: 'example.com',
+		favicon: 'https://example.com/favicon.ico',
+		image: 'https://example.com/image.png',
+		language: 'en',
+		published: '2026-08-20',
+		site: 'Example',
+		wordCount: 2,
+		variables: { transcript: 'Speaker: hello' },
+	}) as never);
+
+	const { markdown, variables } = await convertHtmlDocument('<title>Fallback</title>', {
+		baseUrl: new URL('https://example.com/talk'),
+		resolveAttachment: async () => null,
+	});
+
+	assert.equal(variables.title, 'A recorded talk');
+	assert.equal(variables.author, 'Ada');
+	assert.equal(variables.transcript, 'Speaker: hello');
+	assert.equal(variables.url, 'https://example.com/talk');
+	assert.equal(variables.content, markdown);
+});

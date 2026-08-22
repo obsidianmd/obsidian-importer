@@ -1,4 +1,4 @@
-import { DataWriteOptions, Notice, Platform, TFile, TFolder, moment, normalizePath } from 'obsidian';
+import { DataWriteOptions, Notice, Platform, TFile, TFolder, normalizePath } from 'obsidian';
 import { NoteConverter, noteTitle } from './apple-notes/convert-note';
 import { ANAccount, ANAttachment, ANContext, ANConverter, ANConverterType, ANFolderType } from './apple-notes/models';
 import { descriptor } from './apple-notes/descriptor';
@@ -7,7 +7,7 @@ import { fs, fsPromises, nodeBufferToArrayBuffer, os, path, splitext, zlib } fro
 import { countText, extensionFromBytes, extractErrorMessage, sanitizeFileName } from '../util';
 import { describeFolderFailure, noAccessHint } from './apple-notes/errors';
 import { i18n } from '../i18n';
-import { DuplicateHandling, FormatImporter } from '../format-importer';
+import { DuplicateHandling, FormatImporter, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { selectedNodes } from '../tree';
 import { TreePicker, ViewableNode } from '../tree-view';
 import { Root } from 'protobufjs';
@@ -19,7 +19,9 @@ const NOTE_DB = 'NoteStore.sqlite';
 /** Additional amount of seconds that Apple CoreTime datatypes start at, to convert them into Unix timestamps. */
 const CORETIME_OFFSET = 978307200;
 const NOTE_ID_PROPERTY = 'apple-notes-id';
-const LOCAL_STORAGE_KEY = 'apple-notes-importer-file-prefix';
+const FILE_PREFIX_STORAGE_KEY = 'apple-notes-importer-file-prefix';
+const NOTE_TITLE_STORAGE_KEY = 'apple-notes-importer-note-title';
+const DEFAULT_NOTE_TITLE_TEMPLATE = '{{title}}';
 
 interface AppleNotesTreeNode extends ViewableNode<AppleNotesTreeNode> {
 	id: number;
@@ -53,6 +55,24 @@ interface ANFolderRow {
 	ZOWNER: number;
 }
 
+interface AppleNotesKeyRow {
+	Z_NAME: string;
+	Z_ENT: number;
+}
+
+interface AppleNotePreviewRow {
+	zhexdata: string;
+	ZTITLE1: string;
+	ZIDENTIFIER: string;
+	ZCREATIONDATE1: number;
+	ZCREATIONDATE2: number;
+	ZCREATIONDATE3: number;
+	ZMODIFICATIONDATE1: number;
+	ZISPASSWORDPROTECTED: number;
+	zfoldertitle: string | null;
+	zfolderidentifier: string | null;
+}
+
 export class AppleNotesImporter extends FormatImporter implements ANContext<TFile> {
 	interruption = 'pause' as const;
 
@@ -80,13 +100,10 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		return this.vault.getConfig('strictLineBreaks') === true;
 	}
 
-	filePrefixFormat: string;
-
 	// Do not initialize fields set by init(); the base constructor calls it first.
 	private dataPath: string | null;
 
 	private picker: TreePicker<AppleNotesTreeNode>;
-
 	selectedFolders: number[] = [];
 
 	get sourceReady(): boolean {
@@ -97,6 +114,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		this.defaultOutputFolder = 'Apple Notes';
 		this.idProperty = NOTE_ID_PROPERTY;
 		this.idLabel = i18n.importer.appleNotes.labelId();
+		this.noteTitleTemplate = DEFAULT_NOTE_TITLE_TEMPLATE;
 
 		if (!Platform.isMacOS || !Platform.isDesktop) {
 			this.addExportSetting(i18n.importer.appleNotes.msgPlatform());
@@ -112,27 +130,23 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			void this.loadFolders();
 		}
 
-		const storedPrefix: string = this.app.loadLocalStorage(LOCAL_STORAGE_KEY) ?? '';
-		this.filePrefixFormat = storedPrefix;
+		const storedTitle: unknown = this.app.loadLocalStorage(NOTE_TITLE_STORAGE_KEY);
+		const storedPrefix: unknown = this.app.loadLocalStorage(FILE_PREFIX_STORAGE_KEY);
+		this.noteTitleTemplate = typeof storedTitle === 'string'
+			? storedTitle
+			: typeof storedPrefix === 'string' && storedPrefix !== ''
+				? `{{ctime | date:${JSON.stringify(storedPrefix)}}} {{title}}`
+				: DEFAULT_NOTE_TITLE_TEMPLATE;
 
-		this.addSetting()
-			?.setName(i18n.importer.appleNotes.namePrefixFormat())
-			.setDesc(i18n.importer.appleNotes.descPrefixFormat())
-			.addText(t => t
-				.setValue(storedPrefix)
-				.setPlaceholder('YYYY-MM-DD')
-				.onChange(async v => {
-					this.filePrefixFormat = v;
-					this.app.saveLocalStorage(LOCAL_STORAGE_KEY, v);
-				})
-			);
-
-		this.addSetting()
+		this.addSetting('template')
 			?.setName(i18n.importer.appleNotes.nameOmitFirstLine())
 			.setDesc(i18n.importer.appleNotes.descOmitFirstLine())
 			.addToggle(t => t
-				.setValue(true)
-				.onChange(async v => this.omitFirstLine = v)
+				.setValue(this.omitFirstLine)
+				.onChange(async v => {
+					this.omitFirstLine = v;
+					this.templateSettingsChanged();
+				})
 			);
 
 		this.addSetting()
@@ -334,15 +348,30 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		}
 
 		const originalDB = path.join(dataPath, NOTE_DB);
-		const clonedDB = path.join(os.tmpdir(), NOTE_DB);
+		const cloneDirectory = await fsPromises.mkdtemp(
+			path.join(os.tmpdir(), 'obsidian-importer-apple-notes-'),
+		);
+		const clonedDB = path.join(cloneDirectory, NOTE_DB);
 
 		// Copy the database and its WAL files so Notes cannot change them mid-import.
-		await fsPromises.copyFile(originalDB, clonedDB);
-		await fsPromises.copyFile(originalDB + '-shm', clonedDB + '-shm');
-		await fsPromises.copyFile(originalDB + '-wal', clonedDB + '-wal');
+		try {
+			await fsPromises.copyFile(originalDB, clonedDB);
+			await fsPromises.copyFile(originalDB + '-shm', clonedDB + '-shm');
+			await fsPromises.copyFile(originalDB + '-wal', clonedDB + '-wal');
 
-		//@ts-ignore
-		return new SQLiteTag(clonedDB, { readonly: true, persistent: true });
+			// @ts-expect-error SQLite is internal to Obsidian.
+			const database = new SQLiteTag(clonedDB, { readonly: true, persistent: true }) as SQLiteTagSpawned;
+			const closeDatabase: () => void = database.close.bind(database);
+			database.close = () => {
+				closeDatabase();
+				void fsPromises.rm(cloneDirectory, { recursive: true, force: true });
+			};
+			return database;
+		}
+		catch (error) {
+			await fsPromises.rm(cloneDirectory, { recursive: true, force: true });
+			throw error;
+		}
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -364,56 +393,149 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		this.database = await this.getNotesDatabase() as SQLiteTagSpawned;
 		if (!this.database) return;
 
-		this.keys = Object.fromEntries(
-			(await this.database.all`SELECT z_ent, z_name FROM z_primarykey`).map(k => [k.Z_NAME, k.Z_ENT])
-		);
+		try {
+			this.keys = Object.fromEntries(
+				(await this.database.all`SELECT z_ent, z_name FROM z_primarykey`).map(k => [k.Z_NAME, k.Z_ENT])
+			);
 
-		const noteAccounts = await this.database.all`
-			SELECT z_pk FROM ziccloudsyncingobject WHERE z_ent = ${this.keys.ICAccount}
-		`;
-		const noteFolders = await this.database.all`
-			SELECT z_pk, ztitle2 FROM ziccloudsyncingobject
-			WHERE z_ent = ${this.keys.ICFolder} AND z_pk IN (${this.selectedFolders})
-		`;
+			const noteAccounts = await this.database.all`
+				SELECT z_pk FROM ziccloudsyncingobject WHERE z_ent = ${this.keys.ICAccount}
+			`;
+			const noteFolders = await this.database.all`
+				SELECT z_pk, ztitle2 FROM ziccloudsyncingobject
+				WHERE z_ent = ${this.keys.ICFolder} AND z_pk IN (${this.selectedFolders})
+			`;
 
-		for (let a of noteAccounts) await this.resolveAccount(a.Z_PK);
+			for (let a of noteAccounts) await this.resolveAccount(a.Z_PK);
 
-		// Break instead of returning so the database is closed below.
-		for (let f of noteFolders) {
-			if (await ctx.shouldStop()) break;
+			for (let f of noteFolders) {
+				if (await ctx.shouldStop()) break;
 
-			try {
-				await this.resolveFolder(f.Z_PK);
+				try {
+					await this.resolveFolder(f.Z_PK);
+				}
+				catch (e) {
+					this.ctx.reportFailed(f.ZTITLE2, extractErrorMessage(e));
+					console.error(e);
+				}
 			}
-			catch (e) {
-				this.ctx.reportFailed(f.ZTITLE2, extractErrorMessage(e));
-				console.error(e);
+
+			const notes = await this.database.all`
+				SELECT
+					z_pk, zfolder, ztitle1 FROM ziccloudsyncingobject
+				WHERE
+					z_ent = ${this.keys.ICNote}
+					AND ztitle1 IS NOT NULL
+					AND zfolder IN (${this.selectedFolders})
+			`;
+			this.noteCount = notes.length;
+
+			for (let n of notes) {
+				if (await ctx.shouldStop()) break;
+
+				try {
+					await this.resolveNote(n.Z_PK);
+				}
+				catch (e) {
+					this.ctx.reportFailed(n.ZTITLE1, extractErrorMessage(e));
+					console.error(e);
+				}
 			}
 		}
-
-		const notes = await this.database.all`
-			SELECT
-				z_pk, zfolder, ztitle1 FROM ziccloudsyncingobject
-			WHERE
-				z_ent = ${this.keys.ICNote}
-				AND ztitle1 IS NOT NULL
-				AND zfolder IN (${this.selectedFolders})
-		`;
-		this.noteCount = notes.length;
-
-		for (let n of notes) {
-			if (await ctx.shouldStop()) break;
-
-			try {
-				await this.resolveNote(n.Z_PK);
-			}
-			catch (e) {
-				this.ctx.reportFailed(n.ZTITLE1, extractErrorMessage(e));
-				console.error(e);
-			}
+		finally {
+			this.database.close();
 		}
+	}
 
-		this.database.close();
+	protected override async templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]> {
+		const database = await this.getNotesDatabase();
+		if (!database) return [];
+		const protobufRoot = Root.fromJSON(descriptor);
+		const previewContext = this.appleNotesPreviewContext(database, protobufRoot);
+
+		try {
+			const keyRows = await database.all`
+				SELECT z_ent, z_name FROM z_primarykey
+			` as unknown as AppleNotesKeyRow[];
+			const keys: Record<string, number> = Object.fromEntries(
+				keyRows.map(row => [row.Z_NAME, row.Z_ENT])
+			);
+			const rows = await database.all`
+				SELECT
+					nd.z_pk, hex(nd.zdata) AS zhexdata, note.ztitle1, note.zfolder,
+					note.zidentifier, note.zcreationdate1, note.zcreationdate2,
+					note.zcreationdate3, note.zmodificationdate1, note.zispasswordprotected,
+					folder.ztitle2 AS zfoldertitle, folder.zidentifier AS zfolderidentifier
+				FROM
+					zicnotedata AS nd,
+					(SELECT *, NULL AS zcreationdate3, NULL AS zcreationdate2,
+						NULL AS zispasswordprotected FROM ziccloudsyncingobject) AS note
+				LEFT JOIN ziccloudsyncingobject AS folder ON folder.z_pk = note.zfolder
+				WHERE
+					note.z_pk = nd.znote
+					AND note.z_ent = ${keys.ICNote}
+					AND note.ztitle1 IS NOT NULL
+					AND note.zfolder IN (${this.selectedFolders})
+				LIMIT ${TEMPLATE_PREVIEW_LIMIT}
+			` as unknown as AppleNotePreviewRow[];
+
+			const samples: NoteTemplateSample[] = [];
+			for (const row of rows) {
+				if (await ctx.shouldStop()) break;
+				if (row.ZISPASSWORDPROTECTED) continue;
+
+				const converter = this.decodeDataWithContext(
+					row.zhexdata,
+					NoteConverter,
+					previewContext,
+					protobufRoot,
+				);
+				const storedTitle = row.ZTITLE1;
+				const ctime = this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1);
+				const title = noteTitle(converter.note.noteText, storedTitle);
+				const folder = row.zfolderidentifier?.startsWith('DefaultFolder')
+					? ''
+					: sanitizeFileName(String(row.zfoldertitle ?? ''));
+				const notePath = normalizePath([
+					this.outputLocation.trim(),
+					folder,
+					`${sanitizeFileName(title)}.md`,
+				].filter(Boolean).join('/'));
+				const content = await converter.format(false, notePath);
+
+				samples.push({
+					title,
+					path: notePath,
+					content,
+					variables: { originalTitle: storedTitle },
+					sourceId: String(row.ZIDENTIFIER),
+					times: {
+						ctime,
+						mtime: this.decodeTime(row.ZMODIFICATIONDATE1),
+					},
+				});
+			}
+			return samples;
+		}
+		finally {
+			database.close();
+		}
+	}
+
+	private appleNotesPreviewContext(database: SQLiteTagSpawned, protobufRoot: Root): ANContext {
+		let context: ANContext;
+		context = {
+			omitFirstLine: this.omitFirstLine,
+			includeHandwriting: this.includeHandwriting,
+			strictLineBreaks: this.strictLineBreaks,
+			database,
+			decodeData: <T extends ANConverter>(hexdata: string, converterType: ANConverterType<T>): T =>
+				this.decodeDataWithContext(hexdata, converterType, context, protobufRoot),
+			resolveAttachment: () => Promise.resolve(null),
+			resolveNote: () => Promise.resolve(null),
+			linkTo: () => '',
+		};
+		return context;
 	}
 
 	async resolveAccount(id: number): Promise<void> {
@@ -497,18 +619,23 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 		const converter = this.decodeData(row.zhexdata, NoteConverter);
 
-		// Get creation date and format it according to user preference
-		let prefix = '';
-		if (this.filePrefixFormat) {
-			const creationTimestamp = this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1);
-			prefix = `${moment(creationTimestamp).format(this.filePrefixFormat)} `;
-		}
-
 		const storedTitle = String(row.ZTITLE1);
-		const title = prefix + noteTitle(converter.note.noteText, storedTitle);
+		const sourceTitle = noteTitle(converter.note.noteText, storedTitle);
+		const times = {
+			ctime: this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1),
+			mtime: this.decodeTime(row.ZMODIFICATIONDATE1),
+		};
+		const title = await this.configuredNoteTitle(
+			sourceTitle,
+			folder,
+			'',
+			{ originalTitle: storedTitle },
+			row.ZIDENTIFIER,
+			times,
+		);
 
 		const existingFile = this.existingNoteFor(
-			folder, [`${title}.md`, `${prefix}${storedTitle}.md`], row.ZIDENTIFIER
+			folder, [`${title}.md`, `${sourceTitle}.md`, `${storedTitle}.md`], row.ZIDENTIFIER
 		);
 
 		if (existingFile) {
@@ -538,11 +665,16 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 
 		// Notes may reference other notes, so we want them in resolvedFiles before we parse to avoid cycles
 		const body = await converter.format(false, file.path);
+		const content = await this.applyNoteTemplate(
+			title,
+			file.path,
+			body,
+			{ originalTitle: storedTitle },
+			row.ZIDENTIFIER,
+			times,
+		);
 
-		await this.modifyMarkdown(file, this.withSourceId(body, row.ZIDENTIFIER), {
-			ctime: this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1),
-			mtime: this.decodeTime(row.ZMODIFICATIONDATE1)
-		});
+		await this.modifyMarkdown(file, this.withSourceId(content, row.ZIDENTIFIER), times);
 
 		this.parsedNotes++;
 		this.ctx.reportProgress(this.parsedNotes, this.noteCount);
@@ -656,16 +788,6 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			return null;
 		}
 
-		// Apply date prefix to attachment name if configured
-		let finalAttachmentName = outName;
-		if (this.filePrefixFormat && row.ZCREATIONDATE) {
-			const creationTimestamp = this.decodeTime(row.ZCREATIONDATE);
-			// The format is typed by hand and may hold characters a file name
-			// cannot; a slash would otherwise cut the name short.
-			const datePrefix = sanitizeFileName(moment(creationTimestamp).format(this.filePrefixFormat));
-			finalAttachmentName = `${datePrefix} ${outName}`;
-		}
-
 		try {
 			let binary;
 
@@ -675,7 +797,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 				outExt = extensionFromBytes(binary) ?? '';
 			}
 
-			const attachmentName = outExt ? `${finalAttachmentName}.${outExt}` : finalAttachmentName;
+			const attachmentName = outExt ? `${outName}.${outExt}` : outName;
 
 			const notePath = this.resolvedFiles[row.ZNOTE]?.path;
 			const ctime = this.decodeTime(row.ZCREATIONDATE);
@@ -695,7 +817,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 						: 'same');
 
 			if (reuse) {
-				this.ctx.reportSkipped(finalAttachmentName, this.duplicateHandling === DuplicateHandling.Skip
+				this.ctx.reportSkipped(outName, this.duplicateHandling === DuplicateHandling.Skip
 					? i18n.importer.appleNotes.reasonAttachmentExists()
 					: i18n.importer.appleNotes.reasonAttachmentUnchanged());
 				return reuse;
@@ -733,9 +855,18 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 	}
 
 	decodeData<T extends ANConverter>(hexdata: string, converterType: ANConverterType<T>): T {
+		return this.decodeDataWithContext(hexdata, converterType, this, this.protobufRoot);
+	}
+
+	private decodeDataWithContext<T extends ANConverter>(
+		hexdata: string,
+		converterType: ANConverterType<T>,
+		context: ANContext,
+		protobufRoot: Root,
+	): T {
 		const unzipped = zlib.unzipSync(Buffer.from(hexdata, 'hex'));
-		const decoded = this.protobufRoot.lookupType(converterType.protobufType).decode(unzipped);
-		return new converterType(this, decoded);
+		const decoded = protobufRoot.lookupType(converterType.protobufType).decode(unzipped);
+		return new converterType(context, decoded);
 	}
 
 	decodeTime(timestamp: number): number {

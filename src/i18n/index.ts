@@ -30,6 +30,13 @@ export function bundleFor(language: string): Bundle | undefined {
 	return bundle;
 }
 
+/** Obsidian uses `kh` for Khmer; the plugin and help site use `km`. */
+const ALIASES: Record<string, string> = { kh: 'km' };
+
+export function normalizeLanguage(language: string): string {
+	return ALIASES[language] ?? language;
+}
+
 /**
  * Point the lookup at an app language, falling back to the base language of a
  * regional code and then to English.
@@ -38,10 +45,12 @@ export function bundleFor(language: string): Bundle | undefined {
  * plugin stays in English, which is what a conversion running under test wants.
  */
 export function setLanguage(language: string): void {
-	current = bundleFor(language)
-		?? bundleFor(language.split('-')[0])
+	const code = normalizeLanguage(language);
+
+	current = bundleFor(code)
+		?? bundleFor(code.split('-')[0])
 		?? ENGLISH;
-	currentLanguage = language;
+	currentLanguage = code;
 }
 
 /** Which languages this build carries, English included. */

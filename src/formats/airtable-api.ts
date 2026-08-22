@@ -3,8 +3,8 @@
  * Imports tables and records from Airtable using the API
  */
 
-import { Notice, normalizePath, TFile, setIcon, stringifyYaml, parseYaml } from 'obsidian';
-import { FormatImporter } from '../format-importer';
+import { Notice, normalizePath, TFile, setIcon, stringifyYaml, parseYaml, Setting } from 'obsidian';
+import { FormatImporter, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { parseFilePath } from '../filesystem';
@@ -17,18 +17,20 @@ import {
 	TemplateConfigurator,
 	TemplateConfig,
 	TemplateField,
+	sourceVariableExpression,
 } from '../template';
 
 // Import helper modules
 import Airtable from 'airtable';
 import { fetchBases, fetchTableSchema, selectRecords } from './airtable-api/api-helpers';
 import { downloadAttachmentList, formatAttachmentsForBody, formatAttachmentsForYAML } from './airtable-api/attachment-helpers';
-import { buildBaseFile, mergedBaseViews, sanitizePropertyName } from './airtable-api/base-file';
+import { buildBaseFile, mergedBaseViews, sanitizePropertyName, sanitizeViewName } from './airtable-api/base-file';
 import { mapAirtableTypeToObsidian } from './airtable-api/field-converter';
 import { computeTableFormulas } from './airtable-api/table-formulas';
 import {
 	buildRecordNote,
 	defaultPropertyConfig,
+	extractStringValue,
 	frontMatterFieldsForTable,
 	isEmptyRecord,
 	RECORD_ID_PROPERTY,
@@ -84,8 +86,20 @@ const EXAMPLE_VALUE_FOR_FIELD_TYPE: Record<string, string> = {
 	barcode: '1234567890',
 };
 
+interface AirtableTemplatePreviewSample extends NoteTemplateSample {
+	record: AirtableRecord;
+	fields: AirtableFieldSchema[];
+	primaryFieldName: string;
+	formulaFieldNames: Set<string>;
+	viewReferences: string[];
+}
+
 export class AirtableAPIImporter extends FormatImporter {
 	interruption = 'pause' as const;
+
+	protected override get sourceIdSettingFirst(): boolean {
+		return true;
+	}
 
 	/** Resolved from the keychain on each read, so unlinking the secret takes effect immediately */
 	get airtableToken(): string {
@@ -177,19 +191,14 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		this.picker.onLoad(() => void this.loadTree());
 
-		// Formula import strategy
 		this.addSetting()
 			?.setName(i18n.importer.airtableApi.nameFormulas())
 			.setDesc(i18n.importer.airtableApi.descFormulas())
-			.addDropdown(dropdown => {
-				dropdown
-					.addOption('hybrid', i18n.importer.airtableApi.optionFormulaHybrid())
-					.addOption('static', i18n.importer.airtableApi.optionFormulaStatic())
-					.setValue('hybrid')
-					.onChange(value => {
-						this.formulaStrategy = value as FormulaImportStrategy;
-					});
-			});
+			.addDropdown(dropdown => dropdown
+				.addOption('hybrid', i18n.importer.airtableApi.optionFormulaHybrid())
+				.addOption('static', i18n.importer.airtableApi.optionFormulaStatic())
+				.setValue('hybrid')
+				.onChange(value => this.formulaStrategy = value as FormulaImportStrategy));
 
 		// Download attachments option
 		this.addSetting()
@@ -202,19 +211,6 @@ export class AirtableAPIImporter extends FormatImporter {
 						this.downloadAttachments = value;
 					});
 			});
-
-		// View property name
-		this.addSetting()
-			?.setName(i18n.importer.airtableApi.nameViewProperty())
-			.setDesc(i18n.importer.airtableApi.descViewProperty())
-			.addText(text => text
-				.setPlaceholder('Views')
-				.setValue('Views')
-				.onChange(value => {
-					// Stripped rather than escaped: this name is embedded in a
-					// double-quoted Bases filter string in the generated .base file
-					this.viewPropertyName = value.trim().replace(/["\\]/g, '') || 'Views';
-				}));
 
 		this.duplicateCaveat = i18n.importer.airtableApi.descNoModifiedTime({
 			update: i18n.output.optionUpdate(),
@@ -360,7 +356,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	/**
 	 * Show template configuration UI before import (similar to CSV importer)
 	 */
-	async showTemplateConfiguration(_ctx: ImportContext, container: HTMLElement, buttonsEl: HTMLElement): Promise<boolean> {
+	async showTemplateConfiguration(ctx: ImportContext, container: HTMLElement, buttonsEl: HTMLElement): Promise<boolean> {
 		if (this.getSelectedNodes().length === 0) {
 			new Notice(i18n.importer.airtableApi.msgPickTable());
 			return false;
@@ -428,26 +424,208 @@ export class AirtableAPIImporter extends FormatImporter {
 		// Note content is empty by default - let user decide what to put there
 		const bodyTemplate = '';
 
-		// Create and show configurator
-		// Note: Airtable uses each table's primary field as note title (no custom template)
-		const configurator = new TemplateConfigurator({
-			fields,
-			defaults: {
-				titleTemplate: '', // Not used - each table's primary field is used directly
-				locationTemplate: '',
-				bodyTemplate,
-				propertyNames,
-				propertyValues,
+		const templateFields = fields.map(field => ({
+			...field,
+			sourceName: field.id,
+			id: sourceVariableExpression(field.id),
+		}));
+		const defaults: TemplateConfig = {
+			titleTemplate: '', // Not used - each table's primary field is used directly
+			locationTemplate: '',
+			bodyTemplate,
+			propertyNames,
+			propertyValues,
+		};
+
+		return await this.showConfigurationBeforePreview(
+			defaults,
+			async current => {
+				const configurator = new TemplateConfigurator({
+					fields,
+					defaults: current,
+					placeholderSyntax: '{{field_name}}',
+					showTitleTemplate: false,
+					showLocationTemplate: false,
+					showBodyTemplate: false,
+					actionText: i18n.modal.buttonContinue(),
+				});
+				const configured = await configurator.show(container, buttonsEl);
+				if (configured) this.templateConfig = configured;
+				return configured;
 			},
-			placeholderSyntax: '{{field_name}}',
-			showTitleTemplate: false, // Airtable always uses primary field as note title
-			showLocationTemplate: false, // Records go to table folders automatically
+			async (configured, back) => {
+				const samples = this.loadTemplatePreviewSamples(ctx, picked).catch(error => {
+					console.error('Could not load Airtable template previews', error);
+					return [];
+				});
+				return await this.showNoteTemplateConfiguration(container, buttonsEl, {
+					fields: templateFields,
+					preview: async (template, titleTemplate) => {
+						const loaded = await samples;
+						const withViews: NoteTemplateSample[] = await Promise.all(loaded.map(async sample => {
+							const current = await this.refreshTemplatePreviewSample(sample);
+							return {
+								...current,
+								generatedProperties: current.viewReferences.length > 0
+									? { [this.viewPropertyName]: current.viewReferences }
+									: undefined,
+							};
+						}));
+						return await this.previewLoadedSamples(
+							template,
+							titleTemplate,
+							Promise.resolve(withViews),
+							templateFields,
+						);
+					},
+					cancel: back,
+					configure: (contentEl, previewChanged) => {
+						this.addAirtableViewPropertySetting(
+							contentEl,
+							previewChanged,
+						);
+					},
+				});
+			},
+		);
+	}
+
+	private addAirtableViewPropertySetting(
+		contentEl: HTMLElement,
+		previewChanged: () => void,
+	): void {
+		new Setting(this.settingsIn(contentEl))
+			.setName(i18n.importer.airtableApi.nameViewProperty())
+			.setDesc(i18n.importer.airtableApi.descViewProperty())
+			.addText(text => text
+				.setPlaceholder('Views')
+				.setValue(this.viewPropertyName)
+				.onChange(value => {
+					// Quotes and backslashes would break the generated Bases filter.
+					this.viewPropertyName = value.trim().replace(/["\\]/g, '') || 'Views';
+					previewChanged();
+				}));
+	}
+
+	private async loadTemplatePreviewSamples(
+		ctx: ImportContext,
+		picked: AirtableTreeNode[],
+	): Promise<AirtableTemplatePreviewSample[]> {
+		const samples: AirtableTemplatePreviewSample[] = [];
+		for (const group of this.groupSelectedNodesByBase(picked).values()) {
+			for (const table of group.tables) {
+				if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) return samples;
+
+				const fields = table.fields;
+				const primaryFieldName = fields.find(field => field.id === table.primaryFieldId)?.name
+					?? fields[0]?.name;
+				if (!primaryFieldName) continue;
+
+				const records = await selectRecords(
+					this.getAirtableBase(group.baseId),
+					table.tableId || table.tableName,
+					{ maxRecords: TEMPLATE_PREVIEW_LIMIT - samples.length },
+				);
+				const viewReferences = await this.loadPreviewViewReferences(
+					ctx,
+					group.baseId,
+					table.tableId || table.tableName,
+					table.views,
+					records as AirtableRecord[],
+				);
+				const formulaFieldNames = new Set(this.computeTableFormulas(fields, table.primaryFieldId).keys());
+
+				for (const record of records as AirtableRecord[]) {
+					if (isEmptyRecord(record)) continue;
+					const title = recordTitle(record, primaryFieldName);
+					const path = normalizePath([
+						this.outputLocation.trim(),
+						sanitizeFileName(group.baseName),
+						sanitizeFileName(table.tableName),
+						`${sanitizeFileName(title)}.md`,
+					].filter(Boolean).join('/'));
+					const sample: AirtableTemplatePreviewSample = {
+						title,
+						path,
+						content: '',
+						variables: {},
+						record,
+						fields,
+						primaryFieldName,
+						formulaFieldNames,
+						viewReferences: viewReferences.get(record.id) ?? [],
+						sourceId: record.id,
+						times: recordTimestamps(record),
+					};
+					samples.push(await this.refreshTemplatePreviewSample(sample));
+					if (samples.length >= TEMPLATE_PREVIEW_LIMIT) return samples;
+				}
+			}
+		}
+		return samples;
+	}
+
+	private async refreshTemplatePreviewSample(
+		sample: AirtableTemplatePreviewSample,
+	): Promise<AirtableTemplatePreviewSample> {
+		const frontMatterFields = this.frontMatterFieldsForTable(sample.fields, sample.primaryFieldName);
+		const { content, templateVariables } = await buildRecordNote(sample.record, {
+			fields: sample.fields,
+			primaryFieldName: sample.primaryFieldName,
+			viewReferences: [],
+			viewPropertyName: this.viewPropertyName,
+			formulaFieldNames: sample.formulaFieldNames,
+			frontMatterFields,
+			recordId: false,
+			bodyTemplate: this.templateConfig?.bodyTemplate,
+			resolveAttachments: async () => [],
+			formatAttachmentsForBody: () => [],
+			formatAttachmentsForYAML: () => [],
 		});
+		return { ...sample, content, variables: templateVariables };
+	}
 
-		this.templateConfig = await configurator.show(container, buttonsEl);
+	private async loadPreviewViewReferences(
+		ctx: ImportContext,
+		baseId: string,
+		tableIdOrName: string,
+		views: AirtableViewInfo[],
+		records: AirtableRecord[],
+	): Promise<Map<string, string[]>> {
+		const recordIds = records.filter(record => !isEmptyRecord(record)).map(record => record.id);
+		const references = new Map<string, string[]>();
+		if (recordIds.length === 0) return references;
 
-		// Return false if user cancelled
-		return this.templateConfig !== null;
+		const comparisons = recordIds.map(id => `RECORD_ID()=${JSON.stringify(id)}`);
+		const filterByFormula = comparisons.length === 1
+			? comparisons[0]
+			: `OR(${comparisons.join(',')})`;
+
+		for (const view of views.filter(view => ['grid', 'gallery', 'list'].includes(view.type.toLowerCase()))) {
+			if (await ctx.shouldStop()) break;
+			try {
+				const members = await selectRecords(this.getAirtableBase(baseId), tableIdOrName, {
+					view: view.id,
+					fields: [],
+					filterByFormula,
+					maxRecords: recordIds.length,
+				}) as AirtableRecord[];
+				const memberIds = new Set(members.map(member => member.id));
+				if (recordIds.every(id => memberIds.has(id))) continue;
+
+				const token = sanitizeViewName(view.name);
+				for (const member of members) {
+					const current = references.get(member.id) ?? [];
+					current.push(token);
+					references.set(member.id, current);
+				}
+			}
+			catch (error) {
+				console.warn(`Could not load Airtable preview membership for view ${view.name}`, error);
+			}
+		}
+
+		return references;
 	}
 
 	/**
@@ -484,7 +662,8 @@ export class AirtableAPIImporter extends FormatImporter {
 	 */
 	private frontMatterFieldsForTable(
 		fields: AirtableFieldSchema[],
-		primaryFieldName: string
+		primaryFieldName: string,
+		viewPropertyName = this.viewPropertyName,
 	): Array<{ fieldName: string, propertyName: string }> {
 		if (!this.templateConfig) return [];
 
@@ -493,7 +672,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			primaryFieldName,
 			propertyNames: this.templateConfig.propertyNames,
 			propertyValues: this.templateConfig.propertyValues,
-			viewPropertyName: this.viewPropertyName,
+			viewPropertyName,
 			propertyNameForField: fieldName => this.propertyNameForField(fieldName),
 		});
 	}
@@ -849,7 +1028,21 @@ export class AirtableAPIImporter extends FormatImporter {
 
 				// Including the note an earlier import wrote, wherever the user
 				// has since moved it to.
-				const note = this.planNote(tablePath, recordTitle(record, primaryFieldName), record.id);
+				const note = await this.planTemplatedNote(
+					tablePath,
+					recordTitle(record, primaryFieldName),
+					'',
+					{
+						sourceId: record.id,
+						...recordTimestamps(record),
+						templateVariables: Object.fromEntries(
+							Object.entries(record.fields ?? {}).map(([name, value]) => [
+								name,
+								extractStringValue(value),
+							]),
+						),
+					},
+				);
 				const { basename } = parseFilePath(note.targetPath);
 
 				this.recordIdToPath.set(`${baseId}:${record.id}`, note.targetPath.replace(/\.md$/, ''));
@@ -1202,7 +1395,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			return;
 		}
 
-		const { content } = await buildRecordNote(record, {
+		const { content, templateVariables } = await buildRecordNote(record, {
 			fields,
 			primaryFieldName,
 			viewReferences,
@@ -1232,6 +1425,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		const { written } = await this.writePlannedNote(ctx, note, content, {
 			disposition,
 			...recordTimestamps(record),
+			templateVariables,
 		});
 		if (written) ctx.reportNoteSuccess(title);
 

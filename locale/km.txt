@@ -406,6 +406,14 @@ translation=កំពុងអានថត...
 original=No folders found.
 translation=រកមិនឃើញថតទេ។
 
+[source.msg-flat-files]
+original={{count}} file will be imported.
+translation=
+
+[source.msg-flat-files_plural]
+original={{count}} files will be imported.
+translation=
+
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
 translation=គ្មានអ្វីដើម្បីនាំចូលនៅទីនោះទេ។ ជ្រើសរើសឯកសារ {{extensions}} ឬថតដែលមានឯកសារទាំងនោះ។
@@ -445,6 +453,22 @@ translation=ថតលទ្ធផល
 [output.desc-folder]
 original=Where imported notes will be saved. Leave blank to use the top level of the vault.
 translation=ដែលកំណត់ចំណាំដែលនាំចូលនឹងត្រូវបានរក្សាទុក។ ទទេដើម្បីប្រើប្រាស់កម្រិតកំពូលនៃវ៉ាល់។
+
+[output.name-template]
+original=Template
+translation=
+
+[output.desc-template]
+original=Optional Markdown template from this vault. Use variables such as {{title}}, {{content}}, and {{date}}.
+translation=
+
+[output.placeholder-template]
+original=Templates/Import.md
+translation=
+
+[output.msg-template-not-found]
+original=Template must be a Markdown file in this vault: {{path}}
+translation=
 
 [output.name-attachments]
 original=Attachment location
@@ -646,12 +670,16 @@ translation=មិនអាចអាន {{subject}} បានទេ។
 original=Configure how your data should be imported. Use {{syntax}} syntax to reference field values.
 translation=កំណត់រចនាសម្ព័ន្ធរបៀបនាំចូលទិន្នន័យរបស់អ្នក។ ប្រើវាក្យសម្ព័ន្ធ {{syntax}} ដើម្បីយោងតម្លៃវាល។
 
+[template.msg-note-template-intro]
+original=Review examples of how your notes will be imported.
+translation=
+
 [template.name-title]
 original=Note title
 translation=ចំណងជើងកំណត់ចំណាំ
 
 [template.desc-title]
-original=Template for the note title. Use {{field_name}} to insert values.
+original=Template for the note title. Use variables like {{field_name}} to insert values.
 translation=ពុម្ពសម្រាប់ចំណងជើងកំណត់ចំណាំ។ ប្រើ {{field_name}} ដើម្បីបញ្ចូលតម្លៃ។
 
 [template.name-location]
@@ -667,8 +695,64 @@ original=Note content
 translation=មាតិកាកំណត់ចំណាំ
 
 [template.desc-content]
-original=Template for the note content. Use {{field_name}} to insert values.
+original=Template for the note content. Use variables like {{field_name}} to insert values.
 translation=ពុម្ពសម្រាប់មាតិកាកំណត់ចំណាំ។ ប្រើ {{field_name}} ដើម្បីបញ្ចូលតម្លៃ។
+
+[template.name-template-file]
+original=Template
+translation=
+
+[template.desc-template-file]
+original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
+translation=
+
+[template.heading-preview]
+original=Preview
+translation=
+
+[template.status-loading-preview]
+original=Loading preview...
+translation=
+
+[template.button-edit-template]
+original=Edit
+translation=
+
+[template.button-save-template]
+original=Save
+translation=
+
+[template.button-reset-template]
+original=Reset to default
+translation=
+
+[template.link-show-more]
+original=Show more
+translation=
+
+[template.name-template-editor]
+original=Template source
+translation=
+
+[template.label-edit-import-template]
+original=Edit import template
+translation=
+
+[template.button-add-property]
+original=Add property
+translation=
+
+[template.button-previous-preview]
+original=Previous preview
+translation=
+
+[template.button-next-preview]
+original=Next preview
+translation=
+
+[template.msg-diagnostic]
+original=Line {{line}}: {{message}}
+translation=
 
 [template.heading-properties]
 original=Properties
@@ -1149,6 +1233,14 @@ translation=CSV មានជួរដេកបឋមកថា
 [importer.csv.desc-header-row]
 original=If enabled, the first row of the CSV file will be treated as column headers.
 translation=ប្រសិនបើបានបើក ជួរដេកទីមួយនៃឯកសារ CSV នឹងត្រូវបានចាត់ទុកជាបឋមកថាជួរឈរ។
+
+[importer.csv.name-source-title]
+original=Source title
+translation=
+
+[importer.csv.desc-source-title]
+original=Creates the {{title}} value used by the final note title template. Use CSV column variables like {{column_name}}.
+translation=
 
 [importer.csv.msg-pick-file]
 original=Please pick at least one CSV file to import.
@@ -1906,6 +1998,10 @@ translation=ឯកសារភ្ជាប់រូបភាព
 original=Video attachment
 translation=ឯកសារភ្ជាប់វីដេអូ
 
+[importer.notion-api.label-attachment-audio]
+original=Audio attachment
+translation=
+
 [importer.notion-api.label-attachment-file]
 original=File attachment
 translation=ឯកសារភ្ជាប់ឯកសារ
@@ -1913,6 +2009,30 @@ translation=ឯកសារភ្ជាប់ឯកសារ
 [importer.notion-api.label-attachment-pdf]
 original=PDF attachment
 translation=ឯកសារភ្ជាប់ PDF
+
+[importer.notion-api.label-preview-child-page]
+original=Child page
+translation=
+
+[importer.notion-api.label-preview-database]
+original=Database
+translation=
+
+[importer.notion-api.msg-preview-nested-content]
+original=Nested content is not loaded in the preview.
+translation=
+
+[importer.notion-api.msg-preview-content-not-loaded]
+original={{type}} is not loaded in the preview.
+translation=
+
+[importer.notion-api.msg-preview-content-not-loaded-with-caption]
+original={{type}}: {{caption}} is not loaded in the preview.
+translation=
+
+[importer.notion-api.msg-preview-block-not-expanded]
+original={{type}} is not expanded in the preview.
+translation=
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}
@@ -2090,6 +2210,10 @@ translation=កំពុងដោះស្រាយតំណ និងលុប�
 original=Starting import
 translation=កំពុងចាប់ផ្តើមនាំចូល
 
+[importer.notion.msg-markdown-export]
+original=This is a Markdown export. Export your Notion workspace as HTML instead.
+translation=
+
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead
 translation=វាជាការនាំចេញ Markdown។ សូមនាំចេញតំបន់ការងារ Notion របស់អ្នកជា HTML ជំនួសវិញ
@@ -2146,13 +2270,13 @@ translation=ដកចេញការយោងទៅប្លុកដែលប�
 original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
 translation=ការយោងមួយចំនួនដាក់ឈ្មោះប្លុកដែលមិនមាននៅក្នុងការនាំចេញ។ បើបានបើក វានឹងត្រូវដកចេញ បើមិនបើកទេ វានឹងត្រូវរក្សាទុកដូចដែល Roam បានសរសេរ។
 
-[importer.roam-json.name-keep-attributes]
-original=Keep attributes in the note
-translation=រក្សាគុណលក្ខណៈនៅក្នុងកំណត់ចំណាំ
+[importer.roam-json.name-convert-attributes]
+original=Convert attributes to properties
+translation=
 
-[importer.roam-json.desc-keep-attributes]
-original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
-translation=គុណលក្ខណៈនៅផ្នែកខាងលើនៃទំព័រក្លាយជាលក្ខណៈសម្បត្តិ។ បើបានបើក វានឹងត្រូវទុកនៅក្នុងកំណត់ចំណាំជាមួយសញ្ញាចុចពីរដងដែល Roam បានសរសេរ។
+[importer.roam-json.desc-convert-attributes]
+original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.
+translation=
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links

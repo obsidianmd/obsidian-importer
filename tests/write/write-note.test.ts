@@ -10,6 +10,12 @@ import { MemoryVault, memoryApp } from '../shims/vault';
 class WritingImporter extends FormatImporter {
 	init(): void {}
 	async import(_ctx: ImportContext): Promise<void> {}
+	useInlineTemplate(template: string): void {
+		this.inlineTemplate = template;
+	}
+	async preview(template = '{{content}}', titleTemplate = this.noteTitleTemplate) {
+		return await this.exampleTemplatePreview(template, [], titleTemplate);
+	}
 }
 
 function importer(duplicateHandling: DuplicateHandling) {
@@ -136,6 +142,171 @@ test('the id joins the properties the note already had rather than replacing the
 	assert.match(written, /title: Roadmap/);
 	assert.match(written, /- work/);
 	assert.match(written, /\n---\nbody\n$/);
+});
+
+test('a selected Markdown template renders the whole imported note', async () => {
+	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
+	await vault.createFolder('Templates');
+	await vault.create('Templates/Import.md', [
+		'# {{title|upper}}',
+		'',
+		'Created: {{created}}',
+		'Source: {{source.name}}',
+		'',
+		'{{body}}',
+	].join('\n'));
+	subject.templatePath = 'Templates/Import.md';
+
+	const { file } = await subject.writeNote(
+		ctx,
+		vault.root,
+		'Template note',
+		'---\ncreated: 2026-08-20\n---\nOriginal body',
+		{ templateVariables: { name: 'Export' } },
+	);
+
+	assert.equal(vault.contents.get(file.path), [
+		'# TEMPLATE NOTE',
+		'',
+		'Created: 2026-08-20',
+		'Source: Export',
+		'',
+		'Original body',
+	].join('\n'));
+});
+
+test('an inline template renders importer-specific source values', async () => {
+	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
+	subject.useInlineTemplate('---\nProject: {{Project | yaml}}\n---\n# {{title}}');
+
+	const { file } = await subject.writeNote(ctx, vault.root, 'Roadmap', '', {
+		templateVariables: { Project: 'Importer: templates' },
+	});
+
+	assert.equal(vault.contents.get(file.path), [
+		'---',
+		'Project: "Importer: templates"',
+		'---',
+		'# Roadmap',
+	].join('\n'));
+});
+
+test('the shared title template names the imported file with Knap variables and filters', async () => {
+	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
+	subject.noteTitleTemplate = '{{source.project}} - {{title | upper}}';
+
+	const { file } = await subject.writeNote(ctx, vault.root, 'Roadmap', 'Body', {
+		templateVariables: { project: 'Importer' },
+	});
+
+	assert.equal(file.path, 'Importer - ROADMAP.md');
+});
+
+test('the template preview uses the editable title template', async () => {
+	const { subject } = importer(DuplicateHandling.CreateCopy);
+	const preview = await subject.preview('{{content}}', '{{title | upper}}');
+
+	assert.equal(preview.label, 'IMPORTED NOTE');
+	assert.equal(preview.path, 'Import/IMPORTED NOTE.md');
+});
+
+test('shared template timestamps reflect source file times', async () => {
+	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
+	await vault.create('Template.md', '{{ctime}} / {{mtime}}');
+	subject.templatePath = 'Template.md';
+
+	const { file } = await subject.writeNote(ctx, vault.root, 'Note', 'Body', {
+		ctime: Date.parse('2024-01-02T03:04:05.000Z'),
+		mtime: Date.parse('2025-06-07T08:09:10.000Z'),
+	});
+
+	assert.equal(
+		vault.contents.get(file.path),
+		'2024-01-02T03:04:05.000Z / 2025-06-07T08:09:10.000Z',
+	);
+});
+
+test('shared source timestamps are empty when the importer has none', async () => {
+	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
+	await vault.create('Template.md', '{{ctime}} / {{mtime}}');
+	subject.templatePath = 'Template.md';
+
+	const { file } = await subject.writeNote(ctx, vault.root, 'Note', 'Body');
+
+	assert.equal(vault.contents.get(file.path), ' / ');
+});
+
+test('source identity is added after rendering the template', async () => {
+	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
+	await vault.create('Template.md', '# {{title}}\n\n{{body}}');
+	subject.templatePath = 'Template.md';
+	subject.idProperty = 'source-id';
+	subject.saveSourceId = true;
+
+	const { file } = await subject.writeNote(ctx, vault.root, 'Note', 'Body', { sourceId: 'abc-123' });
+
+	assert.equal(vault.contents.get(file.path), '---\nsource-id: abc-123\n---\n# Note\n\nBody');
+});
+
+test('the managed source identity overrides the same property in a template', async () => {
+	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
+	await vault.create('Template.md', '---\nsource-id: editable value\n---\n{{body}}');
+	subject.templatePath = 'Template.md';
+	subject.idProperty = 'source-id';
+	subject.saveSourceId = true;
+
+	const { file } = await subject.writeNote(ctx, vault.root, 'Note', 'Body', { sourceId: 'abc-123' });
+
+	assert.equal(vault.contents.get(file.path), '---\nsource-id: abc-123\n---\nBody');
+});
+
+test('{{id}} is an alias for the source identifier', async () => {
+	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
+	subject.useInlineTemplate('{{id}} / {{sourceId}}');
+
+	const { file } = await subject.writeNote(ctx, vault.root, 'Note', 'Body', { sourceId: 'abc-123' });
+
+	assert.equal(vault.contents.get(file.path), 'abc-123 / abc-123');
+});
+
+test('the template preview includes source identity when it will be saved', async () => {
+	const { subject } = importer(DuplicateHandling.CreateCopy);
+	subject.idProperty = 'apple-notes-id';
+
+	subject.saveSourceId = false;
+	assert.equal((await subject.preview()).content, '# Imported note\n\nImported content');
+
+	subject.saveSourceId = true;
+	assert.equal(
+		(await subject.preview()).content,
+		'---\napple-notes-id: example-source-id\n---\n# Imported note\n\nImported content',
+	);
+});
+
+test('common variables win collisions while the source value remains namespaced', async () => {
+	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
+	await vault.create('Template.md', '{{body}} / {{source.content}}');
+	subject.templatePath = 'Template.md';
+
+	const { file } = await subject.writeNote(
+		ctx,
+		vault.root,
+		'Note',
+		'---\ncontent: source property\n---\nGenerated body',
+	);
+
+	assert.equal(vault.contents.get(file.path), 'Generated body / source property');
+});
+
+test('the selected template must be a Markdown file in the vault', async () => {
+	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
+	await vault.create('Template.txt', '{{content}}');
+	subject.templatePath = 'Template.txt';
+
+	await assert.rejects(
+		subject.writeNote(ctx, vault.root, 'Note', 'Body'),
+		/Template must be a Markdown file in this vault: Template\.txt/,
+	);
 });
 
 test('two source notes of one name stay two notes', async () => {

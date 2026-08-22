@@ -112,10 +112,13 @@ test('the top level is open, the rest closed, and all of it counted', async () =
 
 	const internals = subject as unknown as {
 		folderPicker: {
-			loadNodes(items: (PickedFile | PickedFolder)[], isCurrent: () => boolean): Promise<CountedNode[]>;
+			loadNodes(items: (PickedFile | PickedFolder)[], isCurrent: () => boolean): Promise<{
+				nodes: CountedNode[];
+				files: number;
+			}>;
 		};
 	};
-	const nodes = await internals.folderPicker.loadNodes(subject.chosen, () => true);
+	const { nodes, files } = await internals.folderPicker.loadNodes(subject.chosen, () => true);
 
 	assert.ok(nodes.every(node => !node.collapsed), 'what was chosen starts open');
 	assert.ok(nodes.every(node => (node.children ?? []).every(child => child.collapsed)), 'what is under it does not');
@@ -124,6 +127,7 @@ test('the top level is open, the rest closed, and all of it counted', async () =
 	assert.deepEqual(counted(nodes), [
 		{ Notes: [3, [{ Journal: [2, [{ Art: [0, []] }]] }]] },
 	]);
+	assert.equal(files, 3);
 });
 
 interface CountedNode {

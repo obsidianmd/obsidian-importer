@@ -6,6 +6,10 @@ export interface OutputSettings {
 	attachments: AttachmentLocation;
 	duplicates: DuplicateHandling;
 	saveSourceId: boolean;
+	idProperty?: string;
+	template?: string;
+	inlineTemplate?: string;
+	titleTemplate?: string;
 }
 
 export interface ImporterData {

@@ -1,11 +1,12 @@
 import { normalizePath, Notice, DataWriteOptions } from 'obsidian';
 import { PickedFile } from '../filesystem';
-import { attachmentLocationAsSetting, FormatImporter } from '../format-importer';
+import { attachmentLocationAsSetting, FormatImporter, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { NOTION_ID_PROPERTY } from '../constants';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
+import { PickedFolderNode, PickedFolderPicker, PickedFolderSelection, pickedFolderFileCount, pickedFolderNodes } from '../picked-folder-tree';
 import { extractErrorMessage } from '../util';
-import { readZip, ZipEntryFile } from '../zip';
+import { hiddenZipPath, readZip, ZipEntryFile, zipContents } from '../zip';
 import { cleanDuplicates } from './notion/clean-duplicates';
 import { readToMarkdown } from './notion/convert-to-md';
 import { NotionResolverInfo } from './notion/notion-types';
@@ -20,14 +21,44 @@ export class NotionImporter extends FormatImporter {
 
 	parentsInSubfolders: boolean;
 	singleLineBreaks: boolean;
+	private folderPicker: PickedFolderPicker;
 
 	init() {
 		this.parentsInSubfolders = true;
+		this.singleLineBreaks = false;
+		this.folderPicker = new PickedFolderPicker(
+			() => this.files,
+			async (source, isCurrent) => {
+				const entries: ZipEntryFile[] = [];
+				const zipFiles = source.filter((item): item is PickedFile => item.type === 'file');
+				const scan = new ImportContext();
+				await processZips(scan, zipFiles, async entry => {
+					if (isCurrent()) entries.push(entry);
+				});
+				if (!isCurrent()) return { nodes: [], files: 0 };
+				if (scan.log.some(entry => entry.reason === i18n.importer.notion.reasonMarkdownExport())) {
+					throw new Error(i18n.importer.notion.msgMarkdownExport());
+				}
+
+				const items = zipContents(entries);
+				const countFile = (file: PickedFile) => file.extension === 'html' && !!getNotionId(file.name);
+				const nodes = await pickedFolderNodes(items, {
+					countFile,
+					isCurrent,
+				});
+				this.cleanFolderNodeTitles(nodes);
+				return {
+					nodes,
+					files: pickedFolderFileCount(items, nodes, countFile),
+				};
+			},
+		);
 
 		this.addInstructions(this.addExportSetting(i18n.importer.notion.descExport()));
 
 		this.addFileChooserSetting(i18n.importer.notion.fileType(), NotionImporter.extensions, false,
 			i18n.importer.notion.descFiles());
+		this.draw(contentEl => this.folderPicker.draw(contentEl, this.addSetting('source')), 'source');
 		this.defaultOutputFolder = 'Notion';
 		this.idProperty = NOTION_ID_PROPERTY;
 		this.idLabel = i18n.importer.notion.labelId();
@@ -38,18 +69,92 @@ export class NotionImporter extends FormatImporter {
 				.setValue(this.parentsInSubfolders)
 				.onChange((value) => (this.parentsInSubfolders = value)));
 
-		this.addSetting()
+		this.startGroup('template');
+		this.addSetting('template')
 			?.setName(i18n.importer.notion.nameSingleLineBreaks())
 			.setDesc(i18n.importer.notion.descSingleLineBreaks())
 			.addToggle((toggle) => toggle
 				.setValue(this.singleLineBreaks)
 				.onChange((value) => {
 					this.singleLineBreaks = value;
+					this.templateSettingsChanged();
 				}));
+	}
+
+	protected override sourceChanged(): void {
+		super.sourceChanged();
+		this.folderPicker.changed();
+	}
+
+	private cleanFolderNodeTitles(nodes: PickedFolderNode[]): void {
+		for (const node of nodes) {
+			node.title = node.title.replace(/\s+[a-z0-9]{32}$/iu, '').trim();
+			this.cleanFolderNodeTitles(node.children ?? []);
+		}
+	}
+
+	private includesEntry(entry: ZipEntryFile, selection: PickedFolderSelection): boolean {
+		const parent = entry.parent;
+		if (!parent || selection.included === null) return true;
+
+		for (const skipped of selection.skipped) {
+			if (parent === skipped || parent.startsWith(`${skipped}/`)) return false;
+		}
+
+		return selection.included.has(parent);
+	}
+
+	protected override async templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]> {
+		const selection = this.folderPicker.selection();
+		const info = new NotionResolverInfo(
+			attachmentLocationAsSetting(this.attachmentLocation),
+			this.singleLineBreaks,
+		);
+		await processZips(ctx, this.files, async entry => {
+			if (await ctx.shouldStop()) return;
+			if (!this.includesEntry(entry, selection)) return;
+			try {
+				await parseFileInfo(info, entry);
+			}
+			catch (error) {
+				console.warn(`Could not index Notion preview entry ${entry.fullpath}`, error);
+			}
+		});
+
+		const samples: NoteTemplateSample[] = [];
+		if (await ctx.shouldStop()) return samples;
+		await processZips(ctx, this.files, async entry => {
+			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) return;
+			if (!this.includesEntry(entry, selection)) return;
+			if (entry.extension !== 'html') return;
+			const id = getNotionId(entry.name);
+			const fileInfo = id ? info.idsToFileInfo[id] : undefined;
+			if (!id || !fileInfo) return;
+
+			try {
+				const content = await readToMarkdown(info, entry);
+				const parent = info.getPathForFile(fileInfo);
+				samples.push({
+					title: fileInfo.title,
+					path: normalizePath(`${this.outputLocation}/${parent}${fileInfo.title}.md`),
+					content,
+					sourceId: id,
+					times: {
+						ctime: fileInfo.ctime?.getTime(),
+						mtime: fileInfo.mtime?.getTime(),
+					},
+				});
+			}
+			catch (error) {
+				console.warn(`Could not preview Notion page ${entry.fullpath}`, error);
+			}
+		});
+		return samples;
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
 		const { vault, parentsInSubfolders, files } = this;
+		const selection = this.folderPicker.selection();
 		if (files.length === 0) {
 			new Notice(i18n.common.msgPickFile());
 			return;
@@ -72,6 +177,7 @@ export class NotionImporter extends FormatImporter {
 		ctx.status(i18n.importer.notion.statusLooking());
 		let total = 0;
 		await processZips(ctx, files, async (file) => {
+			if (!this.includesEntry(file, selection)) return;
 			try {
 				await parseFileInfo(info, file);
 				total = Object.keys(info.idsToFileInfo).length + Object.keys(info.pathsToAttachmentInfo).length;
@@ -109,6 +215,7 @@ export class NotionImporter extends FormatImporter {
 		let current = 0;
 		ctx.status(i18n.importer.notion.statusStarting());
 		await processZips(ctx, files, async (file) => {
+			if (!this.includesEntry(file, selection)) return;
 			current++;
 			ctx.reportProgress(current, total);
 
@@ -172,7 +279,9 @@ export async function processZips(ctx: ImportContext, files: PickedFile[], callb
 		if (await ctx.shouldStop()) return;
 		try {
 			await readZip(zipFile, async (zip, entries) => {
-				for (let entry of entries) {
+				const visibleEntries = entries.filter(entry => !hiddenZipPath(entry.filepath));
+				stripSyntheticNotionExportRoot(visibleEntries);
+				for (let entry of visibleEntries) {
 					if (await ctx.shouldStop()) return;
 
 					// Notion's own default is Markdown & CSV, and this importer reads
@@ -210,5 +319,19 @@ export async function processZips(ctx: ImportContext, files: PickedFile[], callb
 			// failure they can neither place nor act on.
 			ctx.reportFailed(zipFile.fullpath, e);
 		}
+	}
+}
+
+function stripSyntheticNotionExportRoot(entries: ZipEntryFile[]): void {
+	if (entries.length === 0) return;
+
+	const root = entries[0].filepath.split('/')[0];
+	if (!/^Export-[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/iu.test(root)) return;
+
+	const prefix = `${root}/`;
+	if (!entries.every(entry => entry.filepath.startsWith(prefix))) return;
+
+	for (const entry of entries) {
+		entry.setFilepath(entry.filepath.slice(prefix.length));
 	}
 }

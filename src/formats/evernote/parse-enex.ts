@@ -14,7 +14,7 @@ interface Building {
 
 export interface EnexHandlers {
 	wanted: Set<string>;
-	onElement: (name: string, element: EnexElement) => void;
+	onElement: (name: string, element: EnexElement) => void | Promise<void>;
 	isCancelled?: () => boolean;
 	/** Awaited between chunks; true stops parsing. */
 	checkpoint?: () => Promise<boolean>;
@@ -28,6 +28,7 @@ export async function parseEnex(file: PickedFile, handlers: EnexHandlers): Promi
 
 	const stack: Building[] = [];
 	let failure: Error | null = null;
+	let pendingElement = Promise.resolve();
 
 	parser.onerror = error => {
 		failure ??= error;
@@ -64,7 +65,11 @@ export async function parseEnex(file: PickedFile, handlers: EnexHandlers): Promi
 		const value: EnexElement = closed.children ?? (closed.attributes ? { $text: closed.text } : closed.text);
 
 		if (wanted.has(name)) {
-			if (!isCancelled?.()) onElement(name, value);
+			pendingElement = pendingElement.then(async () => {
+				if (!isCancelled?.()) {
+					await onElement(name, value);
+				}
+			});
 			// Do not retain emitted notes and tasks in the parent tree.
 			return;
 		}
@@ -84,9 +89,11 @@ export async function parseEnex(file: PickedFile, handlers: EnexHandlers): Promi
 		if (await checkpoint?.()) return;
 
 		parser.write(piece);
+		await pendingElement;
 		throwIfFailed();
 	}
 
 	parser.close();
+	await pendingElement;
 	throwIfFailed();
 }

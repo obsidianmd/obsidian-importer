@@ -1,7 +1,7 @@
 import { ImportContext } from '../import-context';
 import { normalizePath, Notice, requestUrl } from 'obsidian';
 import { parseFilePath } from '../filesystem';
-import { FormatImporter } from '../format-importer';
+import { FormatImporter, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { i18n } from '../i18n';
 import { sanitizeFileName } from '../util';
 import { RoamPage } from './roam/models/roam-json';
@@ -33,6 +33,14 @@ export class RoamJSONImporter extends FormatImporter {
 	keepAttributesInOutline: boolean = roamDefaults.keepAttributesInOutline;
 	dropQueries: boolean = roamDefaults.dropQueries;
 	tagsAsLinks: boolean = roamDefaults.tagsAsLinks;
+
+	get convertAttributesToProperties(): boolean {
+		return !this.keepAttributesInOutline;
+	}
+
+	set convertAttributesToProperties(value: boolean) {
+		this.keepAttributesInOutline = !value;
+	}
 
 	init() {
 		this.addInstructions(this.addExportSetting(i18n.importer.roamJson.descExport()));
@@ -69,12 +77,15 @@ export class RoamJSONImporter extends FormatImporter {
 
 		this.startGroup();
 
-		this.addSetting()
-			?.setName(i18n.importer.roamJson.nameKeepAttributes())
-			.setDesc(i18n.importer.roamJson.descKeepAttributes())
+		this.addSetting('template')
+			?.setName(i18n.importer.roamJson.nameConvertAttributes())
+			.setDesc(i18n.importer.roamJson.descConvertAttributes())
 			.addToggle(toggle => toggle
-				.setValue(this.keepAttributesInOutline)
-				.onChange(value => this.keepAttributesInOutline = value));
+				.setValue(this.convertAttributesToProperties)
+				.onChange(value => {
+					this.convertAttributesToProperties = value;
+					this.templateSettingsChanged();
+				}));
 
 		this.addSetting()
 			?.setName(i18n.importer.roamJson.nameTagsAsLinks())
@@ -89,6 +100,45 @@ export class RoamJSONImporter extends FormatImporter {
 			.addToggle(toggle => toggle
 				.setValue(this.dropQueries)
 				.onChange(value => this.dropQueries = value));
+	}
+
+	protected override async templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]> {
+		const samples: NoteTemplateSample[] = [];
+		for (const file of this.files) {
+			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
+			try {
+				const pages = JSON.parse(await file.readText()) as RoamPage[];
+				const graphName = sanitizeFileName(file.basename);
+				const graphFolder = normalizePath(`${this.outputLocation}/${graphName}`);
+				const converter = new RoamGraphConverter({
+					graphFolder,
+					userDNPFormat: this.userDNPFormat,
+					deOutline: this.deOutline,
+					embedBlockReferences: this.embedBlockReferences,
+					dropUnresolvedReferences: this.dropUnresolvedReferences,
+					keepAttributesInOutline: this.keepAttributesInOutline,
+					dropQueries: this.dropQueries,
+					tagsAsLinks: this.tagsAsLinks,
+					emptyTitleReason: i18n.importer.roamJson.reasonEmptyTitle(),
+					// Keep unresolved attachment links in the preview without writing files.
+				});
+				const remaining = TEMPLATE_PREVIEW_LIMIT - samples.length;
+				const converted = await converter.convert(pages.slice(0, remaining));
+				for (const [path, content] of converted.pages) {
+					if (samples.length >= TEMPLATE_PREVIEW_LIMIT) break;
+					samples.push({
+						title: parseFilePath(path).basename,
+						path,
+						content,
+						sourceId: converted.uids.get(path),
+					});
+				}
+			}
+			catch (error) {
+				console.warn(`Could not preview Roam graph ${file.fullpath}`, error);
+			}
+		}
+		return samples;
 	}
 
 	async import(progress: ImportContext) {

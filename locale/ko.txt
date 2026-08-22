@@ -406,6 +406,14 @@ translation=폴더를 읽는 중...
 original=No folders found.
 translation=폴더를 찾을 수 없어요.
 
+[source.msg-flat-files]
+original={{count}} file will be imported.
+translation=
+
+[source.msg-flat-files_plural]
+original={{count}} files will be imported.
+translation=
+
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
 translation=가져올 항목이 없어요. {{extensions}} 파일이나 해당 파일이 포함된 폴더를 선택하세요.
@@ -445,6 +453,22 @@ translation=출력 폴더
 [output.desc-folder]
 original=Where imported notes will be saved. Leave blank to use the top level of the vault.
 translation=가져온 노트가 저장될 위치예요. 비워 두면 보관함 최상위에 저장돼요.
+
+[output.name-template]
+original=Template
+translation=
+
+[output.desc-template]
+original=Optional Markdown template from this vault. Use variables such as {{title}}, {{content}}, and {{date}}.
+translation=
+
+[output.placeholder-template]
+original=Templates/Import.md
+translation=
+
+[output.msg-template-not-found]
+original=Template must be a Markdown file in this vault: {{path}}
+translation=
 
 [output.name-attachments]
 original=Attachment location
@@ -646,12 +670,16 @@ translation={{subject}}을(를) 읽을 수 없어요.
 original=Configure how your data should be imported. Use {{syntax}} syntax to reference field values.
 translation=데이터를 가져올 방법을 설정하세요. {{syntax}} 구문을 사용하여 필드 값을 참조할 수 있어요.
 
+[template.msg-note-template-intro]
+original=Review examples of how your notes will be imported.
+translation=
+
 [template.name-title]
 original=Note title
 translation=파일 이름 변경
 
 [template.desc-title]
-original=Template for the note title. Use {{field_name}} to insert values.
+original=Template for the note title. Use variables like {{field_name}} to insert values.
 translation=노트 제목 템플릿이에요. {{field_name}}을 사용하여 값을 삽입하세요.
 
 [template.name-location]
@@ -667,8 +695,64 @@ original=Note content
 translation=노트 내용
 
 [template.desc-content]
-original=Template for the note content. Use {{field_name}} to insert values.
+original=Template for the note content. Use variables like {{field_name}} to insert values.
 translation=노트 내용 템플릿이에요. {{field_name}}을 사용하여 값을 삽입하세요.
+
+[template.name-template-file]
+original=Template
+translation=
+
+[template.desc-template-file]
+original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
+translation=
+
+[template.heading-preview]
+original=Preview
+translation=
+
+[template.status-loading-preview]
+original=Loading preview...
+translation=
+
+[template.button-edit-template]
+original=Edit
+translation=
+
+[template.button-save-template]
+original=Save
+translation=
+
+[template.button-reset-template]
+original=Reset to default
+translation=
+
+[template.link-show-more]
+original=Show more
+translation=
+
+[template.name-template-editor]
+original=Template source
+translation=
+
+[template.label-edit-import-template]
+original=Edit import template
+translation=
+
+[template.button-add-property]
+original=Add property
+translation=
+
+[template.button-previous-preview]
+original=Previous preview
+translation=
+
+[template.button-next-preview]
+original=Next preview
+translation=
+
+[template.msg-diagnostic]
+original=Line {{line}}: {{message}}
+translation=
 
 [template.heading-properties]
 original=Properties
@@ -1149,6 +1233,14 @@ translation=CSV에 머리글 행이 있음
 [importer.csv.desc-header-row]
 original=If enabled, the first row of the CSV file will be treated as column headers.
 translation=활성화됨이면 CSV 파일의 첫 번째 행이 열 머리글로 처리돼요.
+
+[importer.csv.name-source-title]
+original=Source title
+translation=
+
+[importer.csv.desc-source-title]
+original=Creates the {{title}} value used by the final note title template. Use CSV column variables like {{column_name}}.
+translation=
 
 [importer.csv.msg-pick-file]
 original=Please pick at least one CSV file to import.
@@ -1906,6 +1998,10 @@ translation=이미지 첨부 파일
 original=Video attachment
 translation=동영상 첨부 파일
 
+[importer.notion-api.label-attachment-audio]
+original=Audio attachment
+translation=
+
 [importer.notion-api.label-attachment-file]
 original=File attachment
 translation=파일 첨부 파일
@@ -1913,6 +2009,30 @@ translation=파일 첨부 파일
 [importer.notion-api.label-attachment-pdf]
 original=PDF attachment
 translation=PDF 첨부 파일
+
+[importer.notion-api.label-preview-child-page]
+original=Child page
+translation=
+
+[importer.notion-api.label-preview-database]
+original=Database
+translation=
+
+[importer.notion-api.msg-preview-nested-content]
+original=Nested content is not loaded in the preview.
+translation=
+
+[importer.notion-api.msg-preview-content-not-loaded]
+original={{type}} is not loaded in the preview.
+translation=
+
+[importer.notion-api.msg-preview-content-not-loaded-with-caption]
+original={{type}}: {{caption}} is not loaded in the preview.
+translation=
+
+[importer.notion-api.msg-preview-block-not-expanded]
+original={{type}} is not expanded in the preview.
+translation=
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}
@@ -2090,6 +2210,10 @@ translation=링크를 확인하고 중복 파일을 제거하는 중
 original=Starting import
 translation=가져오기 시작 중
 
+[importer.notion.msg-markdown-export]
+original=This is a Markdown export. Export your Notion workspace as HTML instead.
+translation=
+
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead
 translation=Markdown 내보내기 파일이에요. Notion 작업 공간을 HTML로 다시 내보내세요
@@ -2146,13 +2270,13 @@ translation=누락된 블록에 대한 참조 삭제
 original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
 translation=일부 참조는 내보내기에 존재하지 않는 블록을 가리켜요. 활성화됨 상태에서는 해당 참조가 삭제되고, 아니면 Roam이 작성한 그대로 유지돼요.
 
-[importer.roam-json.name-keep-attributes]
-original=Keep attributes in the note
-translation=노트에 속성 유지
+[importer.roam-json.name-convert-attributes]
+original=Convert attributes to properties
+translation=
 
-[importer.roam-json.desc-keep-attributes]
-original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
-translation=페이지 상단의 속성은 속성으로 변환돼요. 활성화됨 상태에서는 Roam이 작성한 이중 콜론 형식 그대로 노트에 남겨요.
+[importer.roam-json.desc-convert-attributes]
+original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.
+translation=
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links

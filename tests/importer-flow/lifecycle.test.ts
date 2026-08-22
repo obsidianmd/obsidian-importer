@@ -43,6 +43,18 @@ interface FlowInternals {
 	finish(): void;
 }
 
+class CollapsedOptionsImporter extends FormatImporter {
+	init(): void {
+		this.host.optionsEl?.createDiv({ cls: 'conversion-option' });
+	}
+
+	async import(): Promise<void> {}
+
+	protected override drawOutputSettings(contentEl: HTMLElement): void {
+		contentEl.createDiv({ cls: 'destination-option' });
+	}
+}
+
 function flow(): { flow: ImporterFlow, shell: TestShell } {
 	const shell = new TestShell();
 	const plugin = {
@@ -78,6 +90,60 @@ test('back resolves a configuration screen that is waiting for its own buttons',
 
 	assert.equal(returnedToSetup, 1);
 	assert.equal(importerFlow.current, null);
+});
+
+test('a nested configuration screen can temporarily handle Back itself', async () => {
+	const { flow: importerFlow } = flow();
+	const internals = importerFlow as unknown as FlowInternals;
+	let returnedToSetup = 0;
+	let returnedToNestedScreen = 0;
+
+	importerFlow.selectedId = 'csv';
+	internals.depth = 2;
+	internals.drawCurrent = () => returnedToSetup++;
+
+	const importer = {
+		showTemplateConfiguration: () => new Promise<boolean>(() => {}),
+	} as unknown as FormatImporter;
+
+	const starting = internals.startImportRun(importer);
+	await Promise.resolve();
+
+	importerFlow.setConfigurationBack(() => returnedToNestedScreen++);
+	importerFlow.back();
+	assert.equal(returnedToNestedScreen, 1);
+	assert.equal(returnedToSetup, 0);
+
+	importerFlow.setConfigurationBack(null);
+	importerFlow.back();
+	await starting;
+
+	assert.equal(returnedToSetup, 1);
+	assert.equal(importerFlow.current, null);
+});
+
+test('conversion options are folded into the output page instead of getting another step', async () => {
+	const outputEl = createDiv();
+	const optionsEl = createDiv();
+	const importer = new CollapsedOptionsImporter({
+		vault: { getConfig: () => '' },
+	} as never, {
+		sourceEl: null,
+		outputEl,
+		optionsEl,
+		plugin: null,
+		importerId: 'collapsed-options',
+		abortController: new AbortController(),
+	} as never);
+	await importer.ready;
+
+	importer.drawOutputStep();
+
+	assert.deepEqual(
+		Array.from(outputEl.children).map(child => child.className),
+		['destination-option', 'conversion-option'],
+	);
+	assert.equal(optionsEl.childElementCount, 0);
 });
 
 test('selecting the running format creates another importer', () => {

@@ -406,6 +406,14 @@ translation=Lectura de carpetes...
 original=No folders found.
 translation=No s'han trobat carpetes.
 
+[source.msg-flat-files]
+original={{count}} file will be imported.
+translation=
+
+[source.msg-flat-files_plural]
+original={{count}} files will be imported.
+translation=
+
 [source.msg-nothing-to-import]
 original=Nothing to import there. Pick {{extensions}} files, or a folder holding some.
 translation=No hi ha res per importar. Tria fitxers {{extensions}}, o una carpeta que en contingui.
@@ -445,6 +453,22 @@ translation=Carpeta de sortida
 [output.desc-folder]
 original=Where imported notes will be saved. Leave blank to use the top level of the vault.
 translation=On es desaran les notes importades. Deixa-ho en blanc per utilitzar el nivell superior de la cambra forta.
+
+[output.name-template]
+original=Template
+translation=
+
+[output.desc-template]
+original=Optional Markdown template from this vault. Use variables such as {{title}}, {{content}}, and {{date}}.
+translation=
+
+[output.placeholder-template]
+original=Templates/Import.md
+translation=
+
+[output.msg-template-not-found]
+original=Template must be a Markdown file in this vault: {{path}}
+translation=
 
 [output.name-attachments]
 original=Attachment location
@@ -646,12 +670,16 @@ translation=No s'ha pogut llegir {{subject}}.
 original=Configure how your data should be imported. Use {{syntax}} syntax to reference field values.
 translation=Configurar com s'han d'importar les dades. Utilitzeu la sintaxi {{syntax}} per fer referència als valors dels camps.
 
+[template.msg-note-template-intro]
+original=Review examples of how your notes will be imported.
+translation=
+
 [template.name-title]
 original=Note title
 translation=Canvia el nom de l'arxiu
 
 [template.desc-title]
-original=Template for the note title. Use {{field_name}} to insert values.
+original=Template for the note title. Use variables like {{field_name}} to insert values.
 translation=Plantilla per al títol de la nota. Utilitzeu {{field_name}} per insertar valors.
 
 [template.name-location]
@@ -667,8 +695,64 @@ original=Note content
 translation=Contingut de la nota
 
 [template.desc-content]
-original=Template for the note content. Use {{field_name}} to insert values.
+original=Template for the note content. Use variables like {{field_name}} to insert values.
 translation=Plantilla per al contingut de la nota. Utilitzeu {{field_name}} per insertar valors.
+
+[template.name-template-file]
+original=Template
+translation=
+
+[template.desc-template-file]
+original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
+translation=
+
+[template.heading-preview]
+original=Preview
+translation=
+
+[template.status-loading-preview]
+original=Loading preview...
+translation=
+
+[template.button-edit-template]
+original=Edit
+translation=
+
+[template.button-save-template]
+original=Save
+translation=
+
+[template.button-reset-template]
+original=Reset to default
+translation=
+
+[template.link-show-more]
+original=Show more
+translation=
+
+[template.name-template-editor]
+original=Template source
+translation=
+
+[template.label-edit-import-template]
+original=Edit import template
+translation=
+
+[template.button-add-property]
+original=Add property
+translation=
+
+[template.button-previous-preview]
+original=Previous preview
+translation=
+
+[template.button-next-preview]
+original=Next preview
+translation=
+
+[template.msg-diagnostic]
+original=Line {{line}}: {{message}}
+translation=
 
 [template.heading-properties]
 original=Properties
@@ -1149,6 +1233,14 @@ translation=El CSV té una fila de capçalera
 [importer.csv.desc-header-row]
 original=If enabled, the first row of the CSV file will be treated as column headers.
 translation=Si està activat, la primera fila del fitxer CSV es tractarà com a capçaleres de columna.
+
+[importer.csv.name-source-title]
+original=Source title
+translation=
+
+[importer.csv.desc-source-title]
+original=Creates the {{title}} value used by the final note title template. Use CSV column variables like {{column_name}}.
+translation=
 
 [importer.csv.msg-pick-file]
 original=Please pick at least one CSV file to import.
@@ -1906,6 +1998,10 @@ translation=Adjunt d'imatge
 original=Video attachment
 translation=Adjunt de vídeo
 
+[importer.notion-api.label-attachment-audio]
+original=Audio attachment
+translation=
+
 [importer.notion-api.label-attachment-file]
 original=File attachment
 translation=Adjunt de fitxer
@@ -1913,6 +2009,30 @@ translation=Adjunt de fitxer
 [importer.notion-api.label-attachment-pdf]
 original=PDF attachment
 translation=Adjunt PDF
+
+[importer.notion-api.label-preview-child-page]
+original=Child page
+translation=
+
+[importer.notion-api.label-preview-database]
+original=Database
+translation=
+
+[importer.notion-api.msg-preview-nested-content]
+original=Nested content is not loaded in the preview.
+translation=
+
+[importer.notion-api.msg-preview-content-not-loaded]
+original={{type}} is not loaded in the preview.
+translation=
+
+[importer.notion-api.msg-preview-content-not-loaded-with-caption]
+original={{type}}: {{caption}} is not loaded in the preview.
+translation=
+
+[importer.notion-api.msg-preview-block-not-expanded]
+original={{type}} is not expanded in the preview.
+translation=
 
 [importer.notion-api.label-fetch-children]
 original=Fetch children for {{context}} {{id}}
@@ -2090,6 +2210,10 @@ translation=Resolent enllaços i eliminant fitxers duplicats
 original=Starting import
 translation=Iniciant la importació
 
+[importer.notion.msg-markdown-export]
+original=This is a Markdown export. Export your Notion workspace as HTML instead.
+translation=
+
 [importer.notion.reason-markdown-export]
 original=it is a Markdown export; export your Notion workspace as HTML instead
 translation=és una exportació en Markdown; exporta el teu espai de treball de Notion com a HTML
@@ -2146,13 +2270,13 @@ translation=Eliminar les referències a blocs inexistents
 original=Some references name a block that is not in the export. If enabled, they are removed; if not, they are kept as Roam wrote them.
 translation=Algunes referències apunten a un bloc que no és a l'exportació. Si està activat, s'eliminen; si no, es mantenen tal com les va escriure Roam.
 
-[importer.roam-json.name-keep-attributes]
-original=Keep attributes in the note
-translation=Mantenir els atributs a la nota
+[importer.roam-json.name-convert-attributes]
+original=Convert attributes to properties
+translation=
 
-[importer.roam-json.desc-keep-attributes]
-original=An attribute at the top of a page becomes a property. If enabled, it is left in the note with the double colon Roam wrote it with.
-translation=Un atribut al principi d'una pàgina es converteix en una propietat. Si està activat, es deixa a la nota amb el doble dos punts que va escriure Roam.
+[importer.roam-json.desc-convert-attributes]
+original=Convert eligible top-level Roam attributes into Obsidian properties. Referenced attributes remain in the note so links to them keep working.
+translation=
 
 [importer.roam-json.name-tags-as-links]
 original=Convert tags to links

@@ -1,4 +1,4 @@
-import { applyTemplate, generateFrontmatter, TemplateConfig } from '../../template';
+import { applyTemplate, generateFrontmatter, sourceVariableExpression, TemplateConfig } from '../../template';
 import { CSVRow } from './parse';
 
 export interface ConvertedRow {
@@ -13,16 +13,27 @@ export function defaultTemplateConfig(headers: string[], sanitizeKey: (key: stri
 
 	for (const header of headers) {
 		propertyNames.set(header, sanitizeKey(header));
-		propertyValues.set(header, `{{${header}}}`);
+		propertyValues.set(header, `{{${sourceVariableExpression(header)}}}`);
 	}
 
 	return {
-		titleTemplate: headers.length > 0 ? `{{${headers[0]}}}` : '',
+		titleTemplate: headers.length > 0 ? `{{${sourceVariableExpression(headers[0])}}}` : '',
 		locationTemplate: '',
 		bodyTemplate: '',
 		propertyNames,
 		propertyValues,
 	};
+}
+
+export function defaultNoteTemplate(headers: string[], sanitizeKey: (key: string) => string): string {
+	const properties = headers
+		.map(header => ({ header, property: sanitizeKey(header).trim() }))
+		.filter(({ property }) => property.length > 0)
+		.map(({ header, property }) => `${property}: {{${sourceVariableExpression(header)} | yaml}}`);
+
+	return properties.length > 0
+		? ['---', ...properties, '---'].join('\n')
+		: '{{content}}';
 }
 
 export function sanitizeYAMLKey(key: string): string {

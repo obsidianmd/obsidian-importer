@@ -30,6 +30,14 @@ function node(title: string): Node {
 
 function picker(): TreePicker<Node> {
 	const buttonEl = { hide() {}, show() {} };
+	const statusEl = {
+		text: '',
+		visible: false,
+		setText(value: string) { this.text = value; return this; },
+		hide() { this.visible = false; },
+		show() { this.visible = true; },
+		toggle(value: boolean) { this.visible = value; },
+	};
 	const loadButton = {
 		buttonEl,
 		disabled: false,
@@ -44,6 +52,8 @@ function picker(): TreePicker<Node> {
 		loadGeneration: 0,
 		toggleButton: { buttonEl },
 		loadButton,
+		statusEl,
+		statusText: '',
 		options: { loading: 'Loading', hint: 'Pick one', failed: () => 'Failed' },
 		clearFilter() {},
 	});
@@ -69,6 +79,66 @@ test('a completed load cannot overwrite the load that replaced it', async () => 
 	await first;
 
 	assert.equal(stillCurrent, false);
+	assert.deepEqual(subject.nodes.map(item => item.title), ['new']);
+});
+
+test('a load can publish usable nodes before it completes', async () => {
+	const subject = picker();
+	const seen: string[][] = [];
+	subject.render = () => seen.push(subject.nodes.map(item => item.title));
+
+	await subject.load(async (_isCurrent, publish) => {
+		publish([node('first page')]);
+		assert.deepEqual(subject.nodes.map(item => item.title), ['first page']);
+		publish([node('first page'), node('second page')]);
+		return [node('complete')];
+	});
+
+	assert.deepEqual(seen, [
+		['first page'],
+		['first page', 'second page'],
+		['complete'],
+	]);
+});
+
+test('a status remains above partial nodes until loading completes', async () => {
+	const subject = picker();
+	const internals = subject as unknown as {
+		statusEl: { text: string; visible: boolean };
+		statusText: string;
+	};
+
+	subject.setStatus = (text: string) => {
+		internals.statusText = text;
+		(TreePicker.prototype as unknown as { updateStatusPosition(this: TreePicker<Node>): void })
+			.updateStatusPosition.call(subject);
+	};
+
+	await subject.load(async (_isCurrent, publish) => {
+		publish([node('first page')]);
+		subject.setStatus('Loading page 2');
+		assert.equal(internals.statusEl.visible, true);
+		assert.equal(internals.statusEl.text, 'Loading page 2');
+		return [node('complete')];
+	});
+
+	assert.equal(internals.statusEl.visible, false);
+});
+
+test('a stale load cannot publish partial nodes', async () => {
+	const subject = picker();
+	const slow = deferred<void>();
+
+	const first = subject.load(async (_isCurrent, publish) => {
+		await slow.promise;
+		publish([node('stale partial')]);
+		return [node('stale complete')];
+	});
+	await subject.load(async () => [node('new')]);
+
+	slow.resolve();
+	await first;
+
 	assert.deepEqual(subject.nodes.map(item => item.title), ['new']);
 });
 

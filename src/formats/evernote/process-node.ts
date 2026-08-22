@@ -9,14 +9,14 @@ import { noteTimes } from './utils/note-times';
 
 import { renderNote } from './utils/render-note';
 
-export const processNode = (run: EvernoteRun, note: EvernoteNote, reportAs: string): boolean => {
+export const processNode = async (run: EvernoteRun, note: EvernoteNote, reportAs: string): Promise<boolean> => {
 
 	const title = note.title ?? '';
 	run.properties.setCurrentNoteName(title);
 
 	// Preflight before decoding attachments.
 	const times = noteTimes(note);
-	const notePath = run.output.planNote(run.mdPath, title || 'Untitled', reportAs);
+	const notePath = await run.output.planNote(run.mdPath, title || 'Untitled', reportAs);
 	run.notePlanned(normalizeTitle(title), notePath);
 
 	if (!run.output.willImport(notePath, times.mtime)) return false;

@@ -1,7 +1,7 @@
 import { OnenotePage, SectionGroup, User, PublicError, Notebook, OnenoteSection } from '@microsoft/microsoft-graph-types';
-import { ButtonComponent, DataWriteOptions, Notice, Setting, TFile, TFolder, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
+import { ButtonComponent, DataWriteOptions, normalizePath, Notice, Setting, TFile, TFolder, ObsidianProtocolData, requestUrl, moment } from 'obsidian';
 import { genUid, extractErrorMessage, parseHTML, sameBytes, sanitizeFileName } from '../util';
-import { DuplicateHandling, FormatImporter } from '../format-importer';
+import { DuplicateHandling, FormatImporter, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { selectedNodes } from '../tree';
 import { TreePicker, ViewableNode } from '../tree-view';
 import { ATTACHMENT_EXTS, AUTH_REDIRECT_URI } from '../constants';
@@ -142,6 +142,11 @@ interface OneNoteTreeNode extends ViewableNode<OneNoteTreeNode> {
 	children: OneNoteTreeNode[];
 }
 
+interface PreviewContentRead {
+	request: Promise<string>;
+	background: boolean;
+}
+
 export class OneNoteImporter extends FormatImporter {
 	interruption = 'pause' as const;
 
@@ -163,6 +168,8 @@ export class OneNoteImporter extends FormatImporter {
 	private readonly sectionPages = new Map<string, OnenotePage[]>();
 	private readonly readingAhead = new Map<string, Promise<void>>();
 	private readAheadQueue: Promise<void> = Promise.resolve();
+	private readonly previewContentReads = new Map<string, PreviewContentRead>();
+	private previewReadAhead: Promise<void> = Promise.resolve();
 	/** Bumped to disown reads that were started against an earlier listing. */
 	private pagesGeneration = 0;
 	private authenticatingAccountType: MicrosoftAccountType | null = null;
@@ -431,6 +438,7 @@ export class OneNoteImporter extends FormatImporter {
 		this.pagesGeneration++;
 		this.sectionPages.clear();
 		this.readingAhead.clear();
+		this.previewContentReads.clear();
 	}
 
 	async showSectionPickerUI(): Promise<void> {
@@ -525,6 +533,131 @@ export class OneNoteImporter extends FormatImporter {
 			}
 		}
 	}
+
+	override prefetchTemplatePreview(): void {
+		if (!this.signedIn) return;
+
+		const generation = this.pagesGeneration;
+		this.previewReadAhead = this.readPreviewPages(generation)
+			.then(async pages => {
+				for (const page of pages) {
+					if (generation !== this.pagesGeneration) return;
+					try {
+						await this.previewPageContent(page);
+					}
+					catch {
+						// Retry later with the visible preview's rate-limit handling.
+					}
+				}
+			})
+			.catch(error => console.warn('Could not read OneNote previews ahead of time', error));
+	}
+
+	private async readPreviewPages(generation: number): Promise<OnenotePage[]> {
+		const queue: OnenotePage[] = [];
+		const sections = [...this.selectedSections];
+
+		for (const section of sections) {
+			if (generation !== this.pagesGeneration) break;
+
+			await this.readingAhead.get(section.id);
+			if (generation !== this.pagesGeneration) break;
+
+			let pages = this.sectionPages.get(section.id);
+			if (!pages) {
+				try {
+					pages = await this.fetchSectionPages(section.id);
+					if (generation === this.pagesGeneration) this.sectionPages.set(section.id, pages);
+				}
+				catch {
+					continue;
+				}
+			}
+
+			this.insertPagesToSection(pages, section.id);
+			queue.push(...pages.slice(0, TEMPLATE_PREVIEW_LIMIT - queue.length));
+			if (queue.length >= TEMPLATE_PREVIEW_LIMIT) break;
+		}
+
+		return queue;
+	}
+
+	private startPreviewPageContent(pageId: string, progress?: ImportContext): PreviewContentRead {
+		const read: PreviewContentRead = {
+			request: this.fetchResource(
+				`https://graph.microsoft.com/v1.0/me/onenote/pages/${pageId}/content?includeInkML=true`,
+				'text',
+				progress,
+			),
+			background: progress === undefined,
+		};
+		this.previewContentReads.set(pageId, read);
+		void read.request.catch(() => {
+			if (this.previewContentReads.get(pageId) === read) this.previewContentReads.delete(pageId);
+		});
+		return read;
+	}
+
+	private async previewPageContent(page: OnenotePage, progress?: ImportContext): Promise<string> {
+		if (!page.id) throw new Error('OneNote returned a page without an ID');
+
+		const existing = this.previewContentReads.get(page.id);
+		if (!existing) return await this.startPreviewPageContent(page.id, progress).request;
+
+		try {
+			return await existing.request;
+		}
+		catch (error) {
+			// Background reads skip Graph throttling delays; visible previews retry them.
+			if (!progress || !existing.background) throw error;
+			return await this.startPreviewPageContent(page.id, progress).request;
+		}
+	}
+
+	protected override async templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]> {
+		const samples: NoteTemplateSample[] = [];
+		if (!this.graphData.accessToken) return samples;
+
+		const pages = await this.readPreviewPages(this.pagesGeneration);
+		for (const page of pages) {
+			if (await ctx.shouldStop()) break;
+			const title = page.title?.trim() || 'Untitled';
+			try {
+				const response = await this.previewPageContent(page, ctx);
+				const split = PageContentError.wrapping(() => this.convertFormat(response));
+				const pageElement = parseHTML(
+					convertPageTags(split.html).replace(SELF_CLOSING_REGEX, '<$1$2></$1>'),
+				);
+				for (const object of pageElement.findAll('object')) {
+					const name = object.getAttribute('data-attachment');
+					object.replaceWith(pageElement.doc.createTextNode(name ? `(attachment: ${name})` : '(attachment)'));
+				}
+				for (const image of pageElement.findAll('img')) {
+					image.replaceWith(pageElement.doc.createTextNode('(image)'));
+				}
+				const parent = page.id
+					? this.getEntityPathNoParent(page.id, this.outputLocation) ?? this.outputLocation
+					: this.outputLocation;
+				const ctime = page.createdDateTime ? Date.parse(page.createdDateTime) : NaN;
+				const mtime = page.lastModifiedDateTime ? Date.parse(page.lastModifiedDateTime) : NaN;
+				samples.push({
+					title,
+					path: normalizePath(`${parent}/${sanitizeFileName(title)}.md`),
+					content: PageContentError.wrapping(() => pageToMarkdown(pageElement)),
+					sourceId: page.id ?? undefined,
+					times: {
+						ctime: Number.isNaN(ctime) ? undefined : ctime,
+						mtime: Number.isNaN(mtime) ? undefined : mtime,
+					},
+				});
+			}
+			catch (error) {
+				console.warn(`Could not preview OneNote page ${title}`, error);
+			}
+		}
+		return samples;
+	}
+
 	async import(progress: ImportContext): Promise<void> {
 		const outputFolder = await this.getOutputFolder();
 		if (!outputFolder) {

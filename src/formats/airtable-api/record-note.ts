@@ -73,6 +73,7 @@ export interface BuildRecordNoteOptions {
 
 export interface BuiltRecordNote {
 	content: string;
+	templateVariables: Record<string, string>;
 }
 
 export async function buildRecordNote(
@@ -86,7 +87,6 @@ export async function buildRecordNote(
 	} = options;
 
 	const recordFields = record.fields || {};
-	const hasBodyTemplate = !!bodyTemplate?.trim();
 	const templateData: Record<string, string> = {};
 	const convertedCache = new Map<string, any>();
 
@@ -96,7 +96,7 @@ export async function buildRecordNote(
 		const fieldValue = recordFields[field.name];
 
 		if (fieldValue === null || fieldValue === undefined) {
-			if (hasBodyTemplate) templateData[field.name] = '';
+			templateData[field.name] = '';
 			continue;
 		}
 
@@ -109,7 +109,7 @@ export async function buildRecordNote(
 				return title ? sanitizeFileName(title) : `Unknown record ${linkedRecordId}`;
 			});
 			convertedCache.set(field.name, links);
-			if (hasBodyTemplate) templateData[field.name] = links.join(', ');
+			templateData[field.name] = links.join(', ');
 			continue;
 		}
 
@@ -118,9 +118,7 @@ export async function buildRecordNote(
 			attachmentFieldNames.add(field.name);
 			convertedCache.set(field.name, downloaded);
 
-			if (hasBodyTemplate) {
-				templateData[field.name] = formatAttachmentsForBody(downloaded).join('\n');
-			}
+			templateData[field.name] = formatAttachmentsForBody(downloaded).join('\n');
 			continue;
 		}
 
@@ -132,23 +130,21 @@ export async function buildRecordNote(
 
 		convertedCache.set(field.name, convertedValue);
 
-		if (hasBodyTemplate) {
-			const templateValue = convertedValue === null && formulaFieldNames.has(field.name)
-				? fieldValue
-				: convertedValue;
+		const templateValue = convertedValue === null && formulaFieldNames.has(field.name)
+			? fieldValue
+			: convertedValue;
 
-			if (templateValue === null || templateValue === undefined) {
-				templateData[field.name] = '';
-			}
-			else if (Array.isArray(templateValue)) {
-				templateData[field.name] = templateValue.map((item: any) => {
-					if (typeof item === 'string') return item;
-					return String(item);
-				}).join(', ');
-			}
-			else {
-				templateData[field.name] = String(templateValue);
-			}
+		if (templateValue === null || templateValue === undefined) {
+			templateData[field.name] = '';
+		}
+		else if (Array.isArray(templateValue)) {
+			templateData[field.name] = templateValue.map((item: any) => {
+				if (typeof item === 'string') return item;
+				return String(item);
+			}).join(', ');
+		}
+		else {
+			templateData[field.name] = String(templateValue);
 		}
 	}
 
@@ -189,10 +185,11 @@ export async function buildRecordNote(
 		frontMatter['aliases'] = [alias, ...rest];
 	}
 
-	const bodyContent = hasBodyTemplate ? applyTemplate(bodyTemplate!, templateData) : '';
+	const bodyContent = bodyTemplate?.trim() ? applyTemplate(bodyTemplate, templateData) : '';
 
 	return {
 		content: `${serializeFrontMatter(frontMatter)}${bodyContent}`.trim(),
+		templateVariables: templateData,
 	};
 }
 
@@ -217,7 +214,7 @@ export function frontMatterFieldsForTable(
 		const configured = propertyNames.get(field.name);
 		if (!configured?.trim()) continue;
 
-		if (configured === viewPropertyName) continue;
+		if (configured.toLocaleLowerCase() === viewPropertyName.toLocaleLowerCase()) continue;
 
 		if (!propertyValues.get(field.name)) continue;
 
@@ -232,17 +229,13 @@ export function frontMatterFieldsForTable(
 
 export function defaultPropertyConfig(
 	fields: Iterable<AirtableFieldSchema>,
-	viewPropertyName: string
+	_viewPropertyName?: string,
 ): { propertyNames: Map<string, string>, propertyValues: Map<string, string> } {
 	const propertyNames = new Map<string, string>();
 	const propertyValues = new Map<string, string>();
 
 	for (const field of fields) {
 		const sanitizedName = sanitizePropertyName(field.name);
-
-		if (sanitizedName.toLowerCase() === viewPropertyName.toLowerCase()) {
-			continue;
-		}
 
 		propertyNames.set(field.name, sanitizedName);
 		propertyValues.set(field.name, `{{${field.name}}}`);

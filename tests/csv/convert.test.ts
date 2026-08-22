@@ -19,9 +19,11 @@ import * as nodeFs from 'node:fs';
 import * as nodeOs from 'node:os';
 import * as nodePath from 'node:path';
 
-import { convertRow, defaultTemplateConfig, sanitizeYAMLKey } from '../../src/formats/csv/convert';
+import { convertRow, defaultNoteTemplate, defaultTemplateConfig, sanitizeYAMLKey } from '../../src/formats/csv/convert';
 import { parseCSV, parseCSVLine, splitCSVLines } from '../../src/formats/csv/parse';
 import { sanitizeFileName } from '../../src/util';
+import { renderNoteTemplate } from '../../src/note-template';
+import { applyTemplate } from '../../src/template';
 import { expectedFor, expectTree, fixtures } from '../helpers';
 
 const FIXTURES = __dirname;
@@ -30,6 +32,35 @@ const files = fixtures(FIXTURES, '.csv');
 
 test('there are fixtures to convert', () => {
 	assert.ok(files.length > 0, 'expected at least one .csv in tests/csv');
+});
+
+test('generates a Markdown template from CSV headers', () => {
+	assert.equal(defaultNoteTemplate(
+		['Name', 'Project: status', ''],
+		sanitizeYAMLKey,
+	), [
+		'---',
+		'Name: {{source["Name"] | yaml}}',
+		'Project status: {{source["Project: status"] | yaml}}',
+		'---',
+	].join('\n'));
+});
+
+test('CSV defaults resolve safe source expressions for punctuated headers', async () => {
+	const config = defaultTemplateConfig(['Price ($)', 'Notes/Extra'], sanitizeYAMLKey);
+	const row = { 'Price ($)': '12', 'Notes/Extra': 'Ready' };
+	const converted = convertRow(row, config);
+
+	assert.equal(config.titleTemplate, '{{source["Price ($)"]}}');
+	assert.equal(await renderNoteTemplate(config.titleTemplate, { ...row, source: row }), '12');
+	assert.equal(converted.title, '12');
+	assert.match(converted.content, /Price : 12/u);
+	assert.match(converted.content, /NotesExtra: "Ready"/u);
+});
+
+test('an invalid quoted source escape falls back to its literal field name', () => {
+	const expression = String.raw`source["\q"]`;
+	assert.equal(applyTemplate(`{{${expression}}}`, { [expression]: 'literal' }), 'literal');
 });
 
 for (const file of files) {

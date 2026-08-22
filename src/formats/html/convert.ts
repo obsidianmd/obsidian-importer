@@ -27,11 +27,13 @@ export interface HtmlDocumentConversionOptions extends HtmlConversionOptions, Ht
 export interface ConvertedHtml {
 	markdown: string;
 	attachments: Map<string, ResolvedAttachment>;
+	variables: Record<string, unknown>;
 }
 
 export interface PreparedHtml {
 	content: string;
 	title: string;
+	variables: Record<string, unknown>;
 }
 
 export interface HtmlDocumentMetadata {
@@ -104,11 +106,32 @@ export function prepareHtmlDocument(htmlContent: string, {
 		return {
 			content,
 			title: result.title.trim() || originalTitle,
+			variables: {
+				title: result.title.trim() || originalTitle,
+				author: result.author,
+				contentHtml: content,
+				description: result.description,
+				domain: result.domain,
+				favicon: result.favicon,
+				fullHtml: original,
+				image: result.image,
+				language: result.language,
+				published: result.published,
+				site: result.site,
+				url: sourceUrl.href,
+				words: result.wordCount,
+				...result.variables,
+			},
 		};
 	}
 	catch {
 		const restored = restoreContent(original, new Map(), new Map(), url, headings, resolveFragment);
-		return { content: restored?.content ?? original, title: originalTitle };
+		const content = restored?.content ?? original;
+		return {
+			content,
+			title: originalTitle,
+			variables: { title: originalTitle, contentHtml: content, fullHtml: original, url: sourceUrl.href },
+		};
 	}
 }
 
@@ -203,9 +226,11 @@ export async function convertPreparedHtml(prepared: PreparedHtml, options: HtmlC
 		}
 	}
 
+	const markdown = htmlToMarkdown(dom.querySelector('body') ?? dom);
 	return {
-		markdown: htmlToMarkdown(dom.querySelector('body') ?? dom),
+		markdown,
 		attachments,
+		variables: { ...prepared.variables, content: markdown },
 	};
 }
 

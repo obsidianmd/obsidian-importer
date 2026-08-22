@@ -15,10 +15,12 @@ export class ZipEntryFile implements PickedFile {
 	name: string;
 	basename: string;
 	extension: string;
+	private sourcePath: string;
 
 	constructor(zip: PickedFile, entry: FileEntry) {
 		this.entry = entry;
 		this.fullpath = zip.fullpath + '/' + entry.filename;
+		this.sourcePath = entry.filename;
 		let { parent, name, basename, extension } = parseFilePath(entry.filename);
 		this.parent = parent;
 		this.name = name;
@@ -40,7 +42,16 @@ export class ZipEntryFile implements PickedFile {
 	}
 
 	get filepath() {
-		return this.entry.filename;
+		return this.sourcePath;
+	}
+
+	setFilepath(filepath: string): void {
+		this.sourcePath = filepath;
+		const parsed = parseFilePath(filepath);
+		this.parent = parsed.parent;
+		this.name = parsed.name;
+		this.basename = parsed.basename;
+		this.extension = parsed.extension;
 	}
 
 	get size() {
@@ -74,10 +85,14 @@ export async function readZip(file: PickedFile, callback: (zip: ZipReader<unknow
 /** macOS metadata and other hidden paths. */
 const HIDDEN = /(?:^|\/)(?:__MACOSX\/|\.)/;
 
+export function hiddenZipPath(path: string): boolean {
+	return HIDDEN.test(path);
+}
+
 /** Build the source tree while the archive backing its entries remains open. */
 export function zipContents(entries: ZipEntryFile[]): (PickedFile | PickedFolder)[] {
 	return pickedTree(entries
-		.filter(entry => !HIDDEN.test(entry.filepath))
+		.filter(entry => !hiddenZipPath(entry.filepath))
 		.map(entry => ({ path: entry.filepath, file: entry })));
 }
 

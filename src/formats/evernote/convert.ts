@@ -32,7 +32,7 @@ export const parseStream = async (run: EvernoteRun, enexSource: PickedFile, ctx:
 	const notebookName = runtimeProps.getCurrentNotebookName();
 	const firstDraft = run.drafts.length;
 
-	const importNote = (note: EvernoteNote) => {
+	const importNote = async (note: EvernoteNote): Promise<void> => {
 		if (run.options.skipWebClips && isWebClip(note)) {
 			ctx.reportSkipped(note.title ?? enexSource.name);
 			return;
@@ -41,7 +41,7 @@ export const parseStream = async (run: EvernoteRun, enexSource: PickedFile, ctx:
 		ctx.status(i18n.common.statusImportingNote({ name: String(note.title) }));
 
 		try {
-			processNode(run, note, notebookName + '/' + note.title);
+			await processNode(run, note, notebookName + '/' + note.title);
 		}
 		catch (e) {
 			ctx.reportFailed(note.title || enexSource.name, e);
@@ -53,11 +53,11 @@ export const parseStream = async (run: EvernoteRun, enexSource: PickedFile, ctx:
 			wanted: WANTED,
 			isCancelled: () => ctx.isCancelled(),
 			checkpoint: () => ctx.shouldStop(),
-			onElement: (name, element) => {
+			onElement: async (name, element) => {
 				if (typeof element === 'string') return;
 
 				if (name === 'note') {
-					importNote(element);
+					await importNote(element);
 					return;
 				}
 

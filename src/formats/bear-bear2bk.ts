@@ -1,8 +1,9 @@
 import { DataWriteOptions, normalizePath, Notice, TFile, TFolder } from 'obsidian';
 import { parseFilePath } from '../filesystem';
-import { FormatImporter } from '../format-importer';
+import { FormatImporter, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
+import type { ManagedTemplateProperty } from '../note-template-configurator';
 import { readZip, ZipEntryFile } from '../zip';
 import { BearTagPlacement, convertBearNote } from './bear/convert';
 
@@ -22,6 +23,34 @@ type IDMappingValue = {
 	written: boolean;
 };
 
+const PREVIEW_IMAGE_MIME: Record<string, string> = {
+	avif: 'image/avif',
+	bmp: 'image/bmp',
+	gif: 'image/gif',
+	ico: 'image/x-icon',
+	jpeg: 'image/jpeg',
+	jpg: 'image/jpeg',
+	png: 'image/png',
+	tif: 'image/tiff',
+	tiff: 'image/tiff',
+	webp: 'image/webp',
+};
+
+const MAX_PREVIEW_ASSET_BYTES = 5 * 1024 * 1024;
+const MAX_PREVIEW_ASSETS_BYTES = 10 * 1024 * 1024;
+const PREVIEW_ASSET_PLACEHOLDER =
+	'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+	const bytes = new Uint8Array(buffer);
+	let binary = '';
+	const chunkSize = 0x8000;
+	for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+		binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+	}
+	return btoa(binary);
+}
+
 export class Bear2bkImporter extends FormatImporter {
 	static extensions = ['bear2bk'];
 
@@ -39,22 +68,102 @@ export class Bear2bkImporter extends FormatImporter {
 		this.idProperty = 'bear-id';
 		this.idLabel = i18n.importer.bear.labelId();
 
-		this.addSetting()
+		this.addSetting('template')
 			?.setName(i18n.importer.bear.nameTagsProperty())
 			.setDesc(i18n.importer.bear.descTagsProperty())
 			.addToggle(t => t
 				.setValue(false)
-				.onChange(async v => this.tagPlacement = v ? 'property' : 'inline')
+				.onChange(async v => {
+					this.tagPlacement = v ? 'property' : 'inline';
+					this.templateSettingsChanged();
+				})
 			);
 
-		this.addSetting()
+		this.addSetting('template')
 			?.setName(i18n.importer.bear.nameFlattenTags())
 			.setDesc(i18n.importer.bear.descFlattenTags())
 			.addToggle(t => t
 				.setValue(false)
-				.onChange(async v => this.flattenTags = v)
+				.onChange(async v => {
+					this.flattenTags = v;
+					this.templateSettingsChanged();
+				})
 			);
 
+	}
+
+	protected override managedTemplateProperties(): ManagedTemplateProperty[] {
+		return this.tagPlacement === 'property'
+			? [{ key: 'tags', value: '{{tags}}' }]
+			: [];
+	}
+
+	protected override async templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]> {
+		const samples: NoteTemplateSample[] = [];
+		for (const file of this.files) {
+			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
+			await readZip(file, async (_zip, entries) => {
+				const metadata = await this.collectMetadata(ctx, entries);
+				const resolvePreviewAsset = this.previewAssetResolver(entries);
+				for (const entry of entries) {
+					if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
+					if (entry.extension !== 'md' && entry.extension !== 'markdown') continue;
+
+					try {
+						const title = parseFilePath(entry.parent).basename || entry.basename;
+						const converted = await convertBearNote(await entry.readText(), {
+							basename: title,
+							parent: entry.parent,
+							flattenTags: this.flattenTags,
+							tagPlacement: this.tagPlacement,
+							resolveAsset: resolvePreviewAsset,
+						});
+						const noteMetadata = metadata[entry.parent];
+						const generatedProperties = this.tagPlacement === 'property' && converted.tags.length > 0
+							? { tags: converted.tags }
+							: undefined;
+						samples.push({
+							title,
+							path: normalizePath(`${this.outputLocation}/${title}.md`),
+							content: converted.content,
+							variables: { tags: converted.tags },
+							generatedProperties,
+							sourceId: noteMetadata?.id,
+							times: { ctime: noteMetadata?.ctime, mtime: noteMetadata?.mtime },
+						});
+					}
+					catch (error) {
+						console.warn(`Could not preview Bear note ${entry.fullpath}`, error);
+					}
+				}
+			});
+		}
+		return samples;
+	}
+
+	private previewAssetResolver(entries: ZipEntryFile[]): (assetPath: string) => Promise<string> {
+		const assets = new Map(entries.map(entry => [normalizePath(entry.filepath), entry]));
+		const resolved = new Map<string, Promise<string>>();
+		let remainingBytes = MAX_PREVIEW_ASSETS_BYTES;
+
+		return async assetPath => {
+			const normalizedPath = normalizePath(assetPath);
+			const existing = resolved.get(normalizedPath);
+			if (existing) return await existing;
+
+			const entry = assets.get(normalizedPath);
+			const mime = entry ? PREVIEW_IMAGE_MIME[entry.extension] : undefined;
+			if (!entry || !mime || entry.size > MAX_PREVIEW_ASSET_BYTES || entry.size > remainingBytes) {
+				return PREVIEW_ASSET_PLACEHOLDER;
+			}
+
+			remainingBytes -= entry.size;
+			const loading = entry.read()
+				.then(data => `data:${mime};base64,${arrayBufferToBase64(data)}`)
+				.catch(() => PREVIEW_ASSET_PLACEHOLDER);
+			resolved.set(normalizedPath, loading);
+			return await loading;
+		};
 	}
 
 	async import(ctx: ImportContext): Promise<void> {

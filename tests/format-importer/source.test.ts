@@ -5,6 +5,7 @@ import { PickedFile, PickedFolder } from '../../src/filesystem';
 import { FormatImporter } from '../../src/format-importer';
 import { HtmlImporter } from '../../src/formats/html';
 import { CSVImporter } from '../../src/formats/csv';
+import { FilesImporter } from '../../src/formats/files';
 import { MarkdownImporter } from '../../src/formats/markdown';
 import { SourceFile, SourceFolder } from '../shims/picked';
 import { MemoryVault, memoryApp } from '../shims/vault';
@@ -56,6 +57,19 @@ test('a folder dropped on an importer that reproduces it stays a folder', async 
 
 	assert.deepEqual(names(subject.chosen), ['Notes', 'Loose.md']);
 	assert.deepEqual(names(subject.files), ['Index.md', 'Loose.md']);
+});
+
+test('note importers configure a template without becoming dialog-only', async () => {
+	const generic = await importer(NoChooserImporter);
+	const csv = await importer(CSVImporter);
+	const files = await importer(FilesImporter);
+
+	assert.equal(generic.configures, true);
+	assert.equal(generic.requiresImporterConfiguration, false);
+	assert.equal(csv.configures, true);
+	assert.equal(csv.requiresImporterConfiguration, true);
+	assert.equal(files.configures, false);
+	assert.equal(files.requiresImporterConfiguration, false);
 });
 
 test('a folder dropped on the HTML importer stays available for its page structure', async () => {

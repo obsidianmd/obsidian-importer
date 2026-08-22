@@ -8,15 +8,16 @@ import {
 	PickedFolder,
 	url as nodeUrl,
 } from '../filesystem';
-import { FormatImporter, leavesTheNoteAlone, PlannedNote } from '../format-importer';
+import { FormatImporter, leavesTheNoteAlone, NoteTemplateSample, PlannedNote, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { convertHtmlDocument, HtmlDocumentMetadata, inspectHtmlDocument } from './html/convert';
 import { ImportContext } from '../import-context';
 import { ImportedPathIndex, normalizeTreePath, parentTreePath, resolveTreePath } from '../imported-path-index';
 import { i18n } from '../i18n';
 import { MarkdownLinkResolver } from '../markdown-output';
 import { extensionForMime } from '../mime';
-import { isHiddenPickedItem, PickedFolderNode, PickedFolderPicker, pickedFolderNodes, plannedPickedItems, PlannedPickedItem } from '../picked-folder-tree';
+import { isHiddenPickedItem, PickedFolderLoad, PickedFolderPicker, pickedFolderFileCount, pickedFolderNodes, plannedPickedItems, PlannedPickedItem } from '../picked-folder-tree';
 import { withZipContents } from '../zip';
+import { sanitizeFileName } from '../util';
 
 const HTML_EXTENSIONS = ['htm', 'html'];
 const SOURCE_EXTENSIONS = [...HTML_EXTENSIONS, 'zip'];
@@ -64,15 +65,21 @@ export class HtmlImporter extends FormatImporter {
 		this.folderPicker = new PickedFolderPicker(
 			() => this.source(),
 			async (source, isCurrent) => {
-				let nodes: PickedFolderNode[] = [];
+				let loaded: PickedFolderLoad = { nodes: [], files: 0 };
 				await withZipContents(source, async items => {
-					nodes = await pickedFolderNodes(items, {
+					const countFile = (file: PickedFile) =>
+						!isHiddenPickedItem(file) && HTML_EXTENSIONS.includes(file.extension);
+					const nodes = await pickedFolderNodes(items, {
 						includeFolder: (folder, chosen) => chosen || !isHiddenPickedItem(folder),
-						countFile: file => !isHiddenPickedItem(file) && HTML_EXTENSIONS.includes(file.extension),
+						countFile,
 						isCurrent,
 					});
+					loaded = {
+						nodes,
+						files: pickedFolderFileCount(items, nodes, countFile),
+					};
 				});
-				return nodes;
+				return loaded;
 			},
 		);
 
@@ -147,6 +154,53 @@ export class HtmlImporter extends FormatImporter {
 					}
 					this.minimumImageSize = num;
 				}));
+	}
+
+	protected override async templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]> {
+		const samples: NoteTemplateSample[] = [];
+		await withZipContents(this.source(), async items => {
+			this.sourceFiles.clear();
+			await this.indexSourceFiles(items);
+			const planned = await plannedPickedItems(
+				items,
+				this.outputLocation.trim(),
+				{
+					selection: this.folderPicker.selection(),
+					includeFile: (file, chosen) =>
+						(chosen || !isHiddenPickedItem(file)) && HTML_EXTENSIONS.includes(file.extension),
+					includeFolder: (picked, chosen) => chosen || !isHiddenPickedItem(picked),
+					folderPath: (picked, parent, chosen) => this.mirroredFolderPath(parent, picked.name, chosen),
+					onFolder: () => {},
+					shouldStop: () => ctx.shouldStop(),
+					onError: (item, error) => ctx.reportFailed(item.name, error),
+				},
+			);
+
+			for (const item of planned) {
+				if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
+				if (!item.file) continue;
+
+				const html = await item.file.readText();
+				const baseUrl = this.sourceUrl(item.file, item.source);
+				const metadata = inspectHtmlDocument(html, baseUrl);
+				const title = htmlNoteTitle(metadata.title, item.file.basename);
+				const path = normalizePath(`${item.parent}/${sanitizeFileName(title)}.md`);
+				const { markdown, variables } = await convertHtmlDocument(html, {
+					baseUrl,
+					extractMainContent: this.extractMainContent,
+					isCancelled: () => ctx.isCancelled(),
+					resolveAttachment: async () => null,
+				});
+				samples.push({
+					title,
+					path,
+					content: markdown,
+					variables,
+					sourceId: item.source,
+				});
+			}
+		}, (name, error) => ctx.reportFailed(name, error));
+		return samples;
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -236,8 +290,12 @@ export class HtmlImporter extends FormatImporter {
 				item.baseUrl = this.sourceUrl(file, item.source);
 				const metadata = inspectHtmlDocument(await file.readText(), item.baseUrl);
 				this.sourceDocuments.remember(item.source, { path: item.source, ...metadata });
-				item.note = this.planNote(
-					item.parent || '/', htmlNoteTitle(metadata.title, file.basename), item.source);
+				item.note = await this.planTemplatedNote(
+					item.parent || '/',
+					htmlNoteTitle(metadata.title, file.basename),
+					'',
+					{ sourceId: item.source },
+				);
 				if (item.note.file) this.rememberImported(item.source, file, item.note.file);
 			}
 			catch (error) {
@@ -265,7 +323,7 @@ export class HtmlImporter extends FormatImporter {
 			? new URL('./', baseUrl.href).href
 			: undefined;
 
-		const { markdown } = await convertHtmlDocument(await file.readText(), {
+		const { markdown, variables } = await convertHtmlDocument(await file.readText(), {
 			baseUrl,
 			extractMainContent: this.extractMainContent,
 			resolveFragment: href => this.resolveHeadingFragment(item.source, href),
@@ -285,7 +343,10 @@ export class HtmlImporter extends FormatImporter {
 			onFailed: (src, error) => ctx.reportFailed(src, error),
 		});
 
-		const { file: imported, written } = await this.writePlannedNote(ctx, planned, markdown, { disposition });
+		const { file: imported, written } = await this.writePlannedNote(ctx, planned, markdown, {
+			disposition,
+			templateVariables: variables,
+		});
 		this.rememberImported(item.source, file, imported);
 		if (written) ctx.reportNoteSuccess(file.fullpath);
 	}

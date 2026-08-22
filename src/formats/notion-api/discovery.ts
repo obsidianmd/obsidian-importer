@@ -139,9 +139,17 @@ export function collectItems(allRawItems: any[]): NotionItem[] {
 	return allItems;
 }
 
-export function buildTree(items: NotionItem[]): NotionTreeNode[] {
+export function buildTree(items: NotionItem[], previous: NotionTreeNode[] = []): NotionTreeNode[] {
 	const nodeMap = new Map<string, NotionTreeNode>();
 	const roots: NotionTreeNode[] = [];
+	const previousState = new Map<string, Pick<NotionTreeNode, 'selected' | 'collapsed'>>();
+	const remember = (nodes: NotionTreeNode[]): void => {
+		for (const node of nodes) {
+			previousState.set(node.id, { selected: node.selected, collapsed: node.collapsed });
+			remember(node.children);
+		}
+	};
+	remember(previous);
 
 	for (const item of items) {
 		nodeMap.set(item.id, {
@@ -173,6 +181,17 @@ export function buildTree(items: NotionItem[]): NotionTreeNode[] {
 		}
 	};
 	sortNodes(roots);
+
+	const restoreState = (nodes: NotionTreeNode[], selectedByAncestor = false): void => {
+		for (const node of nodes) {
+			const state = previousState.get(node.id);
+			node.selected = selectedByAncestor || state?.selected === true;
+			node.disabled = selectedByAncestor;
+			node.collapsed = state?.collapsed ?? true;
+			restoreState(node.children, node.selected);
+		}
+	};
+	restoreState(roots);
 
 	return roots;
 }

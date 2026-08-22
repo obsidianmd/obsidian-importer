@@ -90,6 +90,39 @@ export class SettingGroup {
 	}
 }
 
+export class ButtonComponent {
+	buttonEl: HTMLButtonElement;
+
+	constructor(containerEl: HTMLElement) {
+		this.buttonEl = containerEl.createEl('button');
+	}
+
+	setButtonText(text: string): this {
+		this.buttonEl.setText(text);
+		return this;
+	}
+
+	setDisabled(disabled: boolean): this {
+		this.buttonEl.disabled = disabled;
+		return this;
+	}
+
+	setCta(): this {
+		this.buttonEl.addClass('mod-cta');
+		return this;
+	}
+
+	removeCta(): this {
+		this.buttonEl.removeClass('mod-cta');
+		return this;
+	}
+
+	onClick(callback: () => unknown): this {
+		this.buttonEl.addEventListener('click', callback);
+		return this;
+	}
+}
+
 export class ProgressBarComponent {
 	private value: number = 0;
 	private innerEl: HTMLElement;
@@ -134,8 +167,8 @@ export class SearchComponent {
 	}
 }
 
-export function setIcon(_el: unknown, _icon: string): void {
-	throw new Error('setIcon is not available outside Obsidian');
+export function setIcon(el: HTMLElement, icon: string): void {
+	el.dataset.icon = icon;
 }
 
 export class SecretComponent {
@@ -145,9 +178,19 @@ export class SecretComponent {
 }
 
 export class AbstractInputSuggest<T> {
-	constructor(_app: unknown, _textInputEl: unknown) {
-		throw new Error('AbstractInputSuggest cannot be drawn outside Obsidian');
+	app: any;
+	inputEl: HTMLInputElement;
+
+	constructor(app: unknown, textInputEl: HTMLInputElement) {
+		this.app = app;
+		this.inputEl = textInputEl;
 	}
+
+	setValue(value: string): void {
+		this.inputEl.value = value;
+	}
+
+	close(): void {}
 
 	selectSuggestion(_value: T, _evt: unknown): void {}
 }

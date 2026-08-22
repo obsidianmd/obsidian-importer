@@ -1,8 +1,9 @@
-import { Notice, TFolder, ToggleComponent, DropdownComponent, Platform } from 'obsidian';
-import { FormatImporter, NoteWritten } from '../format-importer';
+import { Notice, TFolder, ToggleComponent, DropdownComponent, normalizePath, Platform } from 'obsidian';
+import { FormatImporter, NoteTemplateSample, NoteWritten, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { PickedFile } from '../filesystem';
+import { sanitizeFileName } from '../util';
 import { TomboyCoreConverter, KeepTitleMode } from './tomboy/core';
 import { os, path } from '../filesystem';
 
@@ -124,12 +125,41 @@ export class TomboyImporter extends FormatImporter {
 		}
 	}
 
+	protected override async templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]> {
+		this.coreConverter.setTodoEnabled(this.todoEnabled);
+		this.coreConverter.setKeepTitleMode(this.keepTitleMode);
+		const samples: NoteTemplateSample[] = [];
+		for (const file of this.files) {
+			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
+			try {
+				const note = this.coreConverter.parseTomboyXML(await file.readText());
+				samples.push({
+					title: note.title,
+					path: normalizePath([
+						this.outputLocation.trim(),
+						`${sanitizeFileName(note.title)}.md`,
+					].filter(Boolean).join('/')),
+					content: this.coreConverter.convertToMarkdown(note),
+					variables: { ...note },
+					sourceId: file.basename,
+				});
+			}
+			catch (error) {
+				console.warn(`Could not preview Tomboy file ${file.fullpath}`, error);
+			}
+		}
+		return samples;
+	}
+
 	private async processFile(ctx: ImportContext, folder: TFolder, file: PickedFile): Promise<NoteWritten> {
 		const xmlContent = await file.readText();
 
 		const tomboyNote = this.coreConverter.parseTomboyXML(xmlContent);
 		const markdownContent = this.coreConverter.convertToMarkdown(tomboyNote);
 
-		return await this.writeNote(ctx, folder, tomboyNote.title, markdownContent, { sourceId: file.basename });
+		return await this.writeNote(ctx, folder, tomboyNote.title, markdownContent, {
+			sourceId: file.basename,
+			templateVariables: { ...tomboyNote },
+		});
 	}
 }

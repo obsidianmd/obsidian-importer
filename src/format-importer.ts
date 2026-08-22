@@ -1,4 +1,4 @@
-import { App, DataWriteOptions, debounce, normalizePath, Platform, SecretComponent, Setting, SettingGroup, TFile, TFolder, Vault } from 'obsidian';
+import { App, DataWriteOptions, debounce, normalizePath, Notice, Platform, SecretComponent, Setting, SettingGroup, TFile, TFolder, Vault } from 'obsidian';
 import { getAllFiles, NodePickedFile, NodePickedFolder, parseFilePath, PickedFile, PickedFolder, WebPickedFile, webPickedTree } from './filesystem';
 import { HostPlugin } from './plugin-data';
 import { AuthCallback, helpUrl } from './constants';
@@ -7,9 +7,18 @@ import { ImportContext } from './import-context';
 import { formatImportReport, importReportName } from './import-report';
 import { createMarkdown, formattedMarkdown, MarkdownFormatting, MarkdownLinkResolver, modifyMarkdown, standardizedMarkdown, standardizeMarkdownFile } from './markdown-output';
 import { i18n } from './i18n';
+import { NoteTemplateVariables, renderNoteTemplate, renderNoteTemplateResult } from './note-template';
+import { NoteTemplateConfigurator, NoteTemplatePreview } from './note-template-configurator';
+import type { ManagedTemplateProperty } from './note-template-configurator';
+import { TemplateField } from './template';
 import { availableFileName, getUniqueFilePath, parseFrontMatterBlock, sanitizeFileName, sanitizeFilePath, serializeFrontMatter } from './util';
 
 const MAX_FILES_LISTED = 5;
+export const TEMPLATE_PREVIEW_LIMIT = 10;
+
+function timestampVariable(value: number | undefined): string {
+	return value !== undefined && Number.isFinite(value) ? new Date(value).toISOString() : '';
+}
 
 export enum DuplicateHandling {
 	CreateCopy = 'create-copy',
@@ -72,7 +81,7 @@ export function attachmentLocationAsSetting({ mode, path }: AttachmentLocation):
 }
 
 export function vaultAttachmentLocation(vault: Vault): AttachmentLocation {
-	const configured = vault.getConfig('attachmentFolderPath');
+	const configured: unknown = vault.getConfig('attachmentFolderPath');
 	const value = typeof configured === 'string' ? configured.trim() : '';
 
 	if (value === '' || value === '/') return { mode: 'vault', path: '' };
@@ -84,6 +93,42 @@ export function vaultAttachmentLocation(vault: Vault): AttachmentLocation {
 
 export interface NoteImport extends DataWriteOptions {
 	sourceId?: string;
+	templateVariables?: NoteTemplateVariables;
+}
+
+export interface NoteTemplateSetup {
+	defaultTemplate?: string;
+	fields?: TemplateField[];
+	preview?: (template: string, titleTemplate: string) => Promise<NoteTemplatePreview | NoteTemplatePreview[]>;
+	cancel?: Promise<void>;
+	configure?: (container: HTMLElement, previewChanged: () => void) => void;
+}
+
+export interface NoteTemplateSample {
+	label?: string;
+	title: string;
+	path: string;
+	content: string;
+	variables?: NoteTemplateVariables;
+	/** Properties generated after rendering the user's template. */
+	generatedProperties?: Record<string, unknown>;
+	sourceId?: string;
+	times?: Pick<NoteImport, 'ctime' | 'mtime'>;
+}
+
+/** Share cancellation without adding preview failures to the import report. */
+class TemplatePreviewContext extends ImportContext {
+	constructor(private readonly source: ImportContext) {
+		super();
+	}
+
+	override async shouldStop(): Promise<boolean> {
+		return await this.source.shouldStop();
+	}
+
+	override isCancelled(): boolean {
+		return this.source.isCancelled();
+	}
 }
 
 /**
@@ -142,7 +187,7 @@ function comparedToSource(file: TFile, sourceMtime: number): 'unchanged' | 'pres
 	return 'update';
 }
 
-export type ImporterStep = 'source' | 'output' | 'options';
+export type ImporterStep = 'source' | 'output' | 'options' | 'template';
 
 export interface ImporterHost {
 	sourceEl: HTMLElement | null;
@@ -152,6 +197,7 @@ export interface ImporterHost {
 	importerId: string;
 	helpPermalink?: string;
 	sourceChanged?(): void;
+	setConfigurationBack?(back: (() => unknown) | null): void;
 	abortController: AbortController;
 }
 
@@ -167,6 +213,10 @@ export abstract class FormatImporter {
 	chosen: (PickedFile | PickedFolder)[] = [];
 
 	outputLocation: string = '';
+	templatePath: string = '';
+	protected inlineTemplate: string | null = null;
+	private customInlineTemplate: boolean = false;
+	noteTitleTemplate: string = '{{title}}';
 	notAvailable: boolean = false;
 
 	/** Set in init(), not in a subclass field initializer. */
@@ -188,6 +238,9 @@ export abstract class FormatImporter {
 	idProperty: string | null = null;
 	/** Set in init() when an importer names its ID something more specific. */
 	idLabel: string = i18n.output.labelSourceId();
+	protected get sourceIdSettingFirst(): boolean {
+		return false;
+	}
 
 	saveSourceId: boolean = true;
 
@@ -199,8 +252,13 @@ export abstract class FormatImporter {
 
 	/** Cached value for getOutputFolder. Do not use directly. */
 	private outputFolder: TFolder | null = null;
+	private loadedTemplate: { path: string, content: string } | null = null;
 
 	private outputStepDrawn: boolean = false;
+	private templateSettingsEl: HTMLElement | null = null;
+	private templateSettingNodes: Node[] | null = null;
+	private templatePreviewChanged: (() => void) | null = null;
+	private templateSamplesChanged: (() => void) | null = null;
 
 	/** Markdown written by this run, for the post-import Obsidian link pass. */
 	private markdownFiles = new Set<string>();
@@ -271,12 +329,252 @@ export abstract class FormatImporter {
 	 * @param container The container element to show the configuration UI in
 	 * @returns true if configuration was successful, false if cancelled or failed, null if no configuration needed
 	 */
+	protected get supportsNoteTemplates(): boolean {
+		return true;
+	}
+
 	get configures(): boolean {
+		return this.supportsNoteTemplates || this.requiresImporterConfiguration;
+	}
+
+	get requiresImporterConfiguration(): boolean {
 		return this.showTemplateConfiguration !== FormatImporter.prototype.showTemplateConfiguration;
 	}
 
 	async showTemplateConfiguration(ctx: ImportContext, container: HTMLElement, buttonsEl: HTMLElement): Promise<boolean | null> {
-		return null;
+		if (!this.supportsNoteTemplates) return null;
+
+		const fields: TemplateField[] = [];
+		const previewContext = new TemplatePreviewContext(ctx);
+		const loadSamples = (): Promise<NoteTemplateSample[]> =>
+			this.templatePreviewSamples === FormatImporter.prototype.templatePreviewSamples
+				? Promise.resolve([])
+				: Promise.resolve().then(() => this.templatePreviewSamples(previewContext)).catch(error => {
+					console.error(`Could not load ${this.host.importerId} template previews`, error);
+					return [];
+				});
+		let samples = loadSamples();
+		const samplesChanged = () => {
+			samples = loadSamples();
+			this.templatePreviewChanged?.();
+		};
+		this.templateSamplesChanged = samplesChanged;
+		try {
+			return await this.showNoteTemplateConfiguration(container, buttonsEl, {
+				preview: async (template, titleTemplate) =>
+					await this.previewLoadedSamples(template, titleTemplate, samples, fields),
+			});
+		}
+		finally {
+			if (this.templateSamplesChanged === samplesChanged) this.templateSamplesChanged = null;
+		}
+	}
+
+	protected async showConfigurationBeforePreview<T>(
+		initial: T,
+		configure: (current: T) => Promise<T | null>,
+		preview: (configured: T, back: Promise<void>) => Promise<boolean>,
+	): Promise<boolean> {
+		let current = initial;
+		while (true) {
+			const configured = await configure(current);
+			if (!configured) return false;
+			current = configured;
+
+			let goBack!: () => void;
+			const back = new Promise<void>(resolve => goBack = resolve);
+			this.host.setConfigurationBack?.(goBack);
+			try {
+				if (await preview(configured, back)) return true;
+			}
+			finally {
+				this.host.setConfigurationBack?.(null);
+			}
+		}
+	}
+
+	/** Sample the current selection without writing. */
+	protected async templatePreviewSamples(_ctx: ImportContext): Promise<NoteTemplateSample[]> {
+		return [];
+	}
+
+	protected previewForSamples(
+		samples: NoteTemplateSample[],
+		titleTemplate = this.noteTitleTemplate,
+	): NoteTemplateSetup['preview'] | undefined {
+		if (samples.length === 0) return undefined;
+		return async (template, candidateTitleTemplate = titleTemplate) => await Promise.all(
+			samples.map(sample => this.renderTemplatePreview(template, sample, candidateTitleTemplate))
+		);
+	}
+
+	protected async previewLoadedSamples(
+		template: string,
+		titleTemplate: string,
+		samples: Promise<NoteTemplateSample[]>,
+		fields: TemplateField[] = [],
+	): Promise<NoteTemplatePreview | NoteTemplatePreview[]> {
+		const loaded = await samples;
+		const preview = this.previewForSamples(loaded, titleTemplate);
+		return preview
+			? await preview(template, titleTemplate)
+			: await this.exampleTemplatePreview(template, fields, titleTemplate);
+	}
+
+	protected async showNoteTemplateConfiguration(
+		container: HTMLElement,
+		buttonsEl: HTMLElement,
+		setup: NoteTemplateSetup = {},
+	): Promise<boolean> {
+		const defaultTemplate = setup.defaultTemplate ?? '{{content}}';
+		let template = this.inlineTemplate ?? defaultTemplate;
+		let templatePath = this.templatePath;
+		if (templatePath.trim()) {
+			try {
+				template = await this.readTemplateFile(templatePath);
+			}
+			catch (error) {
+				new Notice(error instanceof Error ? error.message : String(error));
+				templatePath = '';
+				template = this.inlineTemplate ?? defaultTemplate;
+			}
+		}
+
+		const preview = setup.preview
+			?? (async (candidate, titleTemplate) =>
+				await this.exampleTemplatePreview(candidate, setup.fields ?? [], titleTemplate));
+		let previewChange: (() => void) | null = null;
+		const configured = await new NoteTemplateConfigurator({
+			app: this.app,
+			defaultTemplate,
+			template,
+			titleTemplate: this.noteTitleTemplate,
+			path: templatePath,
+			preview,
+			cancel: setup.cancel,
+			managedProperties: () => {
+				const properties = this.managedTemplateProperties();
+				if (!this.idProperty || !this.saveSourceId) return properties;
+				return [{
+					key: this.idProperty,
+					value: '{{id}}',
+					onKeyChange: key => {
+						const property = key.trim();
+						if (!property) return;
+						this.idProperty = property;
+						this.saveOutputSettings();
+					},
+				}, ...properties];
+			},
+			configure: (contentEl, previewChanged) => {
+				previewChange = previewChanged;
+				this.templatePreviewChanged = previewChanged;
+				setup.configure?.(contentEl, previewChanged);
+				const settingsEl = this.appendTemplateSettings(contentEl);
+				if (this.idProperty) {
+					this.addSaveSourceIdSetting(settingsEl ?? this.settingsIn(contentEl), previewChanged);
+				}
+			},
+		}).show(container, buttonsEl);
+		if (previewChange && this.templatePreviewChanged === previewChange) this.templatePreviewChanged = null;
+		if (!configured) return false;
+
+		this.inlineTemplate = configured.template;
+		this.templatePath = configured.path;
+		this.customInlineTemplate = !configured.path.trim()
+			&& configured.template !== defaultTemplate;
+		this.noteTitleTemplate = configured.titleTemplate;
+		this.loadedTemplate = null;
+		this.saveOutputSettings();
+		return true;
+	}
+
+	/** Importer-owned properties applied outside the editable template. */
+	protected managedTemplateProperties(): ManagedTemplateProperty[] {
+		return [];
+	}
+
+	protected async exampleTemplatePreview(
+		template: string,
+		fields: TemplateField[],
+		titleTemplate = this.noteTitleTemplate,
+	): Promise<NoteTemplatePreview> {
+		const content = '# Imported note\n\nImported content';
+		const source = Object.fromEntries(fields.map(field => [field.sourceName ?? field.id, field.exampleValue ?? '']));
+		const sourceId = this.idProperty ? 'example-source-id' : undefined;
+		return await this.renderTemplatePreview(template, {
+			title: 'Imported note',
+			path: 'Import/Imported note.md',
+			content,
+			variables: source,
+			sourceId,
+		}, titleTemplate);
+	}
+
+	protected async renderTemplatePreview(
+		template: string,
+		sample: NoteTemplateSample,
+		titleTemplate = this.noteTitleTemplate,
+	): Promise<NoteTemplatePreview> {
+		const { parent } = parseFilePath(sample.path);
+		const titleVariables = this.noteTemplateVariables(
+			sample.title,
+			sample.path,
+			sample.content,
+			sample.variables ?? {},
+			sample.sourceId,
+			sample.times ?? {},
+		);
+		const titleResult = await renderNoteTemplateResult(titleTemplate || '{{title}}', titleVariables);
+		const title = titleResult.output.trim() || sample.title;
+		const fileName = `${sanitizeFileName(title, parent).replace(/\.md$/iu, '')}.md`;
+		const targetPath = normalizePath(parent ? `${parent}/${fileName}` : fileName);
+		const variables = this.noteTemplateVariables(
+			title,
+			targetPath,
+			sample.content,
+			sample.variables ?? {},
+			sample.sourceId,
+			sample.times ?? {},
+		);
+		const result = await renderNoteTemplateResult(template, variables);
+		let content = this.withGeneratedProperties(result.output, sample.generatedProperties);
+		content = this.withSourceId(content, sample.sourceId);
+		return {
+			label: title,
+			path: targetPath,
+			content,
+			valid: titleResult.errors.length === 0 && result.errors.length === 0,
+			diagnostics: [
+				...titleResult.errors.map(error => i18n.template.msgDiagnostic({
+					line: error.line,
+					message: error.message,
+				})),
+				...titleResult.warnings.map(warning => i18n.template.msgDiagnostic({
+					line: warning.line,
+					message: warning.message,
+				})),
+				...result.errors.map(error => i18n.template.msgDiagnostic({
+					line: error.line,
+					message: error.message,
+				})),
+				...result.warnings.map(warning => i18n.template.msgDiagnostic({
+					line: warning.line,
+					message: warning.message,
+				})),
+			],
+		};
+	}
+
+	private withGeneratedProperties(
+		content: string,
+		generated: Record<string, unknown> | undefined,
+	): string {
+		if (!generated || Object.keys(generated).length === 0) return content;
+
+		const parsed = parseFrontMatterBlock(content);
+		if (!parsed) return serializeFrontMatter(generated) + content;
+		return serializeFrontMatter({ ...parsed.frontMatter, ...generated }) + parsed.body;
 	}
 
 	/**
@@ -298,6 +596,13 @@ export abstract class FormatImporter {
 		this.host.sourceChanged?.();
 	}
 
+	protected templateSettingsChanged(): void {
+		if (this.templateSamplesChanged) this.templateSamplesChanged();
+		else this.templatePreviewChanged?.();
+	}
+
+	prefetchTemplatePreview(): void {}
+
 	protected stepEl(step: ImporterStep): HTMLElement | null {
 		switch (step) {
 			case 'source':
@@ -306,7 +611,20 @@ export abstract class FormatImporter {
 				return this.host.outputEl;
 			case 'options':
 				return this.host.optionsEl;
+			case 'template': {
+				if (this.templateSettingsEl) return this.templateSettingsEl;
+				const owner = this.host.sourceEl ?? this.host.outputEl ?? this.host.optionsEl;
+				const win = owner?.doc.win as (Window & { createDiv(): HTMLDivElement }) | undefined;
+				return win ? this.templateSettingsEl = win.createDiv() : null;
+			}
 		}
+	}
+
+	private appendTemplateSettings(contentEl: HTMLElement): HTMLElement | null {
+		if (!this.templateSettingsEl) return null;
+		this.templateSettingNodes ??= Array.from(this.templateSettingsEl.childNodes);
+		contentEl.append(...this.templateSettingNodes);
+		return this.groups.get(this.templateSettingsEl)?.listEl ?? null;
 	}
 
 	protected addInstructions(setting: Setting | null): Setting | null {
@@ -387,6 +705,7 @@ export abstract class FormatImporter {
 		}
 
 		let externalEl: HTMLElement | null = null;
+		let secretComponentEl: HTMLElement | null = null;
 
 		if (external) {
 			setting.addButton(button => {
@@ -399,17 +718,21 @@ export abstract class FormatImporter {
 
 		const showLinking = (linked: boolean) => {
 			externalEl?.toggle(!linked);
-
-			for (const button of Array.from(setting.controlEl.querySelectorAll('button'))) {
-				if (button !== externalEl) button.toggleClass('mod-cta', !linked);
-			}
+			const secretButtonEl = secretComponentEl?.matches('button')
+				? secretComponentEl
+				: secretComponentEl?.querySelector('button');
+			secretButtonEl?.toggleClass('mod-cta', !linked);
 		};
+		// SecretStorage is device-local even when plugin data syncs.
+		const isLinkedHere = (secretId: string | null): boolean =>
+			!!secretId && !!this.app.secretStorage.getSecret(secretId);
 
 		setting.addComponent(el => {
+			secretComponentEl = el;
 			let component = new SecretComponent(this.app, el)
 				.onChange(async secretId => {
 					this.secretId = secretId || null;
-					showLinking(!!this.secretId);
+					showLinking(isLinkedHere(this.secretId));
 					this.secretChanged();
 					this.sourceChanged();
 					await this.saveSecretId(this.secretId);
@@ -419,7 +742,7 @@ export abstract class FormatImporter {
 				.then(secretId => {
 					this.secretId = secretId;
 					component.setValue(secretId ?? '');
-					showLinking(!!secretId);
+					showLinking(isLinkedHere(secretId));
 					this.secretChanged();
 					this.sourceChanged();
 				})
@@ -749,6 +1072,10 @@ export abstract class FormatImporter {
 		this.outputStepDrawn = true;
 
 		this.drawOutputSettings(contentEl);
+
+		// Preserve subclass setup order, then move conversion settings onto this page.
+		const optionsEl = this.stepEl('options');
+		if (optionsEl) contentEl.append(...Array.from(optionsEl.childNodes));
 	}
 
 	protected drawOutputSettings(contentEl: HTMLElement): void {
@@ -757,13 +1084,18 @@ export abstract class FormatImporter {
 
 		this.startGroupIn(contentEl);
 		this.addDuplicateHandlingSetting(contentEl);
-		this.addSaveSourceIdSetting(contentEl);
 	}
 
-	private addSaveSourceIdSetting(contentEl: HTMLElement): void {
+	private addSaveSourceIdSetting(settingsEl: HTMLElement, previewChanged?: () => void): void {
 		if (!this.idProperty) return;
 
-		new Setting(this.settingsIn(contentEl))
+		// Reopening reuses these nodes, so replace the runtime-bound setting.
+		for (const existing of Array.from(settingsEl.querySelectorAll('.importer-save-source-id'))) {
+			existing.remove();
+		}
+
+		const setting = new Setting(settingsEl)
+			.setClass('importer-save-source-id')
 			.setName(i18n.output.nameSaveSourceId({ label: this.idLabel }))
 			.setDesc(i18n.output.descSaveSourceId({ label: this.idLabel }))
 			.addToggle(toggle => {
@@ -772,8 +1104,11 @@ export abstract class FormatImporter {
 					.onChange(value => {
 						this.saveSourceId = value;
 						this.saveOutputSettings();
+						previewChanged?.();
 					});
 			});
+
+		if (this.sourceIdSettingFirst) settingsEl.prepend(setting.settingEl);
 	}
 
 	protected addOutputFolderSetting(contentEl: HTMLElement): void {
@@ -868,6 +1203,8 @@ export abstract class FormatImporter {
 
 	private async loadOutputSettings(): Promise<void> {
 		this.outputLocation = this.defaultOutputFolder;
+		this.noteTitleTemplate ||= '{{title}}';
+		this.loadedTemplate = null;
 		// init() may remove the field default from duplicateModes.
 		if (!this.duplicateModes.includes(this.duplicateHandling)) {
 			this.duplicateHandling = [DuplicateHandling.Update, DuplicateHandling.Skip]
@@ -890,11 +1227,18 @@ export abstract class FormatImporter {
 			if (!saved) return;
 
 			if (saved.folder !== undefined) this.outputLocation = saved.folder;
+			if (saved.template !== undefined) this.templatePath = saved.template;
+			if (!this.templatePath.trim() && saved.inlineTemplate !== undefined) {
+				this.inlineTemplate = saved.inlineTemplate;
+				this.customInlineTemplate = true;
+			}
+			if (saved.titleTemplate !== undefined) this.noteTitleTemplate = saved.titleTemplate || '{{title}}';
 			if (saved.attachments) this.attachmentLocation = { ...saved.attachments };
 			if (saved.duplicates && this.duplicateModes.includes(saved.duplicates)) {
 				this.duplicateHandling = saved.duplicates;
 			}
 			if (saved.saveSourceId !== undefined) this.saveSourceId = saved.saveSourceId;
+			if (this.idProperty && saved.idProperty?.trim()) this.idProperty = saved.idProperty.trim();
 			this.outputFolder = null;
 		}
 		catch (e) {
@@ -913,6 +1257,12 @@ export abstract class FormatImporter {
 						attachments: { ...this.attachmentLocation },
 						duplicates: this.duplicateHandling,
 						saveSourceId: this.saveSourceId,
+						idProperty: this.idProperty ?? undefined,
+						template: this.templatePath,
+						inlineTemplate: !this.templatePath.trim() && this.customInlineTemplate
+							? this.inlineTemplate ?? undefined
+							: undefined,
+						titleTemplate: this.noteTitleTemplate,
 					},
 				};
 				await this.host.plugin.saveData(data);
@@ -1163,7 +1513,9 @@ export abstract class FormatImporter {
 		const parsed = parseFrontMatterBlock(content);
 		if (!parsed) return serializeFrontMatter({ [idProperty]: sourceId }) + content;
 
-		return serializeFrontMatter({ [idProperty]: sourceId, ...parsed.frontMatter }) + parsed.body;
+		const properties = { ...parsed.frontMatter };
+		delete properties[idProperty];
+		return serializeFrontMatter({ [idProperty]: sourceId, ...properties }) + parsed.body;
 	}
 
 	/**
@@ -1190,6 +1542,43 @@ export abstract class FormatImporter {
 		this.claimPath(targetPath);
 
 		return { title, desiredPath, targetPath, file, sourceId };
+	}
+
+	protected async configuredNoteTitle(
+		title: string,
+		folder: TFolder | string,
+		content: string,
+		provided: NoteTemplateVariables = {},
+		sourceId = '',
+		times: Pick<DataWriteOptions, 'ctime' | 'mtime'> = {},
+	): Promise<string> {
+		const folderPath = typeof folder === 'string' ? normalizePath(folder) : folder.path;
+		const parent = folderPath === '/' ? '' : folderPath;
+		const fileName = `${sanitizeFileName(title, parent).replace(/\.md$/iu, '')}.md`;
+		const targetPath = normalizePath(parent ? `${parent}/${fileName}` : fileName);
+		const rendered = await renderNoteTemplate(
+			this.noteTitleTemplate || '{{title}}',
+			this.noteTemplateVariables(title, targetPath, content, provided, sourceId, times),
+		);
+
+		return rendered.trim() || title;
+	}
+
+	protected async planTemplatedNote(
+		folder: TFolder | string,
+		title: string,
+		content = '',
+		options: NoteImport = {},
+	): Promise<PlannedNote> {
+		const configuredTitle = await this.configuredNoteTitle(
+			title,
+			folder,
+			content,
+			options.templateVariables,
+			options.sourceId,
+			options,
+		);
+		return this.planNote(folder, configuredTitle, options.sourceId);
 	}
 
 	protected freeFilePath(parent: string, name: string): string {
@@ -1254,8 +1643,16 @@ export abstract class FormatImporter {
 		content: string,
 		options: NoteImport & { disposition?: NoteDisposition } = {},
 	): Promise<NoteWritten> {
-		const { sourceId = planned.sourceId, disposition, ...writeOptions } = options;
+		const { sourceId = planned.sourceId, disposition, templateVariables, ...writeOptions } = options;
 		const { file, title, targetPath } = planned;
+		content = await this.applyNoteTemplate(
+			planned.title,
+			planned.targetPath,
+			content,
+			templateVariables,
+			sourceId,
+			writeOptions,
+		);
 		content = this.withSourceId(content, sourceId);
 
 		let decided = disposition ?? this.preflightNote(ctx, planned, writeOptions.mtime);
@@ -1287,10 +1684,82 @@ export abstract class FormatImporter {
 		}
 	}
 
+	protected async applyNoteTemplate(
+		title: string,
+		targetPath: string,
+		content: string,
+		provided: NoteTemplateVariables | undefined,
+		sourceId: string | undefined,
+		times: Pick<DataWriteOptions, 'ctime' | 'mtime'> = {},
+	): Promise<string> {
+		const template = await this.readTemplate();
+		if (template === null) return content;
+		return await renderNoteTemplate(template, this.noteTemplateVariables(
+			title, targetPath, content, provided, sourceId, times));
+	}
+
+	protected noteTemplateVariables(
+		title: string,
+		targetPath: string,
+		content: string,
+		provided: NoteTemplateVariables | undefined,
+		sourceId: string | undefined,
+		times: Pick<DataWriteOptions, 'ctime' | 'mtime'> = {},
+	): NoteTemplateVariables {
+		const parsed = parseFrontMatterBlock(content);
+		const timestamp = new Date().toISOString();
+		const { parent, basename } = parseFilePath(targetPath);
+		const properties = parsed?.frontMatter ?? {};
+		const source = { ...properties, ...provided };
+		const variables: NoteTemplateVariables = {
+			// Common variables override collisions; source values remain under {{source}}.
+			...source,
+			title,
+			noteName: basename,
+			path: targetPath,
+			folder: parent,
+			content,
+			body: parsed?.body ?? content,
+			properties,
+			source,
+			date: timestamp,
+			time: timestamp,
+			ctime: timestampVariable(times.ctime),
+			mtime: timestampVariable(times.mtime),
+			importer: this.host.importerId,
+			id: sourceId ?? '',
+			sourceId: sourceId ?? '',
+		};
+
+		return variables;
+	}
+
+	private async readTemplate(): Promise<string | null> {
+		if (this.inlineTemplate !== null) return this.inlineTemplate;
+		const configured = this.templatePath.trim();
+		if (!configured) return null;
+		return await this.readTemplateFile(configured);
+	}
+
+	private async readTemplateFile(configured: string): Promise<string> {
+		const path = normalizePath(configured);
+		if (this.loadedTemplate?.path === path) return this.loadedTemplate.content;
+
+		const file = this.vault.getAbstractFileByPath(path)
+			?? this.vault.getAbstractFileByPathInsensitive(path);
+		if (!(file instanceof TFile) || file.extension.toLowerCase() !== 'md') {
+			throw new Error(i18n.output.msgTemplateNotFound({ path }));
+		}
+
+		const template = await this.vault.cachedRead(file);
+		this.loadedTemplate = { path: file.path, content: template };
+		return template;
+	}
+
 	/** Write, update, or match an imported note according to the duplicate mode. */
 	async writeNote(ctx: ImportContext, folder: TFolder, title: string, content: string, options: NoteImport = {}): Promise<NoteWritten> {
 		const { sourceId, ...writeOptions } = options;
-		const resolved = this.planNote(folder, title, sourceId);
+		const resolved = await this.planTemplatedNote(folder, title, content, options);
 
 		return await this.writePlannedNote(ctx, resolved, content, { ...writeOptions, sourceId });
 	}

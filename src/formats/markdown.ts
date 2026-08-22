@@ -1,11 +1,11 @@
-import { Notice, TFile } from 'obsidian';
+import { normalizePath, Notice, TFile } from 'obsidian';
 import { fsPromises, NodePickedFile, PickedFile, PickedFolder } from '../filesystem';
-import { DuplicateHandling, FormatImporter, leavesTheNoteAlone, PlannedNote } from '../format-importer';
+import { DuplicateHandling, FormatImporter, leavesTheNoteAlone, NoteTemplateSample, PlannedNote, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { ImportedPathIndex, normalizeTreePath, parentTreePath, resolveTreePath } from '../imported-path-index';
 import { i18n } from '../i18n';
 import { MarkdownFormatting, MarkdownLinkResolver } from '../markdown-output';
-import { isHiddenPickedItem, PickedFolderNode, PickedFolderPicker, pickedFolderNodes, plannedPickedItems, PlannedPickedItem } from '../picked-folder-tree';
+import { isHiddenPickedItem, PickedFolderLoad, PickedFolderPicker, pickedFolderFileCount, pickedFolderNodes, plannedPickedItems, PlannedPickedItem } from '../picked-folder-tree';
 import { sameBytes } from '../util';
 import { withZipContents, ZipEntryFile } from '../zip';
 import { convertMarkdownNote } from './markdown/convert';
@@ -81,15 +81,20 @@ export class MarkdownImporter extends FormatImporter {
 		this.folderPicker = new PickedFolderPicker(
 			() => this.source(),
 			async (source, isCurrent) => {
-				let nodes: PickedFolderNode[] = [];
+				let loaded: PickedFolderLoad = { nodes: [], files: 0 };
 				await withZipContents(source, async items => {
-					nodes = await pickedFolderNodes(items, {
+					const countFile = (file: PickedFile) => !isHiddenPickedItem(file) && isMarkdown(file);
+					const nodes = await pickedFolderNodes(items, {
 						includeFolder: (folder, chosen) => chosen || !isHiddenPickedItem(folder),
-						countFile: file => !isHiddenPickedItem(file) && isMarkdown(file),
+						countFile,
 						isCurrent,
 					});
+					loaded = {
+						nodes,
+						files: pickedFolderFileCount(items, nodes, countFile),
+					};
 				});
-				return nodes;
+				return loaded;
 			},
 		);
 
@@ -100,19 +105,25 @@ export class MarkdownImporter extends FormatImporter {
 
 		this.draw(contentEl => this.folderPicker.draw(contentEl, this.addSetting('source')), 'source');
 
-		this.addSetting()
+		this.addSetting('template')
 			?.setName(i18n.importer.markdown.nameStandardizeFormatting())
 			.setDesc(i18n.importer.markdown.descStandardizeFormatting())
 			.addToggle(toggle => toggle
 				.setValue(this.standardizeFormatting)
-				.onChange(value => this.standardizeFormatting = value));
+				.onChange(value => {
+					this.standardizeFormatting = value;
+					this.templateSettingsChanged();
+				}));
 
-		this.addSetting()
+		this.addSetting('template')
 			?.setName(i18n.importer.markdown.nameTagsAsProperties())
 			.setDesc(i18n.importer.markdown.descTagsAsProperties())
 			.addToggle(toggle => toggle
 				.setValue(this.tagsAsProperties)
-				.onChange(value => this.tagsAsProperties = value));
+				.onChange(value => {
+					this.tagsAsProperties = value;
+					this.templateSettingsChanged();
+				}));
 	}
 
 	protected override get markdownFormatting(): MarkdownFormatting | undefined {
@@ -142,6 +153,36 @@ export class MarkdownImporter extends FormatImporter {
 	protected drawOutputSettings(contentEl: HTMLElement): void {
 		this.addOutputFolderSetting(contentEl);
 		this.addDuplicateHandlingSetting(contentEl);
+	}
+
+	protected override async templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]> {
+		const samples: NoteTemplateSample[] = [];
+		await withZipContents(this.source(), async items => {
+			const planned = await plannedPickedItems(items, this.outputLocation.trim(), {
+				selection: this.folderPicker.selection(),
+				includeFile: (file, chosen) => (chosen || !isHiddenPickedItem(file)) && isMarkdown(file),
+				includeFolder: (folder, chosen) => chosen || !isHiddenPickedItem(folder),
+				folderPath: (folder, parent, chosen) => this.mirroredFolderPath(parent, folder.name, chosen),
+				onFolder: () => {},
+				shouldStop: () => ctx.shouldStop(),
+				onError: (item, error) => ctx.reportFailed(item.name, error),
+			});
+
+			for (const item of planned) {
+				if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
+				if (!item.file || !isMarkdown(item.file)) continue;
+				const { markdown } = convertMarkdownNote(await item.file.readText(), {
+					tagsAsProperties: this.tagsAsProperties,
+				});
+				samples.push({
+					title: item.file.basename,
+					path: normalizePath(`${item.parent}/${item.file.basename}.md`),
+					content: markdown,
+					times: await fileTimes(item.file),
+				});
+			}
+		}, (name, error) => ctx.reportFailed(name, error));
+		return samples;
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
@@ -204,7 +245,7 @@ export class MarkdownImporter extends FormatImporter {
 			const { file } = item;
 			if (!file || !isMarkdown(file)) continue;
 
-			item.note = this.planNote(item.parent || '/', file.basename);
+			item.note = await this.planTemplatedNote(item.parent || '/', file.basename);
 			this.notePlannedPath(item.source, item.note.targetPath);
 			if (item.note.file) this.importedPaths.remember(item.source, item.note.file);
 		}
