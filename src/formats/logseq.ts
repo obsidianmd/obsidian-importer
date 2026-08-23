@@ -4,6 +4,7 @@ import { NodePickedFile, PickedFile, PickedFolder, fsPromises } from '../filesys
 import { FormatImporter, NoteTemplateSample, PlannedNote, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { i18n } from '../i18n';
 import { sameBytes, sanitizeFileName } from '../util';
+import { convertAssetLinks } from './logseq/assets';
 import { BlockRefTarget, removeOrphanBlockRefs, resolveBlockRefs } from './logseq/block-ids';
 import { deOutline } from './logseq/de-outline';
 import { journalFilenameToISO, reformatDateLinks } from './logseq/journals';
@@ -47,7 +48,6 @@ interface PlannedAsset {
 	file: PickedFile;
 	path: string;
 	reuse: TFile | null;
-	data: ArrayBuffer;
 }
 
 function withoutMarkdownExtension(path: string): string {
@@ -437,7 +437,9 @@ export class LogseqImporter extends FormatImporter {
 			try {
 				const desired = this.desiredNote(entry, graph.name, outputRoot);
 				const content = await entry.file.readText();
-				const local = convertLocal(content, this.options);
+				// Collect asset references without committing to a link target. Attachment
+				// paths are selected only after every note has a provisional claim.
+				const local = convertLocal(content, this.options, { assetTarget: () => null });
 				const times = await fileTimes(entry.file);
 				const preliminary = local.yaml ? `${local.yaml}\n\n${local.body}\n` : `${local.body}\n`;
 				const planned = await this.planTemplatedNote(desired.parent, desired.title, preliminary, {
@@ -452,7 +454,27 @@ export class LogseqImporter extends FormatImporter {
 		}
 
 		const assets = await this.planAssets(graph, notes, ctx);
+		for (const note of notes) this.releasePath(note.planned.targetPath);
 		if (ctx.isCancelled()) return;
+
+		// Asset placement only depends on the note's folder. Once every attachment
+		// has a final path, rewrite the already-converted body and re-run title
+		// preflight so {{content}} in a title template sees those final links.
+		for (const note of notes) {
+			const linked = convertAssetLinks(note.local.body, {
+				keepAltText: this.options.keepAssetAltText,
+				target: asset => note.assetTargets.get(asset.sourcePath) ?? null,
+			});
+			note.local = { ...note.local, body: linked.content };
+			const preliminary = note.local.yaml
+				? `${note.local.yaml}\n\n${note.local.body}\n`
+				: `${note.local.body}\n`;
+			note.planned = await this.planTemplatedNote(note.parent, note.title, preliminary, {
+				sourceId: note.sourceId,
+				...note.times,
+			});
+		}
+
 		const linkPlans = this.linkPlans(notes);
 		const knownPages = this.knownPages(notes);
 		const blockIndex = new Map<string, BlockRefTarget>();
@@ -460,9 +482,6 @@ export class LogseqImporter extends FormatImporter {
 		const ambiguousAliases = new Set<string>();
 
 		for (const note of notes) {
-			note.local = convertLocal(note.content, this.options, {
-				assetTarget: sourcePath => note.assetTargets.get(sourcePath) ?? null,
-			});
 			const target = withoutMarkdownExtension(note.planned.targetPath);
 			const aliases = { ...note.local.raw };
 			if (aliases.title?.toLowerCase() === note.logicalName.toLowerCase()) delete aliases.title;
@@ -499,7 +518,7 @@ export class LogseqImporter extends FormatImporter {
 			if (await ctx.shouldStop()) return;
 			try {
 				if (!asset.reuse) {
-					await this.writeAttachment(asset.path, asset.data);
+					await this.writeAttachment(asset.path, await asset.file.read());
 					ctx.reportAttachmentSuccess(asset.path);
 				}
 			}
@@ -640,7 +659,7 @@ export class LogseqImporter extends FormatImporter {
 						const filename = decodedPath(reference.filename);
 						const placed = await this.placeAttachment(filename, note.planned.targetPath, async existing =>
 							sameBytes(await this.vault.readBinary(existing), data) ? 'same' : 'another');
-						asset = { file: source.file, path: placed.path, reuse: placed.reuse, data };
+						asset = { file: source.file, path: placed.path, reuse: placed.reuse };
 						bySource.set(sourceKey, asset);
 						planned.push(asset);
 					}

@@ -374,6 +374,12 @@ test('[J1] fixCodeBlocksInLists: preserves tab indentation on the closing fence'
 	assert.equal(fixCodeBlocksInLists(input), input);
 });
 
+test('[J1] fixCodeBlocksInLists: preserves a tab used after the bullet marker', () => {
+	const input = ['-\t~~~js', '\tx', '~~~'].join('\n');
+	const expected = ['-\t~~~js', '\tx', '\t~~~'].join('\n');
+	assert.equal(fixCodeBlocksInLists(input), expected);
+});
+
 // J1: convertOrgBlocks has no fence-awareness and converts `#+BEGIN_*` that
 // appears literally inside a fenced code block. Decision: leave code content inert.
 test('[J1] convertOrgBlocks: leaves org markup inside a code fence untouched', () => {

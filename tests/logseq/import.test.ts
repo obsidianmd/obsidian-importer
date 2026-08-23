@@ -53,6 +53,15 @@ class UnreadableSourceFile extends BinarySourceFile {
 	}
 }
 
+class CountingSourceFile extends BinarySourceFile {
+	reads = 0;
+
+	override async read(): Promise<ArrayBuffer> {
+		this.reads++;
+		return await super.read();
+	}
+}
+
 class CancelAtCheckpoint extends ImportContext {
 	private seen = 0;
 
@@ -151,6 +160,76 @@ test('renames different same-basename assets and rewrites each note to its copy'
 	assert.deepEqual(vault.paths().filter(path => path.endsWith('.png')), ['image.png', 'image 1.png']);
 	assert.match(vault.contents.get('Logseq/A.md') as string, /!\[\[image\.png\]\]/);
 	assert.match(vault.contents.get('Logseq/B.md') as string, /!\[\[image 1\.png\]\]/);
+});
+
+test('replans title templates with final collision-safe asset links', async () => {
+	const asset = new BinarySourceFile('image.png', new Uint8Array([1]).buffer);
+	const graph = new SourceFolder('Templated asset', [
+		new SourceFolder('pages', [new SourceFile('A.md', '- ![](../assets/image.png)')]),
+		new SourceFolder('assets', [asset]),
+	]);
+	const { subject, vault } = await importer(graph);
+	await vault.createBinary('image.png', new Uint8Array([9]).buffer);
+
+	const seen: string[] = [];
+	const internal = subject as unknown as {
+		configuredNoteTitle: (...args: unknown[]) => Promise<string>;
+	};
+	const configured = internal.configuredNoteTitle.bind(subject);
+	internal.configuredNoteTitle = async (...args: unknown[]) => {
+		seen.push(args[2] as string);
+		return await configured(...args);
+	};
+
+	await subject.import(new ImportContext());
+
+	assert.match(seen[0], /!\[\]\(\.\.\/assets\/image\.png\)/);
+	assert.match(seen.at(-1) ?? '', /!\[\[image 1\.png\]\]/);
+});
+
+test('does not retain attachment bytes between planning and writing', async () => {
+	const asset = new CountingSourceFile('image.png', new Uint8Array([1]).buffer);
+	const graph = new SourceFolder('Lazy asset', [
+		new SourceFolder('pages', [new SourceFile('A.md', '- ![](../assets/image.png)')]),
+		new SourceFolder('assets', [asset]),
+	]);
+	const { subject } = await importer(graph);
+
+	await subject.import(new ImportContext());
+
+	assert.equal(asset.reads, 2, 'asset is read for dedupe, released, then read again only when written');
+});
+
+test('does not retarget a bare page name to a namespaced page', async () => {
+	const graph = new SourceFolder('Namespaced page', [
+		new SourceFolder('pages', [
+			new SourceFile('a___b.md', '- Namespaced B'),
+			new SourceFile('Reference.md', '- Link to [[b]]'),
+		]),
+	]);
+	const { subject, vault } = await importer(graph);
+
+	await subject.import(new ImportContext());
+
+	assert.match(vault.contents.get('Logseq/Reference.md') as string, /\[\[b\]\]/);
+	assert.doesNotMatch(vault.contents.get('Logseq/Reference.md') as string, /\[\[Logseq\/a\/b/);
+});
+
+test('does not let an alias retarget links away from a real page', async () => {
+	const graph = new SourceFolder('Alias shadow', [
+		new SourceFolder('pages', [
+			new SourceFile('Foo.md', ['alias:: Bar', '', '- Foo'].join('\n')),
+			new SourceFile('Bar.md', '- Real Bar'),
+			new SourceFile('Reference.md', '- Link to [[Bar]]'),
+		]),
+	]);
+	const { subject, vault } = await importer(graph);
+
+	await subject.import(new ImportContext());
+
+	const reference = vault.contents.get('Logseq/Reference.md') as string;
+	assert.match(reference, /\[\[Logseq\/Bar\]\]/);
+	assert.doesNotMatch(reference, /\[\[Logseq\/Foo\|Bar\]\]/);
 });
 
 test('preserves a missing asset link and reports it', async () => {
