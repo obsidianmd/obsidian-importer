@@ -102,6 +102,45 @@ test('converts Roam emphasis to Obsidian emphasis', async () => {
 	assert.equal(await scrubber().roamMarkupScrubber('', '', '^^highlight^^'), '==highlight==');
 });
 
+test('leaves Roam syntax in inline code unchanged', async () => {
+	const source = '`{{[[TODO]]}} [[Page]] ^^mark^^ ((abc123)) #.rm-hide`';
+	assert.equal(await referring().roamMarkupScrubber('Graph', '', source), source);
+});
+
+test('leaves Roam syntax in fenced code unchanged while converting surrounding prose', async () => {
+	const source = [
+		'{{[[TODO]]}} before',
+		'```md',
+		'{{[[DONE]]}} [[Page]] ^^mark^^ ((abc123)) #.rm-hide',
+		'```',
+		'{{[[DONE]]}} after',
+	].join('\n');
+
+	assert.equal(await referring().roamMarkupScrubber('Graph', '', source), [
+		'[ ] before',
+		'```md',
+		'{{[[DONE]]}} [[Page]] ^^mark^^ ((abc123)) #.rm-hide',
+		'```',
+		'[x] after',
+	].join('\n'));
+});
+
+test('does not download Firebase URLs from code examples', async () => {
+	const downloaded: string[] = [];
+	const converter = new RoamPageConverter({
+		userDNPFormat: DAILY_NOTE_FORMAT,
+		downloadFirebaseFile: async text => {
+			downloaded.push(text);
+			return text.replace('firebasestorage', 'downloaded');
+		},
+	});
+	const source = '`https://firebasestorage.example/in-code` https://firebasestorage.example/in-prose';
+
+	assert.equal(await converter.roamMarkupScrubber('', '', source),
+		'`https://firebasestorage.example/in-code` https://downloaded.example/in-prose');
+	assert.deepEqual(downloaded, [' https://firebasestorage.example/in-prose']);
+});
+
 function referring(blocks: Record<string, string> = { abc123: 'Notes' }) {
 	return new RoamPageConverter({
 		userDNPFormat: DAILY_NOTE_FORMAT,
