@@ -436,3 +436,66 @@ test('[J1] convertNumberedLists: tab-indented numbered list numbers correctly', 
 	const expected = ['\t1. one', '\t2. two'].join('\n');
 	assert.equal(convertNumberedLists(input), expected);
 });
+
+// A code-bearing org block rendered as a callout loses everything that makes it
+// code: `#+BEGIN_SRC python` became `> [!note]`, the language was dropped, and
+// the body's indentation was flattened into blockquote lines.
+test('convertOrgBlocks: SRC becomes a fenced code block keeping language and indent', () => {
+	const input = [
+		'- #+BEGIN_SRC python',
+		'  def f():',
+		'      return 1',
+		'  #+END_SRC',
+	].join('\n');
+	const expected = [
+		'- ```python',
+		'  def f():',
+		'      return 1',
+		'  ```',
+	].join('\n');
+	assert.equal(convertOrgBlocks(input), expected);
+});
+
+test('convertOrgBlocks: an unindented SRC block keeps its language', () => {
+	const input = ['#+BEGIN_SRC clojure', '(inc 1)', '#+END_SRC'].join('\n');
+	assert.equal(convertOrgBlocks(input), ['```clojure', '(inc 1)', '```'].join('\n'));
+});
+
+test('convertOrgBlocks: EXPORT keeps its backend as the fence language', () => {
+	const input = ['#+BEGIN_EXPORT html', '<b>hi</b>', '#+END_EXPORT'].join('\n');
+	assert.equal(convertOrgBlocks(input), ['```html', '<b>hi</b>', '```'].join('\n'));
+});
+
+test('convertOrgBlocks: SRC with no language produces a bare fence', () => {
+	const input = ['#+BEGIN_SRC', 'plain text', '#+END_SRC'].join('\n');
+	assert.equal(convertOrgBlocks(input), ['```', 'plain text', '```'].join('\n'));
+});
+
+// A backtick run inside the body would close the wrapper early.
+test('convertOrgBlocks: a body containing a backtick run gets a longer fence', () => {
+	const input = ['#+BEGIN_SRC js', 'const fence = "```";', '#+END_SRC'].join('\n');
+	assert.equal(convertOrgBlocks(input), ['````js', 'const fence = "```";', '````'].join('\n'));
+});
+
+// A bullet-opened QUERY used to have every inner line's indentation stripped.
+test('convertOrgBlocks: a bullet-opened QUERY keeps relative indentation', () => {
+	const input = [
+		'- #+BEGIN_QUERY',
+		'  {:title "x"',
+		'   :query [?b]}',
+		'  #+END_QUERY',
+	].join('\n');
+	const expected = [
+		'- ```query',
+		'  {:title "x"',
+		'   :query [?b]}',
+		'  ```',
+	].join('\n');
+	assert.equal(convertOrgBlocks(input), expected);
+});
+
+// Prose blocks with no Obsidian callout of their own still fall back to a note.
+test('convertOrgBlocks: an unknown prose block still falls back to a note', () => {
+	const input = ['#+BEGIN_VERSE', 'a line', '#+END_VERSE'].join('\n');
+	assert.equal(convertOrgBlocks(input), ['> [!note]', '> a line'].join('\n'));
+});

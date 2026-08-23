@@ -70,8 +70,34 @@ export function convertOrgBlocks(content: string): string {
 	return outsideMarkdownFences(content, segment => processOrgLines(segment.split('\n')).join('\n'));
 }
 
-const BEGIN_RE = /^(\s*)(?:- )?#\+BEGIN_(\w+)/i;
+const BEGIN_RE = /^(\s*)(?:- )?#\+BEGIN_(\w+)[ \t]*(.*)$/i;
 const END_RE = /^(\s*)(?:- )?#\+END_\w+/i;
+
+// Org blocks whose body is code rather than prose. Rendered as a callout they
+// would lose their indentation and be relabelled as a note, so they become
+// fenced code blocks instead and survive verbatim.
+const FENCED_TYPES = new Set(['QUERY', 'SRC', 'EXPORT']);
+
+/**
+ * The language to tag the fence with. QUERY names itself; SRC and EXPORT carry
+ * theirs as the block's first argument — `#+BEGIN_SRC python`, `#+BEGIN_EXPORT
+ * html`. Anything that is not a plain language token is dropped rather than
+ * written into the fence.
+ */
+function fenceLanguage(type: string, argument: string): string {
+	if (type === 'QUERY') return 'query';
+	const first = argument.trim().split(/\s+/)[0] ?? '';
+	return /^[\w+#.-]+$/.test(first) ? first.toLowerCase() : '';
+}
+
+/** A fence long enough to survive whatever backticks the body already contains. */
+function fenceFor(body: string[]): string {
+	let longest = 0;
+	for (const line of body) {
+		for (const run of line.match(/`+/g) ?? []) longest = Math.max(longest, run.length);
+	}
+	return '`'.repeat(Math.max(3, longest + 1));
+}
 
 function processOrgLines(lines: string[]): string[] {
 	const out: string[] = [];
@@ -89,8 +115,8 @@ function processOrgLines(lines: string[]): string[] {
 		const type = begin[2].toUpperCase();
 		const hasBullet = /^\s*- /.test(line);
 
-		// J1: #+BEGIN_QUERY → fenced ```query block (lossless).
-		if (type === 'QUERY') {
+		// J1: a code-bearing block → a fenced code block (lossless).
+		if (FENCED_TYPES.has(type)) {
 			let qend = -1;
 			for (let j = i + 1; j < lines.length; j++) {
 				if (END_RE.test(lines[j])) {
@@ -100,16 +126,21 @@ function processOrgLines(lines: string[]): string[] {
 			}
 			if (qend >= 0) {
 				const indent = begin[1];
-				const inner = lines.slice(i + 1, qend);
+				// Strip only the block's own indent, so the body keeps the relative
+				// indentation that a language like Python depends on.
+				const body = lines.slice(i + 1, qend)
+					.map(l => stripIndent(l, hasBullet ? indent.length + 2 : indent.length));
+				const fence = fenceFor(body) + fenceLanguage(type, begin[3]);
+				const close = fenceFor(body);
 				if (hasBullet) {
-					out.push(`${indent}- \`\`\`query`);
-					out.push(...inner.map(l => `${indent}  ${l.replace(/^\s*/, '')}`));
-					out.push(`${indent}  \`\`\``);
+					out.push(`${indent}- ${fence}`);
+					out.push(...body.map(l => l === '' ? '' : `${indent}  ${l}`));
+					out.push(`${indent}  ${close}`);
 				}
 				else {
-					out.push(`${indent}\`\`\`query`);
-					out.push(...inner.map(l => stripIndent(l, indent.length)));
-					out.push(`${indent}\`\`\``);
+					out.push(`${indent}${fence}`);
+					out.push(...body);
+					out.push(`${indent}${close}`);
 				}
 				i = qend + 1;
 				continue;
