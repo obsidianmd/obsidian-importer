@@ -45,6 +45,19 @@ test('indexAliases: registers both alias and title properties', () => {
 	assert.equal(aliasMap.get('long title'), 'pages/page');
 });
 
+test('indexAliases: registers both alias and aliases properties', () => {
+	const aliasMap = new Map<string, string>();
+	indexPageAliases({ alias: 'Short Name', aliases: 'Other Name' }, 'pages/page', aliasMap, new Set());
+	assert.equal(aliasMap.get('short name'), 'pages/page');
+	assert.equal(aliasMap.get('other name'), 'pages/page');
+});
+
+test('indexAliases: does not let an alias shadow a real page', () => {
+	const aliasMap = new Map<string, string>();
+	indexPageAliases({ alias: 'Bar' }, 'pages/foo', aliasMap, new Set(), new Set(['foo', 'bar']));
+	assert.equal(aliasMap.has('bar'), false);
+});
+
 test('indexAliases: marks conflicting aliases as ambiguous', () => {
 	const aliasMap = new Map<string, string>();
 	const ambiguous = new Set<string>();

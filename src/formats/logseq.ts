@@ -466,7 +466,7 @@ export class LogseqImporter extends FormatImporter {
 			const target = withoutMarkdownExtension(note.planned.targetPath);
 			const aliases = { ...note.local.raw };
 			if (aliases.title?.toLowerCase() === note.logicalName.toLowerCase()) delete aliases.title;
-			indexPageAliases(aliases, target, aliasMap, ambiguousAliases);
+			indexPageAliases(aliases, target, aliasMap, ambiguousAliases, knownPages);
 			for (const id of note.local.ids) blockIndex.set(id.uuid, { page: target, shortId: id.shortId });
 		}
 		for (const alias of ambiguousAliases) aliasMap.delete(alias);
@@ -587,8 +587,7 @@ export class LogseqImporter extends FormatImporter {
 			basenames.set(key, [...(basenames.get(key) ?? []), note]);
 		}
 		for (const [basename, matching] of basenames) {
-			const selected = matching.find(note => note.logicalName.toLowerCase() === basename)
-				?? (matching.length === 1 ? matching[0] : null);
+			const selected = matching.find(note => note.logicalName.toLowerCase() === basename) ?? null;
 			if (!selected) continue;
 			plans.set(basename, plans.get(selected.logicalName.toLowerCase())!);
 		}

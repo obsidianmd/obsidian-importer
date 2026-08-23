@@ -48,8 +48,8 @@ export function convertTags(content: string, options: ConvertTagsOptions): strin
 		});
 		// #simple-tag (letters, digits, /_-), must follow start, whitespace, or `([`
 		segment = segment.replace(/(^|[\s([])#([\w/-]+)/g, (m, pre, name) => {
-			// H1: skip full hex colour tokens like #FF0000 (exactly 6 hex digits)
-			if (/^[0-9A-Fa-f]{6}$/.test(name)) return m;
+			// H1: CSS hex colours are not tags (RGB, RGBA, RRGGBB, or RRGGBBAA).
+			if (/^(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/.test(name)) return m;
 			if (dropTags.has(name)) return pre;
 			if (toLinks) {
 				if (onlyExistingPages && !knownPages.has(name.toLowerCase())) return m;

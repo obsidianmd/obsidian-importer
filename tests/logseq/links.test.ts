@@ -45,8 +45,9 @@ test('converts tags to wikilinks when requested (no page filter)', () => {
 	assert.equal(convertTags('x #[[multi word]] y', tagOpts(true)), 'x [[multi word]] y');
 });
 
-test('does not treat a mid-word hash as a tag', () => {
-	assert.equal(convertTags('color #fff and C#', tagOpts(true)), 'color [[fff]] and C#');
+test('does not treat CSS hex colours or a mid-word hash as tags', () => {
+	assert.equal(convertTags('colors #fff #abcd #FF0000 #11223344 and C#', tagOpts(true)),
+		'colors #fff #abcd #FF0000 #11223344 and C#');
 });
 
 test('drops listed tags from body text', () => {

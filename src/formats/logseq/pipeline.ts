@@ -84,17 +84,21 @@ export function indexPageAliases(
 	raw: Record<string, string>,
 	canonical: string,
 	aliasMap: Map<string, string>,
-	ambiguous: Set<string>
+	ambiguous: Set<string>,
+	knownPages: Set<string> = new Set(),
 ): void {
 	// Collect all alias values: alias/aliases properties plus the title:: value (G1).
 	const aliasValues: string[] = [];
-	if (raw.alias ?? raw.aliases) aliasValues.push(raw.alias ?? raw.aliases);
+	if (raw.alias) aliasValues.push(raw.alias);
+	if (raw.aliases) aliasValues.push(raw.aliases);
 	if (raw.title) aliasValues.push(raw.title);
 	for (const value of aliasValues) {
 		for (const item of value.split(',')) {
 			const name = item.trim().replace(/^\[\[(.*)\]\]$/, '$1').trim();
 			if (!name) continue;
 			const key = name.toLowerCase();
+			// A real page owns its name. An alias must never shadow and retarget it.
+			if (knownPages.has(key)) continue;
 			const existing = aliasMap.get(key);
 			if (existing !== undefined && existing !== canonical) ambiguous.add(key);
 			else aliasMap.set(key, canonical);
