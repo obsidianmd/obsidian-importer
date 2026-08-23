@@ -47,6 +47,26 @@ class BinarySourceFile implements PickedFile {
 	}
 }
 
+class UnreadableSourceFile extends BinarySourceFile {
+	async read(): Promise<ArrayBuffer> {
+		throw new Error('Could not read attachment');
+	}
+}
+
+class CancelAtCheckpoint extends ImportContext {
+	private seen = 0;
+
+	constructor(private readonly checkpoint: number) {
+		super();
+	}
+
+	override async shouldStop(): Promise<boolean> {
+		this.seen++;
+		if (this.seen === this.checkpoint) this.cancel();
+		return super.shouldStop();
+	}
+}
+
 function fixtureFolder(name: string): SourceFolder {
 	const path = nodePath.join(FIXTURES, name);
 	return new SourceFolder(name, nodeFs.readdirSync(path).map(filename => {
@@ -144,4 +164,40 @@ test('preserves a missing asset link and reports it', async () => {
 
 	assert.match(vault.contents.get('Logseq/A.md') as string, /!\[missing\]\(\.\.\/assets\/missing\.png\)/);
 	assert.deepEqual(ctx.skipped, ['../assets/missing.png']);
+});
+
+test('keeps importing when an attachment cannot be read', async () => {
+	const graph = new SourceFolder('Unreadable asset', [
+		new SourceFolder('pages', [
+			new SourceFile('A.md', '- ![unreadable](../assets/unreadable.png)'),
+			new SourceFile('B.md', '- Still imported'),
+		]),
+		new SourceFolder('assets', [new UnreadableSourceFile('unreadable.png', new ArrayBuffer(0))]),
+	]);
+	const { subject, vault } = await importer(graph);
+	const ctx = new ImportContext();
+
+	await subject.import(ctx);
+
+	assert.equal(ctx.notes, 2);
+	assert.deepEqual(ctx.failed, ['assets/unreadable.png']);
+	assert.match(vault.contents.get('Logseq/A.md') as string,
+		/!\[unreadable\]\(\.\.\/assets\/unreadable\.png\)/);
+	assert.ok(vault.contents.has('Logseq/B.md'));
+});
+
+test('can be cancelled during attachment planning without writing partial output', async () => {
+	const graph = new SourceFolder('Cancelled graph', [
+		new SourceFolder('pages', [new SourceFile('A.md', '- ![](../assets/image.png)')]),
+		new SourceFolder('assets', [new BinarySourceFile('image.png', new Uint8Array([1]).buffer)]),
+	]);
+	const { subject, vault } = await importer(graph);
+	const ctx = new CancelAtCheckpoint(2);
+
+	await subject.import(ctx);
+
+	assert.equal(ctx.isCancelled(), true);
+	assert.equal(ctx.notes, 0);
+	assert.equal(ctx.attachments, 0);
+	assert.deepEqual(vault.paths(), []);
 });

@@ -452,6 +452,7 @@ export class LogseqImporter extends FormatImporter {
 		}
 
 		const assets = await this.planAssets(graph, notes, ctx);
+		if (ctx.isCancelled()) return;
 		const linkPlans = this.linkPlans(notes);
 		const knownPages = this.knownPages(notes);
 		const blockIndex = new Map<string, BlockRefTarget>();
@@ -614,9 +615,11 @@ export class LogseqImporter extends FormatImporter {
 	private async planAssets(graph: GraphSource, notes: SourceNote[], ctx: ImportContext): Promise<PlannedAsset[]> {
 		const planned: PlannedAsset[] = [];
 		const bySource = new Map<string, PlannedAsset>();
+		const failedSources = new Set<string>();
 
 		for (const note of notes) {
 			for (const reference of note.local.assets) {
+				if (await ctx.shouldStop()) return planned;
 				const source = this.resolveGraphAsset(graph, note.path, reference.sourcePath);
 				if (!source) {
 					note.assetTargets.set(reference.sourcePath, null);
@@ -625,17 +628,30 @@ export class LogseqImporter extends FormatImporter {
 					continue;
 				}
 
-				let asset = bySource.get(source.path.toLowerCase());
-				if (!asset) {
-					const data = await source.file.read();
-					const filename = decodedPath(reference.filename);
-					const placed = await this.placeAttachment(filename, note.planned.targetPath, async existing =>
-						sameBytes(await this.vault.readBinary(existing), data) ? 'same' : 'another');
-					asset = { file: source.file, path: placed.path, reuse: placed.reuse, data };
-					bySource.set(source.path.toLowerCase(), asset);
-					planned.push(asset);
+				const sourceKey = source.path.toLowerCase();
+				if (failedSources.has(sourceKey)) {
+					note.assetTargets.set(reference.sourcePath, null);
+					continue;
 				}
-				note.assetTargets.set(reference.sourcePath, asset.path);
+
+				let asset = bySource.get(sourceKey);
+				try {
+					if (!asset) {
+						const data = await source.file.read();
+						const filename = decodedPath(reference.filename);
+						const placed = await this.placeAttachment(filename, note.planned.targetPath, async existing =>
+							sameBytes(await this.vault.readBinary(existing), data) ? 'same' : 'another');
+						asset = { file: source.file, path: placed.path, reuse: placed.reuse, data };
+						bySource.set(sourceKey, asset);
+						planned.push(asset);
+					}
+					note.assetTargets.set(reference.sourcePath, asset.path);
+				}
+				catch (error) {
+					failedSources.add(sourceKey);
+					note.assetTargets.set(reference.sourcePath, null);
+					ctx.reportFailed(source.path, error);
+				}
 			}
 		}
 
