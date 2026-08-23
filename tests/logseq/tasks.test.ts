@@ -243,3 +243,54 @@ test('task-like text after inline code is not treated as a line start', () => {
 	const input = 'Prose `x` - TODO not a task';
 	assert.equal(convertTasks(input, 'tasks-emoji'), input);
 });
+
+// Logseq writes SCHEDULED/DEADLINE on a continuation line, but a hand-edited
+// graph can leave one inline, where it used to survive as raw org syntax.
+test('an inline SCHEDULED becomes a Tasks field', () => {
+	assert.equal(
+		convertTasks('- TODO buy milk SCHEDULED: <2024-06-15 Sat>', 'tasks-emoji'),
+		'- [ ] buy milk ⏳ 2024-06-15');
+});
+
+test('an inline DEADLINE becomes a Tasks field', () => {
+	assert.equal(
+		convertTasks('- TODO ship it DEADLINE: <2024-07-01 Mon>', 'tasks-emoji'),
+		'- [ ] ship it 📅 2024-07-01');
+});
+
+test('an inline SCHEDULED and DEADLINE are both taken, scheduled first', () => {
+	assert.equal(
+		convertTasks('- TODO x SCHEDULED: <2024-06-15 Sat> DEADLINE: <2024-07-01 Mon>', 'tasks-emoji'),
+		'- [ ] x ⏳ 2024-06-15 📅 2024-07-01');
+});
+
+test('an inline repeater is carried across', () => {
+	assert.equal(
+		convertTasks('- TODO water plants SCHEDULED: <2024-06-15 Sat .+3d>', 'tasks-emoji'),
+		'- [ ] water plants ⏳ 2024-06-15 🔁 every 3 days when done');
+});
+
+test('an inline SCHEDULED renders as a Dataview field too', () => {
+	assert.equal(
+		convertTasks('- TODO x SCHEDULED: <2024-06-15 Sat>', 'tasks-dataview'),
+		'- [ ] x [scheduled:: 2024-06-15]');
+});
+
+// The continuation line is the canonical form, so it wins where a task has both.
+test('a continuation SCHEDULED overrides an inline one', () => {
+	const input = ['- TODO x SCHEDULED: <2024-01-01 Mon>', '  SCHEDULED: <2024-06-15 Sat>'].join('\n');
+	assert.equal(convertTasks(input, 'tasks-emoji'), '- [ ] x ⏳ 2024-06-15');
+});
+
+// `plain` flattens metadata into the text rather than reading it.
+test('plain format leaves an inline SCHEDULED in the text', () => {
+	assert.equal(
+		convertTasks('- TODO x SCHEDULED: <2024-06-15 Sat>', 'plain'),
+		'- [ ] x SCHEDULED: <2024-06-15 Sat>');
+});
+
+// Only the task's own metadata is taken; prose that merely mentions it is not.
+test('SCHEDULED in a non-task bullet is left alone', () => {
+	const input = '- The SCHEDULED: <2024-06-15 Sat> syntax marks a date';
+	assert.equal(convertTasks(input, 'tasks-emoji'), input);
+});

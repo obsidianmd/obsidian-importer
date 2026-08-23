@@ -159,6 +159,18 @@ function convertTaskSegment(content: string, format: TaskFormat, options: TaskOp
 		let cancelled = '';
 		let inLogbook = false;
 
+		// Logseq writes SCHEDULED/DEADLINE on their own continuation line, but a
+		// hand-edited graph can leave one inline. Take it from the task text too,
+		// so the date becomes a Tasks field instead of staying as org syntax. The
+		// continuation lines are read afterwards and win where a task has both.
+		if (format !== 'plain') {
+			rest = rest.replace(/\s*\b(SCHEDULED|DEADLINE):\s*<([^<>]+)>/g, (_, keyword: string, inner: string) => {
+				if (keyword === 'SCHEDULED') scheduled = parseDateSpec(inner);
+				else deadline = parseDateSpec(inner);
+				return '';
+			});
+		}
+
 		for (const cl of continuation) {
 			if (inLogbook) {
 				if (/:END:/.test(cl)) {
