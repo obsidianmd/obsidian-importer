@@ -40,7 +40,7 @@ export function convertAssetLinks(
 
 	function rewriteAssets(text: string): string {
 		assetLinkRegex.lastIndex = 0;
-		return text.replace(assetLinkRegex, (match, bang: string, _alt: string, path: string, dimSuffix?: string) => {
+		return text.replace(assetLinkRegex, (match, bang: string, alt: string, path: string, dimSuffix?: string) => {
 			if (isUrl(path) || !path.includes('assets/')) return match;
 
 			const asset = { sourcePath: path, filename: basename(path) };
@@ -50,6 +50,7 @@ export function convertAssetLinks(
 			}
 			const target = options.target ? options.target(asset) : asset.filename;
 			if (target === null) return match;
+			if (isUrl(target)) return `${bang}[${alt}](${target})${dimSuffix ?? ''}`;
 
 			const dims = dimensionDisplay(dimSuffix);
 			const embed = bang === '!' ? '!' : '';

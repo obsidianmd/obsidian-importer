@@ -124,11 +124,11 @@ translation=Notion
 
 [outliner.name-flatten-outlines]
 original=Flatten outlines
-translation=
+translation=שטח מתארים
 
 [outliner.desc-flatten-outlines]
 original=Convert outlines into paragraphs, headings, and lists.
-translation=
+translation=המר מתארים לפסקאות, כותרות ורשימות.
 
 [modal.title-pick-format]
 original=Import data into Obsidian
@@ -559,8 +559,8 @@ original=Export your data
 translation=ייצוא הנתונים שלך
 
 [common.label-learn-more]
-original=Learn more.
-translation=מידע נוסף.
+original=Learn more
+translation=מידע נוסף
 
 [common.button-instructions]
 original=Instructions
@@ -1152,7 +1152,7 @@ translation=רשומות יומן
 
 [importer.apple-journal.desc-files]
 original=Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.
-translation=ייצא את הרשומות שלך מאפליקציית Journal, ולאחר מכן בחר את קובצי ה-HTML שנכתבו ל-iCloud Drive.
+translation=ייצא את הרשומות שלך מאפליקציית Journal app, ולאחר מכן בחר את קובצי ה-HTML שנכתבו ל-iCloud Drive.
 
 [importer.apple-journal.heading-metadata]
 original=Journal metadata
@@ -1452,83 +1452,75 @@ translation=העבר תגיות שנכתבו בטקסט רגיל של הערה �
 
 [importer.logseq.name]
 original=Logseq
-translation=
+translation=Logseq
 
 [importer.logseq.option-text]
 original=Logseq (.md)
-translation=
+translation=Logseq (.md)
 
 [importer.logseq.label-id]
 original=Logseq source
-translation=
+translation=מקור Logseq
+
+[importer.logseq.desc-instructions]
+original=Read the instructions for importing from Logseq.
+translation=קראו את ההוראות לייבוא מ-Logseq.
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
-translation=
-
-[importer.logseq.group-journals]
-original=Journals
-translation=
+translation=בחר תיקייה אחת של גרף המכילה דפים, יומנים ונכסים.
 
 [importer.logseq.name-use-daily-notes]
-original=Use Daily Notes settings
-translation=
+original=Use daily notes settings
+translation=השתמש בהגדרות הערות יומיות
 
 [importer.logseq.desc-use-daily-notes]
-original=Write journals to the configured Daily Notes folder and filename format.
-translation=
-
-[importer.logseq.group-structure]
-original=Note structure
-translation=
-
-[importer.logseq.group-logseq-only]
-original=Logseq-only content
-translation=
+original=Write journals to the configured daily notes folder and filename format.
+translation=כתוב יומנים לתיקייה וגם עיצוב שם הקובץ שהוגדרו עבור הערות יומיות.
 
 [importer.logseq.name-queries]
 original=Keep queries
-translation=
+translation=שמור שאילתות
 
 [importer.logseq.desc-queries]
 original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
-translation=
+translation=Obsidian לא תומך בעיצוב השאילתות של Logseq, ולכן שאילתות מיובאות כבלוקי קוד.
 
 [importer.logseq.name-flashcards]
 original=Keep flashcards
-translation=
+translation=שמור כרטיסיות
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=
+translation=Obsidian לא תומך בכרטיסיות של Logseq, ולכן סימנים של כרטיסיות ועטיפות מחיקה מיובאים כטקסט רגיל.
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
-translation=
+translation=שמור מעקב זמן
 
 [importer.logseq.desc-time-tracking]
 original=Obsidian doesn't support Logseq's time tracking, so LOGBOOK and CLOCK entries are imported as plain text.
-translation=
+translation=Obsidian לא תומך במעקב הזמן של Logseq, ולכן רשומות LOGBOOK וגם CLOCK מיובאות כטקסט רגיל.
 
 [importer.logseq.msg-pick-graph]
 original=Please choose one Logseq graph folder.
-translation=
+translation=אנא בחר תיקייה אחת של גרף Logseq.
 
 [importer.logseq.msg-no-notes]
 original=The selected folder has no Markdown notes under pages or journals.
-translation=
+translation=התיקייה שנבחרה אינה מכילה הערות Markdown תחת pages או journals.
 
 [importer.logseq.reason-empty-page]
 original=The converted page is empty
-translation=
+translation=הדף שהומר ריק
 
 [importer.logseq.reason-missing-asset]
 original=Referenced by {{name}}, but missing from the graph
-translation=
+translation=מקושר על ידי {{name}}, אך חסר מהגרף
 
 [importer.logseq.reason-whiteboards]
 original=Logseq whiteboards are not supported by Obsidian
-translation=
+translation=לוחות לבנים של Logseq אינם נתמכים על ידי Obsidian
 
 [importer.onenote.name]
 original=Microsoft OneNote

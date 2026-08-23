@@ -559,7 +559,7 @@ original=Export your data
 translation=
 
 [common.label-learn-more]
-original=Learn more.
+original=Learn more
 translation=
 
 [common.button-instructions]
@@ -1462,28 +1462,20 @@ translation=
 original=Logseq source
 translation=
 
+[importer.logseq.desc-instructions]
+original=Read the instructions for importing from Logseq.
+translation=
+
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
 translation=
 
-[importer.logseq.group-journals]
-original=Journals
-translation=
-
 [importer.logseq.name-use-daily-notes]
-original=Use Daily Notes settings
+original=Use daily notes settings
 translation=
 
 [importer.logseq.desc-use-daily-notes]
-original=Write journals to the configured Daily Notes folder and filename format.
-translation=
-
-[importer.logseq.group-structure]
-original=Note structure
-translation=
-
-[importer.logseq.group-logseq-only]
-original=Logseq-only content
+original=Write journals to the configured daily notes folder and filename format.
 translation=
 
 [importer.logseq.name-queries]

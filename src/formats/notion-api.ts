@@ -239,10 +239,6 @@ export class NotionAPIImporter extends FormatImporter {
 	private picker: TreePicker<NotionTreeNode>;
 	private templatePreviewRead: NotionTemplatePreviewRead | null = null;
 
-	protected override get sourceIdSettingFirst(): boolean {
-		return true;
-	}
-
 	private get pickedTree(): NotionTreeNode[] {
 		return this.picker?.nodes ?? [];
 	}

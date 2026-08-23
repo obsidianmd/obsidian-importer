@@ -77,6 +77,14 @@ test('does not touch data URLs', () => {
 	assert.deepEqual(assets, []);
 });
 
+test('keeps Markdown image syntax for preview data URLs', () => {
+	const { content } = convertAssetLinks(
+		'![diagram](../assets/diagram.png){:height 400, :width 600}',
+		{ target: () => 'data:image/png;base64,cG5n' },
+	);
+	assert.equal(content, '![diagram](data:image/png;base64,cG5n){:height 400, :width 600}');
+});
+
 test('does not touch links whose path does not contain assets/', () => {
 	const input = '![x](../images/photo.png) ![y](local.png)';
 	const { content, assets } = convertAssetLinks(input);

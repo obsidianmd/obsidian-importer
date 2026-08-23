@@ -450,6 +450,36 @@ test('flattens page and journal outlines with one option', async () => {
 	assert.match(vault.contents.get('Logseq/Journals/2024-06-15.md') as string, /\n# Journal heading\n/);
 });
 
+test('flattening outlines updates template preview samples', async () => {
+	const graph = new SourceFolder('Preview outlines', [
+		new SourceFolder('pages', [new SourceFile('Page.md', '- # Page heading')]),
+	]);
+	const { subject } = await importer(graph);
+	const previewSamples = async () => await (subject as unknown as {
+		templatePreviewSamples(ctx: ImportContext): Promise<Array<{ content: string }>>;
+	}).templatePreviewSamples(new ImportContext());
+
+	assert.equal((await previewSamples())[0].content, '- # Page heading');
+
+	subject.options.flattenOutlines = true;
+	assert.equal((await previewSamples())[0].content, '# Page heading');
+});
+
+test('template preview inlines images from the selected graph', async () => {
+	const graph = new SourceFolder('Preview assets', [
+		new SourceFolder('pages', [
+			new SourceFile('Page.md', '- ![diagram](../assets/diagram.png)'),
+		]),
+		new SourceFolder('assets', [new SourceFile('diagram.png', 'png')]),
+	]);
+	const { subject } = await importer(graph);
+	const samples = await (subject as unknown as {
+		templatePreviewSamples(ctx: ImportContext): Promise<Array<{ content: string }>>;
+	}).templatePreviewSamples(new ImportContext());
+
+	assert.match(samples[0].content, /!\[diagram\]\(data:image\/png;base64,cG5n\)/);
+});
+
 test('imports only notes in selected graph folders', async () => {
 	const graph = new SourceFolder('Selected folders', [
 		new SourceFolder('pages', [new SourceFile('Page.md', '- Page')]),

@@ -124,11 +124,11 @@ translation=Notion
 
 [outliner.name-flatten-outlines]
 original=Flatten outlines
-translation=
+translation=展平大綱
 
 [outliner.desc-flatten-outlines]
 original=Convert outlines into paragraphs, headings, and lists.
-translation=
+translation=將大綱轉換為段落、標題和列表。
 
 [modal.title-pick-format]
 original=Import data into Obsidian
@@ -559,8 +559,8 @@ original=Export your data
 translation=匯出您的資料
 
 [common.label-learn-more]
-original=Learn more.
-translation=深入了解。
+original=Learn more
+translation=深入了解
 
 [common.button-instructions]
 original=Instructions
@@ -1152,7 +1152,7 @@ translation=Journal 條目
 
 [importer.apple-journal.desc-files]
 original=Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.
-translation=從 Journal 應用程式匯出條目，然後選取它寫入 iCloud Drive 的 HTML 檔案。
+translation=從 Journal app 匯出你的條目，然後選取它寫入 iCloud Drive 的 HTML 檔案。
 
 [importer.apple-journal.heading-metadata]
 original=Journal metadata
@@ -1452,83 +1452,75 @@ translation=將寫在筆記內容中的標籤移至其標籤屬性中。
 
 [importer.logseq.name]
 original=Logseq
-translation=
+translation=Logseq
 
 [importer.logseq.option-text]
 original=Logseq (.md)
-translation=
+translation=Logseq (.md)
 
 [importer.logseq.label-id]
 original=Logseq source
-translation=
+translation=Logseq 原始內容
+
+[importer.logseq.desc-instructions]
+original=Read the instructions for importing from Logseq.
+translation=閱讀從 Logseq 匯入的說明。
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
-translation=
-
-[importer.logseq.group-journals]
-original=Journals
-translation=
+translation=選擇一個包含頁面、日誌和資源的圖譜資料夾。
 
 [importer.logseq.name-use-daily-notes]
-original=Use Daily Notes settings
-translation=
+original=Use daily notes settings
+translation=使用每日筆記設定
 
 [importer.logseq.desc-use-daily-notes]
-original=Write journals to the configured Daily Notes folder and filename format.
-translation=
-
-[importer.logseq.group-structure]
-original=Note structure
-translation=
-
-[importer.logseq.group-logseq-only]
-original=Logseq-only content
-translation=
+original=Write journals to the configured daily notes folder and filename format.
+translation=將日誌寫入已設定的每日筆記資料夾，並使用對應的檔名格式。
 
 [importer.logseq.name-queries]
 original=Keep queries
-translation=
+translation=保留查詢
 
 [importer.logseq.desc-queries]
 original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
-translation=
+translation=Obsidian 不支援 Logseq 的查詢格式，因此查詢會以程式碼區塊匯入。
 
 [importer.logseq.name-flashcards]
 original=Keep flashcards
-translation=
+translation=保留閃卡
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=
+translation=Obsidian 不支援 Logseq 的閃卡功能，因此卡片標記和克漏字包裝會以純文字匯入。
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
-translation=
+translation=保留時間追蹤
 
 [importer.logseq.desc-time-tracking]
 original=Obsidian doesn't support Logseq's time tracking, so LOGBOOK and CLOCK entries are imported as plain text.
-translation=
+translation=Obsidian 不支援 Logseq 的時間追蹤功能，因此 LOGBOOK 和 CLOCK 條目會以純文字匯入。
 
 [importer.logseq.msg-pick-graph]
 original=Please choose one Logseq graph folder.
-translation=
+translation=請選擇一個 Logseq 圖譜資料夾。
 
 [importer.logseq.msg-no-notes]
 original=The selected folder has no Markdown notes under pages or journals.
-translation=
+translation=已選取的資料夾在 pages 或 journals 下沒有 Markdown 筆記。
 
 [importer.logseq.reason-empty-page]
 original=The converted page is empty
-translation=
+translation=轉換後的頁面為空
 
 [importer.logseq.reason-missing-asset]
 original=Referenced by {{name}}, but missing from the graph
-translation=
+translation=被 {{name}} 參照，但在圖譜中找不到
 
 [importer.logseq.reason-whiteboards]
 original=Logseq whiteboards are not supported by Obsidian
-translation=
+translation=Obsidian 不支援 Logseq 白板
 
 [importer.onenote.name]
 original=Microsoft OneNote

@@ -48,12 +48,15 @@ export class RoamJSONImporter extends FormatImporter {
 		this.idLabel = i18n.importer.roamJson.labelId();
 		this.userDNPFormat = this.getUserDNPFormat();
 
-		this.addSetting()
+		this.addSetting('template')
 			?.setName(i18n.outliner.nameFlattenOutlines())
 			.setDesc(i18n.outliner.descFlattenOutlines())
 			.addToggle(toggle => toggle
 				.setValue(this.deOutline)
-				.onChange(value => this.deOutline = value));
+				.onChange(value => {
+					this.deOutline = value;
+					this.templateSettingsChanged();
+				}));
 
 		this.startGroup();
 

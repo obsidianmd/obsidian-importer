@@ -124,11 +124,11 @@ translation=Notion
 
 [outliner.name-flatten-outlines]
 original=Flatten outlines
-translation=
+translation=Litistä jäsennykset
 
 [outliner.desc-flatten-outlines]
 original=Convert outlines into paragraphs, headings, and lists.
-translation=
+translation=Muunna jäsennykset kappaleiksi, otsikoiksi ja listoiksi.
 
 [modal.title-pick-format]
 original=Import data into Obsidian
@@ -559,8 +559,8 @@ original=Export your data
 translation=Vie tietosi
 
 [common.label-learn-more]
-original=Learn more.
-translation=Lue lisää.
+original=Learn more
+translation=Lue lisää
 
 [common.button-instructions]
 original=Instructions
@@ -1152,7 +1152,7 @@ translation=Päiväkirjamerkinnät
 
 [importer.apple-journal.desc-files]
 original=Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.
-translation=Vie merkintäsi Journal-sovelluksesta ja valitse sitten HTML-tiedostot, jotka se kirjoitti iCloud Drive -palveluun.
+translation=Vie merkintäsi Journal app -sovelluksesta ja valitse sen iCloud Drive -kansioon kirjoittamat HTML-tiedostot.
 
 [importer.apple-journal.heading-metadata]
 original=Journal metadata
@@ -1452,83 +1452,75 @@ translation=Siirrä muistiinpanon leipätekstiin kirjoitetut tunnisteet sen tunn
 
 [importer.logseq.name]
 original=Logseq
-translation=
+translation=Logseq
 
 [importer.logseq.option-text]
 original=Logseq (.md)
-translation=
+translation=Logseq (.md)
 
 [importer.logseq.label-id]
 original=Logseq source
-translation=
+translation=Logseq-lähde
+
+[importer.logseq.desc-instructions]
+original=Read the instructions for importing from Logseq.
+translation=Lue ohjeet Logseq-tuontia varten.
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
-translation=
-
-[importer.logseq.group-journals]
-original=Journals
-translation=
+translation=Valitse yksi graafin kansio, joka sisältää sivut, päiväkirjat ja resurssit.
 
 [importer.logseq.name-use-daily-notes]
-original=Use Daily Notes settings
-translation=
+original=Use daily notes settings
+translation=Käytä päivittäisten muistiinpanojen asetuksia
 
 [importer.logseq.desc-use-daily-notes]
-original=Write journals to the configured Daily Notes folder and filename format.
-translation=
-
-[importer.logseq.group-structure]
-original=Note structure
-translation=
-
-[importer.logseq.group-logseq-only]
-original=Logseq-only content
-translation=
+original=Write journals to the configured daily notes folder and filename format.
+translation=Kirjoita päiväkirjat määritettyyn päivittäisten muistiinpanojen kansioon ja tiedostonimimuotoon.
 
 [importer.logseq.name-queries]
 original=Keep queries
-translation=
+translation=Säilytä kyselyt
 
 [importer.logseq.desc-queries]
 original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
-translation=
+translation=Obsidian ei tue Logseq-kyselymuotoa, joten kyselyt tuodaan koodilohkoina.
 
 [importer.logseq.name-flashcards]
 original=Keep flashcards
-translation=
+translation=Säilytä muistikortit
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=
+translation=Obsidian ei tue Logseq-muistikortteja, joten korttien merkit ja aukkotehtävien kääreet tuodaan tekstinä ilman muotoilua.
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
-translation=
+translation=Säilytä ajanseuranta
 
 [importer.logseq.desc-time-tracking]
 original=Obsidian doesn't support Logseq's time tracking, so LOGBOOK and CLOCK entries are imported as plain text.
-translation=
+translation=Obsidian ei tue Logseq-ajanseurantaa, joten LOGBOOK- ja CLOCK-merkinnät tuodaan tekstinä ilman muotoilua.
 
 [importer.logseq.msg-pick-graph]
 original=Please choose one Logseq graph folder.
-translation=
+translation=Valitse yksi Logseq-graafin kansio.
 
 [importer.logseq.msg-no-notes]
 original=The selected folder has no Markdown notes under pages or journals.
-translation=
+translation=Valittu kansio ei sisällä Markdown-muistiinpanoja pages- tai journals-kansioissa.
 
 [importer.logseq.reason-empty-page]
 original=The converted page is empty
-translation=
+translation=Muunnettu sivu on tyhjä
 
 [importer.logseq.reason-missing-asset]
 original=Referenced by {{name}}, but missing from the graph
-translation=
+translation=Viitattu muistiinpanosta {{name}}, mutta puuttuu graafista
 
 [importer.logseq.reason-whiteboards]
 original=Logseq whiteboards are not supported by Obsidian
-translation=
+translation=Obsidian ei tue Logseq-tauluja
 
 [importer.onenote.name]
 original=Microsoft OneNote

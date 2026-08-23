@@ -7,6 +7,7 @@ import { i18n } from '../i18n';
 import { normalizeTreePath, parentTreePath } from '../imported-path-index';
 import { outsideMarkdownCode } from '../markdown';
 import { PickedFolderLoad, PickedFolderNode, PickedFolderPicker, PickedFolderSelection, pickedFolderFileCount, pickedFolderNodes } from '../picked-folder-tree';
+import { MAX_PREVIEW_IMAGE_BYTES, MAX_PREVIEW_IMAGES_BYTES, PREVIEW_IMAGE_PLACEHOLDER, previewImageDataUrl, previewImageMime } from '../preview-image';
 import { sameBytes, sanitizeFileName, sanitizeFilePath } from '../util';
 import { convertAssetLinks } from './logseq/assets';
 import { BlockRefTarget, resolveBlockRefs } from './logseq/block-ids';
@@ -110,6 +111,9 @@ export class LogseqImporter extends FormatImporter {
 			async (source, isCurrent) => this.loadFolderTree(source, isCurrent),
 		);
 
+		this.addInstructions(this.addSetting('source')
+			?.setName(i18n.common.labelLearnMore())
+			.setDesc(i18n.importer.logseq.descInstructions()) ?? null);
 		this.addFileChooserSetting(i18n.importer.logseq.name(), LogseqImporter.extensions, true,
 			i18n.importer.logseq.descFiles());
 		this.draw(contentEl => this.folderPicker.draw(contentEl, this.addSetting('source')), 'source');
@@ -127,16 +131,21 @@ export class LogseqImporter extends FormatImporter {
 	}
 
 	private drawOptions(): void {
-		this.startGroup('options', i18n.importer.logseq.groupJournals());
+		this.startGroup('options');
 		this.toggleSetting(i18n.importer.logseq.nameUseDailyNotes(), i18n.importer.logseq.descUseDailyNotes(), 'useDailyNotes');
-
-		this.startGroup('options', i18n.importer.logseq.groupStructure());
-		this.toggleSetting(i18n.outliner.nameFlattenOutlines(), i18n.outliner.descFlattenOutlines(), 'flattenOutlines');
-
-		this.startGroup('options', i18n.importer.logseq.groupLogseqOnly());
 		this.toggleSetting(i18n.importer.logseq.nameQueries(), i18n.importer.logseq.descQueries(), 'queries');
 		this.toggleSetting(i18n.importer.logseq.nameFlashcards(), i18n.importer.logseq.descFlashcards(), 'flashcards');
 		this.toggleSetting(i18n.importer.logseq.nameTimeTracking(), i18n.importer.logseq.descTimeTracking(), 'timeTracking');
+
+		this.addSetting('template')
+			?.setName(i18n.outliner.nameFlattenOutlines())
+			.setDesc(i18n.outliner.descFlattenOutlines())
+			.addToggle(toggle => toggle
+				.setValue(this.options.flattenOutlines)
+				.onChange(value => {
+					this.options.flattenOutlines = value;
+					this.templateSettingsChanged();
+				}));
 	}
 
 	private toggleSetting(name: string, description: string, key: BooleanOptionKey): void {
@@ -306,14 +315,53 @@ export class LogseqImporter extends FormatImporter {
 
 		const outputRoot = this.outputLocation.trim();
 		const samples: NoteTemplateSample[] = [];
+		const previewAssets = new Map<string, string | null>();
+		let remainingPreviewBytes = MAX_PREVIEW_IMAGES_BYTES;
 		for (const entry of this.noteEntries(graph)) {
 			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
 			try {
 				const desired = this.desiredNote(entry, graph, outputRoot);
 				const local = convertLocal(await entry.file.readText(), this.options, {
+					assetTarget: () => null,
 					commaSeparatedProperties: graph.config.commaSeparatedProperties,
 				});
-				const content = local.yaml ? `${local.yaml}\n${local.body}` : local.body;
+				const targets = new Map<string, string | null>();
+				for (const reference of local.assets) {
+					const source = this.resolveGraphAsset(graph, entry.path, reference.sourcePath);
+					if (!source) {
+						targets.set(reference.sourcePath, null);
+						continue;
+					}
+
+					const sourceKey = source.path.toLowerCase();
+					if (!previewAssets.has(sourceKey)) {
+						const mime = previewImageMime(source.file.extension);
+						if (!mime) {
+							previewAssets.set(sourceKey, null);
+						}
+						else {
+							try {
+								const data = await source.file.read();
+								if (data.byteLength > MAX_PREVIEW_IMAGE_BYTES || data.byteLength > remainingPreviewBytes) {
+									previewAssets.set(sourceKey, PREVIEW_IMAGE_PLACEHOLDER);
+								}
+								else {
+									remainingPreviewBytes -= data.byteLength;
+									previewAssets.set(sourceKey, previewImageDataUrl(mime, data));
+								}
+							}
+							catch {
+								previewAssets.set(sourceKey, PREVIEW_IMAGE_PLACEHOLDER);
+							}
+						}
+					}
+					targets.set(reference.sourcePath, previewAssets.get(sourceKey) ?? null);
+				}
+				const linked = convertAssetLinks(local.body, {
+					target: asset => targets.get(asset.sourcePath) ?? null,
+				}).content;
+				const body = this.applyPreviewOptions(linked);
+				const content = local.yaml ? `${local.yaml}\n${body}` : body;
 				const path = normalizePath([desired.parent, `${sanitizeFileName(desired.title, desired.parent)}.md`]
 					.filter(Boolean).join('/'));
 				samples.push({ title: desired.title, path, content, sourceId: desired.sourceId });
@@ -457,20 +505,10 @@ export class LogseqImporter extends FormatImporter {
 		body = resolveBlockRefs(body, blockIndex);
 		body = rewriteAliasReferences(body, { aliasMap });
 		body = convertTags(body, new Set(this.options.flashcards ? [] : ['card']));
-		const yaml = note.local.yaml;
-		const journalDateFormat = this.options.useDailyNotes
-			? this.dailyNotesConfig().format
-			: ISO_FORMAT;
-		if (journalDateFormat !== ISO_FORMAT) {
-			body = reformatDateLinks(body, iso => {
-				const date = moment(iso, ISO_FORMAT, true);
-				return date.isValid() ? date.format(journalDateFormat) : null;
-			});
-		}
+		body = this.applyJournalDateFormat(body);
 		body = rewritePlannedPageLinks(body, linkPlans, note.filenameFormat);
-		if (this.options.flattenOutlines) {
-			body = deOutline(body);
-		}
+		body = this.applyOutlineOption(body);
+		const yaml = note.local.yaml;
 		if (isBodyEmpty(yaml, body)) {
 			ctx.reportSkipped(note.path, i18n.importer.logseq.reasonEmptyPage());
 			return null;
@@ -483,6 +521,26 @@ export class LogseqImporter extends FormatImporter {
 		return outsideMarkdownCode(body, segment => segment
 			.replace(/\{\{cloze\s+([\s\S]*?)\}\}/gi, '$1')
 			.replace(/(^|\s)#card\b/gi, '$1'));
+	}
+
+	private applyJournalDateFormat(body: string): string {
+		const format = this.options.useDailyNotes ? this.dailyNotesConfig().format : ISO_FORMAT;
+		if (format === ISO_FORMAT) return body;
+		return reformatDateLinks(body, iso => {
+			const date = moment(iso, ISO_FORMAT, true);
+			return date.isValid() ? date.format(format) : null;
+		});
+	}
+
+	private applyOutlineOption(body: string): string {
+		return this.options.flattenOutlines ? deOutline(body) : body;
+	}
+
+	private applyPreviewOptions(body: string): string {
+		body = this.applyFlashcardOption(body);
+		body = convertTags(body, new Set(this.options.flashcards ? [] : ['card']));
+		body = this.applyJournalDateFormat(body);
+		return this.applyOutlineOption(body);
 	}
 
 	private linkPlans(notes: SourceNote[]): Map<string, PlannedPageLink> {

@@ -243,9 +243,6 @@ export abstract class FormatImporter {
 	idProperty: string | null = null;
 	/** Set in init() when an importer names its ID something more specific. */
 	idLabel: string = i18n.output.labelSourceId();
-	protected get sourceIdSettingFirst(): boolean {
-		return false;
-	}
 
 	saveSourceId: boolean = true;
 
@@ -1123,7 +1120,7 @@ export abstract class FormatImporter {
 					});
 			});
 
-		if (this.sourceIdSettingFirst) settingsEl.prepend(setting.settingEl);
+		settingsEl.prepend(setting.settingEl);
 	}
 
 	protected addOutputFolderSetting(contentEl: HTMLElement): void {
