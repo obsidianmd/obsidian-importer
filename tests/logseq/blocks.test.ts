@@ -30,6 +30,12 @@ test('fixHeadingChildLists: leaves a heading already inside a bullet', () => {
 	assert.equal(fixHeadingChildLists(input), input);
 });
 
+test('fixHeadingChildLists: keeps inline code while associating the child list', () => {
+	const input = ['# Heading with `code`', '\t- child'].join('\n');
+	const expected = ['- # Heading with `code`', '\t- child'].join('\n');
+	assert.equal(fixHeadingChildLists(input), expected);
+});
+
 // ---------------------------------------------------------------------------
 // convertHighlights
 // ---------------------------------------------------------------------------
@@ -152,6 +158,16 @@ test('convertNumberedLists: nested list restarts under a new parent', () => {
 	assert.equal(convertNumberedLists(input), expected);
 });
 
+test('convertNumberedLists: keeps an inline-code item and its property together', () => {
+	const input = ['- Use `x` here', '  logseq.order-list-type:: number'].join('\n');
+	assert.equal(convertNumberedLists(input), '1. Use `x` here');
+});
+
+test('convertNumberedLists: text after inline code is not treated as a line start', () => {
+	const input = ['Prose `x` - item', '  logseq.order-list-type:: number'].join('\n');
+	assert.equal(convertNumberedLists(input), 'Prose `x` - item');
+});
+
 // ---------------------------------------------------------------------------
 // convertOrgBlocks
 // ---------------------------------------------------------------------------
@@ -217,6 +233,11 @@ test('convertOrgBlocks: unmatched begin is left unchanged', () => {
 test('convertOrgBlocks: text around block is preserved', () => {
 	const input = ['before', '#+BEGIN_QUOTE', 'q', '#+END_QUOTE', 'after'].join('\n');
 	assert.equal(convertOrgBlocks(input), ['before', '> q', 'after'].join('\n'));
+});
+
+test('convertOrgBlocks: inline code in the body does not split the block', () => {
+	const input = ['#+BEGIN_QUOTE', 'Use `x` here', '#+END_QUOTE'].join('\n');
+	assert.equal(convertOrgBlocks(input), '> Use `x` here');
 });
 
 // ---------------------------------------------------------------------------

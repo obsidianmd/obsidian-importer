@@ -145,6 +145,11 @@ test('[I1] wrap mode does not touch property-like lines inside code fences', () 
 	assert.equal(removeLeftoverBlockProperties(input, [], 'wrap'), input);
 });
 
+test('[I1] property-like text after inline code is not treated as a line start', () => {
+	const input = '- See `x` key:: value';
+	assert.equal(removeLeftoverBlockProperties(input, [], 'wrap'), input);
+});
+
 test('extractPageProperties drops listed page property keys from frontmatter', () => {
 	const input = 'type:: note\npublic:: true\nmy-key:: val\n\ntext';
 	const { yaml } = extractPageProperties(input, { dropPageProperties: ['public', 'my-key'] });
@@ -185,6 +190,11 @@ test('convertHeadingProperty leaves heading:: true (auto) handling without crash
 	const input = ['- A', '  heading:: true'].join('\n');
 	// auto-heading has no explicit level; we just drop the property line.
 	assert.equal(convertHeadingProperty(input), '- A');
+});
+
+test('convertHeadingProperty associates a property after inline code with its whole bullet', () => {
+	const input = ['- Heading with `code`', '  heading:: 2'].join('\n');
+	assert.equal(convertHeadingProperty(input), '- ## Heading with `code`');
 });
 
 // ---------------------------------------------------------------------------

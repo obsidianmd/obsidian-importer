@@ -4,7 +4,7 @@
 // lines. We render them into one of the supported Obsidian task formats.
 
 import { logseqDateToISO } from './journals';
-import { outsideMarkdownCode } from '../../markdown';
+import { outsideMarkdownFences } from '../../markdown';
 
 export type TaskFormat = 'plain' | 'tasks-emoji' | 'tasks-dataview';
 
@@ -75,7 +75,7 @@ function leadingWidth(line: string): number {
 }
 
 export function convertTasks(content: string, format: TaskFormat, options: TaskOptions = {}): string {
-	return outsideMarkdownCode(content, segment => convertTaskSegment(segment, format, options));
+	return outsideMarkdownFences(content, segment => convertTaskSegment(segment, format, options));
 }
 
 function convertTaskSegment(content: string, format: TaskFormat, options: TaskOptions): string {

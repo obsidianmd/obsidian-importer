@@ -60,3 +60,18 @@ test('does not transform documented Logseq syntax inside Markdown code', () => {
 	].join('\n');
 	assert.equal(convertLocal(input, opts).body, input);
 });
+
+test('preserves inline-code spacing and keeps task metadata attached', () => {
+	const input = [
+		'- Run `npm test` before you push.',
+		'- TODO update `README.md`',
+		'  SCHEDULED: <2024-06-15 Sat>',
+		'- The `id::` property marks a block.',
+	].join('\n');
+	const expected = [
+		'- Run `npm test` before you push.',
+		'- [ ] update `README.md` ⏳ 2024-06-15',
+		'- The `id::` property marks a block.',
+	].join('\n');
+	assert.equal(convertLocal(input, opts).body, expected);
+});

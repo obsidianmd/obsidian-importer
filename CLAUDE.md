@@ -146,8 +146,10 @@ and source-specific anchor rules in the format that owns them:
   thought))` reads as a reference in these formats while being nobody's id.
   Logseq discovers `id::` definitions while rewriting Markdown and therefore
   keeps its UUID-to-anchor conversion beside that parser in `block-ids.ts`.
-- `src/markdown.ts` — `outsideMarkdownCode` and `markdownFenceLines`, shared by
-  both importers. These sources document their own
+- `src/markdown.ts` — `outsideMarkdownCode`, `outsideMarkdownFences`, and
+  `markdownFenceLines`, shared by both importers. Character-level rewrites use
+  `outsideMarkdownCode`; line-oriented rewrites use `outsideMarkdownFences` so
+  inline code never divides one logical line. These sources document their own
   markup as examples in code, and a conversion that rewrote those too would
   mangle the page explaining the syntax.
 

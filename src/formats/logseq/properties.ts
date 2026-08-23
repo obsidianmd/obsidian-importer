@@ -4,7 +4,7 @@
 // lines) and map to Obsidian YAML frontmatter. Block properties are indented
 // `key:: value` continuation lines; most Logseq-internal ones are dropped.
 
-import { outsideMarkdownCode } from '../../markdown';
+import { outsideMarkdownFences } from '../../markdown';
 
 const PROPERTY_LINE = /^([A-Za-z0-9_.-]+):: ?(.*)$/;
 // Also matches bullet-form block properties: `- key:: value`
@@ -330,7 +330,7 @@ export function removeLeftoverBlockProperties(
 	mode: BlockPropertyMode = 'keep',
 	snakeCase = false
 ): string {
-	return outsideMarkdownCode(content,
+	return outsideMarkdownFences(content,
 		segment => removeLeftoverBlockPropertySegment(segment, dropBlockProperties, mode, snakeCase));
 }
 
@@ -403,7 +403,7 @@ export function linkifyTagValuesInFrontmatter(yaml: string, opts: LinkifyTagValu
 }
 
 export function convertHeadingProperty(content: string): string {
-	return outsideMarkdownCode(content, convertHeadingPropertySegment);
+	return outsideMarkdownFences(content, convertHeadingPropertySegment);
 }
 
 function convertHeadingPropertySegment(content: string): string {

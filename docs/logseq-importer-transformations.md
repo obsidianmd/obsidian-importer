@@ -338,10 +338,14 @@ is context-aware:
 If the same full UUID is defined in more than one file, the later pass-1 definition replaces the
 earlier entry in the graph-wide index.
 
-**[G1] Code examples are inert.** `resolveBlockRefs`, orphan removal, task/property conversion,
-date and tag rewriting, and other semantic passes all run through the shared Markdown code-boundary
-helper. Inline code and backtick or tilde fenced blocks (including list-prefixed fences) retain the
-exact Logseq syntax they document. An `id::`-shaped line inside a fence is not indexed or removed.
+**[G1] Code examples are inert.** Character-level rewrites such as block references, tags, links,
+and assets run through `outsideMarkdownCode`, which protects inline and fenced code. Line-oriented
+passes such as task/property conversion and whitespace normalization run through
+`outsideMarkdownFences`, which protects fenced blocks without splitting a line at inline code.
+This distinction preserves line anchors, spaces around inline code, and task continuation metadata.
+Backtick or tilde fenced blocks (including list-prefixed fences) retain the exact Logseq syntax they
+document. An `id::`-shaped line inside a fence is not indexed or removed. Keeping block references
+inside code inert is deliberate: code examples describe Logseq syntax and are not graph references.
 
 **[G1] Always-embed option (`alwaysEmbedBlockRefs`).** By default, bare `((uuid))` references become
 plain links `[[Page#^id]]`. With `alwaysEmbedBlockRefs: true`, they become embeds `![[Page#^id]]`

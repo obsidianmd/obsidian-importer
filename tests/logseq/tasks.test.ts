@@ -233,3 +233,13 @@ test('[D1] template token in created date is not emitted as a plus-date (emoji)'
 	const input = ['- TODO x', '  created:: [[{{date:YYYY-MM-DD}}]]'].join('\n');
 	assert.equal(convertTasks(input, 'tasks-emoji'), '- [ ] x');
 });
+
+test('inline code in a task does not orphan its metadata', () => {
+	const input = ['- TODO update `README.md`', '  SCHEDULED: <2024-06-15 Sat>'].join('\n');
+	assert.equal(convertTasks(input, 'tasks-emoji'), '- [ ] update `README.md` ⏳ 2024-06-15');
+});
+
+test('task-like text after inline code is not treated as a line start', () => {
+	const input = 'Prose `x` - TODO not a task';
+	assert.equal(convertTasks(input, 'tasks-emoji'), input);
+});

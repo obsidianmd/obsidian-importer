@@ -1,7 +1,7 @@
 // Pure, side-effect-free text transforms for the Logseq -> Obsidian importer.
 // Each function takes the full multi-line file content and returns it transformed.
 
-import { outsideMarkdownCode } from '../../markdown';
+import { outsideMarkdownCode, outsideMarkdownFences } from '../../markdown';
 
 const HIGHLIGHT_RE = /\^\^(.+?)\^\^/g;
 
@@ -12,7 +12,7 @@ export function convertHighlights(content: string): string {
 
 /** Convert Logseq `logseq.order-list-type:: number` bullets into `1.`, `2.`, ... */
 export function convertNumberedLists(content: string): string {
-	return outsideMarkdownCode(content, convertNumberedListSegment);
+	return outsideMarkdownFences(content, convertNumberedListSegment);
 }
 
 function convertNumberedListSegment(content: string): string {
@@ -67,7 +67,7 @@ const CALLOUT_TYPES = new Set(['NOTE', 'TIP', 'WARNING', 'IMPORTANT', 'CAUTION',
 
 /** Convert Logseq org-mode `#+BEGIN_*`/`#+END_*` blocks into Obsidian syntax. */
 export function convertOrgBlocks(content: string): string {
-	return outsideMarkdownCode(content, segment => processOrgLines(segment.split('\n')).join('\n'));
+	return outsideMarkdownFences(content, segment => processOrgLines(segment.split('\n')).join('\n'));
 }
 
 const BEGIN_RE = /^(\s*)(?:- )?#\+BEGIN_(\w+)/i;
@@ -210,7 +210,7 @@ function stripIndent(line: string, n: number): string {
  * the heading own the nested list.
  */
 export function fixHeadingChildLists(content: string): string {
-	return outsideMarkdownCode(content, fixHeadingChildListSegment);
+	return outsideMarkdownFences(content, fixHeadingChildListSegment);
 }
 
 function fixHeadingChildListSegment(content: string): string {

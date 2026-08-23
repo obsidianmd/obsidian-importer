@@ -103,6 +103,8 @@ export function resolveBlockRefs(
 	opts: { alwaysEmbedBlockRefs?: boolean } = {},
 ): string {
 	const alwaysEmbed = opts.alwaysEmbedBlockRefs ?? false;
+	// Deliberately keep copy-pasteable Logseq examples inert. A reference in
+	// inline or fenced code describes syntax; it is not part of the graph.
 	return outsideMarkdownCode(content, segment => resolveSegment(segment, index, alwaysEmbed));
 }
 

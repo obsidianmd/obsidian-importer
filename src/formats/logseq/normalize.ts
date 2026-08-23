@@ -3,7 +3,7 @@
 // bullets, and non-breaking spaces (from Confluence/Word paste); this removes
 // them while leaving fenced code blocks and intentional blank lines untouched.
 
-import { outsideMarkdownCode } from '../../markdown';
+import { outsideMarkdownFences } from '../../markdown';
 
 // A lone bullet with nothing but optional whitespace after the dash.
 const EMPTY_BULLET = /^\s*-\s*$/;
@@ -12,7 +12,7 @@ const EMPTY_BULLET = /^\s*-\s*$/;
 const ANCHOR_BULLET = /^\s*-\s+\^[A-Za-z0-9_-]+\s*$/;
 
 export function normalizeWhitespace(content: string): string {
-	return outsideMarkdownCode(content, normalizeWhitespaceSegment);
+	return outsideMarkdownFences(content, normalizeWhitespaceSegment);
 }
 
 function normalizeWhitespaceSegment(content: string): string {

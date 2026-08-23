@@ -54,3 +54,7 @@ test('[B1] does not normalize inside tilde fences', () => {
 	const input = ['~~~markdown', 'code\u00a0  ', '- ', '~~~'].join('\n');
 	assert.equal(normalizeWhitespace(input), input);
 });
+
+test('[B1] preserves the space before inline code while trimming the line end', () => {
+	assert.equal(normalizeWhitespace('- Run `npm test` before you push.  '), '- Run `npm test` before you push.');
+});

@@ -20,7 +20,7 @@ tags:
 - See the [[algorithms___dynamic programming]] page
 - Reference to alias: [[Logseq/Main Page|MP]]
 - Block reference: [[Logseq/Reference Page#^a1b2c3]] ^aaaaaa
-- ==Important== note with`^^code^^` inside
+- ==Important== note with `^^code^^` inside
 - ![](https://example.com/video.mp4)
 - ![](https://www.youtube.com/watch?v=dQw4w9WgXcQ)
 - ![](https://twitter.com/user/status/123)
