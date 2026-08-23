@@ -3,6 +3,7 @@ import esbuild from "esbuild";
 import fs from "fs";
 import path from "path";
 import process from "process";
+import * as sass from "sass";
 import { execFile, execFileSync } from "child_process";
 
 const banner =
@@ -13,6 +14,14 @@ if you want to view the source, please visit the github repository of this plugi
 `;
 
 const prod = (process.argv[2] === "production");
+const STYLE_SOURCE = "styles.scss";
+const STYLE_OUTPUT = "styles.css";
+
+function compileStyles() {
+	const result = sass.compile(STYLE_SOURCE, { style: "expanded" });
+	fs.writeFileSync(STYLE_OUTPUT, result.css);
+	console.log(`Compiled ${STYLE_SOURCE} to ${STYLE_OUTPUT}`);
+}
 
 // Replaces @protobufjs/inquire (which uses eval() to hide an optional require()
 // from bundlers) with a stub that always returns null. The optional modules it
@@ -155,7 +164,7 @@ function copyToVault({ reload = true } = {}) {
 	const dest = path.join(process.env.HOME, process.env.OBSIDIAN_PATH, PLUGIN_ID);
 	try {
 		fs.mkdirSync(dest, { recursive: true });
-		for (const file of [outfile, "manifest.json", "styles.css"]) {
+		for (const file of [outfile, "manifest.json", STYLE_OUTPUT]) {
 			if (fs.existsSync(file)) {
 				fs.copyFileSync(file, path.join(dest, path.basename(file)));
 			}
@@ -168,26 +177,44 @@ function copyToVault({ reload = true } = {}) {
 	}
 }
 
-// Watch the directory because styles.css is outside esbuild's dependency graph
-// and editors may replace the file when saving.
-function watchCopiedFiles() {
-	if (!process.env.OBSIDIAN_PATH || !process.env.HOME) return;
-
-	const copied = ["styles.css", "manifest.json"];
+// Poll these files because styles.scss is outside esbuild's dependency graph.
+// A native directory watcher can exceed the file-handle limit alongside
+// esbuild's watcher in larger development environments.
+function watchSourceFiles() {
 	let queued;
 	let reload = false;
+	let stylesChanged = false;
 
-	fs.watch(".", (event, filename) => {
-		if (!copied.includes(filename)) return;
-
-		if (filename !== "styles.css") reload = true;
-
+	function queueUpdate() {
 		clearTimeout(queued);
 		queued = setTimeout(() => {
+			if (stylesChanged) {
+				stylesChanged = false;
+				try {
+					compileStyles();
+				} catch (e) {
+					console.warn(`Skipped style update: ${e.message}`);
+					return;
+				}
+			}
 			copyToVault({ reload });
 			reload = false;
 		}, 100);
+	}
+
+	fs.watchFile(STYLE_SOURCE, { interval: 250 }, (current, previous) => {
+		if (current.mtimeMs === previous.mtimeMs) return;
+		stylesChanged = true;
+		queueUpdate();
 	});
+
+	if (process.env.OBSIDIAN_PATH && process.env.HOME) {
+		fs.watchFile("manifest.json", { interval: 250 }, (current, previous) => {
+			if (current.mtimeMs === previous.mtimeMs) return;
+			reload = true;
+			queueUpdate();
+		});
+	}
 }
 
 const copyPlugin = {
@@ -202,6 +229,7 @@ const copyPlugin = {
 };
 
 loadEnv();
+compileStyles();
 
 let outfile = "main.js";
 if (fs.existsSync('./.devtarget')) {
@@ -253,5 +281,5 @@ if (prod) {
 	process.exit(0);
 } else {
 	await context.watch();
-	watchCopiedFiles();
+	watchSourceFiles();
 }
