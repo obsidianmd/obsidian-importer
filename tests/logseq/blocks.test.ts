@@ -369,6 +369,12 @@ test('[J1] fixCodeBlocksInLists: preserves a tab used after the bullet marker', 
 	assert.equal(fixCodeBlocksInLists(input), expected);
 });
 
+test('fixCodeBlocksInLists: a trailing anchor closes the fence and is preserved', () => {
+	const input = ['- ```', '  first', '  ``` ^ref_one', '- ```', '  second', '```'].join('\n');
+	const expected = ['- ```', '  first', '  ``` ^ref_one', '- ```', '  second', '  ```'].join('\n');
+	assert.equal(fixCodeBlocksInLists(input), expected);
+});
+
 test('[J1] convertOrgBlocks: leaves org markup inside a code fence untouched', () => {
 	const input = ['```', '#+BEGIN_QUERY', 'q', '#+END_QUERY', '```'].join('\n');
 	assert.equal(convertOrgBlocks(input), input);

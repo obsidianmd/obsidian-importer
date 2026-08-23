@@ -1,4 +1,4 @@
-import { outsideMarkdownCode, outsideMarkdownFences } from '../../markdown';
+import { BLOCK_ANCHOR_PATTERN, outsideMarkdownCode, outsideMarkdownFences } from '../../markdown';
 
 const HIGHLIGHT_RE = /\^\^(.+?)\^\^/g;
 
@@ -297,6 +297,7 @@ export function convertMediaEmbeds(content: string): string {
 export function fixCodeBlocksInLists(content: string): string {
 	const lines = content.split('\n');
 	const openRe = /^([ \t]*)(?:([-*+])([ \t]+))?([`~]{3,})/;
+	const closeRe = new RegExp(`^[ \\t]*([\x60~]{3,})((?:[ \\t]+${BLOCK_ANCHOR_PATTERN})?)[ \\t]*$`);
 	let fence: { marker: string, length: number } | null = null;
 	let fenceIndent = '';
 
@@ -316,11 +317,11 @@ export function fixCodeBlocksInLists(content: string): string {
 				}
 				return line;
 			}
-			const close = /^[ \t]*([`~]{3,})[ \t]*$/.exec(line);
+			const close = closeRe.exec(line);
 			if (close && close[1][0] === fence.marker && close[1].length >= fence.length) {
 				const marker = close[1];
 				fence = null;
-				return fenceIndent ? fenceIndent + marker : line;
+				return fenceIndent ? fenceIndent + marker + close[2] : line;
 			}
 			return line;
 		})

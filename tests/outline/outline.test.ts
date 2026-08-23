@@ -67,6 +67,11 @@ test('and on a line of its own for a block of several, off the closing fence', (
 		['```js', 'one();```', '  ^abc123']);
 });
 
+test('blank lines inside fenced code are preserved', () => {
+	const code = ['```js', 'const a = 1;', '', '', '', 'const b = 2;', '```'].join('\n');
+	assert.equal(deOutline([node(code)]), code);
+});
+
 test('a block nothing points at is left as it was', () => {
 	assert.deepEqual(anchorLines(['the block'], null, ''), ['the block']);
 });
