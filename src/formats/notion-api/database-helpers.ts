@@ -487,13 +487,6 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams): string 
  * @param formulaStrategy - How to handle formula properties
  * @returns Object with separate arrays for formulas and regular properties
  */
-/**
- * Map database properties to Dataview format
- * @param dataSourceProperties - Using 'any' because Notion's database property schema has many variants
- * @param formulaStrategy - Strategy for handling formula properties
- * @returns Object with formulas and regularProperties arrays, each using 'any' for config because
- *          property configurations vary widely by type (text, number, select, formula, relation, etc.)
- */
 function mapDatabaseProperties(
 	dataSourceProperties: NotionProperties,
 	formulaStrategy: FormulaImportStrategy = 'hybrid'

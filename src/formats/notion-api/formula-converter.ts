@@ -195,10 +195,6 @@ export function canConvertFormula(notionFormula: string): boolean {
  * @param notionFormula - The formula expression (may contain placeholders)
  * @param properties - The database properties schema (to resolve property IDs to names)
  */
-/**
- * Convert Notion formula to Obsidian Dataview formula
- * @param properties - Using 'any' because property configurations have different structures by type
- */
 export function convertNotionFormulaToObsidian(
 	notionFormula: string,
 	properties?: Record<string, any>

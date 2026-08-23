@@ -1,4 +1,5 @@
-import { LogseqImportOptions } from './options';
+import { outsideMarkdownCode } from '../../markdown';
+import { DEFAULT_DROP_PAGE_PROPERTIES, LogseqImportOptions } from './options';
 import { extractPageProperties, convertHeadingProperty, removeLeftoverBlockProperties, splitList } from './properties';
 import { convertTasks } from './tasks';
 import { convertNumberedLists, convertOrgBlocks, convertHighlights, convertMediaEmbeds, fixCodeBlocksInLists, fixHeadingChildLists } from './blocks';
@@ -7,7 +8,6 @@ import { convertAliasLinks } from './links';
 import { convertJournalDateLinks } from './journals';
 import { attachBlockIds, DefinedId } from './block-ids';
 import { normalizeWhitespace } from './normalize';
-import { outsideMarkdownCode } from '../../markdown';
 
 export interface LogseqConversionRuntime {
 	assetTarget?: (sourcePath: string, filename: string) => string | null;
@@ -30,24 +30,23 @@ export function convertLocal(
 	runtime: LogseqConversionRuntime = {},
 ): LocalResult {
 	const { yaml, body: initialBody, raw } = extractPageProperties(content, {
-		dropPageProperties: options.dropPageProperties,
-		dropTags: options.dropTags,
-		snakeCasePageProperties: options.snakeCasePageProperties,
+		dropPageProperties: DEFAULT_DROP_PAGE_PROPERTIES,
+		dropTags: options.flashcards ? [] : ['card'],
 		commaSeparatedProperties: runtime.commaSeparatedProperties,
 	});
 
 	let body = initialBody;
 	let hasQueries = false;
 	body = convertHeadingProperty(body);
-	body = convertTasks(body, options.taskFormat, { logbook: options.logbook });
+	body = convertTasks(body, { logbook: options.timeTracking ? 'keep' : 'drop' });
 	body = convertNumberedLists(body);
 	body = convertOrgBlocks(body, {
-		dropQueries: options.queries === 'drop',
+		dropQueries: !options.queries,
 		onQuery: () => hasQueries = true,
 	});
 	body = outsideMarkdownCode(body, segment => segment.replace(/\{\{query[\s\S]*?\}\}/gi, (whole: string) => {
 		hasQueries = true;
-		return options.queries === 'drop' ? '' : whole;
+		return options.queries ? whole : '';
 	}));
 	body = convertHighlights(body);
 	body = convertMediaEmbeds(body);
@@ -55,7 +54,7 @@ export function convertLocal(
 	body = fixCodeBlocksInLists(body);
 
 	const assetResult = convertAssetLinks(body, {
-		keepAltText: options.keepAssetAltText,
+		keepAltText: false,
 		target: runtime.assetTarget
 			? asset => runtime.assetTarget!(asset.sourcePath, asset.filename)
 			: undefined,
@@ -66,14 +65,11 @@ export function convertLocal(
 	// Tag conversion needs the complete page index.
 	body = convertJournalDateLinks(body);
 
-	const idResult = attachBlockIds(body, options.shortenBlockIds);
+	const idResult = attachBlockIds(body, true);
 	body = idResult.content;
 
-	body = removeLeftoverBlockProperties(body, options.dropBlockProperties, options.blockProperties, options.snakeCaseBlockProperties);
-
-	if (options.normalizeWhitespace) {
-		body = normalizeWhitespace(body);
-	}
+	body = removeLeftoverBlockProperties(body, [], 'keep', false);
+	body = normalizeWhitespace(body);
 
 	return { yaml, body, raw, ids: idResult.ids, assets: assetResult.assets, hasQueries };
 }

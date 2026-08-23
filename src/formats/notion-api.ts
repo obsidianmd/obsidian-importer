@@ -1162,8 +1162,7 @@ export class NotionAPIImporter extends FormatImporter {
 					else {
 						// Download failed - log warning and keep original URL as fallback
 						console.warn(`Failed to download cover image, keeping original URL: ${result.path}`);
-						// Keep the original URL in frontmatter (without wiki link syntax)
-						// This allows Dataview Cards view to attempt loading the external image
+						// Keep the original URL in frontmatter as a fallback.
 						// Note: This should rarely happen as we force download for covers
 						if (this.coverPropertyName !== 'cover') {
 							// If using custom property name, move the URL to the custom property

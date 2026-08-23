@@ -119,28 +119,12 @@ test('[I1] keep mode leaves unknown block property unchanged', () => {
 	assert.equal(removeLeftoverBlockProperties(input, [], 'keep'), input);
 });
 
-test('[I1] wrap mode rewrites participants:: … into [participants:: …]', () => {
-	const input = ['- a block', '  participants:: [[Alice]], [[Bob]]'].join('\n');
-	assert.equal(
-		removeLeftoverBlockProperties(input, [], 'wrap'),
-		['- a block', '  [participants:: [[Alice]], [[Bob]]]'].join('\n'),
-	);
-});
-
-test('[I1] wrap mode preserves indentation and trailing ^anchor', () => {
-	const input = ['- a block', '\t  participants:: a, b ^abc123'].join('\n');
-	assert.equal(
-		removeLeftoverBlockProperties(input, [], 'wrap'),
-		['- a block', '\t  [participants:: a, b] ^abc123'].join('\n'),
-	);
-});
-
 test('[I1] drop mode removes the line', () => {
 	const input = ['- a block', '  rating:: 5'].join('\n');
 	assert.equal(removeLeftoverBlockProperties(input, [], 'drop'), '- a block');
 });
 
-test('[I1] always-drop keys ignore the mode (collapsed/logseq.*/hl-* still dropped in keep & wrap)', () => {
+test('[I1] always-drop keys are removed in keep mode', () => {
 	const input = [
 		'- a block',
 		'  collapsed:: true',
@@ -148,22 +132,16 @@ test('[I1] always-drop keys ignore the mode (collapsed/logseq.*/hl-* still dropp
 		'  hl-color:: yellow',
 	].join('\n');
 	assert.equal(removeLeftoverBlockProperties(input, [], 'keep'), '- a block');
-	assert.equal(removeLeftoverBlockProperties(input, [], 'wrap'), '- a block');
 });
 
-test('[I1] value containing ] falls back to keep', () => {
-	const input = ['- a block', '  note:: foo] bar'].join('\n');
-	assert.equal(removeLeftoverBlockProperties(input, [], 'wrap'), input);
-});
-
-test('[I1] wrap mode does not touch property-like lines inside code fences', () => {
+test('[I1] drop mode does not touch property-like lines inside code fences', () => {
 	const input = ['- a block', '  ```', '  key:: value', '  ```'].join('\n');
-	assert.equal(removeLeftoverBlockProperties(input, [], 'wrap'), input);
+	assert.equal(removeLeftoverBlockProperties(input, [], 'drop'), input);
 });
 
 test('[I1] property-like text after inline code is not treated as a line start', () => {
 	const input = '- See `x` key:: value';
-	assert.equal(removeLeftoverBlockProperties(input, [], 'wrap'), input);
+	assert.equal(removeLeftoverBlockProperties(input, [], 'drop'), input);
 });
 
 test('extractPageProperties drops listed page property keys from frontmatter', () => {
@@ -386,10 +364,9 @@ test('[I1] hl-* and ls-* prefixed page properties are always dropped', () => {
 });
 
 
-test('[I1] alias block property is always dropped (not wrapped or kept)', () => {
+test('[I1] alias block property is always dropped', () => {
 	const input = ['- a block', '  alias:: Some Alias'].join('\n');
 	assert.equal(removeLeftoverBlockProperties(input, [], 'keep'), '- a block');
-	assert.equal(removeLeftoverBlockProperties(input, [], 'wrap'), '- a block');
 	assert.equal(removeLeftoverBlockProperties(input, [], 'drop'), '- a block');
 });
 
@@ -435,12 +412,6 @@ test('[T-snake] snakeCaseBlockProperties converts kebab-case keys in keep mode',
 	const input = ['- a block', '  test-hyphen:: value'].join('\n');
 	const out = removeLeftoverBlockProperties(input, [], 'keep', true);
 	assert.equal(out, ['- a block', '  test_hyphen:: value'].join('\n'));
-});
-
-test('[T-snake] snakeCaseBlockProperties converts kebab-case keys in wrap mode', () => {
-	const input = ['- a block', '  test-hyphen:: value'].join('\n');
-	const out = removeLeftoverBlockProperties(input, [], 'wrap', true);
-	assert.equal(out, ['- a block', '  [test_hyphen:: value]'].join('\n'));
 });
 
 test('[T-snake] block properties keep kebab-case keys by default', () => {

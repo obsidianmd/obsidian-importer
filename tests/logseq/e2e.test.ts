@@ -4,7 +4,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { convertLocal, LocalResult } from '../../src/formats/logseq/pipeline';
-import { resolveBlockRefs, removeOrphanBlockRefs, BlockRefTarget } from '../../src/formats/logseq/block-ids';
+import { resolveBlockRefs, BlockRefTarget } from '../../src/formats/logseq/block-ids';
 import { convertTags, rewriteAliasReferences, LinkIndex } from '../../src/formats/logseq/links';
 import { DEFAULT_LOGSEQ_OPTIONS, LogseqImportOptions } from '../../src/formats/logseq/options';
 import { namespaceToPath, decodeLogseqName } from '../../src/formats/logseq/paths';
@@ -80,13 +80,12 @@ function loadFixtureGraph(opts: LogseqImportOptions = DEFAULT_LOGSEQ_OPTIONS): C
 
 	for (const { file, local, outputPath } of locals) {
 		let body = resolveBlockRefs(local.body, blockIndex);
-		if (opts.removeOrphanBlockRefs) body = removeOrphanBlockRefs(body);
 		body = rewriteAliasReferences(body, linkIndex);
 		body = convertTags(body, {
-			toLinks: opts.convertTagsToLinks,
-			onlyExistingPages: opts.convertTagsOnlyExistingPages,
+			toLinks: false,
+			onlyExistingPages: true,
 			knownPages,
-			dropTags: new Set(opts.dropTags),
+			dropTags: new Set(opts.flashcards ? [] : ['card']),
 		});
 		results.push({ outputPath, local, finalBody: body, sourceFile: file.path });
 	}
@@ -147,26 +146,31 @@ test('E2E: page without properties gets no frontmatter', () => {
 });
 
 
-test('E2E: TODO with priority A and SCHEDULED (emoji)', () => {
+test('E2E: TODO keeps priority and scheduling metadata', () => {
 	const pn = findByOutput(graph, 'Main Page');
-	assert.ok(pn.finalBody.includes('- [ ] Write documentation ⏫ ⏳ 2024-06-15 ➕ 2024-06-01'));
+	assert.ok(pn.finalBody.includes('- [ ] [#A] Write documentation'));
+	assert.ok(pn.finalBody.includes('SCHEDULED: <2024-06-15 Sat>'));
+	assert.ok(pn.finalBody.includes('created:: 2024-06-01'));
 });
 
 test('E2E: DOING with priority B and DEADLINE with repeater', () => {
 	const pn = findByOutput(graph, 'Main Page');
-	assert.ok(pn.finalBody.includes('- [/] Review sample changes 🔼 📅 2024-06-20 🔁 every week when done'));
+	assert.ok(pn.finalBody.includes('- [/] [#B] Review sample changes'));
+	assert.ok(pn.finalBody.includes('DEADLINE: <2024-06-20 Thu .+1w>'));
 });
 
 test('E2E: DONE with completion date and LOGBOOK dropped', () => {
 	const pn = findByOutput(graph, 'Main Page');
-	assert.ok(pn.finalBody.includes('- [x] Ship v1.0 ✅ 2024-06-10'));
+	assert.ok(pn.finalBody.includes('- [x] Ship v1.0'));
+	assert.ok(pn.finalBody.includes('completed:: [[2024-06-10]]'));
 	assert.ok(!pn.finalBody.includes(':LOGBOOK:'));
 	assert.ok(!pn.finalBody.includes('CLOCK:'));
 });
 
 test('E2E: CANCELLED with cancelled date', () => {
 	const pn = findByOutput(graph, 'Main Page');
-	assert.ok(pn.finalBody.includes('- [-] Old task ❌ 2024-05-30'));
+	assert.ok(pn.finalBody.includes('- [-] Old task'));
+	assert.ok(pn.finalBody.includes('cancelled:: 2024-05-30'));
 });
 
 test('E2E: WAITING maps to open checkbox', () => {
@@ -186,7 +190,9 @@ test('E2E: IN-PROGRESS maps to in-progress checkbox', () => {
 
 test('E2E: LATER with both SCHEDULED and DEADLINE', () => {
 	const pn = findByOutput(graph, 'Main Page');
-	assert.ok(pn.finalBody.includes('- [ ] Low priority task ⏳ 2024-09-01 🔁 every 2 weeks when done 📅 2024-09-15'));
+	assert.ok(pn.finalBody.includes('- [ ] Low priority task'));
+	assert.ok(pn.finalBody.includes('SCHEDULED: <2024-09-01 Sun ++2w>'));
+	assert.ok(pn.finalBody.includes('DEADLINE: <2024-09-15 Sun>'));
 });
 
 test('E2E: NOW maps to in-progress checkbox', () => {
@@ -196,7 +202,7 @@ test('E2E: NOW maps to in-progress checkbox', () => {
 
 test('E2E: priority C in journal', () => {
 	const j2 = findByOutput(graph, '2024-08-30');
-	assert.ok(j2.finalBody.includes('- [ ] Journal task with priority 🔽'));
+	assert.ok(j2.finalBody.includes('- [ ] [#C] Journal task with priority'));
 });
 
 
@@ -426,74 +432,12 @@ test('E2E: collapsed:: and logseq.* properties are removed', () => {
 });
 
 
-test('E2E: dataview format produces inline fields', () => {
-	const dvOpts: LogseqImportOptions = { ...DEFAULT_LOGSEQ_OPTIONS, taskFormat: 'tasks-dataview' };
-	const dvGraph = loadFixtureGraph(dvOpts);
-	const pn = findByOutput(dvGraph, 'Main Page');
-	assert.ok(pn.finalBody.includes('[priority:: high]'));
-	assert.ok(pn.finalBody.includes('[scheduled:: 2024-06-15]'));
-	assert.ok(pn.finalBody.includes('[created:: 2024-06-01]'));
-	assert.ok(pn.finalBody.includes('[completion:: 2024-06-10]'));
-	assert.ok(pn.finalBody.includes('[cancelled:: 2024-05-30]'));
-});
-
-test('E2E: dataview format produces due for deadlines', () => {
-	const dvOpts: LogseqImportOptions = { ...DEFAULT_LOGSEQ_OPTIONS, taskFormat: 'tasks-dataview' };
-	const dvGraph = loadFixtureGraph(dvOpts);
-	const pn = findByOutput(dvGraph, 'Main Page');
-	assert.ok(pn.finalBody.includes('[due:: 2024-06-20]'));
-});
-
-
-test('E2E: plain format collapses states to basic checkboxes', () => {
-	const plainOpts: LogseqImportOptions = { ...DEFAULT_LOGSEQ_OPTIONS, taskFormat: 'plain' };
-	const plainGraph = loadFixtureGraph(plainOpts);
-	const pn = findByOutput(plainGraph, 'Main Page');
-	assert.ok(pn.finalBody.includes('- [ ] [#A] Write documentation'));
-	assert.ok(pn.finalBody.includes('- [x] Ship v1.0'));
-	assert.ok(pn.finalBody.includes('- [x] Old task'));
-});
-
-
-test('E2E: full UUID mode keeps complete block ids', () => {
-	const fullOpts: LogseqImportOptions = { ...DEFAULT_LOGSEQ_OPTIONS, shortenBlockIds: false };
-	const fullGraph = loadFixtureGraph(fullOpts);
-	const pn = findByOutput(fullGraph, 'Main Page');
-	assert.ok(pn.finalBody.includes('^aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'));
-});
-
-
 test('E2E: LOGBOOK kept when option is set', () => {
-	const keepOpts: LogseqImportOptions = { ...DEFAULT_LOGSEQ_OPTIONS, logbook: 'keep' };
+	const keepOpts: LogseqImportOptions = { ...DEFAULT_LOGSEQ_OPTIONS, timeTracking: true };
 	const keepGraph = loadFixtureGraph(keepOpts);
 	const pn = findByOutput(keepGraph, 'Main Page');
 	assert.ok(pn.finalBody.includes(':LOGBOOK:'));
 	assert.ok(pn.finalBody.includes('CLOCK:'));
-});
-
-
-test('E2E: tags converted to wikilinks when option enabled', () => {
-	const linkOpts: LogseqImportOptions = { ...DEFAULT_LOGSEQ_OPTIONS, convertTagsToLinks: true, convertTagsOnlyExistingPages: false };
-	const linkGraph = loadFixtureGraph(linkOpts);
-	const pn = findByOutput(linkGraph, 'Main Page');
-	assert.ok(pn.finalBody.includes('[[topic]]'));
-	assert.ok(pn.finalBody.includes('[[multi word tag]]'));
-	assert.ok(!pn.finalBody.includes('#topic'));
-});
-
-
-test('E2E: alt text preserved when option enabled (no dimensions)', () => {
-	const altOpts: LogseqImportOptions = { ...DEFAULT_LOGSEQ_OPTIONS, keepAssetAltText: true };
-	const altGraph = loadFixtureGraph(altOpts);
-	const j1 = findByOutput(altGraph, '2024-06-15');
-	assert.ok(j1.finalBody.includes('![[diagram.png|photo]]'));
-});
-
-test('E2E: dimensions still win over alt text', () => {
-	const altOpts: LogseqImportOptions = { ...DEFAULT_LOGSEQ_OPTIONS, keepAssetAltText: true };
-	const altGraph = loadFixtureGraph(altOpts);
-	const pn = findByOutput(altGraph, 'Main Page');
-	assert.ok(pn.finalBody.includes('![[diagram.png|600x400]]'));
 });
 
 

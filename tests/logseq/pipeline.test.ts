@@ -41,10 +41,10 @@ test('collects assets referenced by the page', () => {
 	assert.deepEqual(assets, [{ sourcePath: '../assets/image.png', filename: 'image.png' }]);
 });
 
-test('scheduled task metadata is rendered (emoji default)', () => {
+test('scheduled task metadata remains in its source format', () => {
 	const input = ['- TODO pay rent', '  SCHEDULED: <2024-09-01 Sun>'].join('\n');
 	const { body } = convertLocal(input, opts);
-	assert.equal(body, '- [ ] pay rent ⏳ 2024-09-01');
+	assert.equal(body, ['- [ ] pay rent', '  SCHEDULED: <2024-09-01 Sun>'].join('\n'));
 });
 
 test('does not transform documented Logseq syntax inside Markdown code', () => {
@@ -70,14 +70,15 @@ test('preserves inline-code spacing and keeps task metadata attached', () => {
 	].join('\n');
 	const expected = [
 		'- Run `npm test` before you push.',
-		'- [ ] update `README.md` ⏳ 2024-06-15',
+		'- [ ] update `README.md`',
+		'  SCHEDULED: <2024-06-15 Sat>',
 		'- The `id::` property marks a block.',
 	].join('\n');
 	assert.equal(convertLocal(input, opts).body, expected);
 });
 
-test('drops advanced and simple queries when requested', () => {
-	const options = { ...opts, queries: 'drop' as const };
+test('drops advanced and simple queries when disabled', () => {
+	const options = { ...opts, queries: false };
 	const input = [
 		'- before',
 		'#+BEGIN_QUERY',
@@ -99,7 +100,7 @@ test('keeps queries and records their presence when requested', () => {
 });
 
 test('does not detect or remove a query example inside code', () => {
-	const options = { ...opts, queries: 'drop' as const };
+	const options = { ...opts, queries: false };
 	const input = ['```markdown', '{{query (property :status doing)}}', '```'].join('\n');
 	const converted = convertLocal(input, options);
 	assert.equal(converted.body, input);

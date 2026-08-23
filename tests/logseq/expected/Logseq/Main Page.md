@@ -13,10 +13,15 @@ authors:
 ---
 
 - This is the main fixture page
-- [ ] Write documentation ⏫ ⏳ 2024-06-15 ➕ 2024-06-01
-- [/] Review sample changes 🔼 📅 2024-06-20 🔁 every week when done
-- [x] Ship v1.0 ✅ 2024-06-10
-- [-] Old task ❌ 2024-05-30
+- [ ] [#A] Write documentation
+  SCHEDULED: <2024-06-15 Sat>
+  created:: 2024-06-01
+- [/] [#B] Review sample changes
+  DEADLINE: <2024-06-20 Thu .+1w>
+- [x] Ship v1.0
+  completed:: [[2024-06-10]]
+- [-] Old task
+  cancelled:: 2024-05-30
 - [ ] Waiting on upstream
 - [ ] For feedback
 - [/] Halfway done
@@ -61,5 +66,7 @@ internal note
 > some example text
 
 - ## Section header
-- [ ] Low priority task ⏳ 2024-09-01 🔁 every 2 weeks when done 📅 2024-09-15
+- [ ] Low priority task
+  SCHEDULED: <2024-09-01 Sun ++2w>
+  DEADLINE: <2024-09-15 Sun>
 

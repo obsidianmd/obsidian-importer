@@ -1,21 +1,21 @@
-import { moment, normalizePath, Notice, TextComponent, TFile } from 'obsidian';
+import { moment, normalizePath, Notice, TFile } from 'obsidian';
 import { ImportContext } from '../import-context';
 import { NodePickedFile, PickedFile, PickedFolder, fsPromises } from '../filesystem';
 import { FormatImporter, NoteTemplateSample, PlannedNote, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { i18n } from '../i18n';
 import { normalizeTreePath, parentTreePath } from '../imported-path-index';
 import { outsideMarkdownCode } from '../markdown';
+import { PickedFolderLoad, PickedFolderNode, PickedFolderPicker, PickedFolderSelection, pickedFolderFileCount, pickedFolderNodes } from '../picked-folder-tree';
 import { sameBytes, sanitizeFileName, sanitizeFilePath } from '../util';
 import { convertAssetLinks } from './logseq/assets';
-import { BlockRefTarget, removeOrphanBlockRefs, resolveBlockRefs } from './logseq/block-ids';
+import { BlockRefTarget, resolveBlockRefs } from './logseq/block-ids';
 import { defaultLogseqConfig, LogseqFilenameFormat, LogseqGraphConfig, parseLogseqConfig } from './logseq/config';
 import { deOutline } from './logseq/de-outline';
 import { journalFilenameToISO, logseqDateFormatToMoment, reformatDateLinks } from './logseq/journals';
 import { convertTags, rewriteAliasReferences, rewritePlannedPageLinks, PlannedPageLink } from './logseq/links';
-import { DEFAULT_LOGSEQ_OPTIONS, KeepOrDrop, LogseqImportOptions, TaskFormat } from './logseq/options';
+import { DEFAULT_LOGSEQ_OPTIONS, LogseqImportOptions } from './logseq/options';
 import { namespaceToPath } from './logseq/paths';
 import { convertLocal, indexPageAliases, isBodyEmpty, LocalResult } from './logseq/pipeline';
-import { linkifyTagValuesInFrontmatter } from './logseq/properties';
 
 const ISO_FORMAT = 'YYYY-MM-DD';
 
@@ -111,15 +111,12 @@ type BooleanOptionKey = {
 	[K in keyof LogseqImportOptions]: LogseqImportOptions[K] extends boolean ? K : never;
 }[keyof LogseqImportOptions];
 
-type ListOptionKey = {
-	[K in keyof LogseqImportOptions]: LogseqImportOptions[K] extends string[] ? K : never;
-}[keyof LogseqImportOptions];
-
 export class LogseqImporter extends FormatImporter {
 	static extensions = ['md'];
 
 	interruption = 'pause' as const;
 	options!: LogseqImportOptions;
+	private folderPicker!: PickedFolderPicker;
 
 	init(): void {
 		this.keepsFolders = true;
@@ -127,118 +124,39 @@ export class LogseqImporter extends FormatImporter {
 		this.idProperty = 'logseq-source';
 		this.idLabel = i18n.importer.logseq.labelId();
 		this.options = { ...DEFAULT_LOGSEQ_OPTIONS };
-
-		const dailyNotes = this.dailyNotesConfig();
-		this.options.journalDateFormat = dailyNotes.format;
-		this.options.journalFolder = dailyNotes.folder;
+		this.folderPicker = new PickedFolderPicker(
+			() => this.chosen,
+			async (source, isCurrent) => this.loadFolderTree(source, isCurrent),
+		);
 
 		this.addExportSetting(i18n.importer.logseq.descExport());
 		this.addFileChooserSetting(i18n.importer.logseq.fileType(), LogseqImporter.extensions, true,
 			i18n.importer.logseq.descFiles());
+		this.draw(contentEl => this.folderPicker.draw(contentEl, this.addSetting('source')), 'source');
 
-		this.drawOptions(dailyNotes);
+		this.drawOptions();
 	}
 
 	get sourceReady(): boolean {
 		return this.graphFolder() !== null;
 	}
 
-	private drawOptions(dailyNotes: { format: string, folder: string }): void {
-		this.startGroup('options', i18n.importer.logseq.groupTasks());
-		this.addSetting()
-			?.setName(i18n.importer.logseq.nameTaskFormat())
-			.setDesc(i18n.importer.logseq.descTaskFormat())
-			.addDropdown(dropdown => dropdown
-				.addOption('plain', i18n.importer.logseq.optionPlainCheckboxes())
-				.addOption('tasks-emoji', i18n.importer.logseq.optionTasksEmoji())
-				.addOption('tasks-dataview', i18n.importer.logseq.optionTasksDataview())
-				.setValue(this.options.taskFormat)
-				.onChange(value => this.options.taskFormat = value as TaskFormat));
+	protected override sourceChanged(): void {
+		super.sourceChanged();
+		this.folderPicker.changed();
+	}
 
+	private drawOptions(): void {
 		this.startGroup('options', i18n.importer.logseq.groupJournals());
-		let journalFolder: TextComponent | undefined;
-		let journalFormat: TextComponent | undefined;
-		this.addSetting()
-			?.setName(i18n.importer.logseq.nameUseDailyNotes())
-			.setDesc(i18n.importer.logseq.descUseDailyNotes())
-			.addToggle(toggle => toggle
-				.setValue(this.options.useDailyNotes)
-				.onChange(value => {
-					this.options.useDailyNotes = value;
-					journalFolder?.setDisabled(value);
-					journalFormat?.setDisabled(value);
-					if (value) {
-						this.options.journalFolder = dailyNotes.folder;
-						this.options.journalDateFormat = dailyNotes.format;
-						journalFolder?.setValue(dailyNotes.folder);
-						journalFormat?.setValue(dailyNotes.format);
-					}
-				}));
-		this.addSetting()
-			?.setName(i18n.importer.logseq.nameJournalFolder())
-			.setDesc(i18n.importer.logseq.descJournalFolder())
-			.addText(text => {
-				journalFolder = text;
-				text.setValue(this.options.journalFolder)
-					.setDisabled(this.options.useDailyNotes)
-					.onChange(value => this.options.journalFolder = value);
-			});
-		this.addSetting()
-			?.setName(i18n.importer.logseq.nameJournalDateFormat())
-			.setDesc(i18n.importer.logseq.descJournalDateFormat())
-			.addText(text => {
-				journalFormat = text;
-				text.setValue(this.options.journalDateFormat)
-					.setDisabled(this.options.useDailyNotes)
-					.onChange(value => this.options.journalDateFormat = value || ISO_FORMAT);
-			});
-		this.toggleSetting(i18n.importer.logseq.nameDeOutlineJournals(), i18n.importer.logseq.descDeOutlineJournals(), 'deOutlineJournals');
+		this.toggleSetting(i18n.importer.logseq.nameUseDailyNotes(), i18n.importer.logseq.descUseDailyNotes(), 'useDailyNotes');
 
-		this.startGroup('options', i18n.importer.logseq.groupPages());
-		this.addSetting()
-			?.setName(i18n.importer.logseq.namePagesFolder())
-			.setDesc(i18n.importer.logseq.descPagesFolder())
-			.addText(text => text
-				.setValue(this.options.pagesFolder)
-				.onChange(value => this.options.pagesFolder = value));
-		this.toggleSetting(i18n.importer.logseq.nameDeOutlinePages(), i18n.importer.logseq.descDeOutlinePages(), 'deOutlinePages');
-
-		this.startGroup('options', i18n.importer.logseq.groupLinks());
-		this.toggleSetting(i18n.importer.logseq.nameConvertTags(), i18n.importer.logseq.descConvertTags(), 'convertTagsToLinks');
-		this.toggleSetting(i18n.importer.logseq.nameOnlyExistingTags(), i18n.importer.logseq.descOnlyExistingTags(), 'convertTagsOnlyExistingPages');
-		this.listOptionSetting(i18n.importer.logseq.nameDropTags(), i18n.importer.logseq.descDropTags(), 'dropTags');
+		this.startGroup('options', i18n.importer.logseq.groupStructure());
+		this.toggleSetting(i18n.importer.logseq.nameFlattenOutlines(), i18n.importer.logseq.descFlattenOutlines(), 'flattenOutlines');
 
 		this.startGroup('options', i18n.importer.logseq.groupLogseqOnly());
-		this.keepOrDropSetting(i18n.importer.logseq.nameQueries(), i18n.importer.logseq.descQueries(),
-			this.options.queries, value => this.options.queries = value);
-		this.keepOrDropSetting(i18n.importer.logseq.nameFlashcards(), i18n.importer.logseq.descFlashcards(),
-			this.options.flashcards, value => this.options.flashcards = value);
-		this.keepOrDropSetting(i18n.importer.logseq.nameTimeTracking(), i18n.importer.logseq.descTimeTracking(),
-			this.options.logbook, value => this.options.logbook = value);
-
-		this.startGroup('options', i18n.importer.logseq.groupBlockReferences());
-		this.toggleSetting(i18n.importer.logseq.nameShortenBlockIds(), i18n.importer.logseq.descShortenBlockIds(), 'shortenBlockIds');
-		this.toggleSetting(i18n.importer.logseq.nameRemoveOrphanRefs(), i18n.importer.logseq.descRemoveOrphanRefs(), 'removeOrphanBlockRefs');
-		this.toggleSetting(i18n.importer.logseq.nameEmbedBlockRefs(), i18n.importer.logseq.descEmbedBlockRefs(), 'alwaysEmbedBlockRefs');
-
-		this.startGroup('options', i18n.importer.logseq.groupProperties());
-		this.listOptionSetting(i18n.importer.logseq.nameDropPageProperties(), i18n.importer.logseq.descDropPageProperties(), 'dropPageProperties');
-		this.listOptionSetting(i18n.importer.logseq.nameDropBlockProperties(), i18n.importer.logseq.descDropBlockProperties(), 'dropBlockProperties');
-		this.addSetting()
-			?.setName(i18n.importer.logseq.nameBlockProperties())
-			.setDesc(i18n.importer.logseq.descBlockProperties())
-			.addDropdown(dropdown => dropdown
-				.addOption('keep', i18n.importer.logseq.optionKeep())
-				.addOption('wrap', i18n.importer.logseq.optionWrapProperties())
-				.addOption('drop', i18n.importer.logseq.optionDrop())
-				.setValue(this.options.blockProperties)
-				.onChange(value => this.options.blockProperties = value as LogseqImportOptions['blockProperties']));
-		this.toggleSetting(i18n.importer.logseq.nameSnakeCasePages(), i18n.importer.logseq.descSnakeCasePages(), 'snakeCasePageProperties');
-		this.toggleSetting(i18n.importer.logseq.nameSnakeCaseBlocks(), i18n.importer.logseq.descSnakeCaseBlocks(), 'snakeCaseBlockProperties');
-
-		this.startGroup('options', i18n.importer.logseq.groupCleanup());
-		this.toggleSetting(i18n.importer.logseq.nameKeepAltText(), i18n.importer.logseq.descKeepAltText(), 'keepAssetAltText');
-		this.toggleSetting(i18n.importer.logseq.nameNormalizeWhitespace(), i18n.importer.logseq.descNormalizeWhitespace(), 'normalizeWhitespace');
+		this.toggleSetting(i18n.importer.logseq.nameQueries(), i18n.importer.logseq.descQueries(), 'queries');
+		this.toggleSetting(i18n.importer.logseq.nameFlashcards(), i18n.importer.logseq.descFlashcards(), 'flashcards');
+		this.toggleSetting(i18n.importer.logseq.nameTimeTracking(), i18n.importer.logseq.descTimeTracking(), 'timeTracking');
 	}
 
 	private toggleSetting(name: string, description: string, key: BooleanOptionKey): void {
@@ -250,33 +168,46 @@ export class LogseqImporter extends FormatImporter {
 				.onChange(value => this.options[key] = value));
 	}
 
-	private listOptionSetting(name: string, description: string, key: ListOptionKey): void {
-		this.addSetting()
-			?.setName(name)
-			.setDesc(description)
-			.addText(text => text
-				.setValue(this.options[key].join(', '))
-				.onChange(value => this.options[key] = this.listSetting(value)));
+	private async loadFolderTree(
+		source: (PickedFile | PickedFolder)[],
+		isCurrent: () => boolean,
+	): Promise<PickedFolderLoad> {
+		const root = source.length === 1 && source[0].type === 'folder' ? source[0] : null;
+		if (!root) return { nodes: [], files: 0 };
+
+		const items = await root.list();
+		const files: GraphFile[] = [];
+		await walkItems(items.filter(item => item.type === 'folder' && item.name.toLowerCase() === 'logseq'), '', files);
+		if (!isCurrent()) return { nodes: [], files: 0 };
+
+		const config = await this.graphConfig(files);
+		const noteRoots = new Set([config.pagesDirectory, config.journalsDirectory]
+			.map(path => normalizeTreePath(path).split('/')[0].toLowerCase()));
+		const countFile = (file: PickedFile, parent: string) => file.extension === 'md' && (
+			relativeToGraphDirectory(`${parent}/${file.name}`, config.pagesDirectory) !== null
+			|| relativeToGraphDirectory(`${parent}/${file.name}`, config.journalsDirectory) !== null
+		);
+		const nodes = await pickedFolderNodes(items, {
+			includeFolder: (folder, chosen) => !chosen || noteRoots.has(folder.name.toLowerCase()),
+			countFile,
+			isCurrent,
+		});
+		const withNotes = this.noteFolders(nodes);
+		return {
+			nodes: withNotes,
+			files: pickedFolderFileCount(items, withNotes, countFile),
+		};
 	}
 
-	private keepOrDropSetting(
-		name: string,
-		description: string,
-		value: KeepOrDrop,
-		changed: (value: KeepOrDrop) => void,
-	): void {
-		this.addSetting()
-			?.setName(name)
-			.setDesc(description)
-			.addDropdown(dropdown => dropdown
-				.addOption('keep', i18n.importer.logseq.optionKeep())
-				.addOption('drop', i18n.importer.logseq.optionDrop())
-				.setValue(value)
-				.onChange(next => changed(next as KeepOrDrop)));
+	private noteFolders(nodes: PickedFolderNode[]): PickedFolderNode[] {
+		for (const node of nodes) node.children = this.noteFolders(node.children ?? []);
+		return nodes.filter(node => node.files > 0);
 	}
 
-	private listSetting(value: string): string[] {
-		return value.split(',').map(item => item.trim()).filter(Boolean);
+	private async graphConfig(files: GraphFile[]): Promise<LogseqGraphConfig> {
+		const configFile = files.find(entry => entry.path.toLowerCase() === 'logseq/config.edn');
+		if (!configFile) return defaultLogseqConfig();
+		return parseLogseqConfig(await configFile.file.readText());
 	}
 
 	private dailyNotesConfig(): { format: string, folder: string } {
@@ -288,6 +219,15 @@ export class LogseqImporter extends FormatImporter {
 	private graphFolder(): PickedFolder | null {
 		const folders = this.chosen.filter((item): item is PickedFolder => item.type === 'folder');
 		return folders.length === 1 ? folders[0] : null;
+	}
+
+	private includesEntry(entry: GraphFile, selection: PickedFolderSelection): boolean {
+		if (selection.included === null) return true;
+		const parent = parentTreePath(entry.path);
+		for (const skipped of selection.skipped) {
+			if (parent === skipped || parent.startsWith(`${skipped}/`)) return false;
+		}
+		return selection.included.has(parent);
 	}
 
 	private async readGraph(ctx: ImportContext): Promise<GraphSource | null> {
@@ -310,14 +250,11 @@ export class LogseqImporter extends FormatImporter {
 		const byPath = new Map<string, GraphFile>();
 		for (const entry of files) byPath.set(entry.path.toLowerCase(), entry);
 		let config = defaultLogseqConfig();
-		const configFile = byPath.get('logseq/config.edn');
-		if (configFile) {
-			try {
-				config = parseLogseqConfig(await configFile.file.readText());
-			}
-			catch (error) {
-				ctx.reportFailed(configFile.path, error);
-			}
+		try {
+			config = await this.graphConfig(files);
+		}
+		catch (error) {
+			ctx.reportFailed('logseq/config.edn', error);
 		}
 		const whiteboardsPrefix = `${config.whiteboardsDirectory.toLowerCase()}/`;
 		hasWhiteboards ||= files.some(entry => entry.path.toLowerCase().startsWith(whiteboardsPrefix));
@@ -325,7 +262,8 @@ export class LogseqImporter extends FormatImporter {
 	}
 
 	private noteEntries(graph: GraphSource): GraphFile[] {
-		return graph.files.filter(entry => entry.file.extension === 'md' && (
+		const selection = this.folderPicker.selection();
+		return graph.files.filter(entry => this.includesEntry(entry, selection) && entry.file.extension === 'md' && (
 			relativeToGraphDirectory(entry.path, graph.config.pagesDirectory) !== null ||
 			relativeToGraphDirectory(entry.path, graph.config.journalsDirectory) !== null
 		));
@@ -340,10 +278,13 @@ export class LogseqImporter extends FormatImporter {
 		let sourceNames: string[];
 
 		if (journal) {
+			const dailyNotes = this.options.useDailyNotes
+				? this.dailyNotesConfig()
+				: { format: ISO_FORMAT, folder: 'Journals' };
 			const sourceStem = withoutMarkdownExtension(journalPath);
 			const iso = journalFilenameToISO(sourceStem, graph.config.journalFileNameFormat);
 			logicalName = iso
-				? moment(iso, ISO_FORMAT, true).format(this.options.journalDateFormat)
+				? moment(iso, ISO_FORMAT, true).format(dailyNotes.format)
 				: sourceStem;
 			sourceNames = [logicalName];
 			if (iso) {
@@ -354,15 +295,15 @@ export class LogseqImporter extends FormatImporter {
 				}
 			}
 			const journalRoot = this.options.useDailyNotes
-				? this.options.journalFolder.trim()
-				: normalizePath([outputRoot, this.options.journalFolder.trim()].filter(Boolean).join('/'));
+				? dailyNotes.folder.trim()
+				: normalizePath([outputRoot, dailyNotes.folder].filter(Boolean).join('/'));
 			const logicalParent = sanitizeFilePath(parentTreePath(logicalName), journalRoot);
 			parent = normalizePath([journalRoot, logicalParent].filter(Boolean).join('/'));
 		}
 		else {
 			logicalName = namespaceToPath(entry.file.basename, graph.config.filenameFormat);
 			sourceNames = [logicalName];
-			const pageRoot = normalizePath([outputRoot, this.options.pagesFolder.trim()].filter(Boolean).join('/'));
+			const pageRoot = outputRoot;
 			const logicalParent = sanitizeFilePath(parentTreePath(logicalName), pageRoot);
 			parent = normalizePath([pageRoot, logicalParent].filter(Boolean).join('/'));
 		}
@@ -460,7 +401,7 @@ export class LogseqImporter extends FormatImporter {
 		// Re-plan titles so {{content}} sees final attachment links.
 		for (const note of notes) {
 			const linked = convertAssetLinks(note.local.body, {
-				keepAltText: this.options.keepAssetAltText,
+				keepAltText: false,
 				target: asset => note.assetTargets.get(asset.sourcePath) ?? null,
 			});
 			note.local = { ...note.local, body: linked.content };
@@ -536,28 +477,26 @@ export class LogseqImporter extends FormatImporter {
 		ctx: ImportContext,
 	): string | null {
 		let body = this.applyLogseqOnly(note.local.body, note.local.hasQueries, note.path, ctx);
-		body = resolveBlockRefs(body, blockIndex, { alwaysEmbedBlockRefs: this.options.alwaysEmbedBlockRefs });
-		if (this.options.removeOrphanBlockRefs) body = removeOrphanBlockRefs(body);
+		body = resolveBlockRefs(body, blockIndex);
 		body = rewriteAliasReferences(body, { aliasMap });
 		body = convertTags(body, {
-			toLinks: this.options.convertTagsToLinks,
-			onlyExistingPages: this.options.convertTagsOnlyExistingPages,
+			toLinks: false,
+			onlyExistingPages: true,
 			knownPages,
-			dropTags: new Set(this.options.dropTags),
+			dropTags: new Set(this.options.flashcards ? [] : ['card']),
 		});
-		const yaml = linkifyTagValuesInFrontmatter(note.local.yaml, {
-			knownPages,
-			toLinks: this.options.convertTagsToLinks,
-			onlyExistingPages: this.options.convertTagsOnlyExistingPages,
-		});
-		if (this.options.journalDateFormat !== ISO_FORMAT) {
+		const yaml = note.local.yaml;
+		const journalDateFormat = this.options.useDailyNotes
+			? this.dailyNotesConfig().format
+			: ISO_FORMAT;
+		if (journalDateFormat !== ISO_FORMAT) {
 			body = reformatDateLinks(body, iso => {
 				const date = moment(iso, ISO_FORMAT, true);
-				return date.isValid() ? date.format(this.options.journalDateFormat) : null;
+				return date.isValid() ? date.format(journalDateFormat) : null;
 			});
 		}
 		body = rewritePlannedPageLinks(body, linkPlans, note.filenameFormat);
-		if (note.kind === 'journal' ? this.options.deOutlineJournals : this.options.deOutlinePages) {
+		if (this.options.flattenOutlines) {
 			body = deOutline(body);
 		}
 		if (isBodyEmpty(yaml, body)) {
@@ -568,11 +507,11 @@ export class LogseqImporter extends FormatImporter {
 	}
 
 	private applyLogseqOnly(body: string, hasQueries: boolean, name: string, ctx: ImportContext): string {
-		if (hasQueries && this.options.queries === 'keep') {
+		if (hasQueries && this.options.queries) {
 			ctx.reportMessage(i18n.importer.logseq.msgKeptQueries({ name }));
 		}
 		if (/#card\b|\{\{cloze/i.test(body)) {
-			if (this.options.flashcards === 'keep') {
+			if (this.options.flashcards) {
 				ctx.reportMessage(i18n.importer.logseq.msgKeptFlashcards({ name }));
 			}
 			else {

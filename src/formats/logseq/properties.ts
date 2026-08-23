@@ -5,7 +5,6 @@ export type { BlockPropertyMode };
 
 const PROPERTY_LINE = /^([A-Za-z0-9_.-]+):: ?(.*)$/;
 const BLOCK_PROPERTY_LINE = /^(\s*)(- )?([A-Za-z0-9_.-]+):: ?(.*)$/;
-const BLOCK_ANCHOR = /\s+(\^[A-Za-z0-9_-]+)\s*$/;
 
 const ALWAYS_DROP_BLOCK_PROPS = new Set([
 	'alias',
@@ -235,25 +234,6 @@ function isAlwaysDroppedPageProp(key: string): boolean {
 	return ALWAYS_DROP_PAGE_PROPS.has(key);
 }
 
-function wrapBlockProperty(line: string, m: RegExpMatchArray, outKey: string): string {
-	const indent = m[1];
-	const bullet = m[2] ?? '';
-	let value = m[4];
-	let anchor = '';
-	const am = value.match(BLOCK_ANCHOR);
-	if (am) {
-		anchor = am[1];
-		value = value.slice(0, am.index);
-	}
-	const core = value.trim();
-	if (core === '') return line;
-	// Stray brackets would break the Dataview field.
-	const withoutLinks = core.replace(/\[\[[^\]]*\]\]/g, '');
-	if (withoutLinks.includes(']') || withoutLinks.includes('[')) return line;
-	const wrapped = `${indent}${bullet}[${outKey}:: ${core}]`;
-	return anchor ? `${wrapped} ${anchor}` : wrapped;
-}
-
 function renameBlockPropertyKey(line: string, m: RegExpMatchArray, outKey: string): string {
 	const indent = m[1];
 	const bullet = m[2] ?? '';
@@ -291,10 +271,6 @@ function removeLeftoverBlockPropertySegment(
 		if (isAlwaysDroppedBlockProp(key, userDrop)) continue;
 		if (mode === 'drop') continue;
 		const outKey = snakeCase ? toSnakeCaseKey(key) : key;
-		if (mode === 'wrap') {
-			out.push(wrapBlockProperty(line, m, outKey));
-			continue;
-		}
 		out.push(snakeCase ? renameBlockPropertyKey(line, m, outKey) : line);
 	}
 	return out.join('\n');

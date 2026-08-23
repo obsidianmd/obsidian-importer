@@ -115,9 +115,21 @@ function expectVault(vault: MemoryVault): void {
 	}
 }
 
-async function importer(graph: PickedFolder, output = 'Logseq') {
+async function importer(
+	graph: PickedFolder,
+	output = 'Logseq',
+	dailyNotes?: { folder: string, format: string },
+) {
 	const vault = new MemoryVault();
-	const subject = new LogseqImporter(memoryApp(vault), {
+	const app = memoryApp(vault);
+	if (dailyNotes) {
+		Object.assign(app, {
+			internalPlugins: {
+				getPluginById: () => ({ instance: { options: dailyNotes } }),
+			},
+		});
+	}
+	const subject = new LogseqImporter(app, {
 		sourceEl: null,
 		outputEl: null,
 		optionsEl: null,
@@ -128,7 +140,6 @@ async function importer(graph: PickedFolder, output = 'Logseq') {
 	subject.chosen = [graph];
 	subject.outputLocation = output;
 	subject.options.useDailyNotes = false;
-	subject.options.journalFolder = 'Journals';
 	subject.indexImportedNotes();
 	return { subject, vault };
 }
@@ -300,10 +311,8 @@ test('keeps slash-formatted journals in their date folders', async () => {
 			new SourceFile('2024_07_15.md', '- Second journal'),
 		]),
 	]);
-	const { subject, vault } = await importer(graph);
+	const { subject, vault } = await importer(graph, 'Logseq', { folder: 'Daily', format: 'YYYY/MM/DD' });
 	subject.options.useDailyNotes = true;
-	subject.options.journalFolder = 'Daily';
-	subject.options.journalDateFormat = 'YYYY/MM/DD';
 
 	await subject.import(new ImportContext());
 
@@ -407,8 +416,7 @@ test('drops flashcard syntax without rewriting code examples', async () => {
 		new SourceFolder('pages', [new SourceFile('A.md', content)]),
 	]);
 	const { subject, vault } = await importer(graph);
-	subject.options.flashcards = 'drop';
-	subject.options.dropTags = [];
+	subject.options.flashcards = false;
 
 	await subject.import(new ImportContext());
 
@@ -416,6 +424,71 @@ test('drops flashcard syntax without rewriting code examples', async () => {
 	assert.match(imported, /- answer/);
 	assert.match(imported, /`\{\{cloze inline\}\} #card`/);
 	assert.match(imported, /\{\{cloze fenced\}\} #card/);
+});
+
+test('keeps flashcard syntax by default', async () => {
+	const graph = new SourceFolder('Flashcards', [
+		new SourceFolder('pages', [new SourceFile('A.md', '- {{cloze answer}} #card')]),
+	]);
+	const { subject, vault } = await importer(graph);
+
+	await subject.import(new ImportContext());
+
+	assert.match(vault.contents.get('Logseq/A.md') as string, /\{\{cloze answer\}\} #card/);
+});
+
+test('flattens page and journal outlines with one option', async () => {
+	const graph = new SourceFolder('Outlines', [
+		new SourceFolder('pages', [new SourceFile('Page.md', '- # Page heading')]),
+		new SourceFolder('journals', [new SourceFile('2024_06_15.md', '- # Journal heading')]),
+	]);
+	const { subject, vault } = await importer(graph);
+	subject.options.flattenOutlines = true;
+
+	await subject.import(new ImportContext());
+
+	assert.match(vault.contents.get('Logseq/Page.md') as string, /\n# Page heading\n/);
+	assert.match(vault.contents.get('Logseq/Journals/2024-06-15.md') as string, /\n# Journal heading\n/);
+});
+
+test('imports only notes in selected graph folders', async () => {
+	const graph = new SourceFolder('Selected folders', [
+		new SourceFolder('pages', [new SourceFile('Page.md', '- Page')]),
+		new SourceFolder('journals', [new SourceFile('2024_06_15.md', '- Journal')]),
+	]);
+	const { subject, vault } = await importer(graph);
+	Object.assign(subject, {
+		folderPicker: {
+			selection: () => ({ included: new Set(['journals']), skipped: new Set(['pages']) }),
+		},
+	});
+
+	await subject.import(new ImportContext());
+
+	assert.ok(!vault.contents.has('Logseq/Page.md'));
+	assert.ok(vault.contents.has('Logseq/Journals/2024-06-15.md'));
+});
+
+test('shows only note folders in the source folder tree', async () => {
+	const graph = new SourceFolder('Folder tree', [
+		new SourceFolder('pages', [
+			new SourceFile('Page.md', '- Page'),
+			new SourceFolder('nested', [new SourceFile('Nested.md', '- Nested')]),
+		]),
+		new SourceFolder('journals', [new SourceFile('2024_06_15.md', '- Journal')]),
+		new SourceFolder('assets', [new SourceFile('image.png')]),
+	]);
+	const { subject } = await importer(graph);
+	const loadFolderTree = (subject as unknown as {
+		loadFolderTree(source: (PickedFile | PickedFolder)[], isCurrent: () => boolean): Promise<{
+			nodes: { title: string }[], files: number,
+		}>;
+	}).loadFolderTree.bind(subject);
+
+	const loaded = await loadFolderTree([graph], () => true);
+
+	assert.deepEqual(loaded.nodes.map(node => node.title), ['pages', 'journals']);
+	assert.equal(loaded.files, 3);
 });
 
 test('preserves a missing asset link and reports it', async () => {

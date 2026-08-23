@@ -9,9 +9,7 @@ letter per top-level section (`A` through `M`) plus a rule number, such as `[G1]
 development-phase labels are no longer used as public references.
 
 Guiding principle throughout: preserve source content when there is no safe automatic mapping.
-Intentional cleanup is limited to documented defaults and user-selected drop options. Files that
-cannot be imported are reported through `ctx.reportSkipped` / `reportFailed`; individual syntax
-cleanup inside an imported note is governed by the options in section B.
+Intentional cleanup is limited to documented defaults and the toggles in section B. Files that cannot be imported are reported through `ctx.reportSkipped` / `reportFailed`.
 
 ## Contents
 
@@ -45,7 +43,7 @@ done on a single file without the vault index. In order:
 
 1. `extractPageProperties` — leading `key:: value` block → YAML frontmatter (section I).
 2. `convertHeadingProperty` — `heading:: N` → `#`×N prefix on the block.
-3. `convertTasks` — task keywords + metadata → chosen task format (section D).
+3. `convertTasks` — task keywords → native checkbox markers while preserving source metadata (section D).
 4. `convertNumberedLists` — `logseq.order-list-type:: number` → `1.`/`2.`/…
 5. `convertOrgBlocks` — `#+BEGIN_*`/`#+END_*` → callouts / blockquotes / comments.
 6. `convertHighlights` — `^^text^^` → `==text==`.
@@ -56,9 +54,8 @@ done on a single file without the vault index. In order:
 11. `convertAliasLinks` — `[display]([[Page]])` → `[[Page|display]]`.
 12. `convertJournalDateLinks` — `[[Aug 30th, 2024]]` → `[[2024-08-30]]`.
 13. `attachBlockIds` — `id:: <uuid>` → `^shortid` anchor on the block; collect the id index.
-14. `removeLeftoverBlockProperties` — drop or serialize remaining block properties.
-15. `normalizeWhitespace` — optionally normalize non-breaking spaces, trailing whitespace, and
-    empty bullets.
+14. `removeLeftoverBlockProperties` — drop Logseq-internal properties and retain unknown properties.
+15. `normalizeWhitespace` — normalize non-breaking spaces, trailing whitespace, and empty bullets.
 
 The local conversion initially leaves asset links unchanged while collecting their references.
 After attachments receive collision-safe vault paths, only those links are rewritten; the rest of
@@ -70,103 +67,45 @@ source-name-to-planned-path link map. Logseq-only content (queries, flashcards) 
 `convertLocal`; section L documents how this ordering affects advanced query blocks and flashcard
 tags.
 
-After planning, the **known-pages set** contains each lower-cased logical page name and basename.
-This lets tag conversion recognize both qualified namespace names and ordinary page-name tags. A
-page that becomes empty only after pass-2 cleanup can still be present in the set.
-
-> Tag conversion is **deliberately deferred to pass 2** because the `onlyExistingPages` option
-> needs the complete known-pages set, which is only available after pass 1 is complete.
-
 **Pass 2 — cross-file resolution + write** (in `logseq.ts`). For each file, in order:
 
 1. `resolveBlockRefs` — `((uuid))` → `[[Page#^shortid]]`, `{{embed ((uuid))}}` → `![[Page#^shortid]]`,
    `{{embed [[Page]]}}` → `![[Page]]`.
-2. `removeOrphanBlockRefs` — *(option)* strip references whose uuid was never defined.
-3. `rewriteAliasReferences` — `[[Alias]]` → `[[Canonical|Alias]]`.
-4. `convertTags` — keep / sanitize / link / drop tags (section H).
-5. `linkifyTagValuesInFrontmatter` — apply the same tag-to-link policy to scalar frontmatter values.
-6. ISO date-link reformat — `[[YYYY-MM-DD]]` → target Daily-Notes format if it differs.
-7. `rewritePlannedPageLinks` — point source page names at their actual collision-safe vault paths.
-8. `deOutline` — *(option)* flatten the outline for journals and/or pages.
-9. **[A1] Empty-page check** — if the resulting body is blank and there is no YAML frontmatter, the page
+2. `rewriteAliasReferences` — `[[Alias]]` → `[[Canonical|Alias]]`.
+3. `convertTags` — keep simple tags, sanitize multi-word tags, and remove disabled flashcard markers (section H).
+4. ISO date-link reformat — `[[YYYY-MM-DD]]` → target Daily Notes format if it differs.
+5. `rewritePlannedPageLinks` — point source page names at their actual collision-safe vault paths.
+6. `deOutline` — flatten page and journal outlines when enabled.
+7. **[A1] Empty-page check** — if the resulting body is blank and there is no YAML frontmatter, the page
    is skipped (reported via `ctx.reportSkipped`) rather than written as an empty file.
-10. Write, update, skip, or copy the note according to shared duplicate handling. After all notes,
+8. Write, update, skip, or copy the note according to shared duplicate handling. After all notes,
     write planned assets that were not safely reused.
 
 ---
 
 ## B. Options reference
 
-All options live in `src/formats/logseq/options.ts` (`LogseqImportOptions`). Defaults below are
-`DEFAULT_LOGSEQ_OPTIONS`. The settings UI (`logseq.ts`) groups them into the sections shown.
-
-### Tasks
-
-| Option | Type | Default | Effect |
-|---|---|---|---|
-| `taskFormat` | `'tasks-emoji' \| 'tasks-dataview' \| 'plain'` | `tasks-emoji` | How rich task metadata is serialized (section D). |
+All options live in `src/formats/logseq/options.ts` (`LogseqImportOptions`). Defaults below are `DEFAULT_LOGSEQ_OPTIONS`.
 
 ### Journals
 
 | Option | Type | Default | Effect |
 |---|---|---|---|
-| `useDailyNotes` | boolean | `true` | Migrate journals into the Daily Notes folder using its date format. When on, the folder/format fields are filled from Daily Notes config and disabled. |
-| `journalFolder` | string | from Daily Notes, else `Journals` | Vault folder (relative to output) for journals. |
-| `journalDateFormat` | string | from Daily Notes, else `YYYY-MM-DD` | moment.js format for journal filenames. |
-| `deOutlineJournals` | boolean | `false` | Flatten journal outlines to paragraphs/headings (section C). |
+| `useDailyNotes` | boolean | `true` | Write journals to the Daily Notes folder using its date format. When off, journals go under `Journals` in the selected output folder and use `YYYY-MM-DD`. |
 
-### Pages
+### Note structure
 
 | Option | Type | Default | Effect |
 |---|---|---|---|
-| `pagesFolder` | string | `''` | Vault folder (relative to output) for pages. Empty = output root. |
-| `deOutlinePages` | boolean | `false` | Flatten page outlines to paragraphs/headings (section C). |
-
-### Links & tags
-
-| Option | Type | Default | Effect |
-|---|---|---|---|
-| `convertTagsToLinks` | boolean | `false` | Turn `#tags` into `[[wikilinks]]` instead of keeping them as tags. |
-| `convertTagsOnlyExistingPages` | boolean | `true` | When converting, only link tags that have a matching page; others stay `#tags`. |
-| `dropTags` | string[] | `['card']` | Tags removed entirely from body **and** frontmatter. |
+| `flattenOutlines` | boolean | `false` | Flatten page and journal outlines to paragraphs, headings, and lists (section C). |
 
 ### Logseq-only content
 
 | Option | Type | Default | Effect |
 |---|---|---|---|
-| `queries` | `'keep' \| 'drop'` | `keep` | Simple `{{query}}` macros. Org `#+BEGIN_QUERY` blocks are always converted to fenced `query` blocks earlier in pass 1 (section L). |
-| `flashcards` | `'keep' \| 'drop'` | `keep` | `#card` markers and `{{cloze}}` wrappers; `#card` is subsequently subject to `dropTags` (section L). |
-| `logbook` | `'keep' \| 'drop'` | `drop` | `:LOGBOOK:` / `CLOCK:` time-tracking drawers on any block. |
-
-### Assets
-
-| Option | Type | Default | Effect |
-|---|---|---|---|
-| `keepAssetAltText` | boolean | `false` | Preserve image alt text as the embed display text (`![[x\|alt]]`). |
-
-### Block references
-
-| Option | Type | Default | Effect |
-|---|---|---|---|
-| `shortenBlockIds` | boolean | `true` | Shorten Logseq UUID block IDs to short Obsidian-style anchors. |
-| `removeOrphanBlockRefs` | boolean | `false` | Remove `((uuid))` references that could not be resolved to a known block. |
-| `alwaysEmbedBlockRefs` | boolean | `false` | Convert bare `((uuid))` block references to embeds (`![[…]]`) instead of plain links (`[[…]]`). |
-
-### Properties
-
-| Option | Type | Default | Effect |
-|---|---|---|---|
-| `dropPageProperties` | string[] | `['public', 'exclude-from-graph-view', 'icon']` | Page-level property keys excluded from frontmatter. `icon` is dropped by default because it carries a Logseq private-use glyph that renders as a tofu box (□) in Obsidian. |
-| `dropBlockProperties` | string[] | `[]` | **Additional** inline block-property keys to strip (beyond the always-dropped set). |
-| `blockProperties` | `keep` \| `wrap` \| `drop` | `wrap` | How retained (unknown) inline block properties are emitted. `keep` leaves the raw `key:: value` line; `wrap` rewrites it to a Dataview inline field `[key:: value]` (label hidden in reading view, value stays queryable); `drop` removes the line. The always-dropped set and `dropBlockProperties` keys win in every mode. |
-| `snakeCasePageProperties` | boolean | `false` | Convert kebab-case page-property keys to snake_case (e.g. `test-hyphen` → `test_hyphen`). Drop-list matching (`dropPageProperties`) still uses the original kebab-case key. Hyphenated keys can break or complicate Bases/Dataview query syntax (`note["test-hyphen"]` vs. `test_underscore`). |
-| `snakeCaseBlockProperties` | boolean | `false` | Same as `snakeCasePageProperties`, but for retained inline block-property keys (applies in both `keep` and `wrap` modes). |
-
-### Cleanup
-
-| Option | Type | Default | Effect |
-|---|---|---|---|
-| `normalizeWhitespace` | boolean | `true` | **[B1]** Trim trailing whitespace, remove lone empty bullets (`- `), and convert non-breaking spaces (U+00A0) to regular spaces. Backtick and tilde fenced code blocks, including bullet-prefixed fences, and intentional blank lines are left untouched; empty bullets that carry a `^anchor` or own child blocks are kept. This runs before Logseq-only drop operations and pass 2, not as a final cleanup pass. |
+| `queries` | boolean | `true` | Keep simple `{{query}}` macros and converted query blocks. |
+| `flashcards` | boolean | `true` | Keep `#card` markers and `{{cloze}}` wrappers. |
+| `timeTracking` | boolean | `false` | Keep `:LOGBOOK:` / `CLOCK:` time-tracking drawers. |
 
 ---
 
@@ -179,10 +118,7 @@ Obsidian uses flat markdown.
 The only structural touch-up is `fixHeadingChildLists` (a heading directly above an indented list
 gets a `- ` prefix so Obsidian renders the children correctly).
 
-**De-outline (opt-in, per kind).** Controlled by two independent toggles — `deOutlineJournals` and
-`deOutlinePages` — so you can flatten one kind and keep the other as an outline (there is no
-dynamic UI; both are always-visible switches). `deOutline` (`de-outline.ts`) parses the bullet tree
-and re-serializes it as idiomatic markdown using these heuristics:
+**De-outline (opt-in).** The `flattenOutlines` toggle applies to both pages and journals. `deOutline` (`de-outline.ts`) parses the bullet tree and re-serializes it as idiomatic markdown using these heuristics:
 
 - **[C1]** A bullet whose content is a **heading** (`# …`) de-nests to a real heading; its children become
   the body under it. Multiline heading continuations get a blank line separator, **except**
@@ -208,50 +144,22 @@ Preserve is the default.
 
 ## D. Tasks
 
-Logseq tasks are bullets whose text starts with a workflow keyword. Recognized keywords:
-`TODO, DOING, DONE, LATER, NOW, WAITING, WAIT, IN-PROGRESS, CANCELLED, CANCELED`.
+Logseq tasks are bullets whose text starts with a workflow keyword. Recognized keywords: `TODO, DOING, DONE, LATER, NOW, WAITING, WAIT, STARTED, IN-PROGRESS, CANCELLED, CANCELED`.
 
-A colon may follow the keyword (`- TODO: do the thing`); **[D1]** it is recognized as a task and the colon is
-dropped from the emitted text.
-
-**[D1]** The task line plus its indented continuation lines (`SCHEDULED:`, `DEADLINE:`, `:LOGBOOK:`, and
-`created/completed/done/cancelled` properties) are parsed as one unit and re-emitted. A Logseq
-set-literal date value (`completed:: #{"Mar 3rd, 2025"}`) is unwrapped to its quoted date; a
-malformed set literal emits no completion date.
+A colon may follow the keyword (`- TODO: do the thing`); **[D1]** it is recognized as a task and the colon is dropped from the emitted text.
 
 ### Checkbox state mapping
 
-| Logseq state | `plain` | `tasks-emoji` / `tasks-dataview` |
-|---|---|---|
-| `TODO` / `LATER` / `WAITING` / `WAIT` / `IN-PROGRESS` | `[ ]` | `[ ]` |
-| `DOING` / `NOW` | `[ ]` | `[/]` |
-| `DONE` | `[x]` | `[x]` |
-| `CANCELLED` / `CANCELED` | `[x]` | `[-]` |
+| Logseq state | Obsidian checkbox |
+|---|---|
+| `TODO` / `LATER` / `WAITING` / `WAIT` | `[ ]` |
+| `DOING` / `NOW` / `STARTED` / `IN-PROGRESS` | `[/]` |
+| `DONE` | `[x]` |
+| `CANCELLED` / `CANCELED` | `[-]` |
 
-### Metadata mapping
+Priority markers, scheduling and deadline lines, repeaters, and created/completed/cancelled properties remain in their original Logseq form so the importer does not impose a third-party metadata convention.
 
-| Logseq | `tasks-emoji` | `tasks-dataview` | `plain` |
-|---|---|---|---|
-| priority `[#A]` / `[#B]` / `[#C]` | `⏫` / `🔼` / `🔽` | `[priority:: high\|medium\|low]` | left in text |
-| `SCHEDULED: <date>` | `⏳ date` | `[scheduled:: date]` | dropped from metadata |
-| `DEADLINE: <date>` | `📅 date` | `[due:: date]` | dropped from metadata |
-| repeater (`.+1w` / `++2d`) | `🔁 every N unit [when done]` | `[repeat:: <raw>]` | — |
-| `created::` | `➕ date` | `[created:: date]` | — |
-| `completed::` / `done::` | `✅ date` | `[completion:: date]` | — |
-| `cancelled::` / `canceled::` | `❌ date` | `[cancelled:: date]` | — |
-| `:LOGBOOK:` … `:END:` | see `logbook` option | see `logbook` option | see `logbook` option |
-
-Notes:
-- In **plain** format, priority and scheduling are not extracted into metadata — continuation lines
-  are kept as-is, so no information is destroyed (it just stays inline).
-- The **repeater** emoji form distinguishes `.+`/`++` (→ "when done") from `+` (fixed).
-- **[D1]** Task metadata dates normalize ISO and Logseq long-date values to `YYYY-MM-DD`. A source
-  time in `HH:MM` form is retained after the date. Unparsable values
-  such as template tokens are consumed but not emitted in the rich task formats. Plain mode keeps
-  those continuation lines verbatim.
-- **[D1]** **LOGBOOK** has no Obsidian target; with `logbook: 'drop'` (default) it is removed cleanly,
-  with `logbook: 'keep'` the `:LOGBOOK:`/`CLOCK:` lines are preserved verbatim. The drop pass applies
-  to drawers on non-task blocks as well as tasks.
+**[D1]** `:LOGBOOK:` has no direct Obsidian target. Time tracking is disabled by default, which removes `:LOGBOOK:`/`CLOCK:` lines cleanly. Enabling it preserves the drawer verbatim. The drop pass applies to drawers on non-task blocks as well as tasks.
 
 ---
 
@@ -266,11 +174,7 @@ Journals have two distinct source patterns:
   English-month `MMM do, yyyy` family to `[[2024-08-30]]`. Custom source page-title formats are not
   read from `config.edn`.
 
-**Target.** The journal filename is produced from the ISO date via moment using
-`journalDateFormat`. When `useDailyNotes` is on, the folder and format come from the **Daily Notes**
-core plugin (`app.internalPlugins.getPluginById('daily-notes')`), falling back to `Journals` /
-`YYYY-MM-DD` in the settings UI. When off, the user's `journalFolder` / `journalDateFormat` are
-used. Periodic Notes settings are not read.
+**Target.** When `useDailyNotes` is on, the journal folder and filename format come from the **Daily Notes** core plugin (`app.internalPlugins.getPluginById('daily-notes')`), falling back to `Journals` / `YYYY-MM-DD`. When off, journals are written under `Journals` in the selected output folder and use `YYYY-MM-DD`. Periodic Notes settings are not read.
 
 **[E1]** If the target format differs from ISO, pass 2 reformats every in-content
 `[[YYYY-MM-DD]]` link, including links with a `#^anchor`, so links keep matching the filenames.
@@ -279,11 +183,8 @@ used. Periodic Notes settings are not read.
 
 ## F. Pages, namespaces & output paths
 
-- **[F1]** **Pages** are placed under `pagesFolder` (or the output root if empty). A namespaced Logseq page
-  filename is converted to a folder path: `namespaceToPath` splits on `%2F` if present, otherwise
-  on the `___` separator, percent-decodes each segment (`decodeLogseqName`, tolerant of malformed
-  escapes), and joins with `/`. So `a___b.md` → `a/b.md` and `Encoded%3AColon.md` → `Encoded:Colon.md`.
-- **Journals** are placed under `journalFolder` with the date-formatted filename.
+- **[F1]** **Pages** are placed in the selected output folder. A namespaced Logseq page filename is converted to a folder path: `namespaceToPath` splits on `%2F` if present, otherwise on the `___` separator, percent-decodes each segment (`decodeLogseqName`, tolerant of malformed escapes), and joins with `/`. So `a___b.md` → `a/b.md` and `Encoded%3AColon.md` → `Encoded:Colon.md`.
+- **Journals** use the Daily Notes folder when `useDailyNotes` is on, or `Journals` under the selected output folder when it is off.
 - All names are run through `sanitizeFileNameKeepPath` to remove OS-illegal characters while
   keeping the folder hierarchy.
 - The **canonical name** (the namespace/date path without `.md`) is what block references and
@@ -317,11 +218,7 @@ The alias values still go into the note's `aliases:` frontmatter so Obsidian aut
 unrewritten. If a page defines both `alias::` and `aliases::`, both contribute to frontmatter, but
 `alias::` takes precedence when building the cross-file rewrite index.
 
-**[G1] Block IDs.** Logseq UUIDs (e.g. `64ab9aa4-459a-41b1-8c21-dbb38dc0c79b`) are shortened to a stable
-6-char anchor (`^64ab9a`) when `shortenBlockIds` is on (default), or kept full when off. Short-id
-collisions **within one note** are disambiguated by appending `-1`, `-2`, … The same mapping is
-used to rewrite every `((uuid))` reference, so anchors and links stay consistent. Anchor placement
-is context-aware:
+**[G1] Block IDs.** Logseq UUIDs (e.g. `64ab9aa4-459a-41b1-8c21-dbb38dc0c79b`) are shortened to a stable 6-char anchor (`^64ab9a`). Short-id collisions **within one note** are disambiguated by appending `-1`, `-2`, … The same mapping is used to rewrite every `((uuid))` reference, so anchors and links stay consistent. Anchor placement is context-aware:
 
 - On a closing code fence (`` ``` ``): the anchor goes on a **new line after** the fence (appending
   to the fence would break CommonMark).
@@ -346,37 +243,17 @@ Backtick or tilde fenced blocks (including list-prefixed fences) retain the exac
 document. An `id::`-shaped line inside a fence is not indexed or removed. Keeping block references
 inside code inert is deliberate: code examples describe Logseq syntax and are not graph references.
 
-**[G1] Always-embed option (`alwaysEmbedBlockRefs`).** By default, bare `((uuid))` references become
-plain links `[[Page#^id]]`. With `alwaysEmbedBlockRefs: true`, they become embeds `![[Page#^id]]`
-instead — useful because Obsidian displays embeds inline while plain links just show the anchor
-text. Block embeds (`{{embed ((uuid))}}`) always produce `![[...]]` regardless of this option.
-
-**[G1] Orphan block references.** A `((uuid))` whose target was never defined in the graph is left
-untouched by default (the raw text survives). With `removeOrphanBlockRefs` on, such unresolved
-`((uuid))` references and `{{embed ((uuid))}}` embeds are removed cleanly (including lines that
-become empty). This runs *after* `resolveBlockRefs`, so only genuine orphans remain to remove.
+**[G1] Orphan block references.** A `((uuid))` whose target was never defined in the graph is left untouched so the source text is not silently lost. Bare references with a known target become plain links; explicit block embeds remain embeds.
 
 ---
 
 ## H. Tags
 
-Tag handling happens in pass 2 (`convertTags`), outside code fences. Two syntaxes are recognized:
-`#simple-tag` and `#[[multi word tag]]`. Tags must follow the start of line, whitespace, or an
-opening bracket/paren (`([`). For each tag, in order:
+Tag handling happens in pass 2 (`convertTags`), outside code fences. Two syntaxes are recognized: `#simple-tag` and `#[[multi word tag]]`. Tags must follow the start of line, whitespace, or an opening bracket/paren (`([`).
 
-1. **[H1] Hex color?** Pure 6-digit hex tokens (`#FF0000`) are never treated as tags — left as-is.
-2. **Drop?** If the tag (or its hyphenated form) is in `dropTags`, it is removed entirely.
-   Default `dropTags` is `['card']`.
-3. **Convert to link?** Only if `convertTagsToLinks` is on:
-   - If `convertTagsOnlyExistingPages` is on (default), the tag becomes `[[tag]]` **only when a
-     page with that name exists** in the graph; otherwise it stays a `#tag`. This is the "smart"
-     conversion: real pages become links, ad-hoc tags stay tags. Matching is case-insensitive against
-     the page's full canonical name; the bare basename of a namespaced page is not added separately.
-   - If `convertTagsOnlyExistingPages` is off, every tag becomes `[[tag]]`.
-4. **Keep as tag (default).** Multi-word `#[[multi word]]` is sanitized to `#multi-word`; simple
-   tags are left as-is.
-
-Tags listed in `dropTags` are also removed from frontmatter `tags:` (section I).
+1. **[H1]** Pure 6-digit hex tokens (`#FF0000`) are never treated as tags and are left as-is.
+2. Multi-word `#[[multi word]]` tags are sanitized to `#multi-word`; simple tags are left as-is.
+3. The `#card` marker is kept when Flashcards is on and removed when it is off. This also applies to frontmatter `tags:` (section I).
 
 ---
 
@@ -388,22 +265,15 @@ Tags listed in `dropTags` are also removed from frontmatter `tags:` (section I).
 (`extractPageProperties`):
 
 - `alias` / `aliases` → an `aliases:` list (wikilink brackets stripped).
-- `tags` → a `tags:` list (`#` and `[[…]]` stripped; comma- and space-separated values both
-  handled; values in `dropTags` removed; if all are removed, no `tags:` key is emitted).
+- `tags` → a `tags:` list (`#` and `[[…]]` stripped; comma- and space-separated values both handled). The `card` value is removed when Flashcards is off; if no tags remain, no `tags:` key is emitted.
 - `title` → registered as an additional alias (so the page is findable by title in Obsidian);
   removed from YAML as a standalone key. It does not replace the filename.
-- Keys listed in `dropPageProperties` → dropped. Default: `public`, `exclude-from-graph-view`,
-  `icon`. (`icon` carries a Logseq private-use glyph that renders as □ in Obsidian.)
+- `public`, `exclude-from-graph-view`, and `icon` → dropped. (`icon` carries a Logseq private-use glyph that renders as □ in Obsidian.)
 - **Always dropped** (Logseq-internal, never meaningful in Obsidian — not user-overridable):
   `collapsed`, `filters`, `background-color`, `heading`, `template`, `template-including-parent`,
   plus **any key starting with `logseq.`**, **`query-`**, **`hl-`**, or **`ls-`**.
-  These keys cannot be un-dropped via `dropPageProperties`.
-- **[I1]** **Tag-style values → links (pass-2):** a scalar value that is a single tag (`status:: #IN-PROGRESS`,
-  `area:: #[[Page One]]`) is emitted as quoted text (`status: "#IN-PROGRESS"`) by default. When tag
-  conversion is enabled (`convertTagsToLinks`), the value is linkified to a wikilink
-  (`status: "[[IN-PROGRESS]]"`) using the vault-wide page set, respecting
-  `convertTagsOnlyExistingPages`. With tag conversion off (the default) these values stay quoted text,
-  so default output is unchanged. `tags:` / `aliases:` lists are never affected.
+  These keys are not user-overridable.
+- **[I1]** **Tag-style values:** a scalar value that is a single tag (`status:: #IN-PROGRESS`, `area:: #[[Page One]]`) is emitted as quoted text (`status: "#IN-PROGRESS"`). `tags:` and `aliases:` lists are handled separately as described above.
 - **[I1]** **YAML quoting:** values that are YAML-unsafe (contain `: `, `#`, start with `[`, `{`, are
   boolean words, integers, floats, or reserved YAML tokens) are double-quoted. Wikilink-valued
   scalars are also quoted (`project: "[[Big Project]]"`); multiple wikilink values become a quoted
@@ -434,20 +304,7 @@ starting with `logseq.`**, **`query-`**, **`hl-`**, or **`ls-`** (highlight/anno
 (`alias`/`aliases` are always dropped from blocks because they are only meaningful as page-level
 properties, where they are already handled by the frontmatter converter.)
 
-**Additionally dropped:** any key the user lists in `dropBlockProperties` (default empty).
-
-**[I1] Retained (unknown) block properties** (e.g. `rating:: 5`, `participants:: [[Alice]], [[Bob]]`) are
-handled by the `blockProperties` option:
-
-- `keep` — the raw `key:: value` line is left as-is.
-- `wrap` (default) — rewritten to a Dataview inline field `[key:: value]`, preserving leading
-  indentation and any trailing `^anchor` (which stays outside the brackets). The label is hidden in
-  reading view while the value stays queryable. Values containing a stray `]`/`[` (outside a
-  `[[wikilink]]`) fall back to `keep` so the inline-field syntax isn't broken; property-like lines
-  inside backtick or tilde fenced code blocks, including bullet-prefixed fences, are never touched.
-- `drop` — the line is removed entirely.
-
-The always-dropped set and `dropBlockProperties` keys win in every mode.
+**[I1] Retained (unknown) block properties** (e.g. `rating:: 5`, `participants:: [[Alice]], [[Bob]]`) are left in their original `key:: value` form. The always-dropped set above is removed in every case.
 
 ### Special property conversions
 
@@ -470,7 +327,7 @@ The always-dropped set and `dropBlockProperties` keys win in every mode.
 | `#+BEGIN_NOTE/TIP/WARNING/IMPORTANT/CAUTION/EXAMPLE` | `> [!type]` callout | **[J1]** first `**bold**` line becomes the callout title |
 | `- #+BEGIN_TIP` (bullet-prefixed) | `- > [!tip]` callout under bullet | **[J1]** |
 | `#+BEGIN_COMMENT` | `%% … %%` | |
-| `#+BEGIN_QUERY` … `#+END_QUERY` | `` ```query `` … `` ``` `` | **[J1]** preserves query DSL in a fenced block; this happens before the `queries` keep/drop option |
+| `#+BEGIN_QUERY` … `#+END_QUERY` | `` ```query `` … `` ``` `` | **[J1]** preserves query DSL in a fenced block when Queries is on; removes it when Queries is off |
 | other `#+BEGIN_*` (CENTER/VERSE/PINNED/…) | `> [!note]` fallback | nesting supported |
 | `#+BEGIN_*` inside a fenced code block | left unchanged | **[J1]** fence-aware: org markers in code are inert |
 | numbered list (bullet + `logseq.order-list-type:: number`) | `1.` `2.` `3.` | **[J1]** counter resets on level change / non-numbered sibling |
@@ -488,7 +345,6 @@ The always-dropped set and `dropBlockProperties` keys win in every mode.
 | `[label](../assets/x.pdf)` | `[[x.pdf]]` | **[K1]** plain (non-embed) asset links also converted |
 | `[label [nested] label](../assets/x.pdf)` | `[[x.pdf]]` | **[K1]** label allows one level of nested brackets |
 | `![alt](../assets/x.png){:height H, :width W}` | `![[x.png\|WxH]]` | dimensions always win over alt text |
-| `![alt](../assets/x.png)` with `keepAssetAltText` | `![[x.png\|alt]]` | only when no dimensions and alt is non-empty |
 | `![](../assets/Book_(2024).pdf)` | `![[Book_(2024).pdf]]` | **[K1]** paren-balanced path matching |
 | `{{video URL}}` / `{{youtube URL}}` | `![](URL)` | |
 | `{{tweet URL}}` | `![](URL)` | |
@@ -508,22 +364,17 @@ modification times when the filesystem exposes them.
 
 ## L. Logseq-only content
 
-The importer exposes independent controls for simple queries, flashcard syntax, and LOGBOOK
-drawers. Their exact behavior reflects pipeline ordering and the separate tag controls:
+The importer exposes independent toggles for queries, flashcard syntax, and LOGBOOK drawers:
 
-| Feature | Syntax | Option | Default | If kept | If dropped |
-|---|---|---|---|---|---|
-| Simple queries | `{{query …}}` | `queries` | `keep` | left verbatim and a report entry is added | matching macro removed |
-| Advanced queries | `#+BEGIN_QUERY … #+END_QUERY` | none after normalization | retained | converted to a fenced `query` block | same as keep; conversion happens before `applyLogseqOnly` sees it |
-| Flashcards | `#card`, `{{cloze …}}` | `flashcards` | `keep` | cloze wrapper retained and a report entry is added; `#card` continues through tag handling | `{{cloze X}}` → `X`, `#card` removed |
-| Time tracking | `:LOGBOOK:` / `CLOCK:` drawers | `logbook` | `drop` | drawer lines kept | drawer lines removed |
+| Feature | Syntax | Toggle default | When on | When off |
+|---|---|---|---|---|
+| Simple queries | `{{query …}}` | On | left verbatim and a report entry is added | matching macro removed |
+| Advanced queries | `#+BEGIN_QUERY … #+END_QUERY` | On | converted to a fenced `query` block | removed |
+| Flashcards | `#card`, `{{cloze …}}` | On | syntax retained and a report entry is added | `{{cloze X}}` → `X`, `#card` removed |
+| Time tracking | `:LOGBOOK:` / `CLOCK:` drawers | Off | drawer lines kept | drawer lines removed |
 
 Graph-level whiteboards are skipped and reported once because Obsidian cannot read Logseq's
 whiteboard format.
-
-`dropTags` is applied after the flashcard keep/drop pass. With the defaults, `card` is in
-`dropTags`, so choosing `flashcards: 'keep'` preserves `{{cloze}}` wrappers but still removes
-`#card`. Remove `card` from `dropTags` to preserve the marker too.
 
 **Template-field macros are out of scope.** Dynamic template placeholders such as `{{date:…}}`,
 `{{sunday:…}}`, `{{monday:…}}` and similar are left as literal text; converting them to Obsidian
