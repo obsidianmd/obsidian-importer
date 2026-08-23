@@ -10,6 +10,31 @@ interface MarkdownCodeSegment {
 	text: string;
 }
 
+/** Marks lines that belong to a fenced code block, including both delimiters. */
+export function markdownFenceLines(text: string): boolean[] {
+	const protectedLines: boolean[] = [];
+	let fence: { marker: string, length: number } | null = null;
+
+	for (const line of text.split('\n')) {
+		if (fence) {
+			protectedLines.push(true);
+			const close = /^[ \t]*(?:[-*+]\s+)?([`~]{3,})(?:[ \t]+\^[A-Za-z0-9_-]+)?[ \t]*$/.exec(line);
+			if (close && close[1][0] === fence.marker && close[1].length >= fence.length) fence = null;
+			continue;
+		}
+
+		const open = /^[ \t]*(?:[-*+]\s+)?([`~]{3,})/.exec(line);
+		protectedLines.push(open !== null);
+		if (open) {
+			const marker = open[1];
+			const after = line.slice(open[0].length);
+			if (!after.includes(marker)) fence = { marker: marker[0], length: marker.length };
+		}
+	}
+
+	return protectedLines;
+}
+
 /**
  * Splits Markdown into ordinary text and code, retaining every delimiter.
  * Fenced blocks and inline code spans are both protected. The fence matcher
@@ -31,7 +56,7 @@ function codeSegments(text: string): MarkdownCodeSegment[] {
 
 		if (fence) {
 			append(true, line);
-			const close = /^[ \t]*(?:[-*+]\s+)?([`~]{3,})[ \t]*(?:\n|$)/.exec(line);
+			const close = /^[ \t]*(?:[-*+]\s+)?([`~]{3,})(?:[ \t]+\^[A-Za-z0-9_-]+)?[ \t]*(?:\n|$)/.exec(line);
 			if (close && close[1][0] === fence.marker && close[1].length >= fence.length) fence = null;
 			continue;
 		}

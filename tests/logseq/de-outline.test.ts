@@ -23,6 +23,22 @@ test('deOutline: multiline continuation within a bullet stays together', () => {
 	assert.equal(deOutline(input), ['First line', 'continues here.'].join('\n'));
 });
 
+test('deOutline: preserves top-level content outside bullets', () => {
+	const input = [
+		'Intro paragraph written outside any bullet.',
+		'',
+		'> [!quote]',
+		'> A converted top-level block.',
+		'',
+		'- first bullet',
+		'- second bullet',
+	].join('\n');
+	const output = deOutline(input);
+	assert.match(output, /^Intro paragraph written outside any bullet\./);
+	assert.match(output, /> \[!quote\]\n> A converted top-level block\./);
+	assert.match(output, /first bullet\n\nsecond bullet$/);
+});
+
 // ---------------------------------------------------------------------------
 // Heading bullets → real headings
 // ---------------------------------------------------------------------------

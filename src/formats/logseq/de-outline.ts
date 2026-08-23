@@ -2,6 +2,8 @@
 // into idiomatic flat markdown (paragraphs, headings, lists). This is the
 // inverse of the "outline" function. Pure, side-effect-free.
 
+import { markdownFenceLines } from '../../markdown';
+
 interface OutlineNode {
 	content: string;
 	children: OutlineNode[];
@@ -14,6 +16,7 @@ interface OutlineNode {
  */
 function parseOutline(content: string): OutlineNode[] {
 	const lines = content.split('\n');
+	const fenced = markdownFenceLines(content);
 	const root: OutlineNode[] = [];
 	const stack: { indent: number, node: OutlineNode, children: OutlineNode[] }[] = [
 		{ indent: -1, node: { content: '', children: root, rawLines: [] }, children: root },
@@ -27,9 +30,16 @@ function parseOutline(content: string): OutlineNode[] {
 		const bulletMatch = line.match(/^(\s*)- (.*)$/);
 
 		if (!bulletMatch) {
-			// Non-bullet line at top level — could be leftover content; skip it
-			// (shouldn't happen in well-formed Logseq output, but be safe)
-			i++;
+			// Content outside the outline is still source content. Keep each contiguous
+			// run as a top-level node instead of silently deleting it.
+			const rawLines = [line];
+			let j = i + 1;
+			while (j < lines.length && !/^(\s*)- /.test(lines[j])) rawLines.push(lines[j++]);
+			if (rawLines.some(raw => raw.trim() !== '')) {
+				root.push({ content: rawLines.join('\n'), children: [], rawLines });
+			}
+			stack.splice(1);
+			i = j;
 			continue;
 		}
 
@@ -41,8 +51,7 @@ function parseOutline(content: string): OutlineNode[] {
 		const rawLines = [line];
 		const continuationIndent = indent + 2; // content continuation is indented past "- "
 
-		// Check if this bullet starts a code block
-		let inCodeBlock = firstLineContent.match(/^```/) !== null;
+		let inCodeBlock = fenced[i];
 
 		let j = i + 1;
 		while (j < lines.length) {
@@ -50,14 +59,9 @@ function parseOutline(content: string): OutlineNode[] {
 			const nextBulletMatch = nextLine.match(/^(\s*)- /);
 
 			if (inCodeBlock) {
-				// Inside code block: keep consuming until closing fence at same level
 				rawLines.push(nextLine);
-				const stripped = nextLine.replace(/^\s*/, '');
-				// C1: closing fence may have a trailing ^anchor
-				if (stripped.match(/^```\s*(\^\S+)?\s*$/)) {
-					inCodeBlock = false;
-				}
 				j++;
+				inCodeBlock = fenced[j] ?? false;
 				continue;
 			}
 
@@ -69,11 +73,8 @@ function parseOutline(content: string): OutlineNode[] {
 			const nextIndent = nextLine.match(/^(\s*)/)?.[1].length ?? 0;
 			if (nextLine.trim() === '' || nextIndent >= continuationIndent) {
 				rawLines.push(nextLine);
-				// Check if continuation starts a code block
-				if (nextLine.trim().match(/^```/)) {
-					inCodeBlock = true;
-				}
 				j++;
+				inCodeBlock = fenced[j - 1] && (fenced[j] ?? false);
 			}
 			else {
 				break;

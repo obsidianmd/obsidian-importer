@@ -81,15 +81,10 @@ test('removeOrphanBlockRefs leaves page embeds untouched', () => {
 // Date-link reformatting is covered in journals.test.ts against E1.
 // ---------------------------------------------------------------------------
 
-// G1: refs/embeds inside code fences ARE resolved when the UUID is known.
-// Logseq embed syntax is unambiguous; converted form is more useful in Obsidian
-// (e.g. code blocks used as copy-pasteable examples should show the resolved link).
-// Inline-code spans are still protected.
-test('[G1] resolveBlockRefs resolves refs inside a fenced code block when UUID is known', () => {
+test('[G1] resolveBlockRefs preserves refs inside a fenced code block', () => {
 	const index = new Map<string, BlockRefTarget>([['abc123', { page: 'P', shortId: 'abc123' }]]);
 	const input = ['```', '{{embed ((abc123))}} and ((abc123))', '```'].join('\n');
-	const expected = ['```', '![[P#^abc123]] and [[P#^abc123]]', '```'].join('\n');
-	assert.equal(resolveBlockRefs(input, index), expected);
+	assert.equal(resolveBlockRefs(input, index), input);
 });
 
 test('[G1] resolveBlockRefs leaves unresolved refs inside a fenced code block inert', () => {
@@ -109,6 +104,13 @@ test('[G1] attachBlockIds places the anchor after a code block, not on the fence
 	const input = ['- ```', '  code', '  ```', '  id:: abc123'].join('\n');
 	const { content } = attachBlockIds(input, true);
 	assert.equal(content, ['- ```', '  code', '  ```', '  ^abc123'].join('\n'));
+});
+
+test('[G1] attachBlockIds preserves id-like syntax inside tilde fences', () => {
+	const input = ['- ~~~markdown', '  id:: abc123', '  ((abc123))', '  ~~~'].join('\n');
+	const { content, ids } = attachBlockIds(input, true);
+	assert.equal(content, input);
+	assert.deepEqual(ids, []);
 });
 
 // G1: a heading block must get its anchor on its own line below the heading,

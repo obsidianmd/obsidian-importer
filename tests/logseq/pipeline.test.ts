@@ -46,3 +46,17 @@ test('scheduled task metadata is rendered (emoji default)', () => {
 	const { body } = convertLocal(input, opts);
 	assert.equal(body, '- [ ] pay rent ⏳ 2024-09-01');
 });
+
+test('does not transform documented Logseq syntax inside Markdown code', () => {
+	const input = [
+		'- Logseq syntax:',
+		'  ~~~markdown',
+		'  - TODO [#A] write the docs',
+		'    SCHEDULED: <2024-06-15 Sat>',
+		'    heading:: 2',
+		'    key:: value',
+		'    logseq.order-list-type:: number',
+		'  ~~~',
+	].join('\n');
+	assert.equal(convertLocal(input, opts).body, input);
+});

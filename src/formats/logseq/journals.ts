@@ -6,6 +6,8 @@
 // to ISO `YYYY-MM-DD`. The orchestrator reformats ISO into the target Obsidian
 // daily-note format at runtime (using moment), which is not needed here.
 
+import { outsideMarkdownCode } from '../../markdown';
+
 const MONTHS: Record<string, number> = {
 	jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
 	jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
@@ -57,12 +59,12 @@ export function logseqDateToISO(text: string): string | null {
 }
 
 export function convertJournalDateLinks(content: string): string {
-	return content.replace(DATE_LINK, (whole, monthName: string, day: string, year: string) => {
+	return outsideMarkdownCode(content, segment => segment.replace(DATE_LINK, (whole, monthName: string, day: string, year: string) => {
 		const mo = MONTHS[monthName.slice(0, 3).toLowerCase()];
 		const d = parseInt(day, 10);
 		if (!mo || !validYMD(parseInt(year, 10), mo, d)) return whole;
 		return `[[${year}-${pad(mo)}-${pad(d)}]]`;
-	});
+	}));
 }
 
 /**
@@ -74,9 +76,9 @@ export function convertJournalDateLinks(content: string): string {
  */
 export function reformatDateLinks(content: string, formatIso: (iso: string) => string | null): string {
 	// Also handles `[[YYYY-MM-DD#^anchor]]` — date part is reformatted, anchor preserved.
-	return content.replace(/\[\[(\d{4}-\d{2}-\d{2})(#\^[^\]]+)?\]\]/g, (whole, iso: string, anchor?: string) => {
+	return outsideMarkdownCode(content, segment => segment.replace(/\[\[(\d{4}-\d{2}-\d{2})(#\^[^\]]+)?\]\]/g, (whole, iso: string, anchor?: string) => {
 		const formatted = formatIso(iso);
 		if (formatted === null) return whole;
 		return anchor ? `[[${formatted}${anchor}]]` : `[[${formatted}]]`;
-	});
+	}));
 }

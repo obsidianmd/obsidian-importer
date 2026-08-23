@@ -44,3 +44,13 @@ test('[B1] does not collapse intentional blank lines', () => {
 	const input = ['- a', '', '', '- b'].join('\n');
 	assert.equal(normalizeWhitespace(input), input);
 });
+
+test('[B1] keeps an empty bullet that owns children', () => {
+	const input = ['- ', '\t- child one', '\t- child two'].join('\n');
+	assert.equal(normalizeWhitespace(input), ['-', '\t- child one', '\t- child two'].join('\n'));
+});
+
+test('[B1] does not normalize inside tilde fences', () => {
+	const input = ['~~~markdown', 'code\u00a0  ', '- ', '~~~'].join('\n');
+	assert.equal(normalizeWhitespace(input), input);
+});

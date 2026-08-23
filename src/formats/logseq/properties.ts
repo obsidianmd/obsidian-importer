@@ -4,6 +4,8 @@
 // lines) and map to Obsidian YAML frontmatter. Block properties are indented
 // `key:: value` continuation lines; most Logseq-internal ones are dropped.
 
+import { outsideMarkdownCode } from '../../markdown';
+
 const PROPERTY_LINE = /^([A-Za-z0-9_.-]+):: ?(.*)$/;
 // Also matches bullet-form block properties: `- key:: value`
 // Groups: 1=indent, 2=bullet (`- ` or undefined), 3=key, 4=value.
@@ -328,19 +330,19 @@ export function removeLeftoverBlockProperties(
 	mode: BlockPropertyMode = 'keep',
 	snakeCase = false
 ): string {
+	return outsideMarkdownCode(content,
+		segment => removeLeftoverBlockPropertySegment(segment, dropBlockProperties, mode, snakeCase));
+}
+
+function removeLeftoverBlockPropertySegment(
+	content: string,
+	dropBlockProperties: string[],
+	mode: BlockPropertyMode,
+	snakeCase: boolean,
+): string {
 	const userDrop = new Set(dropBlockProperties);
 	const out: string[] = [];
-	let inFence = false;
 	for (const line of content.split('\n')) {
-		if (/^\s*```/.test(line)) {
-			inFence = !inFence;
-			out.push(line);
-			continue;
-		}
-		if (inFence) {
-			out.push(line);
-			continue;
-		}
 		const m = line.match(BLOCK_PROPERTY_LINE);
 		if (!m) {
 			out.push(line);
@@ -401,6 +403,10 @@ export function linkifyTagValuesInFrontmatter(yaml: string, opts: LinkifyTagValu
 }
 
 export function convertHeadingProperty(content: string): string {
+	return outsideMarkdownCode(content, convertHeadingPropertySegment);
+}
+
+function convertHeadingPropertySegment(content: string): string {
 	const lines = content.split('\n');
 	const out: string[] = [];
 	let lastBulletIndex = -1;

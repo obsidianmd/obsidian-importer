@@ -12,6 +12,10 @@ export function convertHighlights(content: string): string {
 
 /** Convert Logseq `logseq.order-list-type:: number` bullets into `1.`, `2.`, ... */
 export function convertNumberedLists(content: string): string {
+	return outsideMarkdownCode(content, convertNumberedListSegment);
+}
+
+function convertNumberedListSegment(content: string): string {
 	const lines = content.split('\n');
 	const bulletRe = /^(\s*)-\s+(.*)$/;
 	const propRe = /^(\s*)logseq\.order-list-type::\s*number\s*$/;
@@ -63,7 +67,7 @@ const CALLOUT_TYPES = new Set(['NOTE', 'TIP', 'WARNING', 'IMPORTANT', 'CAUTION',
 
 /** Convert Logseq org-mode `#+BEGIN_*`/`#+END_*` blocks into Obsidian syntax. */
 export function convertOrgBlocks(content: string): string {
-	return processOrgLines(content.split('\n')).join('\n');
+	return outsideMarkdownCode(content, segment => processOrgLines(segment.split('\n')).join('\n'));
 }
 
 const BEGIN_RE = /^(\s*)(?:- )?#\+BEGIN_(\w+)/i;
@@ -72,22 +76,8 @@ const END_RE = /^(\s*)(?:- )?#\+END_\w+/i;
 function processOrgLines(lines: string[]): string[] {
 	const out: string[] = [];
 	let i = 0;
-	let inFence = false;
 	while (i < lines.length) {
 		const line = lines[i];
-
-		// J1: skip begin/end markers inside fenced code blocks.
-		if (/^\s*```/.test(line) || /^\s*- ```/.test(line)) {
-			inFence = !inFence;
-			out.push(line);
-			i++;
-			continue;
-		}
-		if (inFence) {
-			out.push(line);
-			i++;
-			continue;
-		}
 
 		const begin = BEGIN_RE.exec(line);
 		if (!begin) {
@@ -220,6 +210,10 @@ function stripIndent(line: string, n: number): string {
  * the heading own the nested list.
  */
 export function fixHeadingChildLists(content: string): string {
+	return outsideMarkdownCode(content, fixHeadingChildListSegment);
+}
+
+function fixHeadingChildListSegment(content: string): string {
 	const lines = content.split('\n');
 	const headingRe = /^#{1,6}\s+\S/;
 	const indentedListRe = /^[\t ]+[-*+]\s/;
@@ -238,48 +232,39 @@ export function fixHeadingChildLists(content: string): string {
  * into Obsidian's markdown image/embed syntax `![](URL)`.
  */
 export function convertMediaEmbeds(content: string): string {
-	// J1: also match bullet-opened fences `- ``` `
-	const fenceRe = /^(?:\s*- )?\s*```/;
-	let inFence = false;
-	return content
-		.split('\n')
-		.map(line => {
-			if (fenceRe.test(line)) {
-				inFence = !inFence;
-				return line;
-			}
-			if (inFence) return line;
-			return line.replace(/\{\{(?:video|youtube|tweet)\s+([^}]+?)\s*\}\}/g, '![]($1)');
-		})
-		.join('\n');
+	return outsideMarkdownCode(content,
+		segment => segment.replace(/\{\{(?:video|youtube|tweet)\s+([^}]+?)\s*\}\}/g, '![]($1)'));
 }
 
 /** Align a list-nested fenced code block's closing fence with its opening fence. */
 export function fixCodeBlocksInLists(content: string): string {
 	const lines = content.split('\n');
-	// J1: capture prefix + bullet separately to compute content indent (tab-safe).
-	const openRe = /^([ \t]*)([-*+]\s+)?```/;
-	const closeRe = /^[ \t]*```[ \t]*$/;
-	let inFence = false;
+	const openRe = /^([ \t]*)(?:([-*+])([ \t]+))?([`~]{3,})/;
+	let fence: { marker: string, length: number } | null = null;
 	let fenceIndent = '';
 
 	return lines
 		.map(line => {
-			if (!inFence) {
+			if (!fence) {
 				const m = openRe.exec(line);
 				if (m) {
-					inFence = true;
-					const prefix = m[1]; // whitespace before the bullet (or fence)
-					const bullet = m[2]; // e.g. '- ' or undefined
-					// Content (and closing fence) indent = prefix + bullet-width spaces.
-					fenceIndent = bullet ? prefix + ' '.repeat(bullet.length) : prefix;
+					const marker = m[4];
+					fence = { marker: marker[0], length: marker.length };
+					const prefix = m[1];
+					const bullet = m[2];
+					const separator = m[3] ?? '';
+					fenceIndent = bullet
+						? prefix + (separator.includes('\t') ? separator : ' '.repeat(1 + separator.length))
+						: prefix;
 				}
 				return line;
 			}
-			if (closeRe.test(line)) {
-				inFence = false;
+			const close = /^[ \t]*([`~]{3,})[ \t]*$/.exec(line);
+			if (close && close[1][0] === fence.marker && close[1].length >= fence.length) {
+				const marker = close[1];
+				fence = null;
 				// Only correct if there's a meaningful indent; leave top-level fences unchanged.
-				return fenceIndent ? fenceIndent + '```' : line;
+				return fenceIndent ? fenceIndent + marker : line;
 			}
 			return line;
 		})

@@ -5,6 +5,8 @@
 // reference it. We shorten the UUID to an idiomatic short anchor and keep a
 // uuid -> {page, shortId} index so references across files resolve.
 
+import { markdownFenceLines, outsideMarkdownCode } from '../../markdown';
+
 export interface DefinedId {
 	uuid: string;
 	shortId: string;
@@ -26,6 +28,7 @@ export function shortenId(uuid: string): string {
 
 export function attachBlockIds(content: string, shorten: boolean): { content: string, ids: DefinedId[] } {
 	const lines = content.split('\n');
+	const fenced = markdownFenceLines(content);
 	const out: string[] = [];
 	const ids: DefinedId[] = [];
 	const used = new Set<string>();
@@ -43,7 +46,13 @@ export function attachBlockIds(content: string, shorten: boolean): { content: st
 		return result;
 	};
 
-	for (const line of lines) {
+	for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+		const line = lines[lineIndex];
+		if (fenced[lineIndex]) {
+			if (line.trim() !== '') lastContentIndex = out.length;
+			out.push(line);
+			continue;
+		}
 		const m = line.match(ID_LINE);
 		if (m && lastContentIndex >= 0) {
 			const uuid = m[2];
@@ -53,7 +62,7 @@ export function attachBlockIds(content: string, shorten: boolean): { content: st
 			const target = out[lastContentIndex];
 			if (!new RegExp(`\\^${shortId}\\s*$`).test(target)) {
 				// G1: anchor after a closing fence (appending breaks CommonMark)
-				if (/^[ \t]*```[ \t]*$/.test(target)) {
+				if (/^[ \t]*(?:[-*+]\s+)?[`~]{3,}[ \t]*$/.test(target)) {
 					out.push(indent + `^${shortId}`);
 					lastContentIndex = out.length - 1;
 				}
@@ -93,26 +102,8 @@ export function resolveBlockRefs(
 	index: Map<string, BlockRefTarget>,
 	opts: { alwaysEmbedBlockRefs?: boolean } = {},
 ): string {
-	// Logseq ref/embed syntax ({{embed ((uuid))}}, ((uuid))) is unambiguous enough
-	// that we convert even inside code fences — the resolved Obsidian syntax is more
-	// useful than stale UUIDs (e.g. in copy-pasteable examples). The only guard is
-	// that the UUID must exist in the index, which resolveSegment already enforces.
-	// Inline-code spans within a line are still protected.
 	const alwaysEmbed = opts.alwaysEmbedBlockRefs ?? false;
-	return content.split('\n').map(line => resolveOutsideInlineCode(line, index, alwaysEmbed)).join('\n');
-}
-
-function resolveOutsideInlineCode(line: string, index: Map<string, BlockRefTarget>, alwaysEmbed: boolean): string {
-	const inlineRe = /`[^`]*`/g;
-	let result = '';
-	let last = 0;
-	let m: RegExpExecArray | null;
-	while ((m = inlineRe.exec(line)) !== null) {
-		result += resolveSegment(line.slice(last, m.index), index, alwaysEmbed);
-		result += m[0];
-		last = m.index + m[0].length;
-	}
-	return result + resolveSegment(line.slice(last), index, alwaysEmbed);
+	return outsideMarkdownCode(content, segment => resolveSegment(segment, index, alwaysEmbed));
 }
 
 function resolveSegment(text: string, index: Map<string, BlockRefTarget>, alwaysEmbed: boolean): string {
@@ -141,12 +132,13 @@ function resolveSegment(text: string, index: Map<string, BlockRefTarget>, always
  * `((uuid))` / `{{embed ((uuid))}}` patterns remain as orphans.
  */
 export function removeOrphanBlockRefs(content: string): string {
-	// Orphan block embeds
-	content = content.replace(/\{\{embed\s+\(\([^()]+?\)\)\}\}/g, '');
-	// Orphan bare block references
-	content = content.replace(/\(\([^()]+?\)\)/g, '');
-	// Clean up lines that became empty or whitespace-only due to removal
+	return outsideMarkdownCode(content, removeOrphanBlockRefSegment);
+}
+
+function removeOrphanBlockRefSegment(content: string): string {
 	return content
+		.replace(/\{\{embed\s+\(\([^()]+?\)\)\}\}/g, '')
+		.replace(/\(\([^()]+?\)\)/g, '')
 		.split('\n')
 		.map(line => (/^\s*[-*+]?\s*$/.test(line) ? '' : line))
 		.join('\n')
