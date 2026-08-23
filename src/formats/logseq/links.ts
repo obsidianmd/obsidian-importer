@@ -33,6 +33,9 @@ export interface ConvertTagsOptions {
 	dropTags: Set<string>;
 }
 
+// CSS hex colours: RGB, RGBA, RRGGBB, or RRGGBBAA.
+const HEX_COLOUR = /^(?:[0-9A-Fa-f]{3,4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/;
+
 export function convertTags(content: string, options: ConvertTagsOptions): string {
 	const { toLinks, onlyExistingPages, knownPages, dropTags } = options;
 
@@ -46,11 +49,16 @@ export function convertTags(content: string, options: ConvertTagsOptions): strin
 			}
 			return `${pre}#${name.replace(/\s+/g, '-')}`;
 		});
-		// #simple-tag (letters, digits, /_-), must follow start, whitespace, or `([`
-		segment = segment.replace(/(^|[\s([])#([\w/-]+)/g, (m, pre, name) => {
-			// H1: CSS hex colours are not tags (RGB, RGBA, RRGGBB, or RRGGBBAA).
-			if (/^(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/.test(name)) return m;
+		// #simple-tag (letters, digits, /_-), must follow start, whitespace, or `([`.
+		// Letters are Unicode: a graph tagging #café or #日本語 means those as tags.
+		segment = segment.replace(/(^|[\s([])#([\p{L}\p{N}_/-]+)/gu, (m, pre, name) => {
+			// The user named this tag to drop, which settles it before any guess below.
 			if (dropTags.has(name)) return pre;
+			// H1: a hex-shaped token is a CSS colour rather than a tag — unless the
+			// graph has a page by that name. The shorthands collide with ordinary
+			// words (#dad, #bad, #ace, #face), so where the graph answers the
+			// question, its answer is better than the shape of the token.
+			if (HEX_COLOUR.test(name) && !knownPages.has(name.toLowerCase())) return m;
 			if (toLinks) {
 				if (onlyExistingPages && !knownPages.has(name.toLowerCase())) return m;
 				return `${pre}[[${name}]]`;

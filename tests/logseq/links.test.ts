@@ -128,3 +128,35 @@ test('[H1] hex colour is not converted into a tag link', () => {
 test('[H1] tag preceded by an opening paren is recognized', () => {
 	assert.equal(convertTags('(#hashtag)', tagOpts(true)), '([[hashtag]])');
 });
+
+// A tag is Unicode. `\w` is ASCII-only, so a graph tagging in any language
+// other than English had none of its tags recognised — neither converted to a
+// link nor matched against the user's drop list.
+test('a non-ASCII tag is recognised and converted', () => {
+	assert.equal(convertTags('#café', tagOpts(true)), '[[café]]');
+	assert.equal(convertTags('#日本語', tagOpts(true)), '[[日本語]]');
+	assert.equal(convertTags('#Ünicode', tagOpts(true)), '[[Ünicode]]');
+});
+
+test('a non-ASCII tag can be dropped by name', () => {
+	assert.equal(convertTags('a #café b', tagOpts(false, [], ['café'])), 'a  b');
+});
+
+// The hex-colour guard collides with ordinary words: `#dad`, `#bad`, `#ace` and
+// `#face` are all hex-shaped. Where the graph has a page by that name, that
+// answers the question better than the shape of the token does.
+test('a hex-shaped word with a page of its own is a tag, not a colour', () => {
+	for (const word of ['dad', 'bad', 'ace', 'dead', 'deaf', 'face', 'beef', 'decade']) {
+		assert.equal(convertTags(`#${word}`, tagOpts(true, [word])), `[[${word}]]`, word);
+	}
+});
+
+test('a hex-shaped token with no page behind it stays a colour', () => {
+	assert.equal(convertTags('#fff #abcd #FF0000 #11223344', tagOpts(true)), '#fff #abcd #FF0000 #11223344');
+});
+
+// The drop list is the user saying what they want; it is read before the guess.
+test('the drop list is applied before the hex-colour guard', () => {
+	assert.equal(convertTags('a #decade b', tagOpts(false, [], ['decade'])), 'a  b');
+	assert.equal(convertTags('a #FF0000 b', tagOpts(false, [], ['FF0000'])), 'a  b');
+});
