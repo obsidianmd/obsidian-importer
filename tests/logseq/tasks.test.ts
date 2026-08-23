@@ -126,8 +126,8 @@ test('WAIT state maps to open checkbox (emoji)', () => {
 	assert.equal(convertTasks('- WAIT for approval', 'tasks-emoji'), '- [ ] for approval');
 });
 
-test('IN-PROGRESS state maps to open checkbox (emoji)', () => {
-	assert.equal(convertTasks('- IN-PROGRESS refactoring', 'tasks-emoji'), '- [ ] refactoring');
+test('IN-PROGRESS state maps to in-progress checkbox (emoji)', () => {
+	assert.equal(convertTasks('- IN-PROGRESS refactoring', 'tasks-emoji'), '- [/] refactoring');
 });
 
 test('CANCELED (single L) maps to cancelled (emoji)', () => {
@@ -285,4 +285,8 @@ test('plain format leaves an inline SCHEDULED in the text', () => {
 test('SCHEDULED in a non-task bullet is left alone', () => {
 	const input = '- The SCHEDULED: <2024-06-15 Sat> syntax marks a date';
 	assert.equal(convertTasks(input, 'tasks-emoji'), input);
+});
+
+test('IN-PROGRESS maps to an in-progress checkbox', () => {
+	assert.equal(convertTasks('- IN-PROGRESS Halfway done', 'tasks-emoji'), '- [/] Halfway done');
 });

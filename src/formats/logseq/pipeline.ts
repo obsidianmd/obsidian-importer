@@ -7,6 +7,7 @@ import { convertAliasLinks } from './links';
 import { convertJournalDateLinks } from './journals';
 import { attachBlockIds, DefinedId } from './block-ids';
 import { normalizeWhitespace } from './normalize';
+import { outsideMarkdownCode } from '../../markdown';
 
 export interface LogseqConversionRuntime {
 	assetTarget?: (sourcePath: string, filename: string) => string | null;
@@ -19,6 +20,7 @@ export interface LocalResult {
 	raw: Record<string, string>;
 	ids: DefinedId[];
 	assets: AssetRef[];
+	hasQueries: boolean;
 }
 
 export function convertLocal(
@@ -33,10 +35,18 @@ export function convertLocal(
 	});
 
 	let body = initialBody;
+	let hasQueries = false;
 	body = convertHeadingProperty(body);
 	body = convertTasks(body, options.taskFormat, { logbook: options.logbook });
 	body = convertNumberedLists(body);
-	body = convertOrgBlocks(body);
+	body = convertOrgBlocks(body, {
+		dropQueries: options.queries === 'drop',
+		onQuery: () => hasQueries = true,
+	});
+	body = outsideMarkdownCode(body, segment => segment.replace(/\{\{query[\s\S]*?\}\}/gi, (whole: string) => {
+		hasQueries = true;
+		return options.queries === 'drop' ? '' : whole;
+	}));
 	body = convertHighlights(body);
 	body = convertMediaEmbeds(body);
 	body = fixHeadingChildLists(body);
@@ -63,7 +73,7 @@ export function convertLocal(
 		body = normalizeWhitespace(body);
 	}
 
-	return { yaml, body, raw, ids: idResult.ids, assets: assetResult.assets };
+	return { yaml, body, raw, ids: idResult.ids, assets: assetResult.assets, hasQueries };
 }
 
 export function indexPageAliases(

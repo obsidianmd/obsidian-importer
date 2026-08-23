@@ -1,4 +1,4 @@
-import { markdownFenceLines, outsideMarkdownCode } from '../../markdown';
+import { markdownFenceLines, outsideCodeSpans, outsideMarkdownCode, outsideMarkdownFences } from '../../markdown';
 
 export interface DefinedId {
 	uuid: string;
@@ -110,15 +110,18 @@ function resolveSegment(text: string, index: Map<string, BlockRefTarget>, always
 }
 
 export function removeOrphanBlockRefs(content: string): string {
-	return outsideMarkdownCode(content, removeOrphanBlockRefSegment);
+	return outsideMarkdownFences(content, removeOrphanBlockRefSegment);
 }
 
 function removeOrphanBlockRefSegment(content: string): string {
 	return content
-		.replace(/\{\{embed\s+\(\([^()]+?\)\)\}\}/g, '')
-		.replace(/\(\([^()]+?\)\)/g, '')
 		.split('\n')
-		.map(line => (/^\s*[-*+]?\s*$/.test(line) ? '' : line))
+		.map(line => {
+			const rewritten = outsideCodeSpans(line, segment => segment
+				.replace(/\{\{embed\s+\(\([^()]+?\)\)\}\}/g, '')
+				.replace(/\(\([^()]+?\)\)/g, ''));
+			return /^\s*[-*+]?\s*$/.test(rewritten) ? '' : rewritten;
+		})
 		.join('\n')
 		.replace(/\n{3,}/g, '\n\n');
 }

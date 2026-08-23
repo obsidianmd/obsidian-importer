@@ -1,4 +1,4 @@
-import { markdownFenceLines } from '../../markdown';
+import { markdownFenceLines, outsideMarkdownFences } from '../../markdown';
 
 interface OutlineNode {
 	content: string;
@@ -335,7 +335,7 @@ export function deOutline(content: string): string {
 
 	const lines = serializeTopLevel(nodes);
 
-	let result = lines.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd();
+	let result = outsideMarkdownFences(lines.join('\n'), segment => segment.replace(/\n{3,}/g, '\n\n')).trimEnd();
 	if (content.endsWith('\n')) result += '\n';
 
 	return result;

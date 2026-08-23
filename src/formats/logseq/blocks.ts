@@ -58,8 +58,13 @@ function convertNumberedListSegment(content: string): string {
 
 const CALLOUT_TYPES = new Set(['NOTE', 'TIP', 'WARNING', 'IMPORTANT', 'CAUTION', 'EXAMPLE']);
 
-export function convertOrgBlocks(content: string): string {
-	return outsideMarkdownFences(content, segment => processOrgLines(segment.split('\n')).join('\n'));
+export interface ConvertOrgBlocksOptions {
+	dropQueries?: boolean;
+	onQuery?: () => void;
+}
+
+export function convertOrgBlocks(content: string, options: ConvertOrgBlocksOptions = {}): string {
+	return outsideMarkdownFences(content, segment => processOrgLines(segment.split('\n'), options).join('\n'));
 }
 
 const BEGIN_RE = /^(\s*)(?:- )?#\+BEGIN_(\w+)[ \t]*(.*)$/i;
@@ -82,7 +87,14 @@ function fenceFor(body: string[]): string {
 	return '`'.repeat(Math.max(3, longest + 1));
 }
 
-function processOrgLines(lines: string[]): string[] {
+function appendOrgBlock(out: string[], rendered: string[], separated: boolean, followedByContent: boolean): void {
+	if (rendered.length === 0) return;
+	if (separated && out.length > 0 && out[out.length - 1].trim() !== '') out.push('');
+	out.push(...rendered);
+	if (separated && followedByContent) out.push('');
+}
+
+function processOrgLines(lines: string[], options: ConvertOrgBlocksOptions, separateBlocks = true): string[] {
 	const out: string[] = [];
 	let i = 0;
 	while (i < lines.length) {
@@ -107,22 +119,23 @@ function processOrgLines(lines: string[]): string[] {
 				}
 			}
 			if (qend >= 0) {
+				if (type === 'QUERY') {
+					options.onQuery?.();
+					if (options.dropQueries) {
+						i = qend + 1;
+						continue;
+					}
+				}
 				const indent = begin[1];
 				// Preserve indentation within the block; it may be syntax.
 				const body = lines.slice(i + 1, qend)
 					.map(l => stripIndent(l, hasBullet ? indent.length + 2 : indent.length));
 				const fence = fenceFor(body) + fenceLanguage(type, begin[3]);
 				const close = fenceFor(body);
-				if (hasBullet) {
-					out.push(`${indent}- ${fence}`);
-					out.push(...body.map(l => l === '' ? '' : `${indent}  ${l}`));
-					out.push(`${indent}  ${close}`);
-				}
-				else {
-					out.push(`${indent}${fence}`);
-					out.push(...body);
-					out.push(`${indent}${close}`);
-				}
+				const rendered = hasBullet
+					? [`${indent}- ${fence}`, ...body.map(l => l === '' ? '' : `${indent}  ${l}`), `${indent}  ${close}`]
+					: [`${indent}${fence}`, ...body, `${indent}${close}`];
+				appendOrgBlock(out, rendered, separateBlocks && !hasBullet && indent === '', qend + 1 < lines.length && lines[qend + 1].trim() !== '');
 				i = qend + 1;
 				continue;
 			}
@@ -152,8 +165,13 @@ function processOrgLines(lines: string[]): string[] {
 		}
 
 		const indent = begin[1];
-		const inner = processOrgLines(lines.slice(i + 1, end));
-		out.push(...renderOrgBlock(type, indent, inner, hasBullet));
+		const inner = processOrgLines(lines.slice(i + 1, end), options, false);
+		appendOrgBlock(
+			out,
+			renderOrgBlock(type, indent, inner, hasBullet),
+			separateBlocks && !hasBullet && indent === '',
+			end + 1 < lines.length && lines[end + 1].trim() !== '',
+		);
 		i = end + 1;
 	}
 	return out;

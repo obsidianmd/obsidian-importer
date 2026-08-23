@@ -74,6 +74,17 @@ test('removeOrphanBlockRefs leaves page embeds untouched', () => {
 	assert.equal(removeOrphanBlockRefs('![[SomePage]]'), '![[SomePage]]');
 });
 
+test('removeOrphanBlockRefs keeps the bullet when inline code follows an orphan reference', () => {
+	assert.equal(
+		removeOrphanBlockRefs('- ((deadbeef-1111)) `code` tail'),
+		'-  `code` tail',
+	);
+});
+
+test('removeOrphanBlockRefs leaves references inside inline code inert', () => {
+	assert.equal(removeOrphanBlockRefs('use `((abc123))` literally'), 'use `((abc123))` literally');
+});
+
 test('[G1] resolveBlockRefs preserves refs inside a fenced code block', () => {
 	const index = new Map<string, BlockRefTarget>([['abc123', { page: 'P', shortId: 'abc123' }]]);
 	const input = ['```', '{{embed ((abc123))}} and ((abc123))', '```'].join('\n');

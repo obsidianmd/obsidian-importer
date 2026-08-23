@@ -179,9 +179,9 @@ test('E2E: WAIT maps to open checkbox', () => {
 	assert.ok(pn.finalBody.includes('- [ ] For feedback'));
 });
 
-test('E2E: IN-PROGRESS maps to open checkbox', () => {
+test('E2E: IN-PROGRESS maps to in-progress checkbox', () => {
 	const pn = findByOutput(graph, 'Main Page');
-	assert.ok(pn.finalBody.includes('- [ ] Halfway done'));
+	assert.ok(pn.finalBody.includes('- [/] Halfway done'));
 });
 
 test('E2E: LATER with both SCHEDULED and DEADLINE', () => {

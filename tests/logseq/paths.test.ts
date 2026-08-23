@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { decodeLogseqName, namespaceToPath, pageNameToPath } from '../../src/formats/logseq/paths';
+import { decodeLogseqName, namespaceToPath } from '../../src/formats/logseq/paths';
 
 
 test('decodeLogseqName decodes a simple percent-escape', () => {
@@ -93,23 +93,6 @@ test('namespaceToPath leaves malformed percent untouched in segment', () => {
 	assert.equal(namespaceToPath('a%ZZ___b'), 'a%ZZ/b');
 });
 
-
-test('pageNameToPath matches namespaceToPath behavior', () => {
-	const inputs = [
-		'algorithms___dynamic programming',
-		'a___b___c',
-		'foo%2Fbar',
-		'Encoded%3AColon',
-		'Cool Stuff',
-		'',
-		'___a',
-		'a___',
-		'a%ZZ___b',
-	];
-	for (const input of inputs) {
-		assert.equal(pageNameToPath(input), namespaceToPath(input));
-	}
-});
 
 // Mirrors the sanitizer without importing its Obsidian dependency.
 function stripBrackets(name: string): string {

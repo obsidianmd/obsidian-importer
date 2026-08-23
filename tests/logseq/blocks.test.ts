@@ -220,7 +220,7 @@ test('convertOrgBlocks: unmatched begin is left unchanged', () => {
 
 test('convertOrgBlocks: text around block is preserved', () => {
 	const input = ['before', '#+BEGIN_QUOTE', 'q', '#+END_QUOTE', 'after'].join('\n');
-	assert.equal(convertOrgBlocks(input), ['before', '> q', 'after'].join('\n'));
+	assert.equal(convertOrgBlocks(input), ['before', '', '> q', '', 'after'].join('\n'));
 });
 
 test('convertOrgBlocks: inline code in the body does not split the block', () => {
@@ -451,4 +451,29 @@ test('convertOrgBlocks: a bullet-opened QUERY keeps relative indentation', () =>
 test('convertOrgBlocks: an unknown prose block still falls back to a note', () => {
 	const input = ['#+BEGIN_VERSE', 'a line', '#+END_VERSE'].join('\n');
 	assert.equal(convertOrgBlocks(input), ['> [!note]', '> a line'].join('\n'));
+});
+
+test('convertOrgBlocks: separates adjacent standalone org blocks', () => {
+	const input = [
+		'#+BEGIN_QUOTE',
+		'A quote',
+		'#+END_QUOTE',
+		'#+BEGIN_WARNING',
+		'Warning body',
+		'#+END_WARNING',
+		'#+BEGIN_COMMENT',
+		'comment body',
+		'#+END_COMMENT',
+	].join('\n');
+	const expected = [
+		'> A quote',
+		'',
+		'> [!warning]',
+		'> Warning body',
+		'',
+		'%%',
+		'comment body',
+		'%%',
+	].join('\n');
+	assert.equal(convertOrgBlocks(input), expected);
 });

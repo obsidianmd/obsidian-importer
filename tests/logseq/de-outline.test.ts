@@ -370,6 +370,12 @@ test('[C1] deOutline: genuine nested list is preserved despite a deep descendant
 	assert.equal(deOutline(input), expected);
 });
 
+test('deOutline: preserves consecutive blank lines inside a code fence', () => {
+	const input = ['- ```text', '  first', '', '', '  second', '  ```'].join('\n');
+	const expected = ['```text', 'first', '', '', 'second', '```'].join('\n');
+	assert.equal(deOutline(input), expected);
+});
+
 test('[C1] deOutline: heading siblings in body context are promoted to real headings', () => {
 	const input = [
 		'- parent prose',

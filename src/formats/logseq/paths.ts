@@ -19,7 +19,3 @@ export function namespaceToPath(filenameBody: string): string {
 		.map(decodeLogseqName)
 		.join('/');
 }
-
-export function pageNameToPath(filenameBody: string): string {
-	return namespaceToPath(filenameBody);
-}

@@ -1,4 +1,5 @@
 import { outsideMarkdownCode } from '../../markdown';
+import { namespaceToPath } from './paths';
 
 export interface LinkIndex {
 	aliasMap: Map<string, string>;
@@ -72,7 +73,8 @@ export function rewritePlannedPageLinks(content: string, pages: Map<string, Plan
 	return outsideMarkdownCode(content, segment =>
 		segment.replace(/(!?)\[\[([^\]|#]+)(#[^\]|]+)?(?:\|([^\]]+))?\]\]/g,
 			(whole, bang: string, sourceTarget: string, suffix = '', sourceDisplay?: string) => {
-				const planned = pages.get(sourceTarget.trim().toLowerCase());
+				const sourceKey = namespaceToPath(sourceTarget.trim()).toLowerCase();
+				const planned = pages.get(sourceKey);
 				if (!planned) return whole;
 
 				const display = sourceDisplay ?? planned.display;

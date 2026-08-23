@@ -75,3 +75,33 @@ test('preserves inline-code spacing and keeps task metadata attached', () => {
 	].join('\n');
 	assert.equal(convertLocal(input, opts).body, expected);
 });
+
+test('drops advanced and simple queries when requested', () => {
+	const options = { ...opts, queries: 'drop' as const };
+	const input = [
+		'- before',
+		'#+BEGIN_QUERY',
+		'{:query [?b]}',
+		'#+END_QUERY',
+		'- {{query (property :status doing)}}',
+		'- after',
+	].join('\n');
+	const converted = convertLocal(input, options);
+	assert.equal(converted.body, ['- before', '- after'].join('\n'));
+	assert.equal(converted.hasQueries, true);
+});
+
+test('keeps queries and records their presence when requested', () => {
+	const input = ['#+BEGIN_QUERY', '{:query [?b]}', '#+END_QUERY'].join('\n');
+	const converted = convertLocal(input, opts);
+	assert.equal(converted.body, ['```query', '{:query [?b]}', '```'].join('\n'));
+	assert.equal(converted.hasQueries, true);
+});
+
+test('does not detect or remove a query example inside code', () => {
+	const options = { ...opts, queries: 'drop' as const };
+	const input = ['```markdown', '{{query (property :status doing)}}', '```'].join('\n');
+	const converted = convertLocal(input, options);
+	assert.equal(converted.body, input);
+	assert.equal(converted.hasQueries, false);
+});

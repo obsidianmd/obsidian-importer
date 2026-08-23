@@ -6,6 +6,6 @@ tags:
 ---
 
 - Dynamic programming is a technique for solving optimization problems
-- See [[algorithms___dynamic programming___memoization]] for details
+- See [[Logseq/algorithms/dynamic programming/memoization]] for details
 - Related to [[Logseq/Main Page]] ^d00000
 

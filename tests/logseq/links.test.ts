@@ -104,6 +104,14 @@ test('[M1] rewrites a source page name to its planned path', () => {
 	assert.equal(rewritePlannedPageLinks('[[feedback]]', plans), '[[Logseq/feedback 1|feedback]]');
 });
 
+test('rewrites a namespaced source page name to its planned path', () => {
+	const plans = new Map([['algorithms/dynamic programming', { target: 'Logseq/algorithms/dynamic programming' }]]);
+	assert.equal(
+		rewritePlannedPageLinks('[[algorithms___dynamic programming]]', plans),
+		'[[Logseq/algorithms/dynamic programming]]',
+	);
+});
+
 test('[G1] alias link with piped target does not produce a double pipe', () => {
 	assert.equal(convertAliasLinks('[disp]([[A|B]])'), '[[A|disp]]');
 });

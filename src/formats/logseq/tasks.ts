@@ -18,7 +18,8 @@ function checkbox(state: string, format: TaskFormat): string {
 		case 'CANCELLED':
 		case 'CANCELED': return '-';
 		case 'DOING':
-		case 'NOW': return '/';
+		case 'NOW':
+		case 'IN-PROGRESS': return '/';
 		default: return ' ';
 	}
 }

@@ -545,7 +545,7 @@ export class LogseqImporter extends FormatImporter {
 		linkPlans: Map<string, PlannedPageLink>,
 		ctx: ImportContext,
 	): string | null {
-		let body = this.applyLogseqOnly(note.local.body, note.path, ctx);
+		let body = this.applyLogseqOnly(note.local.body, note.local.hasQueries, note.path, ctx);
 		body = resolveBlockRefs(body, blockIndex, { alwaysEmbedBlockRefs: this.options.alwaysEmbedBlockRefs });
 		if (this.options.removeOrphanBlockRefs) body = removeOrphanBlockRefs(body);
 		body = rewriteAliasReferences(body, { aliasMap });
@@ -577,15 +577,9 @@ export class LogseqImporter extends FormatImporter {
 		return yaml ? `${yaml}\n\n${body}\n` : `${body}\n`;
 	}
 
-	private applyLogseqOnly(body: string, name: string, ctx: ImportContext): string {
-		if (/\{\{query|#\+BEGIN_QUERY/i.test(body)) {
-			if (this.options.queries === 'keep') {
-				ctx.reportMessage(i18n.importer.logseq.msgKeptQueries({ name }));
-			}
-			else {
-				body = body.replace(/^[ \t]*#\+BEGIN_QUERY[\s\S]*?#\+END_QUERY[ \t]*$/gim, '');
-				body = body.replace(/\{\{query[\s\S]*?\}\}/gi, '');
-			}
+	private applyLogseqOnly(body: string, hasQueries: boolean, name: string, ctx: ImportContext): string {
+		if (hasQueries && this.options.queries === 'keep') {
+			ctx.reportMessage(i18n.importer.logseq.msgKeptQueries({ name }));
 		}
 		if (/#card\b|\{\{cloze/i.test(body)) {
 			if (this.options.flashcards === 'keep') {
