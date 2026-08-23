@@ -69,9 +69,6 @@ test('journalFilenameToISO rejects month > 12', () => {
 	assert.equal(journalFilenameToISO('2024_13_01'), null);
 });
 
-// ---------------------------------------------------------------------------
-// Documented transformation cases — E1.
-// ---------------------------------------------------------------------------
 test('[E1] reformatDateLinks rewrites the date but preserves a block anchor', () => {
 	const fmt = (iso: string) => (iso === '2025-02-20' ? 'Feb 20th, 2025' : null);
 	assert.equal(reformatDateLinks('[[2025-02-20#^67bca6]]', fmt), '[[Feb 20th, 2025#^67bca6]]');

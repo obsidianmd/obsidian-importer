@@ -35,11 +35,7 @@ export function markdownFenceLines(text: string): boolean[] {
 	return protectedLines;
 }
 
-/**
- * Rewrites contiguous runs of non-fenced Markdown without splitting lines at
- * inline code spans. Use this for transforms whose grammar is line-oriented;
- * character-level transforms should use outsideMarkdownCode instead.
- */
+/** Rewrites complete non-fenced lines; use outsideMarkdownCode for character-level transforms. */
 export function outsideMarkdownFences(text: string, rewrite: (segment: string) => string): string {
 	const lines = text.split('\n');
 	const fenced = markdownFenceLines(text);
@@ -61,11 +57,7 @@ export function outsideMarkdownFences(text: string, rewrite: (segment: string) =
 	return written;
 }
 
-/**
- * Splits Markdown into ordinary text and code, retaining every delimiter.
- * Fenced blocks and inline code spans are both protected. The fence matcher
- * accepts backticks, tildes, and list-prefixed fences produced by outliners.
- */
+/** Splits prose from inline, backtick-fenced, tilde-fenced, and list-fenced code. */
 function codeSegments(text: string): MarkdownCodeSegment[] {
 	const fenced: MarkdownCodeSegment[] = [];
 	let fence: { marker: string, length: number } | null = null;

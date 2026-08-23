@@ -1,8 +1,3 @@
-// Logseq task conversion. Logseq tasks are bullets whose text starts with an
-// uppercase workflow keyword (TODO/DOING/DONE/...). Scheduling, priority and
-// time-tracking metadata live on the task line or on indented continuation
-// lines. We render them into one of the supported Obsidian task formats.
-
 import { logseqDateToISO } from './journals';
 import { outsideCodeSpans, outsideMarkdownFences } from '../../markdown';
 
@@ -24,14 +19,13 @@ function checkbox(state: string, format: TaskFormat): string {
 		case 'CANCELED': return '-';
 		case 'DOING':
 		case 'NOW': return '/';
-		default: return ' '; // TODO, LATER, WAITING, WAIT, IN-PROGRESS
+		default: return ' ';
 	}
 }
 
 interface DateSpec { date: string, time?: string, repeater?: string }
 
 function parseDateSpec(inner: string): DateSpec {
-	// Try ISO date first, then fall back to Logseq long-date format.
 	const iso = inner.match(/\d{4}-\d{2}-\d{2}/)?.[0];
 	const date = iso ?? (logseqDateToISO(inner.replace(/\[\[|\]\]/g, '').trim()) ?? '');
 	const time = inner.match(/(?:^|\s)([01]\d|2[0-3]):[0-5]\d(?:\s|$)/)?.[0].trim();
@@ -45,17 +39,13 @@ function renderedDate(spec: DateSpec): string {
 
 function extractDate(value: string): string {
 	let raw = value.trim();
-	// D1: Logseq set-literal `#{...}`. Unwrap the first quoted token (if any)
-	// and try to parse it as a date; otherwise treat the value as absent.
 	const setLiteral = raw.match(/^#\{(.*)\}$/);
 	if (setLiteral) {
 		const quoted = setLiteral[1].match(/"([^"]*)"/);
 		raw = quoted ? quoted[1] : '';
 	}
 	const clean = raw.replace(/\[\[|\]\]/g, '').trim();
-	// Guard: template tokens ({{...}}) are not real dates.
 	if (/\{\{/.test(clean)) return '';
-	// Try ISO first, then Logseq long-date.
 	return clean.match(/\d{4}-\d{2}-\d{2}/)?.[0] ?? logseqDateToISO(clean) ?? '';
 }
 
@@ -86,8 +76,6 @@ export function convertTasks(content: string, format: TaskFormat, options: TaskO
 function convertTaskSegment(content: string, format: TaskFormat, options: TaskOptions): string {
 	const logbook = options.logbook ?? 'drop';
 
-	// D1: drop LOGBOOK drawers on ANY bullet (not just tasks) when logbook='drop'.
-	// Use a line-level filter so no trailing newlines are left behind.
 	let processed = content;
 	if (logbook === 'drop') {
 		let inLogbook = false;
@@ -122,16 +110,12 @@ function convertTaskSegment(content: string, format: TaskFormat, options: TaskOp
 		const state = m[2];
 		let rest = m[3] ?? '';
 
-		// Collect indented continuation lines that belong to this block.
-		// D1: blank/whitespace-only lines between metadata props are consumed
-		// (they're Logseq outline separators) — only a non-blank line that is a
-		// sibling/parent bullet actually ends the continuation block.
+		// Blank separators do not end Logseq task metadata.
 		const continuation: string[] = [];
 		let j = i + 1;
 		while (j < lines.length) {
 			const l = lines[j];
 			if (l.trim() === '') {
-				// Peek at the next non-blank line to decide whether to continue.
 				const peek = lines.slice(j + 1).find(x => x.trim() !== '');
 				if (peek === undefined) break;
 				if (/^\s*- /.test(peek) && leadingWidth(peek) <= indent.length) break;
@@ -146,7 +130,6 @@ function convertTaskSegment(content: string, format: TaskFormat, options: TaskOp
 			j++;
 		}
 
-		// Priority marker, e.g. `[#A]` right after the state.
 		let priority = '';
 		if (format !== 'plain') {
 			const pm = rest.match(/^\[#([ABC])\]\s*/);
@@ -164,10 +147,7 @@ function convertTaskSegment(content: string, format: TaskFormat, options: TaskOp
 		let cancelled = '';
 		let inLogbook = false;
 
-		// Logseq writes SCHEDULED/DEADLINE on their own continuation line, but a
-		// hand-edited graph can leave one inline. Take it from the task text too,
-		// so the date becomes a Tasks field instead of staying as org syntax. The
-		// continuation lines are read afterwards and win where a task has both.
+		// Continuation metadata, Logseq's canonical form, overrides inline metadata.
 		if (format !== 'plain') {
 			rest = outsideCodeSpans(rest, segment =>
 				segment.replace(/\s*\b(SCHEDULED|DEADLINE):\s*<([^<>]+)>/g,
@@ -214,11 +194,9 @@ function convertTaskSegment(content: string, format: TaskFormat, options: TaskOp
 				else cancelled = date;
 				continue;
 			}
-			// Blank separator lines between metadata are silently consumed.
 			if (cl.trim() !== '') kept.push(cl);
 		}
 
-		// Build trailing metadata segments.
 		const segs: string[] = [];
 		if (format === 'tasks-emoji') {
 			if (priority) segs.push(PRIORITY_EMOJI[priority]);
@@ -249,7 +227,7 @@ function convertTaskSegment(content: string, format: TaskFormat, options: TaskOp
 			if (cancelled) segs.push(`[cancelled:: ${cancelled}]`);
 		}
 
-		// Obsidian block anchors must remain the final token on their line.
+		// Obsidian block anchors must remain last.
 		let anchor = '';
 		if (format !== 'plain') {
 			const anchored = rest.match(/(?:^|\s)(\^[A-Za-z0-9_-]+)\s*$/);

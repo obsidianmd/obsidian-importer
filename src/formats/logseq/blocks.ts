@@ -1,16 +1,11 @@
-// Pure, side-effect-free text transforms for the Logseq -> Obsidian importer.
-// Each function takes the full multi-line file content and returns it transformed.
-
 import { outsideMarkdownCode, outsideMarkdownFences } from '../../markdown';
 
 const HIGHLIGHT_RE = /\^\^(.+?)\^\^/g;
 
-/** Replace Logseq highlights `^^text^^` with Obsidian `==text==`, skipping code. */
 export function convertHighlights(content: string): string {
 	return outsideMarkdownCode(content, segment => segment.replace(HIGHLIGHT_RE, '==$1=='));
 }
 
-/** Convert Logseq `logseq.order-list-type:: number` bullets into `1.`, `2.`, ... */
 export function convertNumberedLists(content: string): string {
 	return outsideMarkdownFences(content, convertNumberedListSegment);
 }
@@ -24,7 +19,7 @@ function convertNumberedListSegment(content: string): string {
 
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];
-		if (propRe.test(line)) continue; // drop the hidden property line
+		if (propRe.test(line)) continue;
 
 		const m = bulletRe.exec(line);
 		if (!m) {
@@ -36,7 +31,6 @@ function convertNumberedListSegment(content: string): string {
 		const indentLen = indent.length;
 		const item = m[2];
 
-		// Moving to a (new) bullet at this level resets any deeper-level counters.
 		for (const level of Array.from(counters.keys())) {
 			if (level > indentLen) counters.delete(level);
 		}
@@ -54,7 +48,7 @@ function convertNumberedListSegment(content: string): string {
 			out.push(`${indent}${count}. ${item}`);
 		}
 		else {
-			counters.set(indentLen, 0); // non-numbered sibling resets the counter
+			counters.set(indentLen, 0);
 			out.push(line);
 		}
 	}
@@ -62,10 +56,8 @@ function convertNumberedListSegment(content: string): string {
 	return out.join('\n');
 }
 
-// Named Obsidian callouts. Other org types (CENTER/VERSE/PINNED, etc.) fall back to [!note].
 const CALLOUT_TYPES = new Set(['NOTE', 'TIP', 'WARNING', 'IMPORTANT', 'CAUTION', 'EXAMPLE']);
 
-/** Convert Logseq org-mode `#+BEGIN_*`/`#+END_*` blocks into Obsidian syntax. */
 export function convertOrgBlocks(content: string): string {
 	return outsideMarkdownFences(content, segment => processOrgLines(segment.split('\n')).join('\n'));
 }
@@ -73,24 +65,15 @@ export function convertOrgBlocks(content: string): string {
 const BEGIN_RE = /^(\s*)(?:- )?#\+BEGIN_(\w+)[ \t]*(.*)$/i;
 const END_RE = /^(\s*)(?:- )?#\+END_\w+/i;
 
-// Org blocks whose body is code rather than prose. Rendered as a callout they
-// would lose their indentation and be relabelled as a note, so they become
-// fenced code blocks instead and survive verbatim.
+// Callouts flatten indentation, so code-bearing org blocks need fences.
 const FENCED_TYPES = new Set(['QUERY', 'SRC', 'EXPORT']);
 
-/**
- * The language to tag the fence with. QUERY names itself; SRC and EXPORT carry
- * theirs as the block's first argument — `#+BEGIN_SRC python`, `#+BEGIN_EXPORT
- * html`. Anything that is not a plain language token is dropped rather than
- * written into the fence.
- */
 function fenceLanguage(type: string, argument: string): string {
 	if (type === 'QUERY') return 'query';
 	const first = argument.trim().split(/\s+/)[0] ?? '';
 	return /^[\w+#.-]+$/.test(first) ? first.toLowerCase() : '';
 }
 
-/** A fence long enough to survive whatever backticks the body already contains. */
 function fenceFor(body: string[]): string {
 	let longest = 0;
 	for (const line of body) {
@@ -115,7 +98,6 @@ function processOrgLines(lines: string[]): string[] {
 		const type = begin[2].toUpperCase();
 		const hasBullet = /^\s*- /.test(line);
 
-		// J1: a code-bearing block → a fenced code block (lossless).
 		if (FENCED_TYPES.has(type)) {
 			let qend = -1;
 			for (let j = i + 1; j < lines.length; j++) {
@@ -126,8 +108,7 @@ function processOrgLines(lines: string[]): string[] {
 			}
 			if (qend >= 0) {
 				const indent = begin[1];
-				// Strip only the block's own indent, so the body keeps the relative
-				// indentation that a language like Python depends on.
+				// Preserve indentation within the block; it may be syntax.
 				const body = lines.slice(i + 1, qend)
 					.map(l => stripIndent(l, hasBullet ? indent.length + 2 : indent.length));
 				const fence = fenceFor(body) + fenceLanguage(type, begin[3]);
@@ -150,7 +131,7 @@ function processOrgLines(lines: string[]): string[] {
 			continue;
 		}
 
-		// Find the matching #+END, accounting for nested blocks.
+		// Org blocks may nest.
 		let depth = 1;
 		let end = -1;
 		for (let j = i + 1; j < lines.length; j++) {
@@ -165,7 +146,6 @@ function processOrgLines(lines: string[]): string[] {
 		}
 
 		if (end === -1) {
-			// No matching end: leave the line unchanged and continue.
 			out.push(line);
 			i++;
 			continue;
@@ -180,7 +160,6 @@ function processOrgLines(lines: string[]): string[] {
 }
 
 function renderOrgBlock(type: string, indent: string, inner: string[], hasBullet: boolean): string[] {
-	// J1: when bullet-prefixed, content is indented `indent + '  '` under the bullet.
 	const stripN = hasBullet ? indent.length + 2 : indent.length;
 	const stripped = inner.map(line => stripIndent(line, stripN));
 
@@ -190,7 +169,6 @@ function renderOrgBlock(type: string, indent: string, inner: string[], hasBullet
 
 	if (type === 'QUOTE') {
 		if (hasBullet) {
-			// J1: bullet-opened QUOTE — first line uses `- > `, rest use `  > `.
 			if (stripped.length === 0) return [`${indent}- >`];
 			return [
 				`${indent}- > ${stripped[0]}`,
@@ -200,7 +178,6 @@ function renderOrgBlock(type: string, indent: string, inner: string[], hasBullet
 		return stripped.map(line => quoteLine(indent, line));
 	}
 
-	// Named callouts keep their type; everything else (incl. fallback types) is a note.
 	const calloutType = CALLOUT_TYPES.has(type) ? type.toLowerCase() : 'note';
 
 	let body = stripped;
@@ -212,7 +189,6 @@ function renderOrgBlock(type: string, indent: string, inner: string[], hasBullet
 	}
 
 	if (hasBullet) {
-		// J1: bullet-opened callout — keep the bullet, render callout as child content.
 		const header = title
 			? `${indent}- > [!${calloutType}] ${title}`
 			: `${indent}- > [!${calloutType}]`;
@@ -234,12 +210,7 @@ function stripIndent(line: string, n: number): string {
 	return line.slice(i);
 }
 
-/**
- * A bare Markdown heading at column 0 that is immediately followed by an
- * indented list reads as a "child list" in Logseq's outline. Obsidian would
- * render the indented bullets oddly, so prefix the heading with `- ` to make
- * the heading own the nested list.
- */
+/** Makes a bare heading own the indented list that follows it. */
 export function fixHeadingChildLists(content: string): string {
 	return outsideMarkdownFences(content, fixHeadingChildListSegment);
 }
@@ -258,16 +229,11 @@ function fixHeadingChildListSegment(content: string): string {
 		.join('\n');
 }
 
-/**
- * Convert Logseq media embeds `{{video URL}}`, `{{youtube URL}}`, `{{tweet URL}}`
- * into Obsidian's markdown image/embed syntax `![](URL)`.
- */
 export function convertMediaEmbeds(content: string): string {
 	return outsideMarkdownCode(content,
 		segment => segment.replace(/\{\{(?:video|youtube|tweet)\s+([^}]+?)\s*\}\}/g, '![]($1)'));
 }
 
-/** Align a list-nested fenced code block's closing fence with its opening fence. */
 export function fixCodeBlocksInLists(content: string): string {
 	const lines = content.split('\n');
 	const openRe = /^([ \t]*)(?:([-*+])([ \t]+))?([`~]{3,})/;
@@ -294,7 +260,6 @@ export function fixCodeBlocksInLists(content: string): string {
 			if (close && close[1][0] === fence.marker && close[1].length >= fence.length) {
 				const marker = close[1];
 				fence = null;
-				// Only correct if there's a meaningful indent; leave top-level fences unchanged.
 				return fenceIndent ? fenceIndent + marker : line;
 			}
 			return line;

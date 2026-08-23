@@ -1,9 +1,3 @@
-// End-to-end tests for the Logseq importer pipeline.
-// These tests exercise the full two-pass conversion over a multi-file fixture
-// graph: pass 1 (convertLocal per file) builds the block-id and alias indices,
-// then pass 2 (resolveBlockRefs + rewriteAliasReferences) resolves cross-file
-// references. The fixture graph lives under tests/logseq/fixtures/.
-
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -16,20 +10,12 @@ import { DEFAULT_LOGSEQ_OPTIONS, LogseqImportOptions } from '../../src/formats/l
 import { namespaceToPath, decodeLogseqName } from '../../src/formats/logseq/paths';
 import { journalFilenameToISO } from '../../src/formats/logseq/journals';
 
-// ---------------------------------------------------------------------------
-// Fixture loading helpers
-// ---------------------------------------------------------------------------
-
 const FIXTURE_ROOT = join(import.meta.dirname, 'fixtures');
 
 interface ConvertedFile {
-	/** Vault-relative output path (no extension). */
 	outputPath: string;
-	/** Result of pass 1. */
 	local: LocalResult;
-	/** Final body after pass 2. */
 	finalBody: string;
-	/** Source filename for identification. */
 	sourceFile: string;
 }
 
@@ -50,7 +36,6 @@ function loadFixtureGraph(opts: LogseqImportOptions = DEFAULT_LOGSEQ_OPTIONS): C
 		files.push({ path: join(journalsDir, f), content: readFileSync(join(journalsDir, f), 'utf8'), kind: 'journal', stem });
 	}
 
-	// Pass 1: convert each file locally and build indices.
 	const locals: { file: typeof files[0], local: LocalResult, outputPath: string }[] = [];
 	const blockIndex = new Map<string, BlockRefTarget>();
 	const aliasMap = new Map<string, string>();
@@ -67,12 +52,10 @@ function loadFixtureGraph(opts: LogseqImportOptions = DEFAULT_LOGSEQ_OPTIONS): C
 			outputPath = namespaceToPath(decodeLogseqName(file.stem));
 		}
 
-		// Build block-id index: uuid -> { page, shortId }
 		for (const id of local.ids) {
 			blockIndex.set(id.uuid, { page: outputPath, shortId: id.shortId });
 		}
 
-		// Build alias index from raw properties.
 		const canonical = outputPath;
 		const aliasValue = local.raw.alias || local.raw.aliases || '';
 		if (aliasValue) {
@@ -85,8 +68,6 @@ function loadFixtureGraph(opts: LogseqImportOptions = DEFAULT_LOGSEQ_OPTIONS): C
 		locals.push({ file, local, outputPath });
 	}
 
-	// Pass 2: resolve block refs, alias references, and convert tags.
-	// Build knownPages from all output paths (basenames and full paths, lower-cased).
 	const knownPages = new Set<string>();
 	for (const { outputPath } of locals) {
 		knownPages.add(outputPath.toLowerCase());
@@ -119,15 +100,7 @@ function findByOutput(results: ConvertedFile[], outputPath: string): ConvertedFi
 	return found;
 }
 
-// ---------------------------------------------------------------------------
-// Full graph conversion
-// ---------------------------------------------------------------------------
-
 const graph = loadFixtureGraph();
-
-// ---------------------------------------------------------------------------
-// Path mapping
-// ---------------------------------------------------------------------------
 
 test('E2E: namespace page gets folder-based output path', () => {
 	const dp = findByOutput(graph, 'algorithms/dynamic programming');
@@ -151,9 +124,6 @@ test('E2E: journal file gets ISO date path', () => {
 	assert.ok(j2);
 });
 
-// ---------------------------------------------------------------------------
-// Page properties -> frontmatter
-// ---------------------------------------------------------------------------
 
 test('E2E: page properties produce correct YAML frontmatter', () => {
 	const pn = findByOutput(graph, 'Main Page');
@@ -176,9 +146,6 @@ test('E2E: page without properties gets no frontmatter', () => {
 	assert.equal(memo.local.yaml, '');
 });
 
-// ---------------------------------------------------------------------------
-// Tasks — all states and formats
-// ---------------------------------------------------------------------------
 
 test('E2E: TODO with priority A and SCHEDULED (emoji)', () => {
 	const pn = findByOutput(graph, 'Main Page');
@@ -232,13 +199,9 @@ test('E2E: priority C in journal', () => {
 	assert.ok(j2.finalBody.includes('- [ ] Journal task with priority 🔽'));
 });
 
-// ---------------------------------------------------------------------------
-// Cross-file block references
-// ---------------------------------------------------------------------------
 
 test('E2E: block ref resolves to correct page and short id', () => {
 	const pn = findByOutput(graph, 'Main Page');
-	// a1b2c3d4-e5f6-7890-abcd-ef1234567890 is defined in Reference Page
 	assert.ok(pn.finalBody.includes('[[Reference Page#^a1b2c3]]'));
 });
 
@@ -254,19 +217,14 @@ test('E2E: page embed resolves', () => {
 
 test('E2E: block ref from journal to page resolves', () => {
 	const j1 = findByOutput(graph, '2024-06-15');
-	// References aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee from Main Page
 	assert.ok(j1.finalBody.includes('[[Main Page#^'));
 });
 
 test('E2E: cross-namespace block ref resolves', () => {
 	const memo = findByOutput(graph, 'algorithms/dynamic programming/memoization');
-	// References d0000000-1111-2222-3333-444444444444 from algorithms/dynamic programming
 	assert.ok(memo.finalBody.includes('[[algorithms/dynamic programming#^'));
 });
 
-// ---------------------------------------------------------------------------
-// Block ID anchors
-// ---------------------------------------------------------------------------
 
 test('E2E: block id is shortened and appended as anchor', () => {
 	const pn = findByOutput(graph, 'Main Page');
@@ -281,9 +239,6 @@ test('E2E: block id in Reference Page is shortened', () => {
 	assert.ok(mn.local.ids[0].shortId.length <= 8);
 });
 
-// ---------------------------------------------------------------------------
-// Alias reference rewriting (cross-file)
-// ---------------------------------------------------------------------------
 
 test('E2E: alias reference [[MP]] rewrites to [[Main Page|MP]]', () => {
 	const pn = findByOutput(graph, 'Main Page');
@@ -300,18 +255,12 @@ test('E2E: alias reference in Reference Page rewrites correctly', () => {
 	assert.ok(mn.finalBody.includes('[[Main Page|MP]]'));
 });
 
-// ---------------------------------------------------------------------------
-// Alias link syntax: [display]([[Page]])
-// ---------------------------------------------------------------------------
 
 test('E2E: alias link syntax converts to wikilink with display text', () => {
 	const pn = findByOutput(graph, 'Main Page');
 	assert.ok(pn.finalBody.includes('[[Reference Page|My Alias]]'));
 });
 
-// ---------------------------------------------------------------------------
-// Journal date link conversion
-// ---------------------------------------------------------------------------
 
 test('E2E: natural date link [[Jan 15th, 2024]] becomes ISO', () => {
 	const mn = findByOutput(graph, 'Reference Page');
@@ -333,9 +282,6 @@ test('E2E: date link [[Dec 2nd, 2023]] in second journal', () => {
 	assert.ok(j2.finalBody.includes('[[2023-12-02]]'));
 });
 
-// ---------------------------------------------------------------------------
-// Tags
-// ---------------------------------------------------------------------------
 
 test('E2E: simple hashtag preserved (default: keep as tag)', () => {
 	const pn = findByOutput(graph, 'Main Page');
@@ -347,9 +293,6 @@ test('E2E: multi-word tag sanitized to hyphens', () => {
 	assert.ok(pn.finalBody.includes('#multi-word-tag'));
 });
 
-// ---------------------------------------------------------------------------
-// Highlights
-// ---------------------------------------------------------------------------
 
 test('E2E: highlights converted to == marks', () => {
 	const pn = findByOutput(graph, 'Main Page');
@@ -362,9 +305,6 @@ test('E2E: highlight inside inline code is not converted', () => {
 	assert.ok(pn.finalBody.includes('`^^code^^`'));
 });
 
-// ---------------------------------------------------------------------------
-// Media embeds
-// ---------------------------------------------------------------------------
 
 test('E2E: {{video URL}} becomes ![](URL)', () => {
 	const pn = findByOutput(graph, 'Main Page');
@@ -384,9 +324,6 @@ test('E2E: {{tweet URL}} becomes ![](URL)', () => {
 	assert.ok(!pn.finalBody.includes('{{tweet'));
 });
 
-// ---------------------------------------------------------------------------
-// Numbered lists
-// ---------------------------------------------------------------------------
 
 test('E2E: logseq numbered list markers become 1. 2.', () => {
 	const pn = findByOutput(graph, 'Main Page');
@@ -395,9 +332,6 @@ test('E2E: logseq numbered list markers become 1. 2.', () => {
 	assert.ok(!pn.finalBody.includes('logseq.order-list-type'));
 });
 
-// ---------------------------------------------------------------------------
-// Assets
-// ---------------------------------------------------------------------------
 
 test('E2E: asset with dimensions becomes ![[file|WxH]]', () => {
 	const pn = findByOutput(graph, 'Main Page');
@@ -422,9 +356,6 @@ test('E2E: journal references to assets are also converted', () => {
 	assert.ok(j1.local.assets.some(a => a.filename === 'diagram.png'));
 });
 
-// ---------------------------------------------------------------------------
-// Org blocks
-// ---------------------------------------------------------------------------
 
 test('E2E: QUOTE block becomes blockquote', () => {
 	const pn = findByOutput(graph, 'Main Page');
@@ -461,18 +392,13 @@ test('E2E: EXAMPLE block becomes callout', () => {
 	assert.ok(pn.finalBody.includes('some example text'));
 });
 
-// ---------------------------------------------------------------------------
-// Code blocks in lists
-// ---------------------------------------------------------------------------
 
 test('E2E: code blocks in lists get proper fence alignment', () => {
 	const pn = findByOutput(graph, 'Main Page');
-	// The closing ``` should be aligned with the opening
 	const lines = pn.finalBody.split('\n');
 	const openIdx = lines.findIndex(l => l.includes('```python'));
 	assert.ok(openIdx >= 0);
 	const openIndent = lines[openIdx].indexOf('```');
-	// Find the closing fence after the opening
 	let closeIdx = -1;
 	for (let i = openIdx + 1; i < lines.length; i++) {
 		if (/^\s*```\s*$/.test(lines[i])) {
@@ -485,9 +411,6 @@ test('E2E: code blocks in lists get proper fence alignment', () => {
 	assert.equal(openIndent, closeIndent);
 });
 
-// ---------------------------------------------------------------------------
-// Heading property
-// ---------------------------------------------------------------------------
 
 test('E2E: heading:: 2 property produces ## prefix on the block', () => {
 	const pn = findByOutput(graph, 'Main Page');
@@ -495,9 +418,6 @@ test('E2E: heading:: 2 property produces ## prefix on the block', () => {
 	assert.ok(!pn.finalBody.includes('heading:: 2'));
 });
 
-// ---------------------------------------------------------------------------
-// Leftover block properties cleanup
-// ---------------------------------------------------------------------------
 
 test('E2E: collapsed:: and logseq.* properties are removed', () => {
 	const pn = findByOutput(graph, 'Main Page');
@@ -505,9 +425,6 @@ test('E2E: collapsed:: and logseq.* properties are removed', () => {
 	assert.ok(!pn.finalBody.includes('logseq.order-list-type'));
 });
 
-// ---------------------------------------------------------------------------
-// Options: tasks-dataview format
-// ---------------------------------------------------------------------------
 
 test('E2E: dataview format produces inline fields', () => {
 	const dvOpts: LogseqImportOptions = { ...DEFAULT_LOGSEQ_OPTIONS, taskFormat: 'tasks-dataview' };
@@ -527,9 +444,6 @@ test('E2E: dataview format produces due for deadlines', () => {
 	assert.ok(pn.finalBody.includes('[due:: 2024-06-20]'));
 });
 
-// ---------------------------------------------------------------------------
-// Options: plain format
-// ---------------------------------------------------------------------------
 
 test('E2E: plain format collapses states to basic checkboxes', () => {
 	const plainOpts: LogseqImportOptions = { ...DEFAULT_LOGSEQ_OPTIONS, taskFormat: 'plain' };
@@ -540,9 +454,6 @@ test('E2E: plain format collapses states to basic checkboxes', () => {
 	assert.ok(pn.finalBody.includes('- [x] Old task'));
 });
 
-// ---------------------------------------------------------------------------
-// Options: keep full block IDs
-// ---------------------------------------------------------------------------
 
 test('E2E: full UUID mode keeps complete block ids', () => {
 	const fullOpts: LogseqImportOptions = { ...DEFAULT_LOGSEQ_OPTIONS, shortenBlockIds: false };
@@ -551,9 +462,6 @@ test('E2E: full UUID mode keeps complete block ids', () => {
 	assert.ok(pn.finalBody.includes('^aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'));
 });
 
-// ---------------------------------------------------------------------------
-// Options: LOGBOOK keep
-// ---------------------------------------------------------------------------
 
 test('E2E: LOGBOOK kept when option is set', () => {
 	const keepOpts: LogseqImportOptions = { ...DEFAULT_LOGSEQ_OPTIONS, logbook: 'keep' };
@@ -563,9 +471,6 @@ test('E2E: LOGBOOK kept when option is set', () => {
 	assert.ok(pn.finalBody.includes('CLOCK:'));
 });
 
-// ---------------------------------------------------------------------------
-// Options: convert tags to links
-// ---------------------------------------------------------------------------
 
 test('E2E: tags converted to wikilinks when option enabled', () => {
 	const linkOpts: LogseqImportOptions = { ...DEFAULT_LOGSEQ_OPTIONS, convertTagsToLinks: true, convertTagsOnlyExistingPages: false };
@@ -576,9 +481,6 @@ test('E2E: tags converted to wikilinks when option enabled', () => {
 	assert.ok(!pn.finalBody.includes('#topic'));
 });
 
-// ---------------------------------------------------------------------------
-// Options: keepAssetAltText
-// ---------------------------------------------------------------------------
 
 test('E2E: alt text preserved when option enabled (no dimensions)', () => {
 	const altOpts: LogseqImportOptions = { ...DEFAULT_LOGSEQ_OPTIONS, keepAssetAltText: true };
@@ -594,9 +496,6 @@ test('E2E: dimensions still win over alt text', () => {
 	assert.ok(pn.finalBody.includes('![[diagram.png|600x400]]'));
 });
 
-// ---------------------------------------------------------------------------
-// Correctness guarantees
-// ---------------------------------------------------------------------------
 
 test('E2E: no content is silently deleted (all fixture files produce output)', () => {
 	assert.ok(graph.length >= 7); // 5 pages + 2 journals

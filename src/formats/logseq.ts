@@ -448,8 +448,7 @@ export class LogseqImporter extends FormatImporter {
 			try {
 				const desired = this.desiredNote(entry, graph.name, outputRoot);
 				const content = await entry.file.readText();
-				// Collect asset references without committing to a link target. Attachment
-				// paths are selected only after every note has a provisional claim.
+				// Attachment paths depend on every note's provisional claim.
 				const local = convertLocal(content, this.options, { assetTarget: () => null });
 				const times = await fileTimes(entry.file);
 				const preliminary = local.yaml ? `${local.yaml}\n\n${local.body}\n` : `${local.body}\n`;
@@ -468,9 +467,7 @@ export class LogseqImporter extends FormatImporter {
 		for (const note of notes) this.releasePath(note.planned.targetPath);
 		if (ctx.isCancelled()) return;
 
-		// Asset placement only depends on the note's folder. Once every attachment
-		// has a final path, rewrite the already-converted body and re-run title
-		// preflight so {{content}} in a title template sees those final links.
+		// Re-plan titles so {{content}} sees final attachment links.
 		for (const note of notes) {
 			const linked = convertAssetLinks(note.local.body, {
 				keepAltText: this.options.keepAssetAltText,

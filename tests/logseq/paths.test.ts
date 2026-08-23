@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 
 import { decodeLogseqName, namespaceToPath, pageNameToPath } from '../../src/formats/logseq/paths';
 
-// --- decodeLogseqName ---
 
 test('decodeLogseqName decodes a simple percent-escape', () => {
 	assert.equal(decodeLogseqName('Encoded%3AColon'), 'Encoded:Colon');
@@ -41,7 +40,6 @@ test('decodeLogseqName decodes adjacent escapes correctly', () => {
 	assert.equal(decodeLogseqName('%3A%3A'), '::');
 });
 
-// --- namespaceToPath ---
 
 test('namespaceToPath splits on triple underscore', () => {
 	assert.equal(namespaceToPath('algorithms___dynamic programming'), 'algorithms/dynamic programming');
@@ -95,7 +93,6 @@ test('namespaceToPath leaves malformed percent untouched in segment', () => {
 	assert.equal(namespaceToPath('a%ZZ___b'), 'a%ZZ/b');
 });
 
-// --- pageNameToPath ---
 
 test('pageNameToPath matches namespaceToPath behavior', () => {
 	const inputs = [
@@ -114,10 +111,7 @@ test('pageNameToPath matches namespaceToPath behavior', () => {
 	}
 });
 
-// --- F1: bracket filename sanitization ---
-// The orchestrator builds page paths as sanitizeFileNameKeepPath(namespaceToPath(basename)).
-// sanitizeFileNameKeepPath lives in roam/utils (imports obsidian), so we replicate the
-// bracket-stripping portion of its regex here to assert the combined result is bracket-free.
+// Mirrors the sanitizer without importing its Obsidian dependency.
 function stripBrackets(name: string): string {
 	return name.replace(/\[/g, '').replace(/\]/g, '');
 }

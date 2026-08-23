@@ -1,19 +1,11 @@
-// De-outline: converts Logseq's everything-is-a-bullet outline structure back
-// into idiomatic flat markdown (paragraphs, headings, lists). This is the
-// inverse of the "outline" function. Pure, side-effect-free.
-
 import { markdownFenceLines } from '../../markdown';
 
 interface OutlineNode {
 	content: string;
 	children: OutlineNode[];
-	rawLines: string[]; // for multiline content (code blocks spanning lines)
+	rawLines: string[];
 }
 
-/**
- * Parse indented bullet lines into a tree of OutlineNodes.
- * Handles code blocks that span multiple indented lines.
- */
 function parseOutline(content: string): OutlineNode[] {
 	const lines = content.split('\n');
 	const fenced = markdownFenceLines(content);
@@ -26,12 +18,10 @@ function parseOutline(content: string): OutlineNode[] {
 	while (i < lines.length) {
 		const line = lines[i];
 
-		// Match a bullet line: optional indent + "- " + content
 		const bulletMatch = line.match(/^(\s*)- (.*)$/);
 
 		if (!bulletMatch) {
-			// Content outside the outline is still source content. Keep each contiguous
-			// run as a top-level node instead of silently deleting it.
+			// Preserve source content outside the outline as top-level nodes.
 			const rawLines = [line];
 			let j = i + 1;
 			while (j < lines.length && !/^(\s*)- /.test(lines[j])) rawLines.push(lines[j++]);
@@ -46,10 +36,8 @@ function parseOutline(content: string): OutlineNode[] {
 		const indent = bulletMatch[1].length;
 		const firstLineContent = bulletMatch[2];
 
-		// Collect raw lines: the bullet line + any continuation lines
-		// (indented more than the bullet, but not starting with a new bullet)
 		const rawLines = [line];
-		const continuationIndent = indent + 2; // content continuation is indented past "- "
+		const continuationIndent = indent + 2;
 
 		let inCodeBlock = fenced[i];
 
@@ -65,11 +53,8 @@ function parseOutline(content: string): OutlineNode[] {
 				continue;
 			}
 
-			// If next line is a bullet at any level, stop
 			if (nextBulletMatch) break;
 
-			// If next line is a continuation (indented content under this bullet)
-			// but NOT a child bullet, include as raw
 			const nextIndent = nextLine.match(/^(\s*)/)?.[1].length ?? 0;
 			if (nextLine.trim() === '' || nextIndent >= continuationIndent) {
 				rawLines.push(nextLine);
@@ -81,20 +66,13 @@ function parseOutline(content: string): OutlineNode[] {
 			}
 		}
 
-		// Build content: first line content + any continuation lines (stripped of indent)
 		let fullContent = firstLineContent;
-		// C1: compute the actual whitespace prefix to strip from continuations.
-		// In Logseq, continuations are indented with the bullet's indent + "  " (or a tab).
-		// We detect the indent from the first continuation line if available.
+		// Use the source prefix rather than counting columns so tabs survive.
 		let continuationPrefix = '';
 		if (rawLines.length > 1) {
 			const firstCont = rawLines[1];
 			const ws = firstCont.match(/^(\s*)/)?.[1] ?? '';
-			// The continuation prefix is all leading whitespace (it should align with
-			// content after "- "). Use actual indent rather than char-count arithmetic.
 			continuationPrefix = ws.length >= continuationIndent ? ws.slice(0, Math.max(ws.length, continuationIndent)) : ws;
-			// If the whitespace is longer than continuationIndent, check if first non-ws
-			// would be content (not a deeper indent); use the full ws as prefix.
 			if (firstCont.trim() !== '') {
 				continuationPrefix = ws;
 			}
@@ -109,7 +87,6 @@ function parseOutline(content: string): OutlineNode[] {
 				stripped = rawLine.slice(continuationPrefix.length);
 			}
 			else {
-				// Fallback: strip up to continuationIndent chars of whitespace
 				const leadingWs = rawLine.match(/^(\s*)/)?.[1] ?? '';
 				stripped = rawLine.slice(Math.min(leadingWs.length, continuationIndent));
 			}
@@ -118,15 +95,11 @@ function parseOutline(content: string): OutlineNode[] {
 
 		const node: OutlineNode = { content: fullContent, children: [], rawLines };
 
-		// Pop stack until we find the parent (an item with smaller indent)
 		while (stack.length > 1 && stack[stack.length - 1].indent >= indent) {
 			stack.pop();
 		}
 
-		// Add to parent's children
 		stack[stack.length - 1].children.push(node);
-
-		// Push this node onto the stack
 		stack.push({ indent, node, children: node.children });
 
 		i = j;
@@ -135,68 +108,44 @@ function parseOutline(content: string): OutlineNode[] {
 	return root;
 }
 
-/** Check if content starts with a markdown heading */
 function isHeading(content: string): boolean {
 	return /^#{1,6}\s+\S/.test(content);
 }
 
-/** Check if a node is a task checkbox */
 function isTask(content: string): boolean {
 	return /^\[.\]\s/.test(content);
 }
 
-/**
- * A subtree is a "genuine list" if the parent has 2+ children that are all
- * leaf-ish items (short, no deep sub-documents). Tasks are always list items.
- */
 function isGenuineList(nodes: OutlineNode[]): boolean {
 	if (nodes.length < 2) return false;
 	return nodes.every(node => isListCompatible(node));
 }
 
-/** Check recursively whether a node can participate in a list rendering. */
 function isListCompatible(node: OutlineNode): boolean {
-	// Headings must not participate in list rendering — they should always be
-	// promoted to real headings via serializeBodyUnderHeading (C1).
 	if (isHeading(node.content)) return false;
-	// Tasks are always list items
 	if (isTask(node.content)) return true;
-	// A leaf node is list-compatible
 	if (node.children.length === 0) return true;
-	// If it has children that form a genuine list, it's a list parent
 	if (node.children.length >= 2 && isGenuineList(node.children)) return true;
-	// C1: a single child that is itself list-compatible (recursively) is OK
 	if (node.children.length === 1 && isListCompatible(node.children[0])) return true;
 	return false;
 }
 
-/**
- * Check if a node represents a single-child chain that should collapse:
- * one parent with one child (not a list, not a heading, just prose).
- * C1: don't collapse if the single child has children that are NOT themselves
- * a simple collapse chain (i.e. the subtree has branching or tasks).
- */
 function shouldCollapseChain(node: OutlineNode): boolean {
 	if (node.children.length !== 1) return false;
 	const child = node.children[0];
 	if (isHeading(child.content) || isTask(child.content)) return false;
 	if (isGenuineList(node.children)) return false;
-	// If the child has no children, it's a simple 2-node collapse
 	if (child.children.length === 0) return true;
-	// If the child has exactly one child that is also collapsible, allow deep chains
 	return shouldCollapseChain(child);
 }
 
-/** Serialize nodes as a markdown list with proper indentation */
 function serializeList(nodes: OutlineNode[], depth: number): string[] {
 	const lines: string[] = [];
 	const indent = '  '.repeat(depth);
 
 	for (const node of nodes) {
 		const contentLines = node.content.split('\n');
-		// First line gets the "- " prefix (or "- [ ] " for tasks)
 		lines.push(`${indent}- ${contentLines[0]}`);
-		// Continuation lines get indented
 		for (let i = 1; i < contentLines.length; i++) {
 			const cLine = contentLines[i];
 			lines.push(cLine === '' ? '' : `${indent}  ${cLine}`);
@@ -210,7 +159,6 @@ function serializeList(nodes: OutlineNode[], depth: number): string[] {
 	return lines;
 }
 
-/** Serialize top-level nodes into flat markdown */
 function serializeTopLevel(nodes: OutlineNode[]): string[] {
 	const output: string[] = [];
 
@@ -219,13 +167,10 @@ function serializeTopLevel(nodes: OutlineNode[]): string[] {
 		const content = node.content;
 
 		if (isHeading(content)) {
-			// Heading node: emit heading, then serialize children as body
 			if (output.length > 0 && output[output.length - 1] !== '') {
 				output.push('');
 			}
-			// C1: if the heading has multiline content (continuation body), split and
-			// insert a blank line between heading and body — but NOT before a lone
-			// ^anchor, which must stay adjacent to the heading for Obsidian block refs.
+			// An anchor must stay adjacent to its heading.
 			const headingLines = content.split('\n');
 			output.push(headingLines[0]);
 			if (headingLines.length > 1) {
@@ -241,7 +186,6 @@ function serializeTopLevel(nodes: OutlineNode[]): string[] {
 			}
 		}
 		else if (isTask(content)) {
-			// Task at top level stays as a list item
 			if (output.length > 0 && output[output.length - 1] !== '') {
 				output.push('');
 			}
@@ -256,7 +200,6 @@ function serializeTopLevel(nodes: OutlineNode[]): string[] {
 			}
 		}
 		else if (node.children.length > 0 && isGenuineList(node.children)) {
-			// Prose parent with genuine list children: emit paragraph then list
 			if (output.length > 0 && output[output.length - 1] !== '') {
 				output.push('');
 			}
@@ -265,7 +208,6 @@ function serializeTopLevel(nodes: OutlineNode[]): string[] {
 			output.push(...serializeList(node.children, 0));
 		}
 		else if (shouldCollapseChain(node)) {
-			// Single-child chain: collapse
 			if (output.length > 0 && output[output.length - 1] !== '') {
 				output.push('');
 			}
@@ -273,8 +215,6 @@ function serializeTopLevel(nodes: OutlineNode[]): string[] {
 			output.push(...collapsed.split('\n'));
 		}
 		else if (node.children.length > 0) {
-			// Has children but not a genuine list — children are sub-documents
-			// Serialize as prose paragraph then children as subsequent paragraphs
 			if (output.length > 0 && output[output.length - 1] !== '') {
 				output.push('');
 			}
@@ -283,7 +223,6 @@ function serializeTopLevel(nodes: OutlineNode[]): string[] {
 			output.push(...serializeBodyUnderHeading(node.children));
 		}
 		else {
-			// Plain prose: emit as paragraph
 			if (output.length > 0 && output[output.length - 1] !== '') {
 				output.push('');
 			}
@@ -294,7 +233,6 @@ function serializeTopLevel(nodes: OutlineNode[]): string[] {
 	return output;
 }
 
-/** Collapse a single-child chain into one paragraph */
 function collapseChain(node: OutlineNode): string {
 	let result = node.content;
 	let current = node;
@@ -305,7 +243,6 @@ function collapseChain(node: OutlineNode): string {
 		result += '\n' + child.content;
 		current = child;
 	}
-	// If the final node in the chain has children, append them
 	if (current.children.length > 0) {
 		if (isGenuineList(current.children)) {
 			result += '\n\n' + serializeList(current.children, 0).join('\n');
@@ -317,15 +254,9 @@ function collapseChain(node: OutlineNode): string {
 	return result;
 }
 
-/**
- * Serialize children under a heading: they may be paragraphs, sub-headings, or lists.
- * Unlike top-level, heading children are always processed individually (not treated
- * as a "genuine list" collectively) — except when ALL are tasks.
- */
 function serializeBodyUnderHeading(nodes: OutlineNode[]): string[] {
 	const output: string[] = [];
 
-	// If all children are tasks, render as a compact list
 	if (nodes.length >= 2 && nodes.every(n => isTask(n.content))) {
 		output.push(...serializeList(nodes, 0));
 		return output;
@@ -339,7 +270,6 @@ function serializeBodyUnderHeading(nodes: OutlineNode[]): string[] {
 			if (output.length > 0 && output[output.length - 1] !== '') {
 				output.push('');
 			}
-			// C1: split multiline heading content
 			const headingLines = content.split('\n');
 			output.push(headingLines[0]);
 			if (headingLines.length > 1) {
@@ -352,7 +282,6 @@ function serializeBodyUnderHeading(nodes: OutlineNode[]): string[] {
 			}
 		}
 		else if (isTask(content)) {
-			// Group consecutive tasks into a compact list
 			const taskGroup: OutlineNode[] = [node];
 			while (i + 1 < nodes.length && isTask(nodes[i + 1].content)) {
 				i++;
@@ -396,17 +325,9 @@ function serializeBodyUnderHeading(nodes: OutlineNode[]): string[] {
 	return output;
 }
 
-/**
- * De-outline: converts Logseq's bullet-outline format back into idiomatic
- * flat markdown with paragraphs, headings, and properly-nested lists.
- *
- * Takes content AFTER all other conversions (tasks, properties, highlights, etc.)
- * have been applied.
- */
 export function deOutline(content: string): string {
 	if (!content.trim()) return content;
 
-	// If content doesn't look like an outline (no bullet lines), return as-is
 	if (!/^\s*- /m.test(content)) return content;
 
 	const nodes = parseOutline(content);
@@ -414,7 +335,6 @@ export function deOutline(content: string): string {
 
 	const lines = serializeTopLevel(nodes);
 
-	// Clean up: remove trailing blank lines, ensure single trailing newline
 	let result = lines.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd();
 	if (content.endsWith('\n')) result += '\n';
 

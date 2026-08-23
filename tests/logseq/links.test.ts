@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 
 import { convertAliasLinks, convertTags, rewriteAliasReferences, rewritePlannedPageLinks } from '../../src/formats/logseq/links';
 
-// Helper: build ConvertTagsOptions with minimal setup
 function tagOpts(toLinks: boolean, knownPages: string[] = [], dropTags: string[] = []) {
 	return {
 		toLinks,
@@ -13,7 +12,6 @@ function tagOpts(toLinks: boolean, knownPages: string[] = [], dropTags: string[]
 	};
 }
 
-// --- alias links: [display]([[Page]]) -> [[Page|display]] ---
 test('converts Logseq page-alias links', () => {
 	assert.equal(convertAliasLinks('[label]([[Page]])'), '[[Page|label]]');
 	assert.equal(convertAliasLinks('see [My Note]([[Some/Page]]) here'), 'see [[Some/Page|My Note]] here');
@@ -34,7 +32,6 @@ test('does not convert alias links inside inline code or tilde fences', () => {
 	assert.equal(convertAliasLinks(input), input);
 });
 
-// --- tags ---
 test('keeps simple tags but sanitizes multi-word tags (keep-as-tag mode)', () => {
 	assert.equal(convertTags('a #tag b', tagOpts(false)), 'a #tag b');
 	assert.equal(convertTags('x #[[multi word]] y', tagOpts(false)), 'x #multi-word y');
@@ -65,7 +62,6 @@ test('onlyExistingPages converts multi-word tag only when page exists', () => {
 	assert.equal(convertTags('x #[[multi word]] y #[[nope]] z', opts), 'x [[multi word]] y #nope z');
 });
 
-// --- alias references: rewrite [[Alias]] -> [[Canonical|Alias]] ---
 test('rewrites a reference that targets an alias', () => {
 	const index = { aliasMap: new Map([['ml', 'Machine Learning']]) };
 	assert.equal(rewriteAliasReferences('[[ML]]', index), '[[Machine Learning|ML]]');
@@ -92,46 +88,34 @@ test('does not rewrite block or heading references', () => {
 	assert.equal(rewriteAliasReferences('[[ML#^abc123]]', index), '[[ML#^abc123]]');
 });
 
-// ---------------------------------------------------------------------------
-// Documented transformation cases — G1, H1, and M1.
-// ---------------------------------------------------------------------------
 
-// G1: an alias reference inside an inline-code span must be left verbatim.
 test('[G1] does not rewrite an alias reference inside inline code', () => {
 	const index = { aliasMap: new Map([['ml', 'Machine Learning']]) };
 	assert.equal(rewriteAliasReferences('use `[[ML]]` here', index), 'use `[[ML]]` here');
 });
 
-// G1: an alias equal to its own page name must not produce a redundant [[Name|Name]].
 test('[G1] does not rewrite a link when the alias equals the page name', () => {
 	const index = { aliasMap: new Map([['same page', 'Same Page']]) };
 	assert.equal(rewriteAliasReferences('[[Same Page]]', index), '[[Same Page]]');
 });
 
-// M1: source names must follow a collision-safe path selected during preflight.
 test('[M1] rewrites a source page name to its planned path', () => {
 	const plans = new Map([['feedback', { target: 'Logseq/feedback 1', display: 'feedback' }]]);
 	assert.equal(rewritePlannedPageLinks('[[feedback]]', plans), '[[Logseq/feedback 1|feedback]]');
 });
 
-// G1: an alias link whose target already has a pipe must not produce a double pipe.
 test('[G1] alias link with piped target does not produce a double pipe', () => {
 	assert.equal(convertAliasLinks('[disp]([[A|B]])'), '[[A|disp]]');
 });
 
-// H1: a hex colour token must never be treated as a tag.
 test('[H1] hex colour is not converted into a tag link', () => {
 	assert.equal(convertTags('#FF0000', tagOpts(true)), '#FF0000');
 });
 
-// H1: a tag preceded by an opening bracket/paren is recognized.
 test('[H1] tag preceded by an opening paren is recognized', () => {
 	assert.equal(convertTags('(#hashtag)', tagOpts(true)), '([[hashtag]])');
 });
 
-// A tag is Unicode. `\w` is ASCII-only, so a graph tagging in any language
-// other than English had none of its tags recognised — neither converted to a
-// link nor matched against the user's drop list.
 test('a non-ASCII tag is recognised and converted', () => {
 	assert.equal(convertTags('#café', tagOpts(true)), '[[café]]');
 	assert.equal(convertTags('#日本語', tagOpts(true)), '[[日本語]]');
@@ -146,9 +130,6 @@ test('a non-ASCII tag can be dropped by name', () => {
 	assert.equal(convertTags('a #cafe\u0301 b', tagOpts(false, [], ['cafe\u0301'])), 'a  b');
 });
 
-// The hex-colour guard collides with ordinary words: `#dad`, `#bad`, `#ace` and
-// `#face` are all hex-shaped. Where the graph has a page by that name, that
-// answers the question better than the shape of the token does.
 test('a hex-shaped word with a page of its own is a tag, not a colour', () => {
 	for (const word of ['dad', 'bad', 'ace', 'dead', 'deaf', 'face', 'beef', 'decade']) {
 		assert.equal(convertTags(`#${word}`, tagOpts(true, [word])), `[[${word}]]`, word);
@@ -159,7 +140,6 @@ test('a hex-shaped token with no page behind it stays a colour', () => {
 	assert.equal(convertTags('#fff #abcd #FF0000 #11223344', tagOpts(true)), '#fff #abcd #FF0000 #11223344');
 });
 
-// The drop list is the user saying what they want; it is read before the guess.
 test('the drop list is applied before the hex-colour guard', () => {
 	assert.equal(convertTags('a #decade b', tagOpts(false, [], ['decade'])), 'a  b');
 	assert.equal(convertTags('a #FF0000 b', tagOpts(false, [], ['FF0000'])), 'a  b');

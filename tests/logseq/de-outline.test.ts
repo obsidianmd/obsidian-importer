@@ -3,9 +3,6 @@ import assert from 'node:assert/strict';
 
 import { deOutline } from '../../src/formats/logseq/de-outline';
 
-// ---------------------------------------------------------------------------
-// Simple top-level prose bullets → paragraphs
-// ---------------------------------------------------------------------------
 
 test('deOutline: single prose bullet becomes a paragraph', () => {
 	const input = '- Hello world';
@@ -39,9 +36,6 @@ test('deOutline: preserves top-level content outside bullets', () => {
 	assert.match(output, /first bullet\n\nsecond bullet$/);
 });
 
-// ---------------------------------------------------------------------------
-// Heading bullets → real headings
-// ---------------------------------------------------------------------------
 
 test('deOutline: heading bullet becomes a real heading', () => {
 	const input = '- # Title';
@@ -78,9 +72,6 @@ test('deOutline: h2 heading standalone', () => {
 	assert.equal(deOutline(input), '## Subtitle');
 });
 
-// ---------------------------------------------------------------------------
-// Genuine list subtrees → stay as markdown lists
-// ---------------------------------------------------------------------------
 
 test('deOutline: genuine list (multiple leaf siblings) stays as list', () => {
 	const input = [
@@ -138,9 +129,6 @@ test('deOutline: nested genuine list preserves nesting', () => {
 	assert.equal(deOutline(input), expected);
 });
 
-// ---------------------------------------------------------------------------
-// Mixed: heading + prose + list in same document
-// ---------------------------------------------------------------------------
 
 test('deOutline: mixed document with heading, prose, and list', () => {
 	const input = [
@@ -168,9 +156,6 @@ test('deOutline: mixed document with heading, prose, and list', () => {
 	assert.equal(deOutline(input), expected);
 });
 
-// ---------------------------------------------------------------------------
-// Single-child chain collapsing
-// ---------------------------------------------------------------------------
 
 test('deOutline: single-child chain collapses into one paragraph', () => {
 	const input = [
@@ -191,9 +176,6 @@ test('deOutline: deep single-child chain collapses', () => {
 	assert.equal(deOutline(input), expected);
 });
 
-// ---------------------------------------------------------------------------
-// ^id anchors preserved
-// ---------------------------------------------------------------------------
 
 test('deOutline: ^id anchor preserved on paragraph', () => {
 	const input = '- Some content ^abc123';
@@ -206,8 +188,6 @@ test('deOutline: ^id anchor preserved on heading', () => {
 });
 
 test('deOutline: ^id anchor on continuation line stays adjacent to heading', () => {
-	// After attachBlockIds fix, bullet-heading anchors land on the indented next line.
-	// De-outline must not insert a blank separator between the heading and its anchor.
 	const input = ['- # Heading', '  ^ref1'].join('\n');
 	assert.equal(deOutline(input), ['# Heading', '^ref1'].join('\n'));
 });
@@ -227,9 +207,6 @@ test('deOutline: ^id anchor preserved in list items', () => {
 	assert.equal(deOutline(input), expected);
 });
 
-// ---------------------------------------------------------------------------
-// Code blocks within bullets
-// ---------------------------------------------------------------------------
 
 test('deOutline: code block in bullet stays intact', () => {
 	const input = [
@@ -268,9 +245,6 @@ test('deOutline: code block in a list item stays intact', () => {
 	assert.equal(deOutline(input), expected);
 });
 
-// ---------------------------------------------------------------------------
-// Task checkboxes within outlines
-// ---------------------------------------------------------------------------
 
 test('deOutline: tasks stay as list items', () => {
 	const input = [
@@ -303,9 +277,6 @@ test('deOutline: tasks nested under heading stay as list items', () => {
 	assert.equal(deOutline(input), expected);
 });
 
-// ---------------------------------------------------------------------------
-// Empty/whitespace-only content handling
-// ---------------------------------------------------------------------------
 
 test('deOutline: empty string returns empty string', () => {
 	assert.equal(deOutline(''), '');
@@ -320,9 +291,6 @@ test('deOutline: content without bullets returns as-is', () => {
 	assert.equal(deOutline(input), input);
 });
 
-// ---------------------------------------------------------------------------
-// Edge cases
-// ---------------------------------------------------------------------------
 
 test('deOutline: preserves trailing newline', () => {
 	const input = '- Hello world\n';
@@ -358,12 +326,6 @@ test('deOutline: wikilinks preserved', () => {
 	assert.equal(deOutline(input), 'See [[Other Page]] for details');
 });
 
-// ---------------------------------------------------------------------------
-// Documented transformation cases — C1.
-// ---------------------------------------------------------------------------
-
-// C1: a closing ``` fence carrying a trailing ^anchor must still terminate the
-// fence, so following sibling blocks are not swallowed/demoted.
 test('[C1] deOutline: closing fence with trailing ^anchor does not swallow following blocks', () => {
 	const input = [
 		'- ## Person',
@@ -381,19 +343,12 @@ test('[C1] deOutline: closing fence with trailing ^anchor does not swallow follo
 	assert.ok(!lines.includes('# Team'), 'Team heading must not be demoted to a single #');
 });
 
-// C1: a heading bullet with continuation body must de-indent the body to
-// column 0 (no stray leading space from a fixed-count slice) AND insert a blank
-// line between the heading and its body.
 test('[C1] deOutline: tab-indented heading continuation de-indents cleanly with a blank line', () => {
 	const input = '- # Projects\n\t  > [!note]\n\t  > body';
 	const expected = '# Projects\n\n> [!note]\n> body';
 	assert.equal(deOutline(input), expected);
 });
 
-// C1: a genuine multi-child nested bullet list must stay a nested Markdown list
-// (consistently for all siblings), not be flattened into ambiguous paragraphs.
-// A single deep descendant (here a task) currently breaks isGenuineList and
-// over-flattens the *whole* sibling group.
 test('[C1] deOutline: genuine nested list is preserved despite a deep descendant', () => {
 	const input = [
 		'- overview:',
@@ -415,9 +370,6 @@ test('[C1] deOutline: genuine nested list is preserved despite a deep descendant
 	assert.equal(deOutline(input), expected);
 });
 
-// [C1] Fix: headings as siblings inside list context must be promoted to real
-// headings, not emitted as "- ### Heading". This updates the previously pinned
-// C1 contract — the old behavior was accepted as a workaround; now it's fixed.
 test('[C1] deOutline: heading siblings in body context are promoted to real headings', () => {
 	const input = [
 		'- parent prose',
@@ -435,7 +387,6 @@ test('[C1] deOutline: heading siblings in body context are promoted to real head
 });
 
 test('[C1] deOutline: standalone heading-only siblings become real headings', () => {
-	// Fixture pattern: outline with named sections as bullets
 	const input = [
 		'- ## Fixture Heading',
 		'\t- ### Context and goals',
@@ -449,10 +400,6 @@ test('[C1] deOutline: standalone heading-only siblings become real headings', ()
 	assert.ok(!out.some(l => l.startsWith('- ###')), 'no bullet-heading pattern remaining');
 });
 
-// C1: a chain of distinct link bullets — with the current collapse heuristic,
-// single-child chains collapse into sequential paragraphs (same as Level 1/2/3).
-// This is acceptable for now; a future content-aware heuristic could detect
-// link-heavy items and prefer list rendering.
 test('[C1] deOutline: chain of distinct link bullets becomes a nested list, not one paragraph', () => {
 	const input = '- [[A]]\n\t- [[B]]\n\t\t- [[C]]';
 	const expected = '[[A]]\n[[B]]\n[[C]]';

@@ -61,7 +61,6 @@ test('multiple wikilink values become a quoted list', () => {
 
 test('property block ends at the first non-property line', () => {
 	const input = 'type:: note\nthis is content:: not a prop line really\nmore';
-	// "this is content:: ..." has a space in the key position so it is not a valid property line.
 	const { yaml, body } = extractPageProperties(input);
 	assert.equal(yaml, ['---', 'type: note', '---'].join('\n'));
 	assert.equal(body, 'this is content:: not a prop line really\nmore');
@@ -97,7 +96,6 @@ test('removeLeftoverBlockProperties drops user-specified extra keys', () => {
 	assert.equal(removeLeftoverBlockProperties(input, ['my-status']), ['- a block', '  rating:: 5'].join('\n'));
 });
 
-// --- I1: blockProperties keep / wrap / drop ---
 test('[I1] keep mode leaves unknown block property unchanged', () => {
 	const input = ['- a block', '  rating:: 5'].join('\n');
 	assert.equal(removeLeftoverBlockProperties(input, [], 'keep'), input);
@@ -188,7 +186,6 @@ test('convertHeadingProperty turns heading:: N into a markdown heading prefix', 
 
 test('convertHeadingProperty leaves heading:: true (auto) handling without crashing', () => {
 	const input = ['- A', '  heading:: true'].join('\n');
-	// auto-heading has no explicit level; we just drop the property line.
 	assert.equal(convertHeadingProperty(input), '- A');
 });
 
@@ -197,29 +194,22 @@ test('convertHeadingProperty associates a property after inline code with its wh
 	assert.equal(convertHeadingProperty(input), '- ## Heading with `code`');
 });
 
-// ---------------------------------------------------------------------------
-// Documented transformation cases — I1.
-// ---------------------------------------------------------------------------
 
-// I1: a value starting with '#' must be quoted (else YAML reads it as a comment → null).
 test('[I1] scalar value starting with # is quoted', () => {
 	const { yaml } = extractPageProperties('status:: #in-progress\n\ntext');
 	assert.equal(yaml, ['---', 'status: "#in-progress"', '---'].join('\n'));
 });
 
-// I1: a value that is a markdown link must be quoted (else the whole block is invalid YAML).
 test('[I1] scalar value that is a markdown link is quoted', () => {
 	const { yaml } = extractPageProperties('file:: [doc](../a/b.pdf)\n\ntext');
 	assert.equal(yaml, ['---', 'file: "[doc](../a/b.pdf)"', '---'].join('\n'));
 });
 
-// I1: a comma inside a single wikilink must not be treated as a list separator.
 test('[I1] comma inside a single wikilink is not split into a list', () => {
 	const { yaml } = extractPageProperties('deadline:: [[Jul 18th, 2025]]\n\ntext');
 	assert.equal(yaml, ['---', 'deadline: "[[Jul 18th, 2025]]"', '---'].join('\n'));
 });
 
-// I1: general YAML-unsafe scalars must be quoted (colon-space, bool-like, leading-zero number).
 test('[I1] colon-space value is quoted', () => {
 	const { yaml } = extractPageProperties('k:: value: with colon\n\nx');
 	assert.equal(yaml, ['---', 'k: "value: with colon"', '---'].join('\n'));
@@ -235,44 +225,37 @@ test('[I1] leading-zero numeric value stays a quoted string', () => {
 	assert.equal(yaml, ['---', 'k: "007"', '---'].join('\n'));
 });
 
-// I1: an internal block property written as a bullet must still be stripped.
 test('[I1] internal block property written as a bullet is stripped', () => {
 	const input = ['- a block', '- collapsed:: true', '- next'].join('\n');
 	assert.equal(removeLeftoverBlockProperties(input), ['- a block', '- next'].join('\n'));
 });
 
-// I1: Logseq PDF-highlight internal props must be dropped from the body.
 test('[I1] PDF highlight props (ls-type / hl-*) are dropped', () => {
 	const input = ['- quote', '  ls-type:: annotation', '  hl-page:: 46', '  hl-color:: yellow'].join('\n');
 	assert.equal(removeLeftoverBlockProperties(input), '- quote');
 });
 
-// I1: a title:: page property must be preserved (carried as an alias).
 test('[I1] title page property is preserved as an alias', () => {
 	const { yaml, raw } = extractPageProperties('title:: Example Title\ntype:: note\n\ntext');
 	assert.equal(raw.title, 'Example Title');
 	assert.match(yaml, /aliases:\n {2}- Example Title/);
 });
 
-// I1: created/updated wikilink dates become plain ISO dates.
 test('[I1] created wikilink date is emitted as a plain ISO date', () => {
 	const { yaml } = extractPageProperties('created:: [[2024-01-16]]\n\nx');
 	assert.equal(yaml, ['---', 'created: 2024-01-16', '---'].join('\n'));
 });
 
-// I1: an empty-valued page property is omitted entirely.
 test('[I1] empty-valued page property is omitted', () => {
 	const { yaml } = extractPageProperties('icon::\n\nx');
 	assert.equal(yaml, '');
 });
 
-// I1: duplicate page-property keys are de-duplicated (last wins).
 test('[I1] duplicate page-property keys are de-duplicated (last wins)', () => {
 	const { yaml } = extractPageProperties('type:: a\ntype:: b\n\nx');
 	assert.equal(yaml, ['---', 'type: b', '---'].join('\n'));
 });
 
-// --- I1: linkify tag-style frontmatter values in pass-2 ---
 test('[I1] tag value linkifies to [[page]] when page exists and toLinks on', () => {
 	const yaml = ['---', 'status: "#IN-PROGRESS"', '---'].join('\n');
 	const out = linkifyTagValuesInFrontmatter(yaml, {
@@ -333,9 +316,6 @@ test('[I1] tag value linkifies regardless of page set when onlyExistingPages is 
 	assert.equal(out, ['---', 'area: "[[security]]"', '---'].join('\n'));
 });
 
-// ---------------------------------------------------------------------------
-// Always-drop page properties (Logseq-internal with no Obsidian equivalent)
-// ---------------------------------------------------------------------------
 
 test('[I1] collapsed page property is always dropped from frontmatter', () => {
 	const { yaml } = extractPageProperties('collapsed:: true\ntype:: note\n\ntext');
@@ -377,9 +357,6 @@ test('[I1] hl-* and ls-* prefixed page properties are always dropped', () => {
 	assert.equal(yaml, ['---', 'type: note', '---'].join('\n'));
 });
 
-// ---------------------------------------------------------------------------
-// alias / aliases as block properties must be always dropped
-// ---------------------------------------------------------------------------
 
 test('[I1] alias block property is always dropped (not wrapped or kept)', () => {
 	const input = ['- a block', '  alias:: Some Alias'].join('\n');
@@ -398,9 +375,6 @@ test('[I1] template-including-parent block property is always dropped', () => {
 	assert.equal(removeLeftoverBlockProperties(input), '- a block');
 });
 
-// ---------------------------------------------------------------------------
-// snake_case conversion for page and block properties
-// ---------------------------------------------------------------------------
 
 test('[T-snake] snakeCasePageProperties converts kebab-case keys to snake_case', () => {
 	const input = 'test-hyphen:: value\ntype:: note\n\ntext';

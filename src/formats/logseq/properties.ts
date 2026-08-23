@@ -1,20 +1,9 @@
-// Logseq page/block property handling.
-//
-// Page properties live in the first block of a file (unindented `key:: value`
-// lines) and map to Obsidian YAML frontmatter. Block properties are indented
-// `key:: value` continuation lines; most Logseq-internal ones are dropped.
-
 import { outsideMarkdownFences } from '../../markdown';
 
 const PROPERTY_LINE = /^([A-Za-z0-9_.-]+):: ?(.*)$/;
-// Also matches bullet-form block properties: `- key:: value`
-// Groups: 1=indent, 2=bullet (`- ` or undefined), 3=key, 4=value.
 const BLOCK_PROPERTY_LINE = /^(\s*)(- )?([A-Za-z0-9_.-]+):: ?(.*)$/;
-// A trailing Logseq block anchor on a property value, e.g. ` ^68dc12`.
 const BLOCK_ANCHOR = /\s+(\^[A-Za-z0-9_-]+)\s*$/;
 
-// Block properties that are always dropped regardless of user config.
-// These are purely Logseq-internal and have no meaning in Obsidian.
 const ALWAYS_DROP_BLOCK_PROPS = new Set([
 	'alias',
 	'aliases',
@@ -33,8 +22,6 @@ const ALWAYS_DROP_BLOCK_PROPS = new Set([
 	'template-including-parent',
 ]);
 
-// Page properties that are always dropped regardless of user config.
-// These are Logseq UI/internal properties with no equivalent in Obsidian.
 const ALWAYS_DROP_PAGE_PROPS = new Set([
 	'collapsed',
 	'filters',
@@ -44,7 +31,6 @@ const ALWAYS_DROP_PAGE_PROPS = new Set([
 	'template-including-parent',
 ]);
 
-// Prefix-based always-drop rules for both page and block properties.
 const isAlwaysDroppedByPrefix = (key: string): boolean =>
 	key.startsWith('hl-') ||
 	key.startsWith('ls-') ||
@@ -52,11 +38,8 @@ const isAlwaysDroppedByPrefix = (key: string): boolean =>
 	key.startsWith('query-');
 
 export interface PageProperties {
-	/** YAML frontmatter block including `---` fences, or '' when there are none. */
 	yaml: string;
-	/** File body after the page-property block (leading blank lines trimmed). */
 	body: string;
-	/** Raw parsed key -> value map (e.g. for the dropped `title`). */
 	raw: Record<string, string>;
 }
 
@@ -65,11 +48,7 @@ function stripWikiBrackets(value: string): string {
 	return m ? m[1] : value;
 }
 
-/**
- * Split a comma-separated property value into items, ignoring commas that
- * appear inside `[[wikilinks]]`.  I1: a single `[[Jul 18th, 2025]]`
- * must remain one item, not split into `["[[Jul 18th"`, `"2025]]"]`.
- */
+/** Splits commas outside wikilinks. */
 function splitList(value: string): string[] {
 	const items: string[] = [];
 	let current = '';
@@ -100,24 +79,10 @@ function splitList(value: string): string[] {
 	return items;
 }
 
-/**
- * Return a YAML-safe double-quoted scalar.
- * Escapes internal `"` and `\` characters.
- */
 function quote(value: string): string {
 	return '"' + value.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
 }
 
-/**
- * Return true when a scalar MUST be quoted to round-trip safely through YAML.
- * Covers the cases that js-yaml / Obsidian care about:
- *  - starts with a YAML indicator character: #, [, {, >, |, *, &, !, @, `
- *  - looks like a YAML boolean: yes/no/true/false/on/off (case-insensitive)
- *  - looks like a number (int, float, leading-zero, hex, octal)
- *  - contains ': ' (would be parsed as a mapping key)
- *  - starts or ends with a quote character
- *  - contains a wikilink `[[` (already handled upstream, but guard here too)
- */
 const YAML_BOOL = /^(yes|no|true|false|on|off)$/i;
 const YAML_NUMBER = /^[-+]?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$|^0[xXoObB]/;
 const YAML_LEADING_ZERO = /^0\d/;
@@ -133,20 +98,13 @@ function needsQuoting(value: string): boolean {
 	return false;
 }
 
-/**
- * Strip `[[wikilink]]` brackets from an ISO-date property value.
- * e.g. `[[2024-01-16]]` → `2024-01-16`. Returns `null` if the value
- * is not a plain ISO date (so template tokens like `{{date:…}}` are dropped).
- */
 function extractIsoDate(value: string): string | null {
 	const clean = value.replace(/^\[\[|\]\]$/g, '').trim();
-	if (/\{\{/.test(clean)) return null; // template token
+	if (/\{\{/.test(clean)) return null;
 	if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
 	return null;
 }
 
-// A single comma-separated tag entry may itself contain multiple tags, e.g.
-// `[[tag2]] #tag3`. Pull out wikilinked names first, then bare/hash tokens.
 function tagsFromItem(item: string): string[] {
 	const tokens: string[] = [];
 	const rest = item.replace(/\[\[([^\]]+)\]\]/g, (_, name) => {
@@ -160,37 +118,30 @@ function tagsFromItem(item: string): string[] {
 	return tokens;
 }
 
-/** Convert a kebab-case property key to snake_case, e.g. `test-hyphen` → `test_hyphen`. */
 function toSnakeCaseKey(key: string): string {
 	return key.replace(/-/g, '_');
 }
 
 function emitProperty(key: string, value: string, aliases: string[], dropPageProps: Set<string>, dropTags: Set<string>, snakeCase: boolean): string[] {
-	// I1: drop empty-valued properties.
 	if (value.trim() === '') return [];
 
 	if (key === 'alias' || key === 'aliases') {
 		for (const item of splitList(value)) aliases.push(stripWikiBrackets(item));
-		return []; // emitted later, after the whole block is parsed
+		return [];
 	}
 	if (key === 'tags') {
 		const items = splitList(value).flatMap(tagsFromItem).filter(t => !dropTags.has(t));
 		if (items.length === 0) return [];
 		return ['tags:', ...items.map(i => `  - ${i}`)];
 	}
-	// Always-drop Logseq-internal keys take precedence over user config.
 	if (isAlwaysDroppedPageProp(key)) return [];
 	if (dropPageProps.has(key)) return [];
 
-	// Output key: optionally converted to snake_case (drop/match checks above use the
-	// original kebab-case key, since that's how users configure their drop lists).
 	const outKey = snakeCase ? toSnakeCaseKey(key) : key;
 
-	// I1: created/updated wikilink dates → plain ISO.
 	if ((key === 'created' || key === 'updated') && value.includes('[[')) {
 		const iso = extractIsoDate(value);
 		if (iso !== null) return [`${outKey}: ${iso}`];
-		// Fall through to normal handling if not a clean ISO date.
 	}
 
 	const parts = splitList(value);
@@ -201,7 +152,6 @@ function emitProperty(key: string, value: string, aliases: string[], dropPagePro
 	if (hasWiki) {
 		return [`${outKey}: ${quote(value)}`];
 	}
-	// I1: apply general YAML-safe quoting to all non-wikilink scalars.
 	if (needsQuoting(value)) {
 		return [`${outKey}: ${quote(value)}`];
 	}
@@ -211,7 +161,6 @@ function emitProperty(key: string, value: string, aliases: string[], dropPagePro
 export interface ExtractPagePropertiesOptions {
 	dropPageProperties?: string[];
 	dropTags?: string[];
-	/** Convert kebab-case page property keys to snake_case (e.g. `test-hyphen` → `test_hyphen`). */
 	snakeCasePageProperties?: boolean;
 }
 
@@ -222,20 +171,18 @@ export function extractPageProperties(content: string, opts: ExtractPageProperti
 	const lines = content.split('\n');
 	const raw: Record<string, string> = {};
 	const bodyLines: string[] = [];
-	// I1: use a Map to deduplicate keys (last value wins).
 	const propMap = new Map<string, string[]>();
 	const propOrder: string[] = [];
 	const aliases: string[] = [];
 
 	let i = 0;
-	// Page properties are the leading unindented `key:: value` lines.
 	for (; i < lines.length; i++) {
 		const m = lines[i].match(PROPERTY_LINE);
 		if (!m) break;
 		const key = m[1];
 		const value = m[2].trim();
 		raw[key] = value;
-		if (key === 'title') continue; // kept in raw, emitted as alias below
+		if (key === 'title') continue;
 		const emitted = emitProperty(key, value, aliases, dropPageProps, dropTags, snakeCase);
 		if (emitted.length > 0) {
 			if (!propMap.has(key)) propOrder.push(key);
@@ -243,17 +190,14 @@ export function extractPageProperties(content: string, opts: ExtractPageProperti
 		}
 	}
 
-	// I1: treat title:: as an additional alias (→ Obsidian aliases field).
 	if (raw.title) {
 		const titleAlias = raw.title.replace(/^\[\[(.*)\]\]$/, '$1').trim();
 		if (titleAlias) aliases.push(titleAlias);
 	}
 
-	// Skip blank lines between the property block and the body.
 	while (i < lines.length && lines[i].trim() === '') i++;
 	for (; i < lines.length; i++) bodyLines.push(lines[i]);
 
-	// Collect emitted lines in insertion order (deduplicated).
 	const propLines: string[] = [];
 	for (const key of propOrder) {
 		const lines = propMap.get(key);
@@ -272,7 +216,6 @@ export function extractPageProperties(content: string, opts: ExtractPageProperti
 	return { yaml, body: bodyLines.join('\n'), raw };
 }
 
-/** How retained (unknown) inline block properties are emitted. */
 export type BlockPropertyMode = 'keep' | 'wrap' | 'drop';
 
 function isAlwaysDroppedBlockProp(key: string, userDrop: Set<string>): boolean {
@@ -285,13 +228,6 @@ function isAlwaysDroppedPageProp(key: string): boolean {
 	return ALWAYS_DROP_PAGE_PROPS.has(key);
 }
 
-/**
- * Rewrite a retained `key:: value` line into a Dataview inline field
- * `[key:: value]`, preserving indentation, any bullet prefix, and a trailing
- * `^anchor`. Falls back to the original line when the value is empty or would
- * break the inline-field bracket syntax (contains a stray `]`/`[` outside of a
- * `[[wikilink]]`).
- */
 function wrapBlockProperty(line: string, m: RegExpMatchArray, outKey: string): string {
 	const indent = m[1];
 	const bullet = m[2] ?? '';
@@ -304,23 +240,19 @@ function wrapBlockProperty(line: string, m: RegExpMatchArray, outKey: string): s
 	}
 	const core = value.trim();
 	if (core === '') return line;
-	// Dataview inline fields can't contain a stray `]`/`[`; wikilinks are fine.
+	// Stray brackets would break the Dataview field.
 	const withoutLinks = core.replace(/\[\[[^\]]*\]\]/g, '');
 	if (withoutLinks.includes(']') || withoutLinks.includes('[')) return line;
 	const wrapped = `${indent}${bullet}[${outKey}:: ${core}]`;
 	return anchor ? `${wrapped} ${anchor}` : wrapped;
 }
 
-/**
- * Rewrite the `key` portion of a retained `key:: value` line to `outKey`,
- * preserving indentation, bullet prefix, and the rest of the line untouched.
- */
 function renameBlockPropertyKey(line: string, m: RegExpMatchArray, outKey: string): string {
 	const indent = m[1];
 	const bullet = m[2] ?? '';
 	const key = m[3];
 	const prefixLen = indent.length + bullet.length;
-	const rest = line.slice(prefixLen + key.length + 2); // +2 for '::'
+	const rest = line.slice(prefixLen + key.length + 2);
 	return `${indent}${bullet}${outKey}::${rest}`;
 }
 
@@ -349,41 +281,26 @@ function removeLeftoverBlockPropertySegment(
 			continue;
 		}
 		const key = m[3];
-		// The always-drop set wins in every mode.
 		if (isAlwaysDroppedBlockProp(key, userDrop)) continue;
-		// Retained unknown key: apply the configured mode.
 		if (mode === 'drop') continue;
 		const outKey = snakeCase ? toSnakeCaseKey(key) : key;
 		if (mode === 'wrap') {
 			out.push(wrapBlockProperty(line, m, outKey));
 			continue;
 		}
-		out.push(snakeCase ? renameBlockPropertyKey(line, m, outKey) : line); // keep
+		out.push(snakeCase ? renameBlockPropertyKey(line, m, outKey) : line);
 	}
 	return out.join('\n');
 }
 
 export interface LinkifyTagValuesOptions {
-	/** Set of known page canonical names (lower-cased) for page-existence checks. */
 	knownPages: Set<string>;
-	/** Convert tag-style values to wikilinks. When false, the yaml is returned unchanged. */
 	toLinks: boolean;
-	/** Only linkify tags that resolve to an existing page. */
 	onlyExistingPages: boolean;
 }
 
-// A frontmatter scalar line whose value is a single, quoted Logseq tag token,
-// e.g. `status: "#IN-PROGRESS"` or `area: "#[[Page One]]"`.
 const TAG_VALUE_LINE = /^(\s*[A-Za-z0-9_.-]+: )"(#(?:\[\[[^\]]+\]\]|[\w/-]+))"$/;
 
-/**
- * Rewrite tag-style frontmatter scalar values (`key: "#tag"`) into wikilinks
- * (`key: "[[tag]]"`) using the vault-wide page set. Must run in pass-2 where
- * `knownPages` is available. Respects the user's tag-conversion options; when
- * `toLinks` is off the yaml is returned unchanged (values stay quoted text).
- * List values (`tags:` / `aliases:`) are untouched — they are multi-line and
- * never match the single-scalar pattern.
- */
 export function linkifyTagValuesInFrontmatter(yaml: string, opts: LinkifyTagValuesOptions): string {
 	if (!yaml || !opts.toLinks) return yaml;
 	const { knownPages, onlyExistingPages } = opts;
@@ -421,7 +338,6 @@ function convertHeadingPropertySegment(content: string): string {
 					`$1- ${'#'.repeat(level)} `
 				);
 			}
-			// drop the heading property line regardless
 			continue;
 		}
 		if (/^\s*- /.test(line)) lastBulletIndex = out.length;

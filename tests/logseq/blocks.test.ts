@@ -10,9 +10,6 @@ import {
 	fixHeadingChildLists,
 } from '../../src/formats/logseq/blocks';
 
-// ---------------------------------------------------------------------------
-// fixHeadingChildLists
-// ---------------------------------------------------------------------------
 
 test('fixHeadingChildLists: prefixes a heading that owns an indented child list', () => {
 	const input = ['# Heading', '\t- list item 1', '\t- list item 2'].join('\n');
@@ -36,9 +33,6 @@ test('fixHeadingChildLists: keeps inline code while associating the child list',
 	assert.equal(fixHeadingChildLists(input), expected);
 });
 
-// ---------------------------------------------------------------------------
-// convertHighlights
-// ---------------------------------------------------------------------------
 
 test('convertHighlights: basic highlight', () => {
 	assert.equal(convertHighlights('a ^^b^^ c'), 'a ==b== c');
@@ -82,9 +76,6 @@ test('convertHighlights: tilde and list-prefixed fences are protected', () => {
 	assert.equal(convertHighlights(listed), listed);
 });
 
-// ---------------------------------------------------------------------------
-// convertNumberedLists
-// ---------------------------------------------------------------------------
 
 test('convertNumberedLists: basic two-item example', () => {
 	const input = [
@@ -168,9 +159,6 @@ test('convertNumberedLists: text after inline code is not treated as a line star
 	assert.equal(convertNumberedLists(input), 'Prose `x` - item');
 });
 
-// ---------------------------------------------------------------------------
-// convertOrgBlocks
-// ---------------------------------------------------------------------------
 
 test('convertOrgBlocks: QUOTE becomes blockquote', () => {
 	const input = ['#+BEGIN_QUOTE', 'Hello', 'World', '#+END_QUOTE'].join('\n');
@@ -240,9 +228,6 @@ test('convertOrgBlocks: inline code in the body does not split the block', () =>
 	assert.equal(convertOrgBlocks(input), '> Use `x` here');
 });
 
-// ---------------------------------------------------------------------------
-// fixCodeBlocksInLists
-// ---------------------------------------------------------------------------
 
 test('fixCodeBlocksInLists: indents closing fence to match bullet code', () => {
 	const input = ['- ```python', '  print(1)', '```'].join('\n');
@@ -272,9 +257,6 @@ test('fixCodeBlocksInLists: does not alter code content lines', () => {
 	assert.equal(fixCodeBlocksInLists(input), expected);
 });
 
-// ---------------------------------------------------------------------------
-// convertMediaEmbeds
-// ---------------------------------------------------------------------------
 
 test('convertMediaEmbeds: converts {{video URL}}', () => {
 	assert.equal(convertMediaEmbeds('- {{video https://example.com/v.mp4}}'), '- ![](https://example.com/v.mp4)');
@@ -322,9 +304,6 @@ test('convertMediaEmbeds: leaves {{query}} untouched', () => {
 	assert.equal(convertMediaEmbeds(input), input);
 });
 
-// ---------------------------------------------------------------------------
-// convertOrgBlocks: additional edge cases
-// ---------------------------------------------------------------------------
 
 test('convertOrgBlocks: EXAMPLE block uses example callout type', () => {
 	const input = ['#+BEGIN_EXAMPLE', 'sample code', '#+END_EXAMPLE'].join('\n');
@@ -361,13 +340,6 @@ test('convertOrgBlocks: multi-line QUOTE preserves blank lines as empty blockquo
 	assert.equal(convertOrgBlocks(input), ['> line 1', '>', '> line 2'].join('\n'));
 });
 
-// ---------------------------------------------------------------------------
-// Documented transformation cases — J1.
-// ---------------------------------------------------------------------------
-
-// J1: bullet-prefixed `- #+BEGIN_*` blocks are currently left raw because
-// BEGIN_RE anchors `#+BEGIN` right after the indent. Decision: keep the bullet,
-// render the callout as the bullet's content (`- > [!tip]` / `  > body`).
 test('[J1] convertOrgBlocks: tab-indented bullet TIP becomes a callout under the bullet', () => {
 	const input = ['\t- #+BEGIN_TIP', '\t  body', '\t  #+END_TIP'].join('\n');
 	const expected = ['\t- > [!tip]', '\t  > body'].join('\n');
@@ -386,10 +358,6 @@ test('[J1] convertOrgBlocks: bullet QUOTE becomes a blockquote under the bullet'
 	assert.equal(convertOrgBlocks(input), expected);
 });
 
-// J1: closing fence is re-emitted as spaces (tab counted as 1 char), losing
-// the original tab indentation and breaking list nesting. Decision: preserve the
-// opener's exact indentation on the closing fence (leave an already-aligned block
-// untouched).
 test('[J1] fixCodeBlocksInLists: preserves tab indentation on the closing fence', () => {
 	const input = ['\t- ```js', '\t  x', '\t  ```'].join('\n');
 	assert.equal(fixCodeBlocksInLists(input), input);
@@ -401,31 +369,22 @@ test('[J1] fixCodeBlocksInLists: preserves a tab used after the bullet marker', 
 	assert.equal(fixCodeBlocksInLists(input), expected);
 });
 
-// J1: convertOrgBlocks has no fence-awareness and converts `#+BEGIN_*` that
-// appears literally inside a fenced code block. Decision: leave code content inert.
 test('[J1] convertOrgBlocks: leaves org markup inside a code fence untouched', () => {
 	const input = ['```', '#+BEGIN_QUERY', 'q', '#+END_QUERY', '```'].join('\n');
 	assert.equal(convertOrgBlocks(input), input);
 });
 
-// J1: `#+BEGIN_QUERY` currently falls back to a `[!note]` callout, silently
-// relabelling the query DSL as prose. Decision: preserve verbatim in a ```query fence.
 test('[J1] convertOrgBlocks: QUERY is preserved verbatim in a ```query fence', () => {
 	const input = ['#+BEGIN_QUERY', '{:title "x"}', '#+END_QUERY'].join('\n');
 	const expected = ['```query', '{:title "x"}', '```'].join('\n');
 	assert.equal(convertOrgBlocks(input), expected);
 });
 
-// J1: convertHighlights' fence detector (`/^\s*```/`) misses a bullet-opened
-// fence, so highlights inside such a code block get converted. Decision: recognise
-// the bullet-opened form and leave code content inert.
 test('[J1] convertHighlights: ignores a bullet-opened code fence', () => {
 	const input = ['- ```', '^^x^^', '```'].join('\n');
 	assert.equal(convertHighlights(input), input);
 });
 
-// J1 (guard): a tab-indented numbered list must number independently and
-// correctly (documents the expected contract; no live misconversion observed).
 test('[J1] convertNumberedLists: tab-indented numbered list numbers correctly', () => {
 	const input = [
 		'\t- one',
@@ -437,9 +396,6 @@ test('[J1] convertNumberedLists: tab-indented numbered list numbers correctly', 
 	assert.equal(convertNumberedLists(input), expected);
 });
 
-// A code-bearing org block rendered as a callout loses everything that makes it
-// code: `#+BEGIN_SRC python` became `> [!note]`, the language was dropped, and
-// the body's indentation was flattened into blockquote lines.
 test('convertOrgBlocks: SRC becomes a fenced code block keeping language and indent', () => {
 	const input = [
 		'- #+BEGIN_SRC python',
@@ -471,13 +427,11 @@ test('convertOrgBlocks: SRC with no language produces a bare fence', () => {
 	assert.equal(convertOrgBlocks(input), ['```', 'plain text', '```'].join('\n'));
 });
 
-// A backtick run inside the body would close the wrapper early.
 test('convertOrgBlocks: a body containing a backtick run gets a longer fence', () => {
 	const input = ['#+BEGIN_SRC js', 'const fence = "```";', '#+END_SRC'].join('\n');
 	assert.equal(convertOrgBlocks(input), ['````js', 'const fence = "```";', '````'].join('\n'));
 });
 
-// A bullet-opened QUERY used to have every inner line's indentation stripped.
 test('convertOrgBlocks: a bullet-opened QUERY keeps relative indentation', () => {
 	const input = [
 		'- #+BEGIN_QUERY',
@@ -494,7 +448,6 @@ test('convertOrgBlocks: a bullet-opened QUERY keeps relative indentation', () =>
 	assert.equal(convertOrgBlocks(input), expected);
 });
 
-// Prose blocks with no Obsidian callout of their own still fall back to a note.
 test('convertOrgBlocks: an unknown prose block still falls back to a note', () => {
 	const input = ['#+BEGIN_VERSE', 'a line', '#+END_VERSE'].join('\n');
 	assert.equal(convertOrgBlocks(input), ['> [!note]', '> a line'].join('\n'));

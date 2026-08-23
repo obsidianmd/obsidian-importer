@@ -29,8 +29,7 @@ test('[B1] does not trim inside bullet-prefixed code fences', () => {
 });
 
 test('[B1] off leaves content intact', () => {
-	// normalizeWhitespace is a pure function; the 'off' case is gated in pipeline.ts.
-	// Verify the function does transform content (i.e. callers can choose not to call it).
+	// The option is applied by the caller.
 	const input = 'foo\u00A0bar   \n- a  \n- \n- b';
 	assert.notEqual(normalizeWhitespace(input), input);
 });

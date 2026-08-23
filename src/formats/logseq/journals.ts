@@ -1,11 +1,3 @@
-// Journal date handling (pure parts).
-//
-// Logseq journal files are named with `:journal/file-name-format` (default
-// `yyyy_MM_dd`) and reference dates in content using `:journal/page-title-format`
-// (default `MMM do, yyyy`, e.g. "Aug 30th, 2024"). These helpers normalize both
-// to ISO `YYYY-MM-DD`. The orchestrator reformats ISO into the target Obsidian
-// daily-note format at runtime (using moment), which is not needed here.
-
 import { outsideMarkdownCode } from '../../markdown';
 
 const MONTHS: Record<string, number> = {
@@ -36,18 +28,10 @@ export function isJournalFilename(basename: string): boolean {
 	return journalFilenameToISO(basename) !== null;
 }
 
-// Matches the Logseq long-date format inside `[[...]]`, e.g. `[[Feb 13th, 2025]]`.
 const DATE_LINK = /\[\[((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*)\.? (\d{1,2})(?:st|nd|rd|th)?,? (\d{4})\]\]/g;
 
-// Matches a bare long-date (no brackets), e.g. "Feb 13th, 2025".
 const BARE_DATE = /^((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*)\.? (\d{1,2})(?:st|nd|rd|th)?,? (\d{4})$/i;
 
-/**
- * Convert a bare Logseq long-date string (e.g. "Feb 13th, 2025") to ISO
- * `YYYY-MM-DD`, or return `null` if the input is not a recognizable date.
- * This is the pure parsing core used by both journal date-link conversion
- * and task date property normalization.
- */
 export function logseqDateToISO(text: string): string | null {
 	const m = BARE_DATE.exec(text.trim());
 	if (!m) return null;
@@ -67,15 +51,7 @@ export function convertJournalDateLinks(content: string): string {
 	}));
 }
 
-/**
- * Reformat ISO date wikilinks `[[YYYY-MM-DD]]` into a target date format.
- * `formatIso` returns the formatted date string, or `null` to leave the link
- * unchanged. The actual moment-based formatting lives in the orchestrator (which
- * has the user's daily-note format); this keeps the link-rewriting logic pure and
- * unit-testable.
- */
 export function reformatDateLinks(content: string, formatIso: (iso: string) => string | null): string {
-	// Also handles `[[YYYY-MM-DD#^anchor]]` — date part is reformatted, anchor preserved.
 	return outsideMarkdownCode(content, segment => segment.replace(/\[\[(\d{4}-\d{2}-\d{2})(#\^[^\]]+)?\]\]/g, (whole, iso: string, anchor?: string) => {
 		const formatted = formatIso(iso);
 		if (formatted === null) return whole;

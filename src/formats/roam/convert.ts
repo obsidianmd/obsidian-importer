@@ -79,8 +79,7 @@ export class RoamPageConverter {
 	}
 
 	async roamMarkupScrubber(graphFolder: string, attachmentsFolder: string, blockText: string): Promise<string> {
-		// Normalize Roam's occasionally glued closing fences before identifying
-		// protected code regions. Every semantic rewrite below is prose-only.
+		// Normalize fences before protecting code from semantic rewrites.
 		blockText = withFencesOnTheirOwnLines(blockText);
 		blockText = outsideMarkdownCode(blockText,
 			segment => this.scrubOutsideCode(graphFolder, segment));

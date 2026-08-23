@@ -3,9 +3,6 @@ import assert from 'node:assert/strict';
 
 import { indexPageAliases, isBodyEmpty } from '../../src/formats/logseq/pipeline';
 
-// ---------------------------------------------------------------------------
-// indexAliases
-// ---------------------------------------------------------------------------
 
 test('indexAliases: registers a single alias', () => {
 	const aliasMap = new Map<string, string>();
@@ -74,9 +71,6 @@ test('indexAliases: skips empty raw (no alias, no title)', () => {
 	assert.equal(ambiguous.size, 0);
 });
 
-// ---------------------------------------------------------------------------
-// isBodyEmpty
-// ---------------------------------------------------------------------------
 
 test('isBodyEmpty: true when yaml and body are both empty', () => {
 	assert.ok(isBodyEmpty('', ''));
@@ -99,8 +93,6 @@ test('isBodyEmpty: false when both yaml and body have content', () => {
 });
 
 test('[A1] empty page after pass-2 is skipped', () => {
-	// A body that becomes empty after conversion (e.g. only whitespace remains)
-	// is reported as empty so the orchestrator can skip writing it.
 	assert.ok(isBodyEmpty('', '\n  \n'));
 	assert.ok(!isBodyEmpty('', '- still here'));
 });

@@ -1,26 +1,17 @@
-// Converts Logseq's relative markdown asset links (`![alt](../assets/x.png)`)
-// into Obsidian wiki-embeds (`![[x.png]]`). Pure functions only — no filesystem
-// access, no 'obsidian' import — so it can be unit-tested in isolation.
-
 import { outsideMarkdownCode } from '../../markdown';
 
 export interface AssetRef {
-	/** The path exactly as written in the original link, e.g. `../assets/image.png`. */
 	sourcePath: string;
-	/** The basename of the asset, e.g. `image.png`. */
 	filename: string;
 }
 
 export interface ConvertAssetOptions {
 	keepAltText: boolean;
-	/** Return the vault link target, or null to preserve the source link. */
+	/** Return null to preserve the source link. */
 	target?: (asset: AssetRef) => string | null;
 }
 
-// `[alt](path)` or `![alt](path)` optionally followed by `{: ... }`.
-// K1: path allows balanced parens (e.g. filename with `(...)`).
-// K1: leading `!` is optional so plain links are also converted.
-// K1: label allows one level of nested brackets (e.g. `[Fw_ [Nested] _ desc]`).
+// Accepts balanced parentheses in paths and one nested bracket pair in labels.
 const assetLinkRegex = /(!?)\[([^[\]]*(?:\[[^\]]*\][^[\]]*)*)\]\(([^()]*(?:\([^()]*\)[^()]*)*)\)(\{:[^}]*\})?/g;
 function isUrl(path: string): boolean {
 	return /^(https?:|data:)/i.test(path.trim());
@@ -31,7 +22,6 @@ function basename(path: string): string {
 	return parts[parts.length - 1];
 }
 
-/** Builds the Obsidian `|size` display from a Logseq `{:height H, :width W}` suffix. */
 function dimensionDisplay(suffix: string | undefined): string | null {
 	if (!suffix) return null;
 	const width = suffix.match(/:width\s+(\d+)/)?.[1];
