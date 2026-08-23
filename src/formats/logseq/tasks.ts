@@ -174,11 +174,13 @@ export function convertTasks(content: string, format: TaskFormat, options: TaskO
 			}
 			const sched = cl.match(/^\s*SCHEDULED:\s*<(.+?)>/);
 			if (sched) {
-				scheduled = parseDateSpec(sched[1]); continue; 
+				scheduled = parseDateSpec(sched[1]);
+				continue;
 			}
 			const dead = cl.match(/^\s*DEADLINE:\s*<(.+?)>/);
 			if (dead) {
-				deadline = parseDateSpec(dead[1]); continue; 
+				deadline = parseDateSpec(dead[1]);
+				continue;
 			}
 			const prop = cl.match(/^\s*(created|completed|done|cancelled|canceled):: ?(.*)$/);
 			if (prop) {
