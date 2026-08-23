@@ -110,8 +110,7 @@ export class LogseqImporter extends FormatImporter {
 			async (source, isCurrent) => this.loadFolderTree(source, isCurrent),
 		);
 
-		this.addExportSetting(i18n.importer.logseq.descExport());
-		this.addFileChooserSetting(i18n.importer.logseq.fileType(), LogseqImporter.extensions, true,
+		this.addFileChooserSetting(i18n.importer.logseq.name(), LogseqImporter.extensions, true,
 			i18n.importer.logseq.descFiles());
 		this.draw(contentEl => this.folderPicker.draw(contentEl, this.addSetting('source')), 'source');
 
@@ -132,7 +131,7 @@ export class LogseqImporter extends FormatImporter {
 		this.toggleSetting(i18n.importer.logseq.nameUseDailyNotes(), i18n.importer.logseq.descUseDailyNotes(), 'useDailyNotes');
 
 		this.startGroup('options', i18n.importer.logseq.groupStructure());
-		this.toggleSetting(i18n.importer.logseq.nameFlattenOutlines(), i18n.importer.logseq.descFlattenOutlines(), 'flattenOutlines');
+		this.toggleSetting(i18n.outliner.nameFlattenOutlines(), i18n.outliner.descFlattenOutlines(), 'flattenOutlines');
 
 		this.startGroup('options', i18n.importer.logseq.groupLogseqOnly());
 		this.toggleSetting(i18n.importer.logseq.nameQueries(), i18n.importer.logseq.descQueries(), 'queries');
@@ -454,7 +453,7 @@ export class LogseqImporter extends FormatImporter {
 		linkPlans: Map<string, PlannedPageLink>,
 		ctx: ImportContext,
 	): string | null {
-		let body = this.applyLogseqOnly(note.local.body, note.local.hasQueries, note.path, ctx);
+		let body = this.applyFlashcardOption(note.local.body);
 		body = resolveBlockRefs(body, blockIndex);
 		body = rewriteAliasReferences(body, { aliasMap });
 		body = convertTags(body, new Set(this.options.flashcards ? [] : ['card']));
@@ -479,21 +478,11 @@ export class LogseqImporter extends FormatImporter {
 		return yaml ? `${yaml}\n\n${body}\n` : `${body}\n`;
 	}
 
-	private applyLogseqOnly(body: string, hasQueries: boolean, name: string, ctx: ImportContext): string {
-		if (hasQueries && this.options.queries) {
-			ctx.reportMessage(i18n.importer.logseq.msgKeptQueries({ name }));
-		}
-		if (/#card\b|\{\{cloze/i.test(body)) {
-			if (this.options.flashcards) {
-				ctx.reportMessage(i18n.importer.logseq.msgKeptFlashcards({ name }));
-			}
-			else {
-				body = outsideMarkdownCode(body, segment => segment
-					.replace(/\{\{cloze\s+([\s\S]*?)\}\}/gi, '$1')
-					.replace(/(^|\s)#card\b/gi, '$1'));
-			}
-		}
-		return body;
+	private applyFlashcardOption(body: string): string {
+		if (this.options.flashcards) return body;
+		return outsideMarkdownCode(body, segment => segment
+			.replace(/\{\{cloze\s+([\s\S]*?)\}\}/gi, '$1')
+			.replace(/(^|\s)#card\b/gi, '$1'));
 	}
 
 	private linkPlans(notes: SourceNote[]): Map<string, PlannedPageLink> {

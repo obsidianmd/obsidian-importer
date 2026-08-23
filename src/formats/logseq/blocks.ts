@@ -60,7 +60,6 @@ const CALLOUT_TYPES = new Set(['NOTE', 'TIP', 'WARNING', 'IMPORTANT', 'CAUTION',
 
 export interface ConvertOrgBlocksOptions {
 	dropQueries?: boolean;
-	onQuery?: () => void;
 }
 
 export function convertOrgBlocks(content: string, options: ConvertOrgBlocksOptions = {}): string {
@@ -120,7 +119,6 @@ function processOrgLines(lines: string[], options: ConvertOrgBlocksOptions, sepa
 			}
 			if (qend >= 0) {
 				if (type === 'QUERY') {
-					options.onQuery?.();
 					if (options.dropQueries) {
 						i = qend + 1;
 						continue;
@@ -232,7 +230,6 @@ function stripIndent(line: string, n: number): string {
 export interface ConvertSimpleQueriesOptions {
 	/** Remove the query instead of fencing it. */
 	drop?: boolean;
-	onQuery?: () => void;
 }
 
 const QUERY_BLOCK_RE = /^([ \t]*)(- )?(\{\{query[\s\S]*?\}\})[ \t]*$/gm;
@@ -243,32 +240,25 @@ const QUERY_INLINE_RE = /\{\{query[\s\S]*?\}\}/gi;
  * way an advanced query does — visibly inert rather than looking like it runs.
  */
 export function convertSimpleQueries(content: string, options: ConvertSimpleQueriesOptions = {}): string {
-	const { drop = false, onQuery } = options;
+	const { drop = false } = options;
 
 	// Dropping leaves the bullet behind for the whitespace pass to clear, the
 	// way removing any other inline markup would.
 	if (drop) {
-		return outsideMarkdownCode(content, segment => segment.replace(QUERY_INLINE_RE, () => {
-			onQuery?.();
-			return '';
-		}));
+		return outsideMarkdownCode(content, segment => segment.replace(QUERY_INLINE_RE, ''));
 	}
 
 	// A query alone on its block becomes a fence; the fence then protects it
 	// from the inline pass, which catches any query sitting mid-sentence.
 	const fenced = outsideMarkdownFences(content, segment =>
 		segment.replace(QUERY_BLOCK_RE, (whole: string, indent: string, bullet: string | undefined, query: string) => {
-			onQuery?.();
 			const inner = query.split('\n');
 			const body = bullet ? `${indent}  ` : indent;
 			const fence = fenceFor(inner);
 			return [`${indent}${bullet ?? ''}${fence}query`, ...inner.map(l => body + l), `${body}${fence}`].join('\n');
 		}));
 
-	return outsideMarkdownCode(fenced, segment => segment.replace(QUERY_INLINE_RE, (whole: string) => {
-		onQuery?.();
-		return `\`${whole}\``;
-	}));
+	return outsideMarkdownCode(fenced, segment => segment.replace(QUERY_INLINE_RE, '`$&`'));
 }
 
 export function fixHeadingChildLists(content: string): string {

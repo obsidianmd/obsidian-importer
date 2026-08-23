@@ -59,6 +59,11 @@ export const en = {
 		},
 	},
 
+	outliner: {
+		nameFlattenOutlines: 'Flatten outlines',
+		descFlattenOutlines: 'Convert outlines into paragraphs, headings, and lists.',
+	},
+
 	modal: {
 		titlePickFormat: 'Import data into Obsidian',
 		titleChooseMethod: 'Choose how to import',
@@ -444,16 +449,12 @@ export const en = {
 		logseq: {
 			name: 'Logseq',
 			optionText: 'Logseq (.md)',
-			fileType: 'Logseq graph',
 			labelId: 'Logseq source',
-			descExport: 'Choose the root folder of a Logseq Markdown graph.',
 			descFiles: 'Choose one graph folder containing pages, journals, and assets.',
 			groupJournals: 'Journals',
 			nameUseDailyNotes: 'Use Daily Notes settings',
 			descUseDailyNotes: 'Write journals to the configured Daily Notes folder and filename format.',
 			groupStructure: 'Note structure',
-			nameFlattenOutlines: 'Flatten outlines',
-			descFlattenOutlines: 'Convert page and journal outlines into paragraphs, headings, and lists.',
 			groupLogseqOnly: 'Logseq-only content',
 			nameQueries: 'Keep queries',
 			descQueries: 'Obsidian doesn\'t support Logseq\'s query format, so queries are imported as code blocks.',
@@ -466,8 +467,6 @@ export const en = {
 			reasonEmptyPage: 'The converted page is empty',
 			reasonMissingAsset: 'Referenced by {{name}}, but missing from the graph',
 			reasonWhiteboards: 'Logseq whiteboards are not supported by Obsidian',
-			msgKeptQueries: '{{name}}: kept Logseq queries',
-			msgKeptFlashcards: '{{name}}: kept Logseq flashcards',
 		},
 		onenote: {
 			name: 'Microsoft OneNote',
@@ -679,8 +678,6 @@ export const en = {
 			labelId: 'Roam UID',
 			descExport: 'Export your data in JSON format.',
 			descFiles: 'Pick the JSON file from your Roam export.',
-			nameDeOutline: 'Flatten the outline',
-			descDeOutline: 'Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.',
 			nameEmbedBlockReferences: 'Show referenced blocks in place',
 			descEmbedBlockReferences: 'Roam shows the contents of a referenced block where the reference stands. If enabled, references become embeds rather than links.',
 			nameDropUnresolvedReferences: 'Remove references to missing blocks',

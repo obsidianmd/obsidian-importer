@@ -88,32 +88,27 @@ test('drops advanced and simple queries when disabled', () => {
 	].join('\n');
 	const converted = convertLocal(input, options);
 	assert.equal(converted.body, ['- before', '- after'].join('\n'));
-	assert.equal(converted.hasQueries, true);
 });
 
-test('keeps queries and records their presence when requested', () => {
+test('keeps advanced queries when requested', () => {
 	const input = ['#+BEGIN_QUERY', '{:query [?b]}', '#+END_QUERY'].join('\n');
 	const converted = convertLocal(input, opts);
 	assert.equal(converted.body, ['```query', '{:query [?b]}', '```'].join('\n'));
-	assert.equal(converted.hasQueries, true);
 });
 
 test('a simple query becomes a fenced block, since it cannot run in Obsidian', () => {
 	const converted = convertLocal('- {{query (property :status doing)}}', opts);
 	assert.equal(converted.body, ['- ```query', '  {{query (property :status doing)}}', '  ```'].join('\n'));
-	assert.equal(converted.hasQueries, true);
 });
 
 test('a query mid-sentence becomes inline code rather than breaking the line', () => {
 	const converted = convertLocal('- see {{query (property :status doing)}} for open items', opts);
 	assert.equal(converted.body, '- see `{{query (property :status doing)}}` for open items');
-	assert.equal(converted.hasQueries, true);
 });
 
-test('does not detect or remove a query example inside code', () => {
+test('does not remove a query example inside code', () => {
 	const options = { ...opts, queries: false };
 	const input = ['```markdown', '{{query (property :status doing)}}', '```'].join('\n');
 	const converted = convertLocal(input, options);
 	assert.equal(converted.body, input);
-	assert.equal(converted.hasQueries, false);
 });

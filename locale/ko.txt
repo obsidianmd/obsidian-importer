@@ -122,6 +122,14 @@ translation=Microsoft OneNote
 original=Notion
 translation=Notion
 
+[outliner.name-flatten-outlines]
+original=Flatten outlines
+translation=
+
+[outliner.desc-flatten-outlines]
+original=Convert outlines into paragraphs, headings, and lists.
+translation=
+
 [modal.title-pick-format]
 original=Import data into Obsidian
 translation=Obsidian으로 데이터 가져오기
@@ -1450,16 +1458,8 @@ translation=
 original=Logseq (.md)
 translation=
 
-[importer.logseq.file-type]
-original=Logseq graph
-translation=
-
 [importer.logseq.label-id]
 original=Logseq source
-translation=
-
-[importer.logseq.desc-export]
-original=Choose the root folder of a Logseq Markdown graph.
 translation=
 
 [importer.logseq.desc-files]
@@ -1480,14 +1480,6 @@ translation=
 
 [importer.logseq.group-structure]
 original=Note structure
-translation=
-
-[importer.logseq.name-flatten-outlines]
-original=Flatten outlines
-translation=
-
-[importer.logseq.desc-flatten-outlines]
-original=Convert page and journal outlines into paragraphs, headings, and lists.
 translation=
 
 [importer.logseq.group-logseq-only]
@@ -1536,14 +1528,6 @@ translation=
 
 [importer.logseq.reason-whiteboards]
 original=Logseq whiteboards are not supported by Obsidian
-translation=
-
-[importer.logseq.msg-kept-queries]
-original={{name}}: kept Logseq queries
-translation=
-
-[importer.logseq.msg-kept-flashcards]
-original={{name}}: kept Logseq flashcards
 translation=
 
 [importer.onenote.name]
@@ -2349,14 +2333,6 @@ translation=데이터를 JSON 서식으로 내보내세요.
 [importer.roam-json.desc-files]
 original=Pick the JSON file from your Roam export.
 translation=Roam 내보내기에서 JSON 파일을 선택하세요.
-
-[importer.roam-json.name-de-outline]
-original=Flatten the outline
-translation=개요 평탄화
-
-[importer.roam-json.desc-de-outline]
-original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=Roam은 모든 블록을 글머리 기호로 작성해요. 활성화됨 상태에서는 각 블록의 사용 방식에 따라 문단, 제목, 목록으로 변환돼요.
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place

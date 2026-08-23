@@ -20,7 +20,6 @@ export interface LocalResult {
 	raw: Record<string, string>;
 	ids: DefinedId[];
 	assets: AssetRef[];
-	hasQueries: boolean;
 }
 
 export function convertLocal(
@@ -34,18 +33,11 @@ export function convertLocal(
 	});
 
 	let body = initialBody;
-	let hasQueries = false;
 	body = convertHeadingProperty(body);
 	body = convertTasks(body, options.timeTracking);
 	body = convertNumberedLists(body);
-	body = convertOrgBlocks(body, {
-		dropQueries: !options.queries,
-		onQuery: () => hasQueries = true,
-	});
-	body = convertSimpleQueries(body, {
-		drop: !options.queries,
-		onQuery: () => hasQueries = true,
-	});
+	body = convertOrgBlocks(body, { dropQueries: !options.queries });
+	body = convertSimpleQueries(body, { drop: !options.queries });
 	body = convertHighlights(body);
 	body = convertMediaEmbeds(body);
 	body = fixHeadingChildLists(body);
@@ -68,7 +60,7 @@ export function convertLocal(
 	body = removeLeftoverBlockProperties(body);
 	body = normalizeWhitespace(body);
 
-	return { yaml, body, raw, ids: idResult.ids, assets: assetResult.assets, hasQueries };
+	return { yaml, body, raw, ids: idResult.ids, assets: assetResult.assets };
 }
 
 export function indexPageAliases(

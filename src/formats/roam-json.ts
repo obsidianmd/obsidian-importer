@@ -49,8 +49,8 @@ export class RoamJSONImporter extends FormatImporter {
 		this.userDNPFormat = this.getUserDNPFormat();
 
 		this.addSetting()
-			?.setName(i18n.importer.roamJson.nameDeOutline())
-			.setDesc(i18n.importer.roamJson.descDeOutline())
+			?.setName(i18n.outliner.nameFlattenOutlines())
+			.setDesc(i18n.outliner.descFlattenOutlines())
 			.addToggle(toggle => toggle
 				.setValue(this.deOutline)
 				.onChange(value => this.deOutline = value));

@@ -122,6 +122,14 @@ translation=Microsoft OneNote
 original=Notion
 translation=Notion
 
+[outliner.name-flatten-outlines]
+original=Flatten outlines
+translation=
+
+[outliner.desc-flatten-outlines]
+original=Convert outlines into paragraphs, headings, and lists.
+translation=
+
 [modal.title-pick-format]
 original=Import data into Obsidian
 translation=استيراد البيانات إلى Obsidian
@@ -1450,16 +1458,8 @@ translation=
 original=Logseq (.md)
 translation=
 
-[importer.logseq.file-type]
-original=Logseq graph
-translation=
-
 [importer.logseq.label-id]
 original=Logseq source
-translation=
-
-[importer.logseq.desc-export]
-original=Choose the root folder of a Logseq Markdown graph.
 translation=
 
 [importer.logseq.desc-files]
@@ -1480,14 +1480,6 @@ translation=
 
 [importer.logseq.group-structure]
 original=Note structure
-translation=
-
-[importer.logseq.name-flatten-outlines]
-original=Flatten outlines
-translation=
-
-[importer.logseq.desc-flatten-outlines]
-original=Convert page and journal outlines into paragraphs, headings, and lists.
 translation=
 
 [importer.logseq.group-logseq-only]
@@ -1536,14 +1528,6 @@ translation=
 
 [importer.logseq.reason-whiteboards]
 original=Logseq whiteboards are not supported by Obsidian
-translation=
-
-[importer.logseq.msg-kept-queries]
-original={{name}}: kept Logseq queries
-translation=
-
-[importer.logseq.msg-kept-flashcards]
-original={{name}}: kept Logseq flashcards
 translation=
 
 [importer.onenote.name]
@@ -2349,14 +2333,6 @@ translation=صدّر بياناتك بتنسيق JSON.
 [importer.roam-json.desc-files]
 original=Pick the JSON file from your Roam export.
 translation=اختر ملف JSON من تصدير Roam.
-
-[importer.roam-json.name-de-outline]
-original=Flatten the outline
-translation=تسطيح المخطط التفصيلي
-
-[importer.roam-json.desc-de-outline]
-original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=يكتب Roam كل كتلة على شكل تعداد نقطي. إذا كان مُمكّنًا، تُكتب الكتل كفقرات وعناوين وقوائم بدلاً من ذلك، حسب طريقة استخدام كل منها.
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place

@@ -152,7 +152,6 @@ test('imports a Logseq graph through the real importer and vault pipeline', asyn
 
 	assert.equal(ctx.notes, 8);
 	assert.equal(ctx.attachments, 2);
-	assert.ok(ctx.log.some(entry => entry.outcome === 'message' && entry.name.includes('kept Logseq queries')));
 	assert.ok(vault.contents.has('Logseq/Main Page.md'));
 	assert.ok(vault.contents.has('Logseq/Reference Page.md'));
 	assert.ok(vault.contents.has('Logseq/algorithms/dynamic programming.md'));
