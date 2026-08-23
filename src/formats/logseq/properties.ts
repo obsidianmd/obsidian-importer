@@ -91,6 +91,7 @@ function needsQuoting(value: string): boolean {
 	const first = value[0];
 	if ('#[{>|*&!@`'.includes(first)) return true;
 	if (first === '"' || first === '\'') return true;
+	if (/^-(?:\s|$)/.test(value)) return true;
 	if (value.endsWith(':') || value.includes(': ')) return true;
 	if (/\s#/.test(value)) return true;
 	if (YAML_BOOL.test(value)) return true;

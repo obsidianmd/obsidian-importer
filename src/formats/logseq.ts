@@ -3,6 +3,7 @@ import { ImportContext } from '../import-context';
 import { NodePickedFile, PickedFile, PickedFolder, fsPromises } from '../filesystem';
 import { FormatImporter, NoteTemplateSample, PlannedNote, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { i18n } from '../i18n';
+import { outsideMarkdownCode } from '../markdown';
 import { sameBytes, sanitizeFileName, sanitizeFilePath } from '../util';
 import { convertAssetLinks } from './logseq/assets';
 import { BlockRefTarget, removeOrphanBlockRefs, resolveBlockRefs } from './logseq/block-ids';
@@ -588,8 +589,9 @@ export class LogseqImporter extends FormatImporter {
 				ctx.reportMessage(i18n.importer.logseq.msgKeptFlashcards({ name }));
 			}
 			else {
-				body = body.replace(/\{\{cloze\s+([\s\S]*?)\}\}/gi, '$1');
-				body = body.replace(/(^|\s)#card\b/gi, '$1');
+				body = outsideMarkdownCode(body, segment => segment
+					.replace(/\{\{cloze\s+([\s\S]*?)\}\}/gi, '$1')
+					.replace(/(^|\s)#card\b/gi, '$1'));
 			}
 		}
 		return body;

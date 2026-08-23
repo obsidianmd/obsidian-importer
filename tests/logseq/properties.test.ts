@@ -215,6 +215,11 @@ test('quotes a property value containing an inline tag', () => {
 	assert.equal(parseFrontmatter(yaml).status, 'doing #urgent');
 });
 
+test('quotes a property value starting with a YAML sequence indicator', () => {
+	const { yaml } = extractPageProperties('description:: - item\n\ntext');
+	assert.equal(parseFrontmatter(yaml).description, '- item');
+});
+
 test('[I1] scalar value that is a markdown link is quoted', () => {
 	const { yaml } = extractPageProperties('file:: [doc](../a/b.pdf)\n\ntext');
 	assert.equal(yaml, ['---', 'file: "[doc](../a/b.pdf)"', '---'].join('\n'));

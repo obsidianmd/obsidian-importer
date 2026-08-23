@@ -327,6 +327,29 @@ test('sanitizes every namespace folder and rewrites links to the planned path', 
 	assert.match(vault.contents.get('Logseq/Reference.md') as string, /\[\[Logseq\/Ask Me\/Child\]\]/);
 });
 
+test('drops flashcard syntax without rewriting code examples', async () => {
+	const content = [
+		'- {{cloze answer}} #card',
+		'- `{{cloze inline}} #card`',
+		'- ```markdown',
+		'  {{cloze fenced}} #card',
+		'  ```',
+	].join('\n');
+	const graph = new SourceFolder('Flashcard examples', [
+		new SourceFolder('pages', [new SourceFile('A.md', content)]),
+	]);
+	const { subject, vault } = await importer(graph);
+	subject.options.flashcards = 'drop';
+	subject.options.dropTags = [];
+
+	await subject.import(new ImportContext());
+
+	const imported = vault.contents.get('Logseq/A.md') as string;
+	assert.match(imported, /- answer/);
+	assert.match(imported, /`\{\{cloze inline\}\} #card`/);
+	assert.match(imported, /\{\{cloze fenced\}\} #card/);
+});
+
 test('preserves a missing asset link and reports it', async () => {
 	const graph = new SourceFolder('Missing asset', [
 		new SourceFolder('pages', [new SourceFile('A.md', '- ![missing](../assets/missing.png)')]),
