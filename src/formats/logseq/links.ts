@@ -51,7 +51,7 @@ export function convertTags(content: string, options: ConvertTagsOptions): strin
 		});
 		// #simple-tag (letters, digits, /_-), must follow start, whitespace, or `([`.
 		// Letters are Unicode: a graph tagging #café or #日本語 means those as tags.
-		segment = segment.replace(/(^|[\s([])#([\p{L}\p{N}_/-]+)/gu, (m, pre, name) => {
+		segment = segment.replace(/(^|[\s([])#([\p{L}\p{M}\p{N}_/-]+)/gu, (m, pre, name) => {
 			// The user named this tag to drop, which settles it before any guess below.
 			if (dropTags.has(name)) return pre;
 			// H1: a hex-shaped token is a CSS colour rather than a tag — unless the

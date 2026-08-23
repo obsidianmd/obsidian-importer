@@ -136,10 +136,14 @@ test('a non-ASCII tag is recognised and converted', () => {
 	assert.equal(convertTags('#café', tagOpts(true)), '[[café]]');
 	assert.equal(convertTags('#日本語', tagOpts(true)), '[[日本語]]');
 	assert.equal(convertTags('#Ünicode', tagOpts(true)), '[[Ünicode]]');
+	assert.equal(convertTags('#हिन्दी', tagOpts(true)), '[[हिन्दी]]');
+	assert.equal(convertTags('#cafe\u0301', tagOpts(true)), '[[cafe\u0301]]');
 });
 
 test('a non-ASCII tag can be dropped by name', () => {
 	assert.equal(convertTags('a #café b', tagOpts(false, [], ['café'])), 'a  b');
+	assert.equal(convertTags('a #हिन्दी b', tagOpts(false, [], ['हिन्दी'])), 'a  b');
+	assert.equal(convertTags('a #cafe\u0301 b', tagOpts(false, [], ['cafe\u0301'])), 'a  b');
 });
 
 // The hex-colour guard collides with ordinary words: `#dad`, `#bad`, `#ace` and

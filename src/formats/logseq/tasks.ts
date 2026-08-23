@@ -4,7 +4,7 @@
 // lines. We render them into one of the supported Obsidian task formats.
 
 import { logseqDateToISO } from './journals';
-import { outsideMarkdownFences } from '../../markdown';
+import { outsideCodeSpans, outsideMarkdownFences } from '../../markdown';
 
 export type TaskFormat = 'plain' | 'tasks-emoji' | 'tasks-dataview';
 
@@ -28,14 +28,19 @@ function checkbox(state: string, format: TaskFormat): string {
 	}
 }
 
-interface DateSpec { date: string, repeater?: string }
+interface DateSpec { date: string, time?: string, repeater?: string }
 
 function parseDateSpec(inner: string): DateSpec {
 	// Try ISO date first, then fall back to Logseq long-date format.
 	const iso = inner.match(/\d{4}-\d{2}-\d{2}/)?.[0];
 	const date = iso ?? (logseqDateToISO(inner.replace(/\[\[|\]\]/g, '').trim()) ?? '');
+	const time = inner.match(/(?:^|\s)([01]\d|2[0-3]):[0-5]\d(?:\s|$)/)?.[0].trim();
 	const repeater = inner.match(/[.+]{1,2}\d+[ymwdh]/)?.[0];
-	return { date, repeater };
+	return { date, time, repeater };
+}
+
+function renderedDate(spec: DateSpec): string {
+	return spec.time ? `${spec.date} ${spec.time}` : spec.date;
 }
 
 function extractDate(value: string): string {
@@ -164,11 +169,13 @@ function convertTaskSegment(content: string, format: TaskFormat, options: TaskOp
 		// so the date becomes a Tasks field instead of staying as org syntax. The
 		// continuation lines are read afterwards and win where a task has both.
 		if (format !== 'plain') {
-			rest = rest.replace(/\s*\b(SCHEDULED|DEADLINE):\s*<([^<>]+)>/g, (_, keyword: string, inner: string) => {
-				if (keyword === 'SCHEDULED') scheduled = parseDateSpec(inner);
-				else deadline = parseDateSpec(inner);
-				return '';
-			});
+			rest = outsideCodeSpans(rest, segment =>
+				segment.replace(/\s*\b(SCHEDULED|DEADLINE):\s*<([^<>]+)>/g,
+					(_, keyword: string, inner: string) => {
+						if (keyword === 'SCHEDULED') scheduled = parseDateSpec(inner);
+						else deadline = parseDateSpec(inner);
+						return '';
+					}));
 		}
 
 		for (const cl of continuation) {
@@ -199,7 +206,7 @@ function convertTaskSegment(content: string, format: TaskFormat, options: TaskOp
 				deadline = parseDateSpec(dead[1]);
 				continue;
 			}
-			const prop = cl.match(/^\s*(created|completed|done|cancelled|canceled):: ?(.*)$/);
+			const prop = cl.match(/^\s*\.?(created|completed|done|cancelled|canceled):: ?(.*)$/);
 			if (prop) {
 				const date = extractDate(prop[2]);
 				if (prop[1] === 'created') created = date;
@@ -216,11 +223,11 @@ function convertTaskSegment(content: string, format: TaskFormat, options: TaskOp
 		if (format === 'tasks-emoji') {
 			if (priority) segs.push(PRIORITY_EMOJI[priority]);
 			if (scheduled?.date) {
-				segs.push(`⏳ ${scheduled.date}`);
+				segs.push(`⏳ ${renderedDate(scheduled)}`);
 				if (scheduled.repeater) segs.push(formatRepeaterEmoji(scheduled.repeater));
 			}
 			if (deadline?.date) {
-				segs.push(`📅 ${deadline.date}`);
+				segs.push(`📅 ${renderedDate(deadline)}`);
 				if (deadline.repeater) segs.push(formatRepeaterEmoji(deadline.repeater));
 			}
 			if (created) segs.push(`➕ ${created}`);
@@ -230,11 +237,11 @@ function convertTaskSegment(content: string, format: TaskFormat, options: TaskOp
 		else if (format === 'tasks-dataview') {
 			if (priority) segs.push(`[priority:: ${PRIORITY_WORD[priority]}]`);
 			if (scheduled?.date) {
-				segs.push(`[scheduled:: ${scheduled.date}]`);
+				segs.push(`[scheduled:: ${renderedDate(scheduled)}]`);
 				if (scheduled.repeater) segs.push(`[repeat:: ${scheduled.repeater}]`);
 			}
 			if (deadline?.date) {
-				segs.push(`[due:: ${deadline.date}]`);
+				segs.push(`[due:: ${renderedDate(deadline)}]`);
 				if (deadline.repeater) segs.push(`[repeat:: ${deadline.repeater}]`);
 			}
 			if (created) segs.push(`[created:: ${created}]`);
@@ -242,9 +249,20 @@ function convertTaskSegment(content: string, format: TaskFormat, options: TaskOp
 			if (cancelled) segs.push(`[cancelled:: ${cancelled}]`);
 		}
 
+		// Obsidian block anchors must remain the final token on their line.
+		let anchor = '';
+		if (format !== 'plain') {
+			const anchored = rest.match(/(?:^|\s)(\^[A-Za-z0-9_-]+)\s*$/);
+			if (anchored) {
+				anchor = anchored[1];
+				rest = rest.slice(0, anchored.index).trimEnd();
+			}
+		}
+
 		const text = rest.trim();
 		let taskLine = text ? `${indent}- [${checkbox(state, format)}] ${text}` : `${indent}- [${checkbox(state, format)}]`;
 		if (segs.length) taskLine += ' ' + segs.join(' ');
+		if (anchor) taskLine += ' ' + anchor;
 
 		out.push(taskLine);
 		out.push(...kept);

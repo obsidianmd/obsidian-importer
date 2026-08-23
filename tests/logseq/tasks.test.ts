@@ -222,10 +222,19 @@ test('[D1] metadata after a blank continuation line is still parsed (emoji)', ()
 	assert.equal(convertTasks(input, 'tasks-emoji'), '- [x] x ⏳ 2024-11-06 ✅ 2024-11-06');
 });
 
-// D1 (guard): time-of-day in SCHEDULED is intentionally dropped to date-only.
-test('[D1] time-of-day in SCHEDULED is dropped to date-only (emoji)', () => {
+test('[D1] time-of-day in SCHEDULED is preserved (emoji)', () => {
 	const input = ['- TODO meet', '  SCHEDULED: <2025-02-20 Thu 14:00>'].join('\n');
-	assert.equal(convertTasks(input, 'tasks-emoji'), '- [ ] meet ⏳ 2025-02-20');
+	assert.equal(convertTasks(input, 'tasks-emoji'), '- [ ] meet ⏳ 2025-02-20 14:00');
+});
+
+test('[D1] time-of-day in DEADLINE is preserved (Dataview)', () => {
+	const input = ['- TODO meet', '  DEADLINE: <2025-02-20 Thu 09:30>'].join('\n');
+	assert.equal(convertTasks(input, 'tasks-dataview'), '- [ ] meet [due:: 2025-02-20 09:30]');
+});
+
+test('[D1] dotted completion properties are consumed', () => {
+	const input = ['- DONE finish', '  .completed:: 2024-04-10'].join('\n');
+	assert.equal(convertTasks(input, 'tasks-emoji'), '- [x] finish ✅ 2024-04-10');
 });
 
 // D1: an unparsable template-token date must not be emitted as a ➕ date.
@@ -274,6 +283,18 @@ test('an inline SCHEDULED renders as a Dataview field too', () => {
 	assert.equal(
 		convertTasks('- TODO x SCHEDULED: <2024-06-15 Sat>', 'tasks-dataview'),
 		'- [ ] x [scheduled:: 2024-06-15]');
+});
+
+test('org scheduling syntax inside inline code stays literal', () => {
+	assert.equal(
+		convertTasks('- TODO document `SCHEDULED: <2024-06-15 Sat>` literally', 'tasks-emoji'),
+		'- [ ] document `SCHEDULED: <2024-06-15 Sat>` literally');
+});
+
+test('a task anchor remains after generated metadata', () => {
+	assert.equal(
+		convertTasks('- TODO x SCHEDULED: <2024-06-15 Sat> ^abc123', 'tasks-emoji'),
+		'- [ ] x ⏳ 2024-06-15 ^abc123');
 });
 
 // The continuation line is the canonical form, so it wins where a task has both.
