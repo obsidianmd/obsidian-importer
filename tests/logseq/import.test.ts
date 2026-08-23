@@ -3,6 +3,7 @@ import '../shims/runtime';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as nodeFs from 'node:fs';
+import * as nodeOs from 'node:os';
 import * as nodePath from 'node:path';
 
 import { LogseqImporter } from '../../src/formats/logseq';
@@ -10,8 +11,10 @@ import { ImportContext } from '../../src/import-context';
 import { PickedFile } from '../../src/filesystem';
 import { SourceFile, SourceFolder } from '../shims/picked';
 import { MemoryVault, memoryApp } from '../shims/vault';
+import { expectTree } from '../helpers';
 
 const FIXTURES = nodePath.join(__dirname, 'fixtures');
+const EXPECTED = nodePath.join(__dirname, 'expected');
 
 class BinarySourceFile implements PickedFile {
 	readonly type = 'file' as const;
@@ -94,6 +97,21 @@ function fixtureGraph(): SourceFolder {
 	]);
 }
 
+function expectVault(vault: MemoryVault): void {
+	const produced = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'obsidian-importer-logseq-'));
+	try {
+		for (const [path, content] of vault.contents) {
+			const target = nodePath.join(produced, path);
+			nodeFs.mkdirSync(nodePath.dirname(target), { recursive: true });
+			nodeFs.writeFileSync(target, typeof content === 'string' ? content : Buffer.from(content));
+		}
+		expectTree(produced, EXPECTED, 'Logseq fixture graph');
+	}
+	finally {
+		nodeFs.rmSync(produced, { recursive: true, force: true });
+	}
+}
+
 async function importer(graph: SourceFolder, output = 'Logseq') {
 	const vault = new MemoryVault();
 	const subject = new LogseqImporter(memoryApp(vault), {
@@ -138,6 +156,8 @@ test('imports a Logseq graph through the real importer and vault pipeline', asyn
 	assert.ok(typeof journal === 'string');
 	assert.match(journal, /\[\[Logseq\/Main Page\]\]/);
 	assert.match(journal, /!\[\[diagram\.png\]\]/);
+
+	expectVault(vault);
 });
 
 test('renames different same-basename assets and rewrites each note to its copy', async () => {
