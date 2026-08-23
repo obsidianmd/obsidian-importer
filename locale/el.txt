@@ -416,19 +416,19 @@ translation=Δεν βρέθηκαν φάκελοι.
 
 [source.msg-android-folder-failed]
 original=Could not choose that folder.
-translation=
+translation=Δεν ήταν δυνατή η επιλογή αυτού του φακέλου.
 
 [source.msg-android-folder-read-failed]
 original=Could not read that folder.
-translation=
+translation=Δεν ήταν δυνατή η ανάγνωση αυτού του φακέλου.
 
 [source.msg-android-folder-unavailable]
 original=Folder selection is unavailable on this device.
-translation=
+translation=Η επιλογή φακέλου δεν είναι διαθέσιμη σε αυτή τη συσκευή.
 
 [source.msg-android-root-folder]
 original=Choose a folder other than the root of your device.
-translation=
+translation=Επιλέξτε έναν φάκελο διαφορετικό από τη ρίζα της συσκευής σας.
 
 [source.msg-flat-files]
 original={{count}} file will be imported.

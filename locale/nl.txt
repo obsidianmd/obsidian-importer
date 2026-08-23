@@ -416,19 +416,19 @@ translation=Geen mappen gevonden.
 
 [source.msg-android-folder-failed]
 original=Could not choose that folder.
-translation=
+translation=Kan die map niet kiezen.
 
 [source.msg-android-folder-read-failed]
 original=Could not read that folder.
-translation=
+translation=Kan die map niet lezen.
 
 [source.msg-android-folder-unavailable]
 original=Folder selection is unavailable on this device.
-translation=
+translation=Mapselectie is niet beschikbaar op dit apparaat.
 
 [source.msg-android-root-folder]
 original=Choose a folder other than the root of your device.
-translation=
+translation=Kies een andere map dan de hoofdmap van je apparaat.
 
 [source.msg-flat-files]
 original={{count}} file will be imported.

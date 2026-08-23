@@ -416,19 +416,19 @@ translation=Inga mappar hittades.
 
 [source.msg-android-folder-failed]
 original=Could not choose that folder.
-translation=
+translation=Kunde inte välja den mappen.
 
 [source.msg-android-folder-read-failed]
 original=Could not read that folder.
-translation=
+translation=Kunde inte läsa den mappen.
 
 [source.msg-android-folder-unavailable]
 original=Folder selection is unavailable on this device.
-translation=
+translation=Mappval är inte tillgängligt på denna enhet.
 
 [source.msg-android-root-folder]
 original=Choose a folder other than the root of your device.
-translation=
+translation=Välj en annan mapp än rotmappen på din enhet.
 
 [source.msg-flat-files]
 original={{count}} file will be imported.

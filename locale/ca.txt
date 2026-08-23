@@ -416,19 +416,19 @@ translation=No s'han trobat carpetes.
 
 [source.msg-android-folder-failed]
 original=Could not choose that folder.
-translation=
+translation=No s'ha pogut triar aquesta carpeta.
 
 [source.msg-android-folder-read-failed]
 original=Could not read that folder.
-translation=
+translation=No s'ha pogut llegir aquesta carpeta.
 
 [source.msg-android-folder-unavailable]
 original=Folder selection is unavailable on this device.
-translation=
+translation=La selecció de carpeta no està disponible en aquest dispositiu.
 
 [source.msg-android-root-folder]
 original=Choose a folder other than the root of your device.
-translation=
+translation=Tria una carpeta diferent de l'arrel del teu dispositiu.
 
 [source.msg-flat-files]
 original={{count}} file will be imported.

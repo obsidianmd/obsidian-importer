@@ -416,19 +416,19 @@ translation=Nu s-au găsit directoare.
 
 [source.msg-android-folder-failed]
 original=Could not choose that folder.
-translation=
+translation=Nu s-a putut alege acel director.
 
 [source.msg-android-folder-read-failed]
 original=Could not read that folder.
-translation=
+translation=Nu s-a putut citi acel director.
 
 [source.msg-android-folder-unavailable]
 original=Folder selection is unavailable on this device.
-translation=
+translation=Selecția directorului nu este disponibilă pe acest dispozitiv.
 
 [source.msg-android-root-folder]
 original=Choose a folder other than the root of your device.
-translation=
+translation=Alege un alt director decât rădăcina dispozitivului.
 
 [source.msg-flat-files]
 original={{count}} file will be imported.

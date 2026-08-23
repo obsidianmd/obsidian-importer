@@ -416,19 +416,19 @@ translation=Nenhuma pasta encontrada.
 
 [source.msg-android-folder-failed]
 original=Could not choose that folder.
-translation=
+translation=Não foi possível escolher essa pasta.
 
 [source.msg-android-folder-read-failed]
 original=Could not read that folder.
-translation=
+translation=Não foi possível ler essa pasta.
 
 [source.msg-android-folder-unavailable]
 original=Folder selection is unavailable on this device.
-translation=
+translation=A seleção de pasta não está disponível neste dispositivo.
 
 [source.msg-android-root-folder]
 original=Choose a folder other than the root of your device.
-translation=
+translation=Escolha uma pasta diferente da raiz do seu dispositivo.
 
 [source.msg-flat-files]
 original={{count}} file will be imported.

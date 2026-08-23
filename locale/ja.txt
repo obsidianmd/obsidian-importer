@@ -416,19 +416,19 @@ translation=フォルダが見つかりません。
 
 [source.msg-android-folder-failed]
 original=Could not choose that folder.
-translation=
+translation=そのフォルダを選択できませんでした。
 
 [source.msg-android-folder-read-failed]
 original=Could not read that folder.
-translation=
+translation=そのフォルダを読み取れませんでした。
 
 [source.msg-android-folder-unavailable]
 original=Folder selection is unavailable on this device.
-translation=
+translation=このデバイス上ではフォルダの選択は利用できません。
 
 [source.msg-android-root-folder]
 original=Choose a folder other than the root of your device.
-translation=
+translation=デバイスのルート以外のフォルダを選択してください。
 
 [source.msg-flat-files]
 original={{count}} file will be imported.

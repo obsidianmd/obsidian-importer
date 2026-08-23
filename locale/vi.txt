@@ -416,19 +416,19 @@ translation=Không tìm thấy thư mục nào.
 
 [source.msg-android-folder-failed]
 original=Could not choose that folder.
-translation=
+translation=Không thể chọn thư mục đó.
 
 [source.msg-android-folder-read-failed]
 original=Could not read that folder.
-translation=
+translation=Không thể đọc thư mục đó.
 
 [source.msg-android-folder-unavailable]
 original=Folder selection is unavailable on this device.
-translation=
+translation=Chọn thư mục không khả dụng trên thiết bị này.
 
 [source.msg-android-root-folder]
 original=Choose a folder other than the root of your device.
-translation=
+translation=Chọn một thư mục khác ngoài thư mục gốc của thiết bị.
 
 [source.msg-flat-files]
 original={{count}} file will be imported.
