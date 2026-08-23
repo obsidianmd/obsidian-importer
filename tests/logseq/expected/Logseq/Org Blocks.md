@@ -20,6 +20,10 @@ tags:
     {:title "Open"
      :query [?b]}
     ```
+- ```query
+  {{query (property :status doing)}}
+  ```
+- Tracking `{{query (todo TODO)}}` inline in a sentence
 - A quote is still prose
   - > Everything is a bullet.
 - [ ] Water the plants — scheduled [[Logseq/Journals/2024-06-15]], every 3 days

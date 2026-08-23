@@ -98,6 +98,18 @@ test('keeps queries and records their presence when requested', () => {
 	assert.equal(converted.hasQueries, true);
 });
 
+test('a simple query becomes a fenced block, since it cannot run in Obsidian', () => {
+	const converted = convertLocal('- {{query (property :status doing)}}', opts);
+	assert.equal(converted.body, ['- ```query', '  {{query (property :status doing)}}', '  ```'].join('\n'));
+	assert.equal(converted.hasQueries, true);
+});
+
+test('a query mid-sentence becomes inline code rather than breaking the line', () => {
+	const converted = convertLocal('- see {{query (property :status doing)}} for open items', opts);
+	assert.equal(converted.body, '- see `{{query (property :status doing)}}` for open items');
+	assert.equal(converted.hasQueries, true);
+});
+
 test('does not detect or remove a query example inside code', () => {
 	const options = { ...opts, queries: false };
 	const input = ['```markdown', '{{query (property :status doing)}}', '```'].join('\n');

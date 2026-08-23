@@ -229,6 +229,48 @@ function stripIndent(line: string, n: number): string {
 }
 
 /** Makes a bare heading own the indented list that follows it. */
+export interface ConvertSimpleQueriesOptions {
+	/** Remove the query instead of fencing it. */
+	drop?: boolean;
+	onQuery?: () => void;
+}
+
+const QUERY_BLOCK_RE = /^([ \t]*)(- )?(\{\{query[\s\S]*?\}\})[ \t]*$/gm;
+const QUERY_INLINE_RE = /\{\{query[\s\S]*?\}\}/gi;
+
+/**
+ * `{{query ...}}` has no Obsidian equivalent, so it becomes a fenced block the
+ * way an advanced query does — visibly inert rather than looking like it runs.
+ */
+export function convertSimpleQueries(content: string, options: ConvertSimpleQueriesOptions = {}): string {
+	const { drop = false, onQuery } = options;
+
+	// Dropping leaves the bullet behind for the whitespace pass to clear, the
+	// way removing any other inline markup would.
+	if (drop) {
+		return outsideMarkdownCode(content, segment => segment.replace(QUERY_INLINE_RE, () => {
+			onQuery?.();
+			return '';
+		}));
+	}
+
+	// A query alone on its block becomes a fence; the fence then protects it
+	// from the inline pass, which catches any query sitting mid-sentence.
+	const fenced = outsideMarkdownFences(content, segment =>
+		segment.replace(QUERY_BLOCK_RE, (whole: string, indent: string, bullet: string | undefined, query: string) => {
+			onQuery?.();
+			const inner = query.split('\n');
+			const body = bullet ? `${indent}  ` : indent;
+			const fence = fenceFor(inner);
+			return [`${indent}${bullet ?? ''}${fence}query`, ...inner.map(l => body + l), `${body}${fence}`].join('\n');
+		}));
+
+	return outsideMarkdownCode(fenced, segment => segment.replace(QUERY_INLINE_RE, (whole: string) => {
+		onQuery?.();
+		return `\`${whole}\``;
+	}));
+}
+
 export function fixHeadingChildLists(content: string): string {
 	return outsideMarkdownFences(content, fixHeadingChildListSegment);
 }

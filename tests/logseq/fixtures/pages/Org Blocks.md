@@ -15,6 +15,8 @@ tags:: café, dead
     {:title "Open"
      :query [?b]}
     #+END_QUERY
+- {{query (property :status doing)}}
+- Tracking {{query (todo TODO)}} inline in a sentence
 - A quote is still prose
   - #+BEGIN_QUOTE
     Everything is a bullet.

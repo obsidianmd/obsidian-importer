@@ -1,8 +1,7 @@
-import { outsideMarkdownCode } from '../../markdown';
 import { DEFAULT_DROP_PAGE_PROPERTIES, LogseqImportOptions } from './options';
 import { extractPageProperties, convertHeadingProperty, removeLeftoverBlockProperties, splitList } from './properties';
 import { convertTasks } from './tasks';
-import { convertNumberedLists, convertOrgBlocks, convertHighlights, convertMediaEmbeds, fixCodeBlocksInLists, fixHeadingChildLists } from './blocks';
+import { convertNumberedLists, convertOrgBlocks, convertHighlights, convertMediaEmbeds, convertSimpleQueries, fixCodeBlocksInLists, fixHeadingChildLists } from './blocks';
 import { convertAssetLinks, AssetRef } from './assets';
 import { convertAliasLinks } from './links';
 import { convertJournalDateLinks } from './journals';
@@ -44,10 +43,10 @@ export function convertLocal(
 		dropQueries: !options.queries,
 		onQuery: () => hasQueries = true,
 	});
-	body = outsideMarkdownCode(body, segment => segment.replace(/\{\{query[\s\S]*?\}\}/gi, (whole: string) => {
-		hasQueries = true;
-		return options.queries ? whole : '';
-	}));
+	body = convertSimpleQueries(body, {
+		drop: !options.queries,
+		onQuery: () => hasQueries = true,
+	});
 	body = convertHighlights(body);
 	body = convertMediaEmbeds(body);
 	body = fixHeadingChildLists(body);
