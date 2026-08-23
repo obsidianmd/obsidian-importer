@@ -95,6 +95,7 @@ Code
 Embeds
 
 - Embedded blocks ^ME2M37gZr
+    - {{embed: ((sHQRa0Wan))}}
 - Embedded Pages
     - ![[testing]]
 
@@ -148,6 +149,10 @@ sub one
 sub two
 
 query
+
+```query
+block:([[Theme Tester]])
+```
 
 comments
 

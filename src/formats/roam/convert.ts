@@ -55,9 +55,9 @@ export interface RoamConverterOptions {
 export const roamDefaults = {
 	deOutline: true,
 	embedBlockReferences: true,
-	dropUnresolvedReferences: true,
+	dropUnresolvedReferences: false,
 	keepAttributesInOutline: false,
-	dropQueries: true,
+	dropQueries: false,
 	tagsAsLinks: false,
 } as const;
 

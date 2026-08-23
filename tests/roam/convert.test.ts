@@ -19,6 +19,11 @@ const RECORDABLE_PAGES = 25;
 
 const graphs = fixtures(FIXTURES, '.json');
 
+test('defaults preserve queries and unresolved references', () => {
+	assert.equal(roamDefaults.dropQueries, false);
+	assert.equal(roamDefaults.dropUnresolvedReferences, false);
+});
+
 test('there are graphs to convert', () => {
 	assert.ok(graphs.length > 0, 'expected at least one .json in tests/roam');
 });
