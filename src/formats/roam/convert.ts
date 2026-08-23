@@ -93,6 +93,7 @@ export class RoamPageConverter {
 		// Whatever the download did not take: a player pointing at somewhere
 		// else, or a file it could not fetch. Markdown takes HTML, so the
 		// component becomes the element it stood for.
+		if (!blockText.includes('{{')) return blockText;
 		return outsideMarkdownCode(blockText, segment => segment.replace(mediaComponentRe,
 			(match: string, name: string, url: string) => {
 				if (name.toLowerCase() === 'audio') return `<audio controls src="${url}"></audio>`;

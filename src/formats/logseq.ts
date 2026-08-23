@@ -3,6 +3,7 @@ import { ImportContext } from '../import-context';
 import { NodePickedFile, PickedFile, PickedFolder, fsPromises } from '../filesystem';
 import { FormatImporter, NoteTemplateSample, PlannedNote, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { i18n } from '../i18n';
+import { normalizeTreePath, parentTreePath } from '../imported-path-index';
 import { outsideMarkdownCode } from '../markdown';
 import { sameBytes, sanitizeFileName, sanitizeFilePath } from '../util';
 import { convertAssetLinks } from './logseq/assets';
@@ -63,16 +64,6 @@ function withoutMarkdownExtension(path: string): string {
 	return path.replace(/\.md$/i, '');
 }
 
-function normalizedGraphPath(path: string): string {
-	const parts: string[] = [];
-	for (const part of path.replace(/\\/g, '/').split('/')) {
-		if (!part || part === '.') continue;
-		if (part === '..') parts.pop();
-		else parts.push(part);
-	}
-	return parts.join('/');
-}
-
 function decodedPath(path: string): string {
 	try {
 		return decodeURIComponent(path);
@@ -87,11 +78,6 @@ function graphBasename(path: string): string {
 	return slash < 0 ? path : path.slice(slash + 1);
 }
 
-function graphParent(path: string): string {
-	const slash = path.lastIndexOf('/');
-	return slash < 0 ? '' : path.slice(0, slash);
-}
-
 function relativeToGraphDirectory(path: string, directory: string): string | null {
 	const lowerPath = path.toLowerCase();
 	const lowerDirectory = directory.toLowerCase();
@@ -101,7 +87,7 @@ function relativeToGraphDirectory(path: string, directory: string): string | nul
 
 async function walkItems(items: (PickedFile | PickedFolder)[], parent: string, files: GraphFile[]): Promise<void> {
 	for (const item of items) {
-		const path = normalizedGraphPath(parent ? `${parent}/${item.name}` : item.name);
+		const path = normalizeTreePath(parent ? `${parent}/${item.name}` : item.name);
 		if (item.type === 'folder') await walkItems(await item.list(), path, files);
 		else files.push({ file: item, path });
 	}
@@ -120,6 +106,14 @@ async function fileTimes(file: PickedFile): Promise<FileTimes | undefined> {
 		return undefined;
 	}
 }
+
+type BooleanOptionKey = {
+	[K in keyof LogseqImportOptions]: LogseqImportOptions[K] extends boolean ? K : never;
+}[keyof LogseqImportOptions];
+
+type ListOptionKey = {
+	[K in keyof LogseqImportOptions]: LogseqImportOptions[K] extends string[] ? K : never;
+}[keyof LogseqImportOptions];
 
 export class LogseqImporter extends FormatImporter {
 	static extensions = ['md'];
@@ -146,7 +140,7 @@ export class LogseqImporter extends FormatImporter {
 	}
 
 	get sourceReady(): boolean {
-		return this.chosen.filter(item => item.type === 'folder').length === 1;
+		return this.graphFolder() !== null;
 	}
 
 	private drawOptions(dailyNotes: { format: string, folder: string }): void {
@@ -198,12 +192,7 @@ export class LogseqImporter extends FormatImporter {
 					.setDisabled(this.options.useDailyNotes)
 					.onChange(value => this.options.journalDateFormat = value || ISO_FORMAT);
 			});
-		this.addSetting()
-			?.setName(i18n.importer.logseq.nameDeOutlineJournals())
-			.setDesc(i18n.importer.logseq.descDeOutlineJournals())
-			.addToggle(toggle => toggle
-				.setValue(this.options.deOutlineJournals)
-				.onChange(value => this.options.deOutlineJournals = value));
+		this.toggleSetting(i18n.importer.logseq.nameDeOutlineJournals(), i18n.importer.logseq.descDeOutlineJournals(), 'deOutlineJournals');
 
 		this.startGroup('options', i18n.importer.logseq.groupPages());
 		this.addSetting()
@@ -212,32 +201,12 @@ export class LogseqImporter extends FormatImporter {
 			.addText(text => text
 				.setValue(this.options.pagesFolder)
 				.onChange(value => this.options.pagesFolder = value));
-		this.addSetting()
-			?.setName(i18n.importer.logseq.nameDeOutlinePages())
-			.setDesc(i18n.importer.logseq.descDeOutlinePages())
-			.addToggle(toggle => toggle
-				.setValue(this.options.deOutlinePages)
-				.onChange(value => this.options.deOutlinePages = value));
+		this.toggleSetting(i18n.importer.logseq.nameDeOutlinePages(), i18n.importer.logseq.descDeOutlinePages(), 'deOutlinePages');
 
 		this.startGroup('options', i18n.importer.logseq.groupLinks());
-		this.addSetting()
-			?.setName(i18n.importer.logseq.nameConvertTags())
-			.setDesc(i18n.importer.logseq.descConvertTags())
-			.addToggle(toggle => toggle
-				.setValue(this.options.convertTagsToLinks)
-				.onChange(value => this.options.convertTagsToLinks = value));
-		this.addSetting()
-			?.setName(i18n.importer.logseq.nameOnlyExistingTags())
-			.setDesc(i18n.importer.logseq.descOnlyExistingTags())
-			.addToggle(toggle => toggle
-				.setValue(this.options.convertTagsOnlyExistingPages)
-				.onChange(value => this.options.convertTagsOnlyExistingPages = value));
-		this.addSetting()
-			?.setName(i18n.importer.logseq.nameDropTags())
-			.setDesc(i18n.importer.logseq.descDropTags())
-			.addText(text => text
-				.setValue(this.options.dropTags.join(', '))
-				.onChange(value => this.options.dropTags = this.listSetting(value)));
+		this.toggleSetting(i18n.importer.logseq.nameConvertTags(), i18n.importer.logseq.descConvertTags(), 'convertTagsToLinks');
+		this.toggleSetting(i18n.importer.logseq.nameOnlyExistingTags(), i18n.importer.logseq.descOnlyExistingTags(), 'convertTagsOnlyExistingPages');
+		this.listOptionSetting(i18n.importer.logseq.nameDropTags(), i18n.importer.logseq.descDropTags(), 'dropTags');
 
 		this.startGroup('options', i18n.importer.logseq.groupLogseqOnly());
 		this.keepOrDropSetting(i18n.importer.logseq.nameQueries(), i18n.importer.logseq.descQueries(),
@@ -248,38 +217,13 @@ export class LogseqImporter extends FormatImporter {
 			this.options.logbook, value => this.options.logbook = value);
 
 		this.startGroup('options', i18n.importer.logseq.groupBlockReferences());
-		this.addSetting()
-			?.setName(i18n.importer.logseq.nameShortenBlockIds())
-			.setDesc(i18n.importer.logseq.descShortenBlockIds())
-			.addToggle(toggle => toggle
-				.setValue(this.options.shortenBlockIds)
-				.onChange(value => this.options.shortenBlockIds = value));
-		this.addSetting()
-			?.setName(i18n.importer.logseq.nameRemoveOrphanRefs())
-			.setDesc(i18n.importer.logseq.descRemoveOrphanRefs())
-			.addToggle(toggle => toggle
-				.setValue(this.options.removeOrphanBlockRefs)
-				.onChange(value => this.options.removeOrphanBlockRefs = value));
-		this.addSetting()
-			?.setName(i18n.importer.logseq.nameEmbedBlockRefs())
-			.setDesc(i18n.importer.logseq.descEmbedBlockRefs())
-			.addToggle(toggle => toggle
-				.setValue(this.options.alwaysEmbedBlockRefs)
-				.onChange(value => this.options.alwaysEmbedBlockRefs = value));
+		this.toggleSetting(i18n.importer.logseq.nameShortenBlockIds(), i18n.importer.logseq.descShortenBlockIds(), 'shortenBlockIds');
+		this.toggleSetting(i18n.importer.logseq.nameRemoveOrphanRefs(), i18n.importer.logseq.descRemoveOrphanRefs(), 'removeOrphanBlockRefs');
+		this.toggleSetting(i18n.importer.logseq.nameEmbedBlockRefs(), i18n.importer.logseq.descEmbedBlockRefs(), 'alwaysEmbedBlockRefs');
 
 		this.startGroup('options', i18n.importer.logseq.groupProperties());
-		this.addSetting()
-			?.setName(i18n.importer.logseq.nameDropPageProperties())
-			.setDesc(i18n.importer.logseq.descDropPageProperties())
-			.addText(text => text
-				.setValue(this.options.dropPageProperties.join(', '))
-				.onChange(value => this.options.dropPageProperties = this.listSetting(value)));
-		this.addSetting()
-			?.setName(i18n.importer.logseq.nameDropBlockProperties())
-			.setDesc(i18n.importer.logseq.descDropBlockProperties())
-			.addText(text => text
-				.setValue(this.options.dropBlockProperties.join(', '))
-				.onChange(value => this.options.dropBlockProperties = this.listSetting(value)));
+		this.listOptionSetting(i18n.importer.logseq.nameDropPageProperties(), i18n.importer.logseq.descDropPageProperties(), 'dropPageProperties');
+		this.listOptionSetting(i18n.importer.logseq.nameDropBlockProperties(), i18n.importer.logseq.descDropBlockProperties(), 'dropBlockProperties');
 		this.addSetting()
 			?.setName(i18n.importer.logseq.nameBlockProperties())
 			.setDesc(i18n.importer.logseq.descBlockProperties())
@@ -289,32 +233,30 @@ export class LogseqImporter extends FormatImporter {
 				.addOption('drop', i18n.importer.logseq.optionDrop())
 				.setValue(this.options.blockProperties)
 				.onChange(value => this.options.blockProperties = value as LogseqImportOptions['blockProperties']));
-		this.addSetting()
-			?.setName(i18n.importer.logseq.nameSnakeCasePages())
-			.setDesc(i18n.importer.logseq.descSnakeCasePages())
-			.addToggle(toggle => toggle
-				.setValue(this.options.snakeCasePageProperties)
-				.onChange(value => this.options.snakeCasePageProperties = value));
-		this.addSetting()
-			?.setName(i18n.importer.logseq.nameSnakeCaseBlocks())
-			.setDesc(i18n.importer.logseq.descSnakeCaseBlocks())
-			.addToggle(toggle => toggle
-				.setValue(this.options.snakeCaseBlockProperties)
-				.onChange(value => this.options.snakeCaseBlockProperties = value));
+		this.toggleSetting(i18n.importer.logseq.nameSnakeCasePages(), i18n.importer.logseq.descSnakeCasePages(), 'snakeCasePageProperties');
+		this.toggleSetting(i18n.importer.logseq.nameSnakeCaseBlocks(), i18n.importer.logseq.descSnakeCaseBlocks(), 'snakeCaseBlockProperties');
 
 		this.startGroup('options', i18n.importer.logseq.groupCleanup());
+		this.toggleSetting(i18n.importer.logseq.nameKeepAltText(), i18n.importer.logseq.descKeepAltText(), 'keepAssetAltText');
+		this.toggleSetting(i18n.importer.logseq.nameNormalizeWhitespace(), i18n.importer.logseq.descNormalizeWhitespace(), 'normalizeWhitespace');
+	}
+
+	private toggleSetting(name: string, description: string, key: BooleanOptionKey): void {
 		this.addSetting()
-			?.setName(i18n.importer.logseq.nameKeepAltText())
-			.setDesc(i18n.importer.logseq.descKeepAltText())
+			?.setName(name)
+			.setDesc(description)
 			.addToggle(toggle => toggle
-				.setValue(this.options.keepAssetAltText)
-				.onChange(value => this.options.keepAssetAltText = value));
+				.setValue(this.options[key])
+				.onChange(value => this.options[key] = value));
+	}
+
+	private listOptionSetting(name: string, description: string, key: ListOptionKey): void {
 		this.addSetting()
-			?.setName(i18n.importer.logseq.nameNormalizeWhitespace())
-			.setDesc(i18n.importer.logseq.descNormalizeWhitespace())
-			.addToggle(toggle => toggle
-				.setValue(this.options.normalizeWhitespace)
-				.onChange(value => this.options.normalizeWhitespace = value));
+			?.setName(name)
+			.setDesc(description)
+			.addText(text => text
+				.setValue(this.options[key].join(', '))
+				.onChange(value => this.options[key] = this.listSetting(value)));
 	}
 
 	private keepOrDropSetting(
@@ -414,14 +356,14 @@ export class LogseqImporter extends FormatImporter {
 			const journalRoot = this.options.useDailyNotes
 				? this.options.journalFolder.trim()
 				: normalizePath([outputRoot, this.options.journalFolder.trim()].filter(Boolean).join('/'));
-			const logicalParent = sanitizeFilePath(graphParent(logicalName), journalRoot);
+			const logicalParent = sanitizeFilePath(parentTreePath(logicalName), journalRoot);
 			parent = normalizePath([journalRoot, logicalParent].filter(Boolean).join('/'));
 		}
 		else {
 			logicalName = namespaceToPath(entry.file.basename, graph.config.filenameFormat);
 			sourceNames = [logicalName];
 			const pageRoot = normalizePath([outputRoot, this.options.pagesFolder.trim()].filter(Boolean).join('/'));
-			const logicalParent = sanitizeFilePath(graphParent(logicalName), pageRoot);
+			const logicalParent = sanitizeFilePath(parentTreePath(logicalName), pageRoot);
 			parent = normalizePath([pageRoot, logicalParent].filter(Boolean).join('/'));
 		}
 
@@ -680,9 +622,9 @@ export class LogseqImporter extends FormatImporter {
 
 	private resolveGraphAsset(graph: GraphSource, notePath: string, sourcePath: string): GraphFile | null {
 		const clean = decodedPath(sourcePath.trim().replace(/^<|>$/g, ''));
-		const relative = normalizedGraphPath(`${graphParent(notePath)}/${clean}`);
+		const relative = normalizeTreePath(`${parentTreePath(notePath)}/${clean}`);
 		return graph.byPath.get(relative.toLowerCase())
-			?? graph.byPath.get(normalizedGraphPath(clean.replace(/^(\.\.\/)+/, '')).toLowerCase())
+			?? graph.byPath.get(normalizeTreePath(clean.replace(/^(\.\.\/)+/, '')).toLowerCase())
 			?? null;
 	}
 

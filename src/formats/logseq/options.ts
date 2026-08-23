@@ -51,7 +51,6 @@ export interface LogseqImportOptions {
 
 export const DEFAULT_DROP_PAGE_PROPERTIES = ['public', 'exclude-from-graph-view', 'icon'];
 
-export const DEFAULT_DROP_BLOCK_PROPERTIES: string[] = [];
 
 export const DEFAULT_LOGSEQ_OPTIONS: LogseqImportOptions = {
 	taskFormat: 'tasks-emoji',
@@ -69,7 +68,7 @@ export const DEFAULT_LOGSEQ_OPTIONS: LogseqImportOptions = {
 	flashcards: 'keep',
 
 	dropPageProperties: [...DEFAULT_DROP_PAGE_PROPERTIES],
-	dropBlockProperties: [...DEFAULT_DROP_BLOCK_PROPERTIES],
+	dropBlockProperties: [],
 	blockProperties: 'wrap',
 	snakeCasePageProperties: false,
 	snakeCaseBlockProperties: false,

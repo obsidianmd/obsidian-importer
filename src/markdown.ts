@@ -15,6 +15,10 @@ export function markdownFenceLines(text: string): boolean[] {
 	const protectedLines: boolean[] = [];
 	let fence: { marker: string, length: number } | null = null;
 
+	// A fence needs one of these; most notes have neither, and this scan runs
+	// once per rewriting pass.
+	if (!text.includes('`') && !text.includes('~')) return new Array<boolean>(text.split('\n').length).fill(false);
+
 	for (const line of text.split('\n')) {
 		if (fence) {
 			protectedLines.push(true);
@@ -61,6 +65,9 @@ export function outsideMarkdownFences(text: string, rewrite: (segment: string) =
 function codeSegments(text: string): MarkdownCodeSegment[] {
 	const fenced: MarkdownCodeSegment[] = [];
 	let fence: { marker: string, length: number } | null = null;
+
+	// Both fenced and inline code need a backtick or tilde.
+	if (!text.includes('`') && !text.includes('~')) return text ? [{ code: false, text }] : [];
 
 	const append = (code: boolean, value: string) => {
 		if (!value) return;
@@ -126,4 +133,12 @@ export async function outsideMarkdownCodeAsync(
 		written.push(segment.code ? segment.text : await rewrite(segment.text));
 	}
 	return written.join('');
+}
+
+/** The next line with something on it, without copying the rest of the array. */
+export function nextNonBlankLine(lines: string[], from: number): string | undefined {
+	for (let i = from; i < lines.length; i++) {
+		if (lines[i].trim() !== '') return lines[i];
+	}
+	return undefined;
 }

@@ -1,4 +1,7 @@
 import { outsideMarkdownFences } from '../../markdown';
+import { BlockPropertyMode } from './options';
+
+export type { BlockPropertyMode };
 
 const PROPERTY_LINE = /^([A-Za-z0-9_.-]+):: ?(.*)$/;
 const BLOCK_PROPERTY_LINE = /^(\s*)(- )?([A-Za-z0-9_.-]+):: ?(.*)$/;
@@ -162,10 +165,7 @@ function emitProperty(
 	if ((hasWiki || commaSeparatedProperties.has(key.toLowerCase())) && parts.length > 1) {
 		return [`${outKey}:`, ...parts.map(yamlListItem)];
 	}
-	if (hasWiki) {
-		return [`${outKey}: ${quote(value)}`];
-	}
-	if (needsQuoting(value)) {
+	if (hasWiki || needsQuoting(value)) {
 		return [`${outKey}: ${quote(value)}`];
 	}
 	return [`${outKey}: ${value}`];
@@ -185,9 +185,7 @@ export function extractPageProperties(content: string, opts: ExtractPageProperti
 	const commaSeparatedProperties = opts.commaSeparatedProperties ?? new Set<string>();
 	const lines = content.split('\n');
 	const raw: Record<string, string> = {};
-	const bodyLines: string[] = [];
 	const propMap = new Map<string, string[]>();
-	const propOrder: string[] = [];
 	const aliases: string[] = [];
 
 	let i = 0;
@@ -199,10 +197,9 @@ export function extractPageProperties(content: string, opts: ExtractPageProperti
 		raw[key] = value;
 		if (key === 'title') continue;
 		const emitted = emitProperty(key, value, aliases, dropPageProps, dropTags, snakeCase, commaSeparatedProperties);
-		if (emitted.length > 0) {
-			if (!propMap.has(key)) propOrder.push(key);
-			propMap.set(key, emitted);
-		}
+		// Map keeps a key in its first slot, so first occurrence wins the
+		// position and the last value wins the slot.
+		if (emitted.length > 0) propMap.set(key, emitted);
 	}
 
 	if (raw.title) {
@@ -211,13 +208,9 @@ export function extractPageProperties(content: string, opts: ExtractPageProperti
 	}
 
 	while (i < lines.length && lines[i].trim() === '') i++;
-	for (; i < lines.length; i++) bodyLines.push(lines[i]);
+	const bodyLines = lines.slice(i);
 
-	const propLines: string[] = [];
-	for (const key of propOrder) {
-		const lines = propMap.get(key);
-		if (lines) propLines.push(...lines);
-	}
+	const propLines = [...propMap.values()].flat();
 
 	let yaml = '';
 	const hasAny = propLines.length > 0 || aliases.length > 0;
@@ -231,7 +224,6 @@ export function extractPageProperties(content: string, opts: ExtractPageProperti
 	return { yaml, body: bodyLines.join('\n'), raw };
 }
 
-export type BlockPropertyMode = 'keep' | 'wrap' | 'drop';
 
 function isAlwaysDroppedBlockProp(key: string, userDrop: Set<string>): boolean {
 	if (isAlwaysDroppedByPrefix(key)) return true;

@@ -11,19 +11,22 @@ function pad(n: number): string {
 }
 
 function validYMD(y: number, m: number, d: number): boolean {
-	if (m < 1 || m > 12 || d < 1 || d > 31) return false;
-	return true;
+	return m >= 1 && m <= 12 && d >= 1 && d <= 31;
 }
 
+const FORMAT_TOKENS: Record<string, string> = {
+	yyyy: 'YYYY', yyy: 'YYYY', yy: 'YY', y: 'YYYY',
+	EEEE: 'dddd', EEE: 'ddd', EE: 'ddd', E: 'ddd',
+	LLLL: 'MMMM', LLL: 'MMM', LL: 'MM', L: 'M',
+	MMMM: 'MMMM', MMM: 'MMM', MM: 'MM', M: 'M',
+	do: 'Do', dd: 'DD', d: 'D',
+};
+// Longest first, so `MMMM` wins before `MMM`.
+const ORDERED_TOKENS = Object.keys(FORMAT_TOKENS).sort((a, b) => b.length - a.length);
+
 export function logseqDateFormatToMoment(format: string): string {
-	const tokens: Record<string, string> = {
-		yyyy: 'YYYY', yyy: 'YYYY', yy: 'YY', y: 'YYYY',
-		EEEE: 'dddd', EEE: 'ddd', EE: 'ddd', E: 'ddd',
-		LLLL: 'MMMM', LLL: 'MMM', LL: 'MM', L: 'M',
-		MMMM: 'MMMM', MMM: 'MMM', MM: 'MM', M: 'M',
-		do: 'Do', dd: 'DD', d: 'D',
-	};
-	const ordered = Object.keys(tokens).sort((a, b) => b.length - a.length);
+	const tokens = FORMAT_TOKENS;
+	const ordered = ORDERED_TOKENS;
 	let result = '';
 	let literal = '';
 	let i = 0;
@@ -72,10 +75,6 @@ export function journalFilenameToISO(basename: string, sourceFormat?: string): s
 	const d = parseInt(m[3], 10);
 	if (!validYMD(y, mo, d)) return null;
 	return `${y}-${pad(mo)}-${pad(d)}`;
-}
-
-export function isJournalFilename(basename: string): boolean {
-	return journalFilenameToISO(basename) !== null;
 }
 
 const DATE_LINK = /\[\[((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*)\.? (\d{1,2})(?:st|nd|rd|th)?,? (\d{4})\]\]/g;

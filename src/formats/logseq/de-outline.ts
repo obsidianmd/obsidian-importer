@@ -3,15 +3,14 @@ import { markdownFenceLines, outsideMarkdownFences } from '../../markdown';
 interface OutlineNode {
 	content: string;
 	children: OutlineNode[];
-	rawLines: string[];
 }
 
 function parseOutline(content: string): OutlineNode[] {
 	const lines = content.split('\n');
 	const fenced = markdownFenceLines(content);
 	const root: OutlineNode[] = [];
-	const stack: { indent: number, node: OutlineNode, children: OutlineNode[] }[] = [
-		{ indent: -1, node: { content: '', children: root, rawLines: [] }, children: root },
+	const stack: { indent: number, children: OutlineNode[] }[] = [
+		{ indent: -1, children: root },
 	];
 
 	let i = 0;
@@ -26,7 +25,7 @@ function parseOutline(content: string): OutlineNode[] {
 			let j = i + 1;
 			while (j < lines.length && !/^(\s*)- /.test(lines[j])) rawLines.push(lines[j++]);
 			if (rawLines.some(raw => raw.trim() !== '')) {
-				root.push({ content: rawLines.join('\n'), children: [], rawLines });
+				root.push({ content: rawLines.join('\n'), children: [] });
 			}
 			stack.splice(1);
 			i = j;
@@ -70,12 +69,7 @@ function parseOutline(content: string): OutlineNode[] {
 		// Use the source prefix rather than counting columns so tabs survive.
 		let continuationPrefix = '';
 		if (rawLines.length > 1) {
-			const firstCont = rawLines[1];
-			const ws = firstCont.match(/^(\s*)/)?.[1] ?? '';
-			continuationPrefix = ws.length >= continuationIndent ? ws.slice(0, Math.max(ws.length, continuationIndent)) : ws;
-			if (firstCont.trim() !== '') {
-				continuationPrefix = ws;
-			}
+			continuationPrefix = rawLines[1].match(/^(\s*)/)?.[1] ?? '';
 		}
 		for (let k = 1; k < rawLines.length; k++) {
 			const rawLine = rawLines[k];
@@ -93,14 +87,14 @@ function parseOutline(content: string): OutlineNode[] {
 			fullContent += '\n' + stripped;
 		}
 
-		const node: OutlineNode = { content: fullContent, children: [], rawLines };
+		const node: OutlineNode = { content: fullContent, children: [] };
 
 		while (stack.length > 1 && stack[stack.length - 1].indent >= indent) {
 			stack.pop();
 		}
 
 		stack[stack.length - 1].children.push(node);
-		stack.push({ indent, node, children: node.children });
+		stack.push({ indent, children: node.children });
 
 		i = j;
 	}

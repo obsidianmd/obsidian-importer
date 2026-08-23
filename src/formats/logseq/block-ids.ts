@@ -51,7 +51,7 @@ export function attachBlockIds(content: string, shorten: boolean): { content: st
 			const shortId = makeUnique(shorten ? shortenId(uuid) : uuid);
 			ids.push({ uuid, shortId });
 			const target = out[lastContentIndex];
-			if (!new RegExp(`\\^${shortId}\\s*$`).test(target)) {
+			if (!target.trimEnd().endsWith(`^${shortId}`)) {
 				// A fence anchor must follow the fence, not become part of it.
 				if (/^[ \t]*(?:[-*+]\s+)?[`~]{3,}[ \t]*$/.test(target)) {
 					out.push(indent + `^${shortId}`);

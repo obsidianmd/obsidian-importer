@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { journalFilenameToISO, isJournalFilename, convertJournalDateLinks, reformatDateLinks } from '../../src/formats/logseq/journals';
+import { journalFilenameToISO, convertJournalDateLinks, reformatDateLinks } from '../../src/formats/logseq/journals';
 
 test('parses default Logseq journal filenames to ISO', () => {
 	assert.equal(journalFilenameToISO('2024_08_30'), '2024-08-30');
@@ -16,11 +16,6 @@ test('pads single-digit month and day', () => {
 test('returns null for non-journal filenames', () => {
 	assert.equal(journalFilenameToISO('Cool Stuff'), null);
 	assert.equal(journalFilenameToISO('2024_13_40'), null); // out of range
-});
-
-test('isJournalFilename reflects parseability', () => {
-	assert.equal(isJournalFilename('2024_08_30'), true);
-	assert.equal(isJournalFilename('Some Page'), false);
 });
 
 test('converts natural-language date links to ISO wikilinks', () => {

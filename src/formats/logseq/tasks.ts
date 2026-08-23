@@ -1,10 +1,11 @@
 import { logseqDateToISO } from './journals';
-import { outsideCodeSpans, outsideMarkdownFences } from '../../markdown';
+import { nextNonBlankLine, outsideCodeSpans, outsideMarkdownFences } from '../../markdown';
+import { KeepOrDrop, TaskFormat } from './options';
 
-export type TaskFormat = 'plain' | 'tasks-emoji' | 'tasks-dataview';
+export type { TaskFormat };
 
 interface TaskOptions {
-	logbook?: 'keep' | 'drop';
+	logbook?: KeepOrDrop;
 }
 
 const KEYWORDS = ['TODO', 'DOING', 'DONE', 'LATER', 'NOW', 'WAITING', 'WAIT', 'IN-PROGRESS', 'CANCELLED', 'CANCELED'];
@@ -117,7 +118,7 @@ function convertTaskSegment(content: string, format: TaskFormat, options: TaskOp
 		while (j < lines.length) {
 			const l = lines[j];
 			if (l.trim() === '') {
-				const peek = lines.slice(j + 1).find(x => x.trim() !== '');
+				const peek = nextNonBlankLine(lines, j + 1);
 				if (peek === undefined) break;
 				if (/^\s*- /.test(peek) && leadingWidth(peek) <= indent.length) break;
 				if (leadingWidth(peek) > indent.length || !/^\s*- /.test(peek)) {
@@ -159,18 +160,17 @@ function convertTaskSegment(content: string, format: TaskFormat, options: TaskOp
 					}));
 		}
 
+		// The pre-pass above already removed every logbook line when dropping,
+		// so anything reaching here is being kept.
 		for (const cl of continuation) {
 			if (inLogbook) {
-				if (/:END:/.test(cl)) {
-					inLogbook = false;
-					if (logbook === 'keep') kept.push(cl);
-				}
-				else if (logbook === 'keep') kept.push(cl);
+				if (/:END:/.test(cl)) inLogbook = false;
+				kept.push(cl);
 				continue;
 			}
 			if (/^\s*:LOGBOOK:/.test(cl)) {
 				inLogbook = true;
-				if (logbook === 'keep') kept.push(cl);
+				kept.push(cl);
 				continue;
 			}
 			if (format === 'plain') {
