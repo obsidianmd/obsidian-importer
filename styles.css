@@ -37,7 +37,6 @@
 body.is-mobile .modal.mod-importer .modal-content {
   margin-bottom: 0;
 }
-
 body.is-mobile .modal.mod-importer .modal-button-container {
   position: static;
   width: auto;
@@ -96,11 +95,9 @@ body.is-mobile:not(.is-phone) .modal.mod-settings .importer-button-bar .modal-bu
 body.is-phone .modal.mod-settings .importer-button-bar .importer-step-buttons {
   flex-direction: row;
 }
-
 body.is-phone .modal.mod-settings .importer-button-bar .importer-step-buttons button {
   flex: 1;
 }
-
 body.is-phone .modal.mod-settings .importer-button-bar .modal-button-container .importer-help-button {
   --icon-size: var(--icon-l);
   flex: 0 0 auto;
@@ -117,13 +114,10 @@ body.is-phone .modal.mod-settings .importer-button-bar .modal-button-container .
    none of it in the modal on mobile, where Obsidian stacks a button container
    into a column and each button fills the width: an auto margin along what is
    then the cross axis takes that width back off the primary one. */
-body:not(.is-mobile) .modal.mod-importer .importer-step-buttons,
-body:not(.is-phone) .modal.mod-settings .importer-button-bar .importer-step-buttons {
+body:not(.is-mobile) .modal.mod-importer .importer-step-buttons, body:not(.is-phone) .modal.mod-settings .importer-button-bar .importer-step-buttons {
   justify-content: flex-start;
 }
-
-body:not(.is-mobile) .modal.mod-importer .importer-step-buttons .mod-cta,
-body:not(.is-phone) .modal.mod-settings .importer-button-bar .importer-step-buttons .mod-cta {
+body:not(.is-mobile) .modal.mod-importer .importer-step-buttons .mod-cta, body:not(.is-phone) .modal.mod-settings .importer-button-bar .importer-step-buttons .mod-cta {
   margin-inline-start: auto;
 }
 
@@ -173,12 +167,9 @@ body:not(.is-phone) .modal.mod-settings .importer-button-bar .importer-step-butt
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 170'%3E%3Cpath fill='%23FCB400' d='M90.04 6.65 15.12 37.65c-4.17 1.72-4.13 7.64.07 9.3l75.23 29.84a26.6 26.6 0 0 0 19.63 0l75.23-29.84c4.2-1.66 4.24-7.58.07-9.3l-74.92-31a26.6 26.6 0 0 0-20.4 0'%3E%3C/path%3E%3Cpath fill='%2318BFFF' d='M105.7 88.4v74.55c0 3.55 3.58 5.99 6.88 4.68l83.85-32.55a5.03 5.03 0 0 0 3.17-4.68V55.86c0-3.55-3.58-5.98-6.88-4.67l-83.85 32.54a5.03 5.03 0 0 0-3.17 4.68'%3E%3C/path%3E%3Cpath fill='%23F82B60' d='m86.05 92.26-24.89 12.02-2.53 1.22-52.5 25.13C2.8 132.24 0 130.29 0 127.37V56.18c0-1.06.54-1.97 1.27-2.65a4.6 4.6 0 0 1 1.02-.76 4.6 4.6 0 0 1 3.9-.38l79.55 31.5c4.05 1.6 4.36 7.27.31 8.37'%3E%3C/path%3E%3Cpath fill='%23BA1E45' d='m86.05 92.26-24.89 12.02L1.27 53.53a4.6 4.6 0 0 1 1.02-.76 4.6 4.6 0 0 1 3.9-.38l79.55 31.5c4.05 1.6 4.36 7.27.31 8.37'%3E%3C/path%3E%3C/svg%3E");
 }
 
-.theme-dark .importer-app-icon.mod-notion,
-.theme-dark .importer-app-icon.mod-notion-api,
-.theme-dark .importer-app-icon.mod-roam-json {
+.theme-dark .importer-app-icon.mod-notion, .theme-dark .importer-app-icon.mod-notion-api, .theme-dark .importer-app-icon.mod-roam-json {
   filter: invert(1);
 }
-
 .theme-dark .importer-app-icon.mod-evernote {
   filter: brightness(1.7) saturate(0.7);
 }
@@ -235,11 +226,9 @@ body:not(.is-phone) .modal.mod-settings .importer-button-bar .importer-step-butt
 body.is-phone .importer-flow .modal-button-container {
   padding-inline: 0;
 }
-
 body.is-phone .modal-button-container.importer-step-buttons {
   padding: 0;
 }
-
 body.is-phone .modal.mod-settings .importer-button-bar {
   width: max(92%, 100% - var(--size-4-8));
   background-color: transparent;
@@ -627,7 +616,6 @@ a.importer-template-preview-more {
   padding: 18px 24px 0;
   --file-margins: 0 24px;
 }
-
 .importer-template-editing-note .markdown-source-view.is-live-preview.show-properties .metadata-container[data-property-count="0"]:not(.mod-error) {
   display: block;
 }
