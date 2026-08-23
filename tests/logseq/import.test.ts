@@ -8,10 +8,12 @@ import * as nodePath from 'node:path';
 
 import { LogseqImporter } from '../../src/formats/logseq';
 import { ImportContext } from '../../src/import-context';
-import { PickedFile } from '../../src/filesystem';
+import { NodePickedFolder, PickedFile, PickedFolder, provideNodeModules } from '../../src/filesystem';
 import { SourceFile, SourceFolder } from '../shims/picked';
 import { MemoryVault, memoryApp } from '../shims/vault';
 import { expectTree } from '../helpers';
+
+provideNodeModules({ fs: nodeFs as never, os: nodeOs, path: nodePath });
 
 const FIXTURES = nodePath.join(__dirname, 'fixtures');
 const EXPECTED = nodePath.join(__dirname, 'expected');
@@ -112,7 +114,7 @@ function expectVault(vault: MemoryVault): void {
 	}
 }
 
-async function importer(graph: SourceFolder, output = 'Logseq') {
+async function importer(graph: PickedFolder, output = 'Logseq') {
 	const vault = new MemoryVault();
 	const subject = new LogseqImporter(memoryApp(vault), {
 		sourceEl: null,
@@ -218,6 +220,43 @@ test('does not retain attachment bytes between planning and writing', async () =
 	await subject.import(new ImportContext());
 
 	assert.equal(asset.reads, 2, 'asset is read for dedupe, released, then read again only when written');
+});
+
+test('preserves source timestamps on notes and copied attachments', async t => {
+	const directory = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'logseq-times-'));
+	t.after(() => nodeFs.rmSync(directory, { recursive: true, force: true }));
+	nodeFs.mkdirSync(nodePath.join(directory, 'pages'));
+	nodeFs.mkdirSync(nodePath.join(directory, 'assets'));
+	const notePath = nodePath.join(directory, 'pages', 'A.md');
+	const assetPath = nodePath.join(directory, 'assets', 'image.png');
+	nodeFs.writeFileSync(notePath, '- ![](../assets/image.png)');
+	nodeFs.writeFileSync(assetPath, 'image');
+	const modified = new Date('2020-01-02T03:04:05.000Z');
+	nodeFs.utimesSync(notePath, modified, modified);
+	nodeFs.utimesSync(assetPath, modified, modified);
+
+	const { subject, vault } = await importer(new NodePickedFolder(directory));
+	await subject.import(new ImportContext());
+
+	const note = vault.getAbstractFileByPath('Logseq/A.md') as unknown as { stat: { mtime: number } };
+	const asset = vault.getAbstractFileByPath('image.png') as unknown as { stat: { mtime: number } };
+	assert.equal(note.stat.mtime, modified.getTime());
+	assert.equal(asset.stat.mtime, modified.getTime());
+});
+
+test('reports and does not traverse a graph whiteboards folder', async () => {
+	const graph = new SourceFolder('Whiteboard graph', [
+		new SourceFolder('pages', [new SourceFile('A.md', '- A')]),
+		new SourceFolder('whiteboards', [new UnreadableSourceFile('board.edn', new ArrayBuffer(0))]),
+	]);
+	const { subject } = await importer(graph);
+	const ctx = new ImportContext();
+
+	await subject.import(ctx);
+
+	assert.deepEqual(ctx.skipped, ['whiteboards']);
+	assert.equal(ctx.failed.length, 0);
+	assert.equal(ctx.log[0].reason, 'Logseq whiteboards are not supported by Obsidian');
 });
 
 test('does not retarget a bare page name to a namespaced page', async () => {

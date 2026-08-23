@@ -1722,6 +1722,10 @@ translation=
 original=Referenced by {{name}}, but missing from the graph
 translation=
 
+[importer.logseq.reason-whiteboards]
+original=Logseq whiteboards are not supported by Obsidian
+translation=
+
 [importer.logseq.msg-kept-queries]
 original={{name}}: kept Logseq queries
 translation=

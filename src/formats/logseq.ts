@@ -29,7 +29,10 @@ interface GraphSource {
 	name: string;
 	files: GraphFile[];
 	byPath: Map<string, GraphFile>;
+	hasWhiteboards: boolean;
 }
+
+interface FileTimes { ctime: number, mtime: number }
 
 interface SourceNote extends GraphFile {
 	kind: 'page' | 'journal';
@@ -40,7 +43,7 @@ interface SourceNote extends GraphFile {
 	content: string;
 	local: LocalResult;
 	planned: PlannedNote;
-	times?: { ctime: number, mtime: number };
+	times?: FileTimes;
 	assetTargets: Map<string, string | null>;
 }
 
@@ -48,6 +51,7 @@ interface PlannedAsset {
 	file: PickedFile;
 	path: string;
 	reuse: TFile | null;
+	times?: FileTimes;
 }
 
 function withoutMarkdownExtension(path: string): string {
@@ -83,15 +87,15 @@ function graphParent(path: string): string {
 	return slash < 0 ? '' : path.slice(0, slash);
 }
 
-async function walkFolder(folder: PickedFolder, parent: string, files: GraphFile[]): Promise<void> {
-	for (const item of await folder.list()) {
+async function walkItems(items: (PickedFile | PickedFolder)[], parent: string, files: GraphFile[]): Promise<void> {
+	for (const item of items) {
 		const path = normalizedGraphPath(parent ? `${parent}/${item.name}` : item.name);
-		if (item.type === 'folder') await walkFolder(item, path, files);
+		if (item.type === 'folder') await walkItems(await item.list(), path, files);
 		else files.push({ file: item, path });
 	}
 }
 
-async function fileTimes(file: PickedFile): Promise<{ ctime: number, mtime: number } | undefined> {
+async function fileTimes(file: PickedFile): Promise<FileTimes | undefined> {
 	if (!(file instanceof NodePickedFile)) return undefined;
 	try {
 		const stat = await fsPromises.stat(file.filepath);
@@ -337,8 +341,12 @@ export class LogseqImporter extends FormatImporter {
 		if (!root) return null;
 
 		const files: GraphFile[] = [];
+		let hasWhiteboards = false;
 		try {
-			await walkFolder(root, '', files);
+			const items = await root.list();
+			hasWhiteboards = items.some(item => item.type === 'folder' && item.name.toLowerCase() === 'whiteboards');
+			await walkItems(items.filter(item =>
+				!(item.type === 'folder' && item.name.toLowerCase() === 'whiteboards')), '', files);
 		}
 		catch (error) {
 			ctx.reportFailed(root.name, error);
@@ -347,7 +355,7 @@ export class LogseqImporter extends FormatImporter {
 
 		const byPath = new Map<string, GraphFile>();
 		for (const entry of files) byPath.set(entry.path.toLowerCase(), entry);
-		return { name: root.name, files, byPath };
+		return { name: root.name, files, byPath, hasWhiteboards };
 	}
 
 	private noteEntries(graph: GraphSource): GraphFile[] {
@@ -415,6 +423,9 @@ export class LogseqImporter extends FormatImporter {
 		if (!graph) {
 			new Notice(i18n.importer.logseq.msgPickGraph());
 			return;
+		}
+		if (graph.hasWhiteboards) {
+			ctx.reportSkipped('whiteboards', i18n.importer.logseq.reasonWhiteboards());
 		}
 
 		const entries = this.noteEntries(graph);
@@ -518,7 +529,7 @@ export class LogseqImporter extends FormatImporter {
 			if (await ctx.shouldStop()) return;
 			try {
 				if (!asset.reuse) {
-					await this.writeAttachment(asset.path, await asset.file.read());
+					await this.writeAttachment(asset.path, await asset.file.read(), asset.times);
 					ctx.reportAttachmentSuccess(asset.path);
 				}
 			}
@@ -659,7 +670,12 @@ export class LogseqImporter extends FormatImporter {
 						const filename = decodedPath(reference.filename);
 						const placed = await this.placeAttachment(filename, note.planned.targetPath, async existing =>
 							sameBytes(await this.vault.readBinary(existing), data) ? 'same' : 'another');
-						asset = { file: source.file, path: placed.path, reuse: placed.reuse };
+						asset = {
+							file: source.file,
+							path: placed.path,
+							reuse: placed.reuse,
+							times: placed.reuse ? undefined : await fileTimes(source.file),
+						};
 						bySource.set(sourceKey, asset);
 						planned.push(asset);
 					}

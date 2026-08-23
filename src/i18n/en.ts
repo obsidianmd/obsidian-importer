@@ -512,6 +512,7 @@ export const en = {
 			msgNoNotes: 'The selected folder has no Markdown notes under pages or journals.',
 			reasonEmptyPage: 'The converted page is empty',
 			reasonMissingAsset: 'Referenced by {{name}}, but missing from the graph',
+			reasonWhiteboards: 'Logseq whiteboards are not supported by Obsidian',
 			msgKeptQueries: '{{name}}: kept Logseq queries',
 			msgKeptFlashcards: '{{name}}: kept Logseq flashcards',
 		},
