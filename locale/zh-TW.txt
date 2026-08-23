@@ -414,6 +414,22 @@ translation=正在閱讀資料夾...
 original=No folders found.
 translation=找不到資料夾。
 
+[source.msg-android-folder-failed]
+original=Could not choose that folder.
+translation=
+
+[source.msg-android-folder-read-failed]
+original=Could not read that folder.
+translation=
+
+[source.msg-android-folder-unavailable]
+original=Folder selection is unavailable on this device.
+translation=
+
+[source.msg-android-root-folder]
+original=Choose a folder other than the root of your device.
+translation=
+
 [source.msg-flat-files]
 original={{count}} file will be imported.
 translation=將匯入 {{count}} 個檔案。

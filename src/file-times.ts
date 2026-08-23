@@ -1,9 +1,13 @@
-import { fsPromises, NodePickedFile, PickedFile } from './filesystem';
+import { AndroidPickedFile, fsPromises, NodePickedFile, PickedFile } from './filesystem';
 import { ZipEntryFile } from './zip';
 
 export interface FileTimes {
 	ctime: number;
 	mtime: number;
+}
+
+function validFileTime(time: number | undefined): time is number {
+	return typeof time === 'number' && Number.isFinite(time) && time > 0;
 }
 
 export async function pickedFileTimes(file: PickedFile): Promise<FileTimes | undefined> {
@@ -14,6 +18,14 @@ export async function pickedFileTimes(file: PickedFile): Promise<FileTimes | und
 			ctime: (file.ctime ?? modified).getTime(),
 			mtime: modified.getTime(),
 		};
+	}
+
+	if (file instanceof AndroidPickedFile) {
+		const ctime = validFileTime(file.ctime) ? file.ctime
+			: validFileTime(file.mtime) ? file.mtime : undefined;
+		const mtime = validFileTime(file.mtime) ? file.mtime : ctime;
+		if (ctime === undefined || mtime === undefined) return undefined;
+		return { ctime: Math.round(ctime), mtime: Math.round(mtime) };
 	}
 
 	if (!(file instanceof NodePickedFile)) return undefined;

@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import * as nodeFs from 'node:fs';
 import * as nodeOs from 'node:os';
 import * as nodePath from 'node:path';
-import { TFolder } from 'obsidian';
+import { TFile, TFolder } from 'obsidian';
 
-import { NodePickedFile, PickedFile, PickedFolder, provideNodeModules } from '../../src/filesystem';
+import { AndroidFilesystem, AndroidPickedFolder, NodePickedFile, PickedFile, PickedFolder, provideNodeModules } from '../../src/filesystem';
 import { DuplicateHandling } from '../../src/format-importer';
 import { MarkdownImporter } from '../../src/formats/markdown';
 import { ImportContext } from '../../src/import-context';
@@ -52,6 +52,39 @@ test('a folder is imported as the folder it was', async () => {
 		'Import/Notes/cover.png',
 		'Import/Notes/Journal/Day.md',
 	]);
+});
+
+test('an Android folder import preserves usable source file dates', async () => {
+	const filesystem: AndroidFilesystem = {
+		choose: async () => ({ path: '', uri: '', isRoot: false }),
+		checkPerms: async () => {},
+		requestPerms: async () => {},
+		readdir: async () => ({ files: [
+			{
+				name: 'Index.md', type: 'file', size: 7,
+				ctime: 1_700_000_000_000, mtime: 1_710_000_000_000,
+			},
+			{
+				name: 'No creation time.md', type: 'file', size: 4,
+				ctime: 0, mtime: 1_720_000_000_000,
+			},
+		] }),
+		readFile: async () => ({ data: Buffer.from('# Index').toString('base64') }),
+	};
+	const source = new AndroidPickedFolder('/storage/emulated/0/Documents/Notes', filesystem);
+	const { vault, subject } = importer();
+
+	await importing(subject, [source]);
+
+	const imported = vault.getAbstractFileByPath('Import/Notes/Index.md');
+	assert.ok(imported instanceof TFile);
+	assert.equal(imported.stat.ctime, 1_700_000_000_000);
+	assert.equal(imported.stat.mtime, 1_710_000_000_000);
+
+	const noCreationTime = vault.getAbstractFileByPath('Import/Notes/No creation time.md');
+	assert.ok(noCreationTime instanceof TFile);
+	assert.equal(noCreationTime.stat.ctime, 1_720_000_000_000);
+	assert.equal(noCreationTime.stat.mtime, 1_720_000_000_000);
 });
 
 test('a link is rewritten in this vault\'s form, still reaching the note it named', async () => {

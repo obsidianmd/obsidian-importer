@@ -12,6 +12,7 @@ import { MemoryVault, memoryApp } from '../shims/vault';
 
 interface SourceInternals {
 	readChosen(): Promise<boolean>;
+	setChosen(chosen: (PickedFile | PickedFolder)[]): Promise<boolean>;
 	filesInside(items: (PickedFile | PickedFolder)[]): Promise<PickedFile[]>;
 }
 
@@ -122,6 +123,47 @@ test('reading a folder does not overwrite the pick that replaced it', async () =
 	assert.deepEqual(await Promise.all([slow, replaced]), [false, true]);
 
 	assert.deepEqual(names(subject.files), ['Picked.md']);
+});
+
+test('a failed selection restores the selection it replaced', async () => {
+	const subject = await importer(MarkdownImporter);
+	const internals = subject as unknown as SourceInternals;
+	const previous = new SourceFile('Previous.md');
+	const broken = new SourceFolder('Broken', []);
+	internals.filesInside = async () => { throw new Error('cannot read'); };
+	subject.chosen = subject.files = [previous];
+
+	await assert.rejects(internals.setChosen([broken]), /cannot read/);
+
+	assert.deepEqual(names(subject.chosen), ['Previous.md']);
+	assert.deepEqual(names(subject.files), ['Previous.md']);
+});
+
+test('a superseded selection cannot roll back the selection that replaced it', async () => {
+	const subject = await importer(MarkdownImporter);
+	const internals = subject as unknown as SourceInternals;
+	let release!: () => void;
+	const waiting = new Promise<void>(resolve => {
+		release = resolve;
+	});
+	const broken = new SourceFolder('Slow and broken', []);
+	const filesInside = internals.filesInside.bind(subject);
+	internals.filesInside = async items => {
+		if (items[0] === broken) {
+			await waiting;
+			throw new Error('cannot read');
+		}
+		return filesInside(items);
+	};
+	const slow = internals.setChosen([broken]);
+	const replacement = new SourceFile('Replacement.md');
+
+	assert.equal(await internals.setChosen([replacement]), true);
+	release();
+	await assert.rejects(slow, /cannot read/);
+
+	assert.deepEqual(names(subject.chosen), ['Replacement.md']);
+	assert.deepEqual(names(subject.files), ['Replacement.md']);
 });
 
 test('an importer that accepts nothing reads nothing out of a folder', async () => {
