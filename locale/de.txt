@@ -122,6 +122,14 @@ translation=Microsoft OneNote
 original=Notion
 translation=Notion
 
+[outliner.name-flatten-outlines]
+original=Flatten outlines
+translation=Gliederungen flach darstellen
+
+[outliner.desc-flatten-outlines]
+original=Convert outlines into paragraphs, headings, and lists.
+translation=Gliederungen in Absätze, Überschriften und Listen umwandeln.
+
 [modal.title-pick-format]
 original=Import data into Obsidian
 translation=Daten in Obsidian importieren
@@ -551,8 +559,8 @@ original=Export your data
 translation=Deine Daten exportieren
 
 [common.label-learn-more]
-original=Learn more.
-translation=Erfahre mehr.
+original=Learn more
+translation=Erfahre mehr
 
 [common.button-instructions]
 original=Instructions
@@ -1144,7 +1152,7 @@ translation=Journal-Einträge
 
 [importer.apple-journal.desc-files]
 original=Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.
-translation=Exportiere deine Einträge aus der Journal App und wähle dann die HTML-Dateien aus, die in iCloud Drive gespeichert wurden.
+translation=Exportiere deine Einträge aus der Journal app und wähle dann die HTML-Dateien aus, die in iCloud Drive geschrieben wurden.
 
 [importer.apple-journal.heading-metadata]
 original=Journal metadata
@@ -1441,6 +1449,78 @@ translation=Inline-Tags in Eigenschaften umwandeln
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
 translation=Verschiebt Tags aus dem Inhalt einer Notiz in deren Tags-Eigenschaft.
+
+[importer.logseq.name]
+original=Logseq
+translation=Logseq
+
+[importer.logseq.option-text]
+original=Logseq (.md)
+translation=Logseq (.md)
+
+[importer.logseq.label-id]
+original=Logseq source
+translation=Logseq-Quelle
+
+[importer.logseq.desc-instructions]
+original=Read the instructions for importing from Logseq.
+translation=Lies die Anleitung zum Importieren aus Logseq.
+
+[importer.logseq.desc-files]
+original=Choose one graph folder containing pages, journals, and assets.
+translation=Wähle einen Graph-Ordner aus, der Pages, Journals und Assets enthält.
+
+[importer.logseq.name-use-daily-notes]
+original=Use daily notes settings
+translation=Tägliche Notizen-Einstellungen verwenden
+
+[importer.logseq.desc-use-daily-notes]
+original=Write journals to the configured daily notes folder and filename format.
+translation=Journals in den konfigurierten Ordner und das Dateinamenformat für Tägliche Notizen schreiben.
+
+[importer.logseq.name-queries]
+original=Keep queries
+translation=Abfragen beibehalten
+
+[importer.logseq.desc-queries]
+original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
+translation=Obsidian unterstützt das Abfrage-Format von Logseq nicht, daher werden Abfragen als Quelltext-Blöcke importiert.
+
+[importer.logseq.name-flashcards]
+original=Keep flashcards
+translation=Karteikarten beibehalten
+
+[importer.logseq.desc-flashcards]
+original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
+translation=Obsidian unterstützt die Karteikarten von Logseq nicht, daher werden Karten-Marker und Cloze-Wrapper als reiner Text importiert.
+
+[importer.logseq.name-time-tracking]
+original=Keep time tracking
+translation=Zeiterfassung beibehalten
+
+[importer.logseq.desc-time-tracking]
+original=Obsidian doesn't support Logseq's time tracking, so LOGBOOK and CLOCK entries are imported as plain text.
+translation=Obsidian unterstützt die Zeiterfassung von Logseq nicht, daher werden LOGBOOK- und CLOCK-Einträge als reiner Text importiert.
+
+[importer.logseq.msg-pick-graph]
+original=Please choose one Logseq graph folder.
+translation=Bitte wähle einen Logseq-Graph-Ordner aus.
+
+[importer.logseq.msg-no-notes]
+original=The selected folder has no Markdown notes under pages or journals.
+translation=Der ausgewählte Ordner enthält keine Markdown-Notizen unter Pages oder Journals.
+
+[importer.logseq.reason-empty-page]
+original=The converted page is empty
+translation=Die konvertierte Seite ist leer
+
+[importer.logseq.reason-missing-asset]
+original=Referenced by {{name}}, but missing from the graph
+translation=Referenziert von {{name}}, aber nicht im Graph vorhanden
+
+[importer.logseq.reason-whiteboards]
+original=Logseq whiteboards are not supported by Obsidian
+translation=Logseq-Whiteboards werden von Obsidian nicht unterstützt
 
 [importer.onenote.name]
 original=Microsoft OneNote
@@ -2245,14 +2325,6 @@ translation=Exportiere deine Daten im JSON-Format.
 [importer.roam-json.desc-files]
 original=Pick the JSON file from your Roam export.
 translation=Wähle die JSON-Datei aus deinem Roam-Export aus.
-
-[importer.roam-json.name-de-outline]
-original=Flatten the outline
-translation=Gliederung auflösen
-
-[importer.roam-json.desc-de-outline]
-original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=Roam schreibt jeden Block als Aufzählung. Wenn aktiviert, werden Blöcke stattdessen je nach Verwendung als Absätze, Überschriften und Listen geschrieben.
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place

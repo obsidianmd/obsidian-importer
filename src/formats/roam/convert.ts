@@ -5,6 +5,7 @@ import { BlockTarget, blockRefRegex, looksLikeBlockId } from './block-refs';
 import { serializeFrontMatter } from '../../util';
 import { convertRoamQueries } from './queries';
 import { deOutline, OutlineNode, anchorLines, withContinuation } from '../../outline';
+import { outsideMarkdownCode, outsideMarkdownCodeAsync } from '../../markdown';
 
 const INDENT = '    ';
 
@@ -54,9 +55,9 @@ export interface RoamConverterOptions {
 export const roamDefaults = {
 	deOutline: true,
 	embedBlockReferences: true,
-	dropUnresolvedReferences: true,
+	dropUnresolvedReferences: false,
 	keepAttributesInOutline: false,
-	dropQueries: true,
+	dropQueries: false,
 	tagsAsLinks: false,
 } as const;
 
@@ -78,6 +79,32 @@ export class RoamPageConverter {
 	}
 
 	async roamMarkupScrubber(graphFolder: string, attachmentsFolder: string, blockText: string): Promise<string> {
+		// Normalize fences before protecting code from semantic rewrites.
+		blockText = withFencesOnTheirOwnLines(blockText);
+		blockText = outsideMarkdownCode(blockText,
+			segment => this.scrubOutsideCode(graphFolder, segment));
+
+		if (blockText.includes('firebasestorage')) {
+			blockText = await outsideMarkdownCodeAsync(blockText, segment => segment.includes('firebasestorage')
+				? this.downloadFirebaseFile(segment, attachmentsFolder)
+				: Promise.resolve(segment));
+		}
+
+		// Whatever the download did not take: a player pointing at somewhere
+		// else, or a file it could not fetch. Markdown takes HTML, so the
+		// component becomes the element it stood for.
+		if (!blockText.includes('{{')) return blockText;
+		return outsideMarkdownCode(blockText, segment => segment.replace(mediaComponentRe,
+			(match: string, name: string, url: string) => {
+				if (name.toLowerCase() === 'audio') return `<audio controls src="${url}"></audio>`;
+
+				return mediaFileRe.test(url)
+					? `<video controls src="${url}"></video>`
+					: `<iframe src="${url}"></iframe>`;
+			}));
+	}
+
+	private scrubOutsideCode(graphFolder: string, blockText: string): string {
 		// A component names itself in brackets, which is not a page reference:
 		// left as one it was rewritten like any other link, and {{[[query]]}}
 		// became {{[[query 1]]}} where a page had taken the name first - after
@@ -133,23 +160,8 @@ export class RoamPageConverter {
 		blockText = blockText.replace(/\^\^(.+?)\^\^/g, '==$1==');
 
 		blockText = this.resolveEmbedsAndReferences(blockText);
-		blockText = withFencesOnTheirOwnLines(blockText);
-
-		if (blockText.includes('firebasestorage')) {
-			blockText = await this.downloadFirebaseFile(blockText, attachmentsFolder);
-		}
-
-		// Whatever the download did not take: a player pointing at somewhere
-		// else, or a file it could not fetch. Markdown takes HTML, so the
-		// component becomes the element it stood for.
-		return blockText.replace(mediaComponentRe, (match: string, name: string, url: string) => {
-			if (name.toLowerCase() === 'audio') return `<audio controls src="${url}"></audio>`;
-
-			return mediaFileRe.test(url)
-				? `<video controls src="${url}"></video>`
-				: `<iframe src="${url}"></iframe>`;
-		});
-	};
+		return blockText;
+	}
 
 	private resolveEmbedsAndReferences(blockText: string): string {
 		const resolve = this.options.resolveBlockReference;

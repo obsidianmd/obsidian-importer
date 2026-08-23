@@ -9,6 +9,7 @@ import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { FilesImporter } from './formats/files';
 import { HtmlImporter } from './formats/html';
 import { KeepImporter } from './formats/keep-json';
+import { LogseqImporter } from './formats/logseq';
 import { MarkdownImporter } from './formats/markdown';
 import { NotionImporter } from './formats/notion';
 import { NotionAPIImporter } from './formats/notion-api';
@@ -66,6 +67,10 @@ export const IMPORTERS: Record<string, ImporterDefinition> = {
 	'markdown': {
 		importer: MarkdownImporter,
 		helpPermalink: 'import/markdown',
+	},
+	'logseq': {
+		importer: LogseqImporter,
+		helpPermalink: 'import/logseq',
 	},
 	'onenote': {
 		importer: OneNoteImporter,

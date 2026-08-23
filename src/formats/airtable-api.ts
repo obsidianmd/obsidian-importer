@@ -97,10 +97,6 @@ interface AirtableTemplatePreviewSample extends NoteTemplateSample {
 export class AirtableAPIImporter extends FormatImporter {
 	interruption = 'pause' as const;
 
-	protected override get sourceIdSettingFirst(): boolean {
-		return true;
-	}
-
 	/** Resolved from the keychain on each read, so unlinking the secret takes effect immediately */
 	get airtableToken(): string {
 		return this.getSecret() ?? '';

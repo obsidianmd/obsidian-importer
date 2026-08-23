@@ -503,7 +503,7 @@ function write(): void {
 
 async function main(): Promise<void> {
 	const work = batches(remaining);
-	const before = Object.keys(translated).length;
+	let completed = 0;
 	let failed = 0;
 
 	for (let index = 0; index < work.length; index++) {
@@ -521,21 +521,20 @@ async function main(): Promise<void> {
 			continue;
 		}
 
+		completed += work[index].length;
 		write();
 	}
-
-	const gained = Object.keys(translated).length - before;
 
 	// Nothing at all came back — a key that is not working, an endpoint that is
 	// not answering. A batch that gave up having kept most of its strings is a
 	// different thing, and its work is worth writing.
-	if (work.length > 0 && gained === 0) {
+	if (work.length > 0 && completed === 0) {
 		throw new Error(`${locale}: nothing was translated`);
 	}
 
 	write();
 
-	const short = remaining.length - gained;
+	const short = remaining.length - completed;
 	if (failed > 0) {
 		throw new Error(`${locale}: wrote partial progress with ${short} strings still untranslated`);
 	}

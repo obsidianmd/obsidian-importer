@@ -122,6 +122,14 @@ translation=Microsoft OneNote
 original=Notion
 translation=Notion
 
+[outliner.name-flatten-outlines]
+original=Flatten outlines
+translation=Vázlatok laposítása
+
+[outliner.desc-flatten-outlines]
+original=Convert outlines into paragraphs, headings, and lists.
+translation=Vázlatok átalakítása bekezdésekké, címsorokká és listákká.
+
 [modal.title-pick-format]
 original=Import data into Obsidian
 translation=Adatok importálása az Obsidian alkalmazásba
@@ -551,8 +559,8 @@ original=Export your data
 translation=Adatok exportálása
 
 [common.label-learn-more]
-original=Learn more.
-translation=További információk.
+original=Learn more
+translation=További információk
 
 [common.button-instructions]
 original=Instructions
@@ -1144,7 +1152,7 @@ translation=Journal bejegyzések
 
 [importer.apple-journal.desc-files]
 original=Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.
-translation=Exportáld a bejegyzéseidet a Journal alkalmazásból, majd válaszd ki az iCloud Drive mappába írt HTML fájlokat.
+translation=Exportáld a bejegyzéseidet a Journal app alkalmazásból, majd válaszd ki az iCloud Drive mappába írt HTML fájlokat.
 
 [importer.apple-journal.heading-metadata]
 original=Journal metadata
@@ -1441,6 +1449,78 @@ translation=Soron belüli címkék átalakítása tulajdonságokká
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
 translation=A jegyzet szövegtörzsében lévő címkék áthelyezése a címkék tulajdonságba.
+
+[importer.logseq.name]
+original=Logseq
+translation=Logseq
+
+[importer.logseq.option-text]
+original=Logseq (.md)
+translation=Logseq (.md)
+
+[importer.logseq.label-id]
+original=Logseq source
+translation=Logseq Forrás
+
+[importer.logseq.desc-instructions]
+original=Read the instructions for importing from Logseq.
+translation=Olvassa el a Logseq-ből történő importálás utasításait.
+
+[importer.logseq.desc-files]
+original=Choose one graph folder containing pages, journals, and assets.
+translation=Válassz ki egy gráfmappát, amely oldalakat, naplókat és eszközöket tartalmaz.
+
+[importer.logseq.name-use-daily-notes]
+original=Use daily notes settings
+translation=Napi jegyzetek beállítások használata
+
+[importer.logseq.desc-use-daily-notes]
+original=Write journals to the configured daily notes folder and filename format.
+translation=A naplók a beállított Napi jegyzetek mappába és fájlnév-formátumba kerülnek.
+
+[importer.logseq.name-queries]
+original=Keep queries
+translation=Lekérdezések megtartása
+
+[importer.logseq.desc-queries]
+original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
+translation=Az Obsidian nem támogatja a Logseq lekérdezési formátumát, ezért a lekérdezések Kód blokkokként kerülnek importálásra.
+
+[importer.logseq.name-flashcards]
+original=Keep flashcards
+translation=Tanulókártyák megtartása
+
+[importer.logseq.desc-flashcards]
+original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
+translation=Az Obsidian nem támogatja a Logseq tanulókártyáit, ezért a kártya Jelölők és a cloze burkolók egyszerű szövegként kerülnek importálásra.
+
+[importer.logseq.name-time-tracking]
+original=Keep time tracking
+translation=Időkövetés megtartása
+
+[importer.logseq.desc-time-tracking]
+original=Obsidian doesn't support Logseq's time tracking, so LOGBOOK and CLOCK entries are imported as plain text.
+translation=Az Obsidian nem támogatja a Logseq időkövetését, ezért a LOGBOOK és CLOCK bejegyzések egyszerű szövegként kerülnek importálásra.
+
+[importer.logseq.msg-pick-graph]
+original=Please choose one Logseq graph folder.
+translation=Kérlek, válassz ki egy Logseq gráfmappát.
+
+[importer.logseq.msg-no-notes]
+original=The selected folder has no Markdown notes under pages or journals.
+translation=A kiválasztott mappa nem tartalmaz Markdown jegyzeteket a pages vagy journals mappákban.
+
+[importer.logseq.reason-empty-page]
+original=The converted page is empty
+translation=Az átalakított oldal üres
+
+[importer.logseq.reason-missing-asset]
+original=Referenced by {{name}}, but missing from the graph
+translation=A(z) {{name}} hivatkozik rá, de hiányzik a gráfból
+
+[importer.logseq.reason-whiteboards]
+original=Logseq whiteboards are not supported by Obsidian
+translation=A Logseq rajztábláit az Obsidian nem támogatja
 
 [importer.onenote.name]
 original=Microsoft OneNote
@@ -2245,14 +2325,6 @@ translation=Exportáld az adataidat JSON formátumban.
 [importer.roam-json.desc-files]
 original=Pick the JSON file from your Roam export.
 translation=Válaszd ki a JSON fájlt a Roam exportodból.
-
-[importer.roam-json.name-de-outline]
-original=Flatten the outline
-translation=Vázlat kilapítása
-
-[importer.roam-json.desc-de-outline]
-original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=A Roam minden blokkot felsorolásjelként ír. Ha engedélyezve van, a blokkok bekezdésekként, címsorokként és listákként jelennek meg a használatuk módja szerint.
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place

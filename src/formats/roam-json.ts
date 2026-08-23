@@ -14,10 +14,6 @@ const imageRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)\)/;
 const binaryRegex = /https:\/\/firebasestorage(.*?)\?alt(.*?)/;
 
 
-interface InternalPlugins {
-	getPluginById(id: string): { instance?: { options?: { format?: string } } } | null;
-}
-
 export class RoamJSONImporter extends FormatImporter {
 	static extensions = ['json'];
 
@@ -52,12 +48,15 @@ export class RoamJSONImporter extends FormatImporter {
 		this.idLabel = i18n.importer.roamJson.labelId();
 		this.userDNPFormat = this.getUserDNPFormat();
 
-		this.addSetting()
-			?.setName(i18n.importer.roamJson.nameDeOutline())
-			.setDesc(i18n.importer.roamJson.descDeOutline())
+		this.addSetting('template')
+			?.setName(i18n.outliner.nameFlattenOutlines())
+			.setDesc(i18n.outliner.descFlattenOutlines())
 			.addToggle(toggle => toggle
 				.setValue(this.deOutline)
-				.onChange(value => this.deOutline = value));
+				.onChange(value => {
+					this.deOutline = value;
+					this.templateSettingsChanged();
+				}));
 
 		this.startGroup();
 
@@ -219,15 +218,13 @@ export class RoamJSONImporter extends FormatImporter {
 	}
 
 	private getUserDNPFormat(): string {
-		// Obsidian does not type its internal plugin registry.
-		const app = this.app as { internalPlugins?: InternalPlugins };
-		const dailyNotePluginInstance = app.internalPlugins?.getPluginById('daily-notes')?.instance;
-		if (!dailyNotePluginInstance) {
+		const options = this.dailyNotesOptions();
+		if (!options) {
 			console.warn('Daily note plugin is not enabled. Roam import defaulting to "YYYY-MM-DD" format.');
 			return 'YYYY-MM-DD';
 		}
 
-		return dailyNotePluginInstance.options?.format || 'YYYY-MM-DD';
+		return options.format || 'YYYY-MM-DD';
 	}
 
 	private newGraphConverter(graphFolder: string, progress: ImportContext): RoamGraphConverter {

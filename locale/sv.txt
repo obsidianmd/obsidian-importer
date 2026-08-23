@@ -122,6 +122,14 @@ translation=Microsoft OneNote
 original=Notion
 translation=Notion
 
+[outliner.name-flatten-outlines]
+original=Flatten outlines
+translation=Platta ut dispositioner
+
+[outliner.desc-flatten-outlines]
+original=Convert outlines into paragraphs, headings, and lists.
+translation=Konvertera dispositioner till stycken, rubriker och listor.
+
 [modal.title-pick-format]
 original=Import data into Obsidian
 translation=Importera data till Obsidian
@@ -551,8 +559,8 @@ original=Export your data
 translation=Exportera dina data
 
 [common.label-learn-more]
-original=Learn more.
-translation=Läs mer.
+original=Learn more
+translation=Läs mer
 
 [common.button-instructions]
 original=Instructions
@@ -1144,7 +1152,7 @@ translation=Journalposter
 
 [importer.apple-journal.desc-files]
 original=Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.
-translation=Exportera dina poster från Journal-appen och välj sedan HTML-filerna den skrev till iCloud Drive.
+translation=Exportera dina poster från Journal app och välj sedan HTML-filerna som skrevs till iCloud Drive.
 
 [importer.apple-journal.heading-metadata]
 original=Journal metadata
@@ -1441,6 +1449,78 @@ translation=Konvertera inline-taggar till egenskaper
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
 translation=Flytta taggar skrivna i brödtexten i en anteckning till dess tagg-egenskap.
+
+[importer.logseq.name]
+original=Logseq
+translation=Logseq
+
+[importer.logseq.option-text]
+original=Logseq (.md)
+translation=Logseq (.md)
+
+[importer.logseq.label-id]
+original=Logseq source
+translation=Logseq-källa
+
+[importer.logseq.desc-instructions]
+original=Read the instructions for importing from Logseq.
+translation=Läs instruktionerna för att importera från Logseq.
+
+[importer.logseq.desc-files]
+original=Choose one graph folder containing pages, journals, and assets.
+translation=Välj en grafmapp som innehåller sidor, journaler och tillgångar.
+
+[importer.logseq.name-use-daily-notes]
+original=Use daily notes settings
+translation=Använd inställningar för dagliga anteckningar
+
+[importer.logseq.desc-use-daily-notes]
+original=Write journals to the configured daily notes folder and filename format.
+translation=Skriv journaler till den konfigurerade mappen och filnamnsformatet för dagliga anteckningar.
+
+[importer.logseq.name-queries]
+original=Keep queries
+translation=Behåll frågor
+
+[importer.logseq.desc-queries]
+original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
+translation=Obsidian stöder inte Logseqs frågeformat, så frågor importeras som kodblock.
+
+[importer.logseq.name-flashcards]
+original=Keep flashcards
+translation=Behåll flashcards
+
+[importer.logseq.desc-flashcards]
+original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
+translation=Obsidian stöder inte Logseqs flashcards, så kortmarkörer och cloze-omslutningar importeras som oformaterad text.
+
+[importer.logseq.name-time-tracking]
+original=Keep time tracking
+translation=Behåll tidsspårning
+
+[importer.logseq.desc-time-tracking]
+original=Obsidian doesn't support Logseq's time tracking, so LOGBOOK and CLOCK entries are imported as plain text.
+translation=Obsidian stöder inte Logseqs tidsspårning, så LOGBOOK- och CLOCK-poster importeras som oformaterad text.
+
+[importer.logseq.msg-pick-graph]
+original=Please choose one Logseq graph folder.
+translation=Välj en Logseq-grafmapp.
+
+[importer.logseq.msg-no-notes]
+original=The selected folder has no Markdown notes under pages or journals.
+translation=Den valda mappen har inga Markdown-anteckningar under pages eller journals.
+
+[importer.logseq.reason-empty-page]
+original=The converted page is empty
+translation=Den konverterade sidan är tom
+
+[importer.logseq.reason-missing-asset]
+original=Referenced by {{name}}, but missing from the graph
+translation=Refererad av {{name}}, men saknas i grafen
+
+[importer.logseq.reason-whiteboards]
+original=Logseq whiteboards are not supported by Obsidian
+translation=Logseq-whiteboards stöds inte av Obsidian
 
 [importer.onenote.name]
 original=Microsoft OneNote
@@ -2245,14 +2325,6 @@ translation=Exportera dina data i JSON-format.
 [importer.roam-json.desc-files]
 original=Pick the JSON file from your Roam export.
 translation=Välj JSON-filen från din Roam-export.
-
-[importer.roam-json.name-de-outline]
-original=Flatten the outline
-translation=Platta ut dispositionen
-
-[importer.roam-json.desc-de-outline]
-original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=Roam skriver varje block som en Punkt. Om aktiverad skrivs block istället som stycken, rubriker och listor, beroende på hur de användes.
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place

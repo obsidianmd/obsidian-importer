@@ -122,6 +122,14 @@ translation=Microsoft OneNote
 original=Notion
 translation=Notion
 
+[outliner.name-flatten-outlines]
+original=Flatten outlines
+translation=Ισοπέδωση διαρθρώσεων
+
+[outliner.desc-flatten-outlines]
+original=Convert outlines into paragraphs, headings, and lists.
+translation=Μετατροπή διαρθρώσεων σε παραγράφους, επικεφαλίδες και λίστες.
+
 [modal.title-pick-format]
 original=Import data into Obsidian
 translation=Εισαγωγή δεδομένων στο Obsidian
@@ -551,8 +559,8 @@ original=Export your data
 translation=Εξαγωγή δεδομένων
 
 [common.label-learn-more]
-original=Learn more.
-translation=Μάθετε περισσότερα.
+original=Learn more
+translation=Μάθετε περισσότερα
 
 [common.button-instructions]
 original=Instructions
@@ -1144,7 +1152,7 @@ translation=Καταχωρίσεις Journal
 
 [importer.apple-journal.desc-files]
 original=Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.
-translation=Εξαγάγετε τις καταχωρίσεις σας από την εφαρμογή Journal και μετά επιλέξτε τα αρχεία HTML που αποθηκεύτηκαν στο iCloud Drive.
+translation=Εξαγάγετε τις καταχωρίσεις σας από την εφαρμογή Journal app και μετά επιλέξτε τα αρχεία HTML που αποθηκεύτηκαν στο iCloud Drive.
 
 [importer.apple-journal.heading-metadata]
 original=Journal metadata
@@ -1441,6 +1449,78 @@ translation=Μετατροπή ενσωματωμένων ετικετών σε 
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
 translation=Μετακίνηση ετικετών που βρίσκονται στο κυρίως κείμενο μιας σημείωσης στην ιδιότητα ετικετών της.
+
+[importer.logseq.name]
+original=Logseq
+translation=Logseq
+
+[importer.logseq.option-text]
+original=Logseq (.md)
+translation=Logseq (.md)
+
+[importer.logseq.label-id]
+original=Logseq source
+translation=Πηγή Logseq
+
+[importer.logseq.desc-instructions]
+original=Read the instructions for importing from Logseq.
+translation=Διαβάστε τις οδηγίες για εισαγωγή από το Logseq.
+
+[importer.logseq.desc-files]
+original=Choose one graph folder containing pages, journals, and assets.
+translation=Επιλέξτε έναν φάκελο γραφήματος που περιέχει σελίδες, ημερολόγια και πόρους.
+
+[importer.logseq.name-use-daily-notes]
+original=Use daily notes settings
+translation=Χρήση ρυθμίσεων ημερήσιων σημειώσεων
+
+[importer.logseq.desc-use-daily-notes]
+original=Write journals to the configured daily notes folder and filename format.
+translation=Εγγραφή ημερολογίων στον διαμορφωμένο φάκελο ημερήσιων σημειώσεων και μορφή ονόματος αρχείου.
+
+[importer.logseq.name-queries]
+original=Keep queries
+translation=Διατήρηση ερωτημάτων
+
+[importer.logseq.desc-queries]
+original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
+translation=Το Obsidian δεν υποστηρίζει τη μορφή ερωτημάτων του Logseq, επομένως τα ερωτήματα εισάγονται ως μπλοκ κώδικα.
+
+[importer.logseq.name-flashcards]
+original=Keep flashcards
+translation=Διατήρηση καρτών μνήμης
+
+[importer.logseq.desc-flashcards]
+original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
+translation=Το Obsidian δεν υποστηρίζει τις κάρτες μνήμης του Logseq, επομένως οι δείκτες καρτών και τα περιτυλίγματα cloze εισάγονται ως απλό κείμενο.
+
+[importer.logseq.name-time-tracking]
+original=Keep time tracking
+translation=Διατήρηση παρακολούθησης χρόνου
+
+[importer.logseq.desc-time-tracking]
+original=Obsidian doesn't support Logseq's time tracking, so LOGBOOK and CLOCK entries are imported as plain text.
+translation=Το Obsidian δεν υποστηρίζει την παρακολούθηση χρόνου του Logseq, επομένως οι καταχωρίσεις LOGBOOK και CLOCK εισάγονται ως απλό κείμενο.
+
+[importer.logseq.msg-pick-graph]
+original=Please choose one Logseq graph folder.
+translation=Παρακαλώ επιλέξτε έναν φάκελο γραφήματος Logseq.
+
+[importer.logseq.msg-no-notes]
+original=The selected folder has no Markdown notes under pages or journals.
+translation=Ο επιλεγμένος φάκελος δεν περιέχει σημειώσεις Markdown στους υποφακέλους pages ή journals.
+
+[importer.logseq.reason-empty-page]
+original=The converted page is empty
+translation=Η μετατρεπόμενη σελίδα είναι κενή
+
+[importer.logseq.reason-missing-asset]
+original=Referenced by {{name}}, but missing from the graph
+translation=Αναφέρεται από το {{name}}, αλλά λείπει από το γράφημα
+
+[importer.logseq.reason-whiteboards]
+original=Logseq whiteboards are not supported by Obsidian
+translation=Οι πίνακες λευκής επιφάνειας του Logseq δεν υποστηρίζονται από το Obsidian
 
 [importer.onenote.name]
 original=Microsoft OneNote
@@ -2245,14 +2325,6 @@ translation=Εξάγετε τα δεδομένα σας σε μορφή JSON.
 [importer.roam-json.desc-files]
 original=Pick the JSON file from your Roam export.
 translation=Επιλέξτε το αρχείο JSON από την εξαγωγή Roam.
-
-[importer.roam-json.name-de-outline]
-original=Flatten the outline
-translation=Ισοπέδωση της διάρθρωσης
-
-[importer.roam-json.desc-de-outline]
-original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=Το Roam γράφει κάθε μπλοκ ως κουκκίδα. Αν είναι ενεργοποιημένο, τα μπλοκ γράφονται ως παράγραφοι, επικεφαλίδες και λίστες αντί αυτού, ανάλογα με τον τρόπο χρήσης τους.
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place

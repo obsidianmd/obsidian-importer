@@ -122,6 +122,14 @@ translation=Microsoft OneNote
 original=Notion
 translation=Notion
 
+[outliner.name-flatten-outlines]
+original=Flatten outlines
+translation=展平大纲
+
+[outliner.desc-flatten-outlines]
+original=Convert outlines into paragraphs, headings, and lists.
+translation=将大纲转换为段落、标题和列表。
+
 [modal.title-pick-format]
 original=Import data into Obsidian
 translation=将数据导入 Obsidian
@@ -551,8 +559,8 @@ original=Export your data
 translation=导出你的数据
 
 [common.label-learn-more]
-original=Learn more.
-translation=了解更多。
+original=Learn more
+translation=了解更多
 
 [common.button-instructions]
 original=Instructions
@@ -1144,7 +1152,7 @@ translation=Journal 条目
 
 [importer.apple-journal.desc-files]
 original=Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.
-translation=从 Journal 应用导出你的条目，然后选择其写入 iCloud Drive 的 HTML 文件。
+translation=从 Journal app 导出条目，然后选择它写入 iCloud Drive 的 HTML 文件列表。
 
 [importer.apple-journal.heading-metadata]
 original=Journal metadata
@@ -1441,6 +1449,78 @@ translation=将行内标签转换为属性
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
 translation=将笔记正文中的标签移动到其标签属性中。
+
+[importer.logseq.name]
+original=Logseq
+translation=Logseq
+
+[importer.logseq.option-text]
+original=Logseq (.md)
+translation=Logseq (.md)
+
+[importer.logseq.label-id]
+original=Logseq source
+translation=Logseq 源码
+
+[importer.logseq.desc-instructions]
+original=Read the instructions for importing from Logseq.
+translation=阅读从 Logseq 导入的说明。
+
+[importer.logseq.desc-files]
+original=Choose one graph folder containing pages, journals, and assets.
+translation=选择一个包含页面、日志和附件的图谱文件夹。
+
+[importer.logseq.name-use-daily-notes]
+original=Use daily notes settings
+translation=使用日记设置
+
+[importer.logseq.desc-use-daily-notes]
+original=Write journals to the configured daily notes folder and filename format.
+translation=将日志写入已配置的日记文件夹并使用其文件名文本格式。
+
+[importer.logseq.name-queries]
+original=Keep queries
+translation=保留查询
+
+[importer.logseq.desc-queries]
+original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
+translation=Obsidian 不支持 Logseq 的查询文本格式，因此查询将作为代码块导入。
+
+[importer.logseq.name-flashcards]
+original=Keep flashcards
+translation=保留闪卡
+
+[importer.logseq.desc-flashcards]
+original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
+translation=Obsidian 不支持 Logseq 的闪卡，因此卡片项目符号和完形填空包裹将作为纯文本导入。
+
+[importer.logseq.name-time-tracking]
+original=Keep time tracking
+translation=保留时间追踪
+
+[importer.logseq.desc-time-tracking]
+original=Obsidian doesn't support Logseq's time tracking, so LOGBOOK and CLOCK entries are imported as plain text.
+translation=Obsidian 不支持 Logseq 的时间追踪，因此 LOGBOOK 和 CLOCK 条目将作为纯文本导入。
+
+[importer.logseq.msg-pick-graph]
+original=Please choose one Logseq graph folder.
+translation=请选择一个 Logseq 图谱文件夹。
+
+[importer.logseq.msg-no-notes]
+original=The selected folder has no Markdown notes under pages or journals.
+translation=已选择的文件夹在 pages 或 journals 下没有 Markdown 笔记。
+
+[importer.logseq.reason-empty-page]
+original=The converted page is empty
+translation=转换后的页面为空
+
+[importer.logseq.reason-missing-asset]
+original=Referenced by {{name}}, but missing from the graph
+translation=被 {{name}} 引用，但在图谱中缺失
+
+[importer.logseq.reason-whiteboards]
+original=Logseq whiteboards are not supported by Obsidian
+translation=Obsidian 不支持 Logseq 白板
 
 [importer.onenote.name]
 original=Microsoft OneNote
@@ -2245,14 +2325,6 @@ translation=将你的数据导出为 JSON 格式。
 [importer.roam-json.desc-files]
 original=Pick the JSON file from your Roam export.
 translation=选择从 Roam 导出的 JSON 文件。
-
-[importer.roam-json.name-de-outline]
-original=Flatten the outline
-translation=展开大纲
-
-[importer.roam-json.desc-de-outline]
-original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=Roam 将每个块都写成无序列表。如果已启用，块将根据其用途被转换为段落、标题和列表。
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place

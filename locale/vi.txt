@@ -122,6 +122,14 @@ translation=Microsoft OneNote
 original=Notion
 translation=Notion
 
+[outliner.name-flatten-outlines]
+original=Flatten outlines
+translation=Làm phẳng dàn ý
+
+[outliner.desc-flatten-outlines]
+original=Convert outlines into paragraphs, headings, and lists.
+translation=Chuyển đổi dàn ý thành đoạn văn, tiêu đề và danh sách.
+
 [modal.title-pick-format]
 original=Import data into Obsidian
 translation=Nhập dữ liệu vào Obsidian
@@ -551,8 +559,8 @@ original=Export your data
 translation=Xuất dữ liệu của bạn
 
 [common.label-learn-more]
-original=Learn more.
-translation=Tìm hiểu thêm.
+original=Learn more
+translation=Tìm hiểu thêm
 
 [common.button-instructions]
 original=Instructions
@@ -1144,7 +1152,7 @@ translation=Mục nhật ký
 
 [importer.apple-journal.desc-files]
 original=Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.
-translation=Xuất các mục từ ứng dụng Journal, sau đó chọn các tệp HTML đã được ghi vào iCloud Drive.
+translation=Xuất các mục từ ứng dụng Journal app, sau đó chọn các tệp HTML đã được ghi vào iCloud Drive.
 
 [importer.apple-journal.heading-metadata]
 original=Journal metadata
@@ -1441,6 +1449,78 @@ translation=Chuyển thẻ nội tuyến thành thuộc tính
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
 translation=Di chuyển các thẻ viết trong nội dung của ghi chú vào thuộc tính thẻ của nó.
+
+[importer.logseq.name]
+original=Logseq
+translation=Logseq
+
+[importer.logseq.option-text]
+original=Logseq (.md)
+translation=Logseq (.md)
+
+[importer.logseq.label-id]
+original=Logseq source
+translation=Nguồn Logseq
+
+[importer.logseq.desc-instructions]
+original=Read the instructions for importing from Logseq.
+translation=Đọc hướng dẫn nhập dữ liệu từ Logseq.
+
+[importer.logseq.desc-files]
+original=Choose one graph folder containing pages, journals, and assets.
+translation=Chọn một thư mục đồ thị chứa các trang, nhật ký và tài nguyên.
+
+[importer.logseq.name-use-daily-notes]
+original=Use daily notes settings
+translation=Sử dụng cài đặt ghi chú hàng ngày
+
+[importer.logseq.desc-use-daily-notes]
+original=Write journals to the configured daily notes folder and filename format.
+translation=Ghi nhật ký vào thư mục ghi chú hàng ngày và định dạng tên tệp đã cấu hình.
+
+[importer.logseq.name-queries]
+original=Keep queries
+translation=Giữ truy vấn
+
+[importer.logseq.desc-queries]
+original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
+translation=Obsidian không hỗ trợ định dạng truy vấn của Logseq, nên các truy vấn được nhập dưới dạng khối mã.
+
+[importer.logseq.name-flashcards]
+original=Keep flashcards
+translation=Giữ thẻ ghi nhớ
+
+[importer.logseq.desc-flashcards]
+original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
+translation=Obsidian không hỗ trợ thẻ ghi nhớ của Logseq, nên các dấu đánh dấu thẻ và trình bao cloze được nhập dưới dạng văn bản thuần.
+
+[importer.logseq.name-time-tracking]
+original=Keep time tracking
+translation=Giữ theo dõi thời gian
+
+[importer.logseq.desc-time-tracking]
+original=Obsidian doesn't support Logseq's time tracking, so LOGBOOK and CLOCK entries are imported as plain text.
+translation=Obsidian không hỗ trợ theo dõi thời gian của Logseq, nên các mục LOGBOOK và CLOCK được nhập dưới dạng văn bản thuần.
+
+[importer.logseq.msg-pick-graph]
+original=Please choose one Logseq graph folder.
+translation=Vui lòng chọn một thư mục đồ thị Logseq.
+
+[importer.logseq.msg-no-notes]
+original=The selected folder has no Markdown notes under pages or journals.
+translation=Thư mục đã chọn không có ghi chú Markdown nào trong pages hoặc journals.
+
+[importer.logseq.reason-empty-page]
+original=The converted page is empty
+translation=Trang đã chuyển đổi trống
+
+[importer.logseq.reason-missing-asset]
+original=Referenced by {{name}}, but missing from the graph
+translation=Được tham chiếu bởi {{name}}, nhưng không tìm thấy trong đồ thị
+
+[importer.logseq.reason-whiteboards]
+original=Logseq whiteboards are not supported by Obsidian
+translation=Bảng trắng Logseq không được Obsidian hỗ trợ
 
 [importer.onenote.name]
 original=Microsoft OneNote
@@ -2245,14 +2325,6 @@ translation=Xuất dữ liệu của bạn ở định dạng JSON.
 [importer.roam-json.desc-files]
 original=Pick the JSON file from your Roam export.
 translation=Chọn tệp JSON từ bản xuất Roam của bạn.
-
-[importer.roam-json.name-de-outline]
-original=Flatten the outline
-translation=Làm phẳng dàn ý
-
-[importer.roam-json.desc-de-outline]
-original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=Roam viết mọi khối dưới dạng Dấu đầu dòng. Nếu đã bật, các khối sẽ được viết dưới dạng đoạn văn, tiêu đề và danh sách, tùy thuộc vào cách mỗi khối được sử dụng.
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place

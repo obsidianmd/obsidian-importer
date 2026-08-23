@@ -122,6 +122,14 @@ translation=Microsoft OneNote
 original=Notion
 translation=Notion
 
+[outliner.name-flatten-outlines]
+original=Flatten outlines
+translation=تسطيح المخططات
+
+[outliner.desc-flatten-outlines]
+original=Convert outlines into paragraphs, headings, and lists.
+translation=تحويل المخططات إلى فقرات وعناوين وقوائم.
+
 [modal.title-pick-format]
 original=Import data into Obsidian
 translation=استيراد البيانات إلى Obsidian
@@ -551,8 +559,8 @@ original=Export your data
 translation=تصدير بياناتك
 
 [common.label-learn-more]
-original=Learn more.
-translation=تعلم المزيد.
+original=Learn more
+translation=تعلم المزيد
 
 [common.button-instructions]
 original=Instructions
@@ -1144,7 +1152,7 @@ translation=إدخالات Journal
 
 [importer.apple-journal.desc-files]
 original=Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.
-translation=صدّر إدخالاتك من تطبيق Journal، ثم اختر ملفات HTML التي كتبها إلى iCloud Drive.
+translation=صدّر إدخالاتك من Journal app، ثم اختر ملفات HTML التي كتبها إلى iCloud Drive.
 
 [importer.apple-journal.heading-metadata]
 original=Journal metadata
@@ -1441,6 +1449,78 @@ translation=تحويل الوسوم المضمّنة إلى خصائص
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
 translation=نقل الوسوم المكتوبة في الجسم الخاص بالملاحظة إلى خاصية الوسوم.
+
+[importer.logseq.name]
+original=Logseq
+translation=Logseq
+
+[importer.logseq.option-text]
+original=Logseq (.md)
+translation=Logseq (.md)
+
+[importer.logseq.label-id]
+original=Logseq source
+translation=مصدري Logseq
+
+[importer.logseq.desc-instructions]
+original=Read the instructions for importing from Logseq.
+translation=اقرأ تعليمات الاستيراد من Logseq.
+
+[importer.logseq.desc-files]
+original=Choose one graph folder containing pages, journals, and assets.
+translation=اختر مجلد رسم بياني واحد يحتوي على الصفحات واليوميات والأصول.
+
+[importer.logseq.name-use-daily-notes]
+original=Use daily notes settings
+translation=استخدام إعدادات الملاحظات اليومية
+
+[importer.logseq.desc-use-daily-notes]
+original=Write journals to the configured daily notes folder and filename format.
+translation=كتابة اليوميات إلى مجلد الملاحظات اليومية المُعدّ و تنسيق اسم الملف.
+
+[importer.logseq.name-queries]
+original=Keep queries
+translation=الاحتفاظ بالاستعلامات
+
+[importer.logseq.desc-queries]
+original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
+translation=لا يدعم Obsidian تنسيق استعلام Logseq، لذا تُستورد الاستعلامات ككتل شيفرة برمجية.
+
+[importer.logseq.name-flashcards]
+original=Keep flashcards
+translation=الاحتفاظ بالبطاقات التعليمية
+
+[importer.logseq.desc-flashcards]
+original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
+translation=لا يدعم Obsidian البطاقات التعليمية في Logseq، لذا تُستورد علامات البطاقات وأغلفة الإخفاء كنص عادي.
+
+[importer.logseq.name-time-tracking]
+original=Keep time tracking
+translation=الاحتفاظ بتتبع الوقت
+
+[importer.logseq.desc-time-tracking]
+original=Obsidian doesn't support Logseq's time tracking, so LOGBOOK and CLOCK entries are imported as plain text.
+translation=لا يدعم Obsidian تتبع الوقت في Logseq، لذا تُستورد إدخالات LOGBOOK و CLOCK كنص عادي.
+
+[importer.logseq.msg-pick-graph]
+original=Please choose one Logseq graph folder.
+translation=يرجى اختيار مجلد رسم بياني واحد لـ Logseq.
+
+[importer.logseq.msg-no-notes]
+original=The selected folder has no Markdown notes under pages or journals.
+translation=المجلد محدد لا يحتوي على ملاحظات Markdown ضمن الصفحات أو اليوميات.
+
+[importer.logseq.reason-empty-page]
+original=The converted page is empty
+translation=الصفحة المحوّلة فارغ
+
+[importer.logseq.reason-missing-asset]
+original=Referenced by {{name}}, but missing from the graph
+translation=مُشار إليه بواسطة {{name}}، لكنه مفقود من الرسم البياني
+
+[importer.logseq.reason-whiteboards]
+original=Logseq whiteboards are not supported by Obsidian
+translation=ألواح Logseq البيضاء غير مدعومة من Obsidian
 
 [importer.onenote.name]
 original=Microsoft OneNote
@@ -2245,14 +2325,6 @@ translation=صدّر بياناتك بتنسيق JSON.
 [importer.roam-json.desc-files]
 original=Pick the JSON file from your Roam export.
 translation=اختر ملف JSON من تصدير Roam.
-
-[importer.roam-json.name-de-outline]
-original=Flatten the outline
-translation=تسطيح المخطط التفصيلي
-
-[importer.roam-json.desc-de-outline]
-original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=يكتب Roam كل كتلة على شكل تعداد نقطي. إذا كان مُمكّنًا، تُكتب الكتل كفقرات وعناوين وقوائم بدلاً من ذلك، حسب طريقة استخدام كل منها.
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place

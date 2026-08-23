@@ -8,7 +8,7 @@ An aliased reference: [[Sapiens#^blk-cognitive|the turning point]]
 
 A long ((and considered)) aside, which is nobody's block id
 
-A reference to a block that is not in this graph: 
+A reference to a block that is not in this graph: ((nosuchblk))
 
 A reference to a block of several lines: ![[Source#^blk-fenced]]
 

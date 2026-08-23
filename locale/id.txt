@@ -122,6 +122,14 @@ translation=Microsoft OneNote
 original=Notion
 translation=Notion
 
+[outliner.name-flatten-outlines]
+original=Flatten outlines
+translation=Ratakan kerangka
+
+[outliner.desc-flatten-outlines]
+original=Convert outlines into paragraphs, headings, and lists.
+translation=Ubah kerangka menjadi paragraf, judul, dan daftar.
+
 [modal.title-pick-format]
 original=Import data into Obsidian
 translation=Impor data ke Obsidian
@@ -551,8 +559,8 @@ original=Export your data
 translation=Ekspor data Anda
 
 [common.label-learn-more]
-original=Learn more.
-translation=Pelajari lebih lanjut.
+original=Learn more
+translation=Pelajari lebih lanjut
 
 [common.button-instructions]
 original=Instructions
@@ -1144,7 +1152,7 @@ translation=Entri jurnal
 
 [importer.apple-journal.desc-files]
 original=Export your entries from the Journal app, then pick the HTML files it wrote to iCloud Drive.
-translation=Ekspor entri Anda dari aplikasi Journal, lalu pilih file HTML yang ditulis ke iCloud Drive.
+translation=Ekspor entri Anda dari Journal app, lalu pilih berkas HTML yang ditulis ke iCloud Drive.
 
 [importer.apple-journal.heading-metadata]
 original=Journal metadata
@@ -1441,6 +1449,78 @@ translation=Ubah tag inline menjadi properti
 [importer.markdown.desc-tags-as-properties]
 original=Move tags written in the body of a note into its tags property.
 translation=Pindahkan tag yang ditulis di isi catatan ke dalam properti tag-nya.
+
+[importer.logseq.name]
+original=Logseq
+translation=Logseq
+
+[importer.logseq.option-text]
+original=Logseq (.md)
+translation=Logseq (.md)
+
+[importer.logseq.label-id]
+original=Logseq source
+translation=Sumber Logseq
+
+[importer.logseq.desc-instructions]
+original=Read the instructions for importing from Logseq.
+translation=Baca instruksi untuk mengimpor dari Logseq.
+
+[importer.logseq.desc-files]
+original=Choose one graph folder containing pages, journals, and assets.
+translation=Pilih satu folder graf yang berisi halaman, jurnal, dan aset.
+
+[importer.logseq.name-use-daily-notes]
+original=Use daily notes settings
+translation=Gunakan pengaturan Catatan harian
+
+[importer.logseq.desc-use-daily-notes]
+original=Write journals to the configured daily notes folder and filename format.
+translation=Tulis jurnal ke folder Catatan harian dan format nama berkas yang sudah dikonfigurasi.
+
+[importer.logseq.name-queries]
+original=Keep queries
+translation=Pertahankan kueri
+
+[importer.logseq.desc-queries]
+original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
+translation=Obsidian tidak mendukung format kueri Logseq, sehingga kueri diimpor sebagai blok Kode.
+
+[importer.logseq.name-flashcards]
+original=Keep flashcards
+translation=Pertahankan kartu flash
+
+[importer.logseq.desc-flashcards]
+original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
+translation=Obsidian tidak mendukung kartu flash Logseq, sehingga Penanda kartu dan pembungkus cloze diimpor sebagai teks biasa.
+
+[importer.logseq.name-time-tracking]
+original=Keep time tracking
+translation=Pertahankan pelacakan waktu
+
+[importer.logseq.desc-time-tracking]
+original=Obsidian doesn't support Logseq's time tracking, so LOGBOOK and CLOCK entries are imported as plain text.
+translation=Obsidian tidak mendukung pelacakan waktu Logseq, sehingga entri LOGBOOK dan CLOCK diimpor sebagai teks biasa.
+
+[importer.logseq.msg-pick-graph]
+original=Please choose one Logseq graph folder.
+translation=Silakan pilih satu folder graf Logseq.
+
+[importer.logseq.msg-no-notes]
+original=The selected folder has no Markdown notes under pages or journals.
+translation=Folder yang dipilih tidak memiliki catatan Markdown di bawah halaman atau jurnal.
+
+[importer.logseq.reason-empty-page]
+original=The converted page is empty
+translation=Halaman yang dikonversi kosong
+
+[importer.logseq.reason-missing-asset]
+original=Referenced by {{name}}, but missing from the graph
+translation=Direferensikan oleh {{name}}, tetapi tidak ditemukan dalam graf
+
+[importer.logseq.reason-whiteboards]
+original=Logseq whiteboards are not supported by Obsidian
+translation=Papan tulis Logseq tidak didukung oleh Obsidian
 
 [importer.onenote.name]
 original=Microsoft OneNote
@@ -2245,14 +2325,6 @@ translation=Ekspor data Anda dalam format JSON.
 [importer.roam-json.desc-files]
 original=Pick the JSON file from your Roam export.
 translation=Pilih file JSON dari ekspor Roam Anda.
-
-[importer.roam-json.name-de-outline]
-original=Flatten the outline
-translation=Ratakan kerangka
-
-[importer.roam-json.desc-de-outline]
-original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=Roam menulis setiap blok sebagai poin. Jika diaktifkan, blok ditulis sebagai paragraf, judul, dan daftar, tergantung pada cara penggunaannya.
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place

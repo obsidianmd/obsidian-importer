@@ -122,6 +122,14 @@ translation=Microsoft OneNote
 original=Notion
 translation=Notion
 
+[outliner.name-flatten-outlines]
+original=Flatten outlines
+translation=Overzichten platmaken
+
+[outliner.desc-flatten-outlines]
+original=Convert outlines into paragraphs, headings, and lists.
+translation=Converteer overzichten naar alinea's, koppen en lijsten.
+
 [modal.title-pick-format]
 original=Import data into Obsidian
 translation=Gegevens importeren in Obsidian
@@ -551,8 +559,8 @@ original=Export your data
 translation=Exporteer je gegevens
 
 [common.label-learn-more]
-original=Learn more.
-translation=Meer informatie.
+original=Learn more
+translation=Meer informatie
 
 [common.button-instructions]
 original=Instructions
@@ -1442,6 +1450,78 @@ translation=Inline labels naar Eigenschappen converteren
 original=Move tags written in the body of a note into its tags property.
 translation=Verplaats labels in de Hoofdtekst van een notitie naar de labels-eigenschap.
 
+[importer.logseq.name]
+original=Logseq
+translation=Logseq
+
+[importer.logseq.option-text]
+original=Logseq (.md)
+translation=Logseq (.md)
+
+[importer.logseq.label-id]
+original=Logseq source
+translation=Logseq-bron
+
+[importer.logseq.desc-instructions]
+original=Read the instructions for importing from Logseq.
+translation=Lees de instructies voor het importeren vanuit Logseq.
+
+[importer.logseq.desc-files]
+original=Choose one graph folder containing pages, journals, and assets.
+translation=Kies één grafiekmap met pagina's, journaals en bijlagen.
+
+[importer.logseq.name-use-daily-notes]
+original=Use daily notes settings
+translation=Dagnotities-instellingen gebruiken
+
+[importer.logseq.desc-use-daily-notes]
+original=Write journals to the configured daily notes folder and filename format.
+translation=Schrijf journaals naar de geconfigureerde map en bestandsnaamindeling voor Dagnotities.
+
+[importer.logseq.name-queries]
+original=Keep queries
+translation=Zoekopdrachten behouden
+
+[importer.logseq.desc-queries]
+original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
+translation=Obsidian ondersteunt het zoekopdrachtformaat van Logseq niet, dus zoekopdrachten worden geïmporteerd als codeblokken.
+
+[importer.logseq.name-flashcards]
+original=Keep flashcards
+translation=Flashcards behouden
+
+[importer.logseq.desc-flashcards]
+original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
+translation=Obsidian ondersteunt de flashcards van Logseq niet, dus kaartmarkeringen en cloze-wrappers worden geïmporteerd als platte tekst.
+
+[importer.logseq.name-time-tracking]
+original=Keep time tracking
+translation=Tijdregistratie behouden
+
+[importer.logseq.desc-time-tracking]
+original=Obsidian doesn't support Logseq's time tracking, so LOGBOOK and CLOCK entries are imported as plain text.
+translation=Obsidian ondersteunt de tijdregistratie van Logseq niet, dus LOGBOOK- en CLOCK-items worden geïmporteerd als platte tekst.
+
+[importer.logseq.msg-pick-graph]
+original=Please choose one Logseq graph folder.
+translation=Kies één Logseq-grafiekmap.
+
+[importer.logseq.msg-no-notes]
+original=The selected folder has no Markdown notes under pages or journals.
+translation=De geselecteerde map bevat geen Markdown-notities onder pages of journals.
+
+[importer.logseq.reason-empty-page]
+original=The converted page is empty
+translation=De geconverteerde pagina is leeg
+
+[importer.logseq.reason-missing-asset]
+original=Referenced by {{name}}, but missing from the graph
+translation=Verwezen door {{name}}, maar ontbreekt in de grafiek
+
+[importer.logseq.reason-whiteboards]
+original=Logseq whiteboards are not supported by Obsidian
+translation=Logseq-whiteboards worden niet ondersteund door Obsidian
+
 [importer.onenote.name]
 original=Microsoft OneNote
 translation=Microsoft OneNote
@@ -2245,14 +2325,6 @@ translation=Exporteer je gegevens in JSON-formaat.
 [importer.roam-json.desc-files]
 original=Pick the JSON file from your Roam export.
 translation=Kies het JSON-bestand uit je Roam-export.
-
-[importer.roam-json.name-de-outline]
-original=Flatten the outline
-translation=Het overzicht plat maken
-
-[importer.roam-json.desc-de-outline]
-original=Roam writes every block as a bullet. If enabled, blocks are written as paragraphs, headings and lists instead, depending on how each one was used.
-translation=Roam schrijft elk blok als een Opsommingsteken. Indien ingeschakeld, worden blokken in plaats daarvan geschreven als alinea's, koppen en lijsten, afhankelijk van hoe elk blok werd gebruikt.
 
 [importer.roam-json.name-embed-block-references]
 original=Show referenced blocks in place

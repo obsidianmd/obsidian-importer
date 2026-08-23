@@ -1,3 +1,5 @@
+import { outsideMarkdownFences } from './markdown';
+
 export interface OutlineNode {
 	/** Null omits the block while retaining its children. */
 	text: string | null;
@@ -169,5 +171,8 @@ function asProse(blocks: OutlineNode[]): string[] {
 
 /** Flattens top-level blocks as prose; only nested item-shaped runs become lists. */
 export function deOutline(blocks: OutlineNode[]): string {
-	return asProse(blocks).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+	return outsideMarkdownFences(
+		asProse(blocks).join('\n'),
+		segment => segment.replace(/\n{3,}/g, '\n\n'),
+	).trim();
 }

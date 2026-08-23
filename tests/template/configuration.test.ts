@@ -62,27 +62,6 @@ class NoteSettingsImporter extends FormatImporter {
 	}
 }
 
-class SourceIdFirstSettingsImporter extends FormatImporter {
-	protected override get sourceIdSettingFirst(): boolean {
-		return true;
-	}
-
-	init(): void {
-		this.idProperty = 'notion-id';
-		this.idLabel = 'Notion ID';
-		this.startGroup('template');
-		this.addSetting('template')?.setName('Cover property');
-		this.addSetting('template')?.setName('Database base');
-		this.addSetting('template')?.setName('Single line breaks');
-	}
-
-	async import(): Promise<void> {}
-
-	showSettings(container: HTMLElement, buttonsEl: HTMLElement): Promise<boolean> {
-		return this.showNoteTemplateConfiguration(container, buttonsEl);
-	}
-}
-
 class NestedConfigurationImporter extends FormatImporter {
 	init(): void {}
 	async import(): Promise<void> {}
@@ -285,33 +264,15 @@ test('source identity is configured beside the template while existing-note beha
 				.map(element => element.textContent))
 			.find(names => names.includes('Cover property name'));
 		assert.deepEqual(propertyGroupNames, [
+			'Save source ID',
 			'Cover property name',
 			'Database property name',
-			'Save source ID',
 		]);
 		assert.deepEqual(managedProperties.map(property => [property.key, property.value]), [
 			['source-id', '{{id}}'],
 			['tags', '{{tags}}'],
 		]);
 
-		const ordered = new SourceIdFirstSettingsImporter(memoryApp(new MemoryVault()), {
-			sourceEl: createDiv(),
-			outputEl: null,
-			optionsEl: null,
-			plugin: {
-				loadData: async () => ({ outputSettings: {}, outputLocations: {}, sourceFolders: {} }),
-				saveData: async () => {},
-			},
-			importerId: 'source-id-first-settings',
-			abortController: new AbortController(),
-		} as never);
-		await ordered.ready;
-		const orderedContainer = createDiv();
-		await ordered.showSettings(orderedContainer, createDiv());
-		assert.deepEqual(
-			Array.from(orderedContainer.querySelectorAll('.setting-item-name')).map(element => element.textContent),
-			['Save Notion ID', 'Cover property', 'Database base', 'Single line breaks'],
-		);
 	}
 	finally {
 		NoteTemplateConfigurator.prototype.show = realShow;
