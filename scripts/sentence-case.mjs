@@ -9,12 +9,12 @@
 export const sentenceCase = {
 	brands: [
 		'Agenda', 'Airtable', 'Apple', 'Apple Journal', 'Apple Notes', 'Bear', 'Craft',
-		'Evernote', 'Excel', 'Gnote', 'GNote', 'Google', 'Google Keep', 'Google Sheets',
-		'Google Takeout', 'Journal', 'Mac', 'Markdown', 'Microsoft', 'Notion', 'Numbers',
-		'Obsidian', 'OneNote', 'Roam', 'Roam Research', 'Taio', 'Textbundle', 'Tomboy',
+		'Daily Notes', 'Dataview', 'Evernote', 'Excel', 'Gnote', 'GNote', 'Google', 'Google Keep', 'Google Sheets',
+		'Google Takeout', 'Journal app', 'Mac', 'Markdown', 'Microsoft', 'Notion', 'Numbers',
+		'Logseq', 'Obsidian', 'OneNote', 'Roam', 'Roam Research', 'Taio', 'Tasks', 'Textbundle', 'Tomboy',
 		'Ulysses', 'Windows', 'Zettlr', 'iCloud', 'iCloud Drive',
 	],
-	acronyms: ['API', 'CSV', 'DD', 'HTML', 'ID', 'JSON', 'MB', 'MM', 'PDF', 'UID', 'URL', 'YAML', 'YYYY'],
+	acronyms: ['API', 'CLOCK', 'CSV', 'DD', 'HTML', 'ID', 'JSON', 'LOGBOOK', 'MB', 'MM', 'PDF', 'UID', 'URL', 'UUID', 'UUIDs', 'YAML', 'YYYY'],
 	ignoreRegex: [
 		'^base$', '^cover$', '^tags$', 'airtable-id', 'notion-id',
 		'^YYYY-MM-DD$', 'Click "Load"', '"TODO"',

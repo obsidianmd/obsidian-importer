@@ -1475,7 +1475,7 @@ original=Task format
 translation=
 
 [importer.logseq.desc-task-format]
-original=Choose native checkboxes or tasks plugin metadata.
+original=Choose native checkboxes or metadata for the Tasks plugin.
 translation=
 
 [importer.logseq.option-plain-checkboxes]
@@ -1619,7 +1619,7 @@ original=Shorten block IDs
 translation=
 
 [importer.logseq.desc-shorten-block-ids]
-original=Convert Logseq UUIDs into shorter Obsidian block anchors.
+original=Convert Logseq block identifiers into shorter Obsidian block anchors.
 translation=
 
 [importer.logseq.name-remove-orphan-refs]
