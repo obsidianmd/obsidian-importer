@@ -111,7 +111,7 @@ function extractIsoDate(value: string): string | null {
 
 function tagsFromItem(item: string): string[] {
 	const tokens: string[] = [];
-	const rest = item.replace(/\[\[([^\]]+)\]\]/g, (_, name) => {
+	const rest = item.replace(/\[\[([^\]]+)\]\]/g, (_whole: string, name: string) => {
 		tokens.push(name.trim());
 		return ' ';
 	});

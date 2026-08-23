@@ -7,7 +7,8 @@ export interface LinkIndex {
 
 export function convertAliasLinks(content: string): string {
 	return outsideMarkdownCode(content, segment =>
-		segment.replace(/\[([^\]]+)\]\(\[\[([^\]]+)\]\]\)/g, (_, display, target) => `[[${target.split('|')[0]}|${display}]]`)
+		segment.replace(/\[([^\]]+)\]\(\[\[([^\]]+)\]\]\)/g,
+			(_match: string, display: string, target: string) => `[[${target.split('|')[0]}|${display}]]`)
 	);
 }
 
@@ -24,7 +25,7 @@ export function convertTags(content: string, options: ConvertTagsOptions): strin
 	const { toLinks, onlyExistingPages, knownPages, dropTags } = options;
 
 	return outsideMarkdownCode(content, segment => {
-		segment = segment.replace(/(^|[\s([])#\[\[([^\]]+)\]\]/g, (_, pre, name) => {
+		segment = segment.replace(/(^|[\s([])#\[\[([^\]]+)\]\]/g, (_match: string, pre: string, name: string) => {
 			if (dropTags.has(name) || dropTags.has(name.replace(/\s+/g, '-'))) return pre;
 			if (toLinks) {
 				if (onlyExistingPages && !knownPages.has(name.toLowerCase())) return `${pre}#${name.replace(/\s+/g, '-')}`;
@@ -32,16 +33,16 @@ export function convertTags(content: string, options: ConvertTagsOptions): strin
 			}
 			return `${pre}#${name.replace(/\s+/g, '-')}`;
 		});
-		segment = segment.replace(/(^|[\s([])#([\p{L}\p{M}\p{N}_/-]+)/gu, (m, pre, name) => {
-			if (dropTags.has(name)) return pre;
-			// A page or explicit drop wins over the ambiguous hex-colour shape.
-			if (HEX_COLOUR.test(name) && !knownPages.has(name.toLowerCase())) return m;
-			if (toLinks) {
-				if (onlyExistingPages && !knownPages.has(name.toLowerCase())) return m;
-				return `${pre}[[${name}]]`;
-			}
-			return m;
-		});
+		segment = segment.replace(/(^|[\s([])#([\p{L}\p{M}\p{N}_/-]+)/gu,
+			(match: string, pre: string, name: string) => {
+				if (dropTags.has(name)) return pre;
+				if (HEX_COLOUR.test(name) && !knownPages.has(name.toLowerCase())) return match;
+				if (toLinks) {
+					if (onlyExistingPages && !knownPages.has(name.toLowerCase())) return match;
+					return `${pre}[[${name}]]`;
+				}
+				return match;
+			});
 		return segment;
 	});
 }
@@ -49,7 +50,7 @@ export function convertTags(content: string, options: ConvertTagsOptions): strin
 export function rewriteAliasReferences(content: string, index: LinkIndex): string {
 	if (index.aliasMap.size === 0) return content;
 	return outsideMarkdownCode(content, segment =>
-		segment.replace(/(!?)\[\[([^\]]+)\]\]/g, (whole, bang, inner) => {
+		segment.replace(/(!?)\[\[([^\]]+)\]\]/g, (whole: string, bang: string, inner: string) => {
 			const pipe = inner.indexOf('|');
 			const target = (pipe >= 0 ? inner.slice(0, pipe) : inner).trim();
 			const display = pipe >= 0 ? inner.slice(pipe + 1) : target;
@@ -72,7 +73,7 @@ export function rewritePlannedPageLinks(content: string, pages: Map<string, Plan
 
 	return outsideMarkdownCode(content, segment =>
 		segment.replace(/(!?)\[\[([^\]|#]+)(#[^\]|]+)?(?:\|([^\]]+))?\]\]/g,
-			(whole, bang: string, sourceTarget: string, suffix = '', sourceDisplay?: string) => {
+			(whole: string, bang: string, sourceTarget: string, suffix: string = '', sourceDisplay?: string) => {
 				const sourceKey = namespaceToPath(sourceTarget.trim()).toLowerCase();
 				const planned = pages.get(sourceKey);
 				if (!planned) return whole;

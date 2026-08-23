@@ -94,12 +94,12 @@ export function resolveBlockRefs(
 }
 
 function resolveSegment(text: string, index: Map<string, BlockRefTarget>, alwaysEmbed: boolean): string {
-	text = text.replace(/\{\{embed\s+\(\(([^()]+?)\)\)\}\}/g, (whole, uuid) => {
+	text = text.replace(/\{\{embed\s+\(\(([^()]+?)\)\)\}\}/g, (whole: string, uuid: string) => {
 		const target = index.get(uuid.trim());
 		return target ? `![[${target.page}#^${target.shortId}]]` : whole;
 	});
-	text = text.replace(/\{\{embed\s+\[\[([^\]]+?)\]\]\}\}/g, (_, page) => `![[${page}]]`);
-	text = text.replace(/\(\(([^()]+?)\)\)/g, (whole, uuid) => {
+	text = text.replace(/\{\{embed\s+\[\[([^\]]+?)\]\]\}\}/g, (_whole: string, page: string) => `![[${page}]]`);
+	text = text.replace(/\(\(([^()]+?)\)\)/g, (whole: string, uuid: string) => {
 		const target = index.get(uuid.trim());
 		if (!target) return whole;
 		return alwaysEmbed
