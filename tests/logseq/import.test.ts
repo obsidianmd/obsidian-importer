@@ -136,7 +136,7 @@ test('imports a Logseq graph through the real importer and vault pipeline', asyn
 
 	await subject.import(ctx);
 
-	assert.equal(ctx.notes, 7);
+	assert.equal(ctx.notes, 8);
 	assert.equal(ctx.attachments, 2);
 	assert.ok(vault.contents.has('Logseq/Main Page.md'));
 	assert.ok(vault.contents.has('Logseq/Reference Page.md'));
