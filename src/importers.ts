@@ -9,6 +9,7 @@ import { EvernoteEnexImporter } from './formats/evernote-enex';
 import { FilesImporter } from './formats/files';
 import { HtmlImporter } from './formats/html';
 import { KeepImporter } from './formats/keep-json';
+import { LogseqImporter } from './formats/logseq';
 import { MarkdownImporter } from './formats/markdown';
 import { NotionImporter } from './formats/notion';
 import { NotionAPIImporter } from './formats/notion-api';
@@ -67,6 +68,10 @@ export const IMPORTERS: Record<string, ImporterDefinition> = {
 		importer: MarkdownImporter,
 		helpPermalink: 'import/markdown',
 	},
+	'logseq': {
+		importer: LogseqImporter,
+		helpPermalink: 'import/logseq',
+	},
 	'onenote': {
 		importer: OneNoteImporter,
 		helpPermalink: 'import/onenote',
@@ -105,6 +110,7 @@ export const FALLBACK_ICONS: Record<string, IconName> = {
 	'csv': 'table',
 	'files': 'copy',
 	'html': 'code-2',
+	'logseq': 'network',
 	'markdown': 'file-text',
 	'textbundle': 'package',
 	'tomboy': 'sticky-note',

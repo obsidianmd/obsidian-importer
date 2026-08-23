@@ -1442,6 +1442,294 @@ translation=Перетворити вбудовані мітки на власт
 original=Move tags written in the body of a note into its tags property.
 translation=Перемістити мітки з тексту нотатки до її властивості міток.
 
+[importer.logseq.name]
+original=Logseq
+translation=
+
+[importer.logseq.option-text]
+original=Logseq (Markdown graph)
+translation=
+
+[importer.logseq.file-type]
+original=Logseq graph
+translation=
+
+[importer.logseq.label-id]
+original=Logseq source
+translation=
+
+[importer.logseq.desc-export]
+original=Choose the root folder of a Logseq Markdown graph.
+translation=
+
+[importer.logseq.desc-files]
+original=Choose one graph folder containing pages, journals, and assets.
+translation=
+
+[importer.logseq.group-tasks]
+original=Tasks
+translation=
+
+[importer.logseq.name-task-format]
+original=Task format
+translation=
+
+[importer.logseq.desc-task-format]
+original=Choose native checkboxes or tasks plugin metadata.
+translation=
+
+[importer.logseq.option-plain-checkboxes]
+original=Plain checkboxes
+translation=
+
+[importer.logseq.option-tasks-emoji]
+original=Tasks plugin — emoji
+translation=
+
+[importer.logseq.option-tasks-dataview]
+original=Tasks plugin — Dataview fields
+translation=
+
+[importer.logseq.group-journals]
+original=Journals
+translation=
+
+[importer.logseq.name-use-daily-notes]
+original=Use Daily Notes settings
+translation=
+
+[importer.logseq.desc-use-daily-notes]
+original=Write journals to the configured Daily Notes folder and filename format.
+translation=
+
+[importer.logseq.name-journal-folder]
+original=Journal folder
+translation=
+
+[importer.logseq.desc-journal-folder]
+original=Folder relative to the import folder when Daily Notes settings are disabled.
+translation=
+
+[importer.logseq.name-journal-date-format]
+original=Journal date format
+translation=
+
+[importer.logseq.desc-journal-date-format]
+original=Moment.js format used for imported journal filenames.
+translation=
+
+[importer.logseq.name-de-outline-journals]
+original=Flatten journal outlines
+translation=
+
+[importer.logseq.desc-de-outline-journals]
+original=Convert journal outlines into paragraphs, headings, and lists.
+translation=
+
+[importer.logseq.group-pages]
+original=Pages
+translation=
+
+[importer.logseq.name-pages-folder]
+original=Pages folder
+translation=
+
+[importer.logseq.desc-pages-folder]
+original=Folder relative to the import folder. Leave empty to use the import folder.
+translation=
+
+[importer.logseq.name-de-outline-pages]
+original=Flatten page outlines
+translation=
+
+[importer.logseq.desc-de-outline-pages]
+original=Convert page outlines into paragraphs, headings, and lists.
+translation=
+
+[importer.logseq.group-links]
+original=Links and tags
+translation=
+
+[importer.logseq.name-convert-tags]
+original=Convert tags to links
+translation=
+
+[importer.logseq.desc-convert-tags]
+original=Convert Logseq tags into links to matching pages.
+translation=
+
+[importer.logseq.name-only-existing-tags]
+original=Only convert tags with a matching page
+translation=
+
+[importer.logseq.desc-only-existing-tags]
+original=Keep tags unchanged when the graph has no page with that name.
+translation=
+
+[importer.logseq.name-drop-tags]
+original=Drop tags
+translation=
+
+[importer.logseq.desc-drop-tags]
+original=Comma-separated tags to remove.
+translation=
+
+[importer.logseq.group-logseq-only]
+original=Logseq-only content
+translation=
+
+[importer.logseq.name-queries]
+original=Queries
+translation=
+
+[importer.logseq.desc-queries]
+original=Logseq queries have no direct Obsidian equivalent.
+translation=
+
+[importer.logseq.name-flashcards]
+original=Flashcards
+translation=
+
+[importer.logseq.desc-flashcards]
+original=Control card markers and cloze wrappers.
+translation=
+
+[importer.logseq.name-time-tracking]
+original=Time tracking
+translation=
+
+[importer.logseq.desc-time-tracking]
+original=Control LOGBOOK and CLOCK entries.
+translation=
+
+[importer.logseq.option-keep]
+original=Keep
+translation=
+
+[importer.logseq.option-drop]
+original=Drop
+translation=
+
+[importer.logseq.group-block-references]
+original=Block references
+translation=
+
+[importer.logseq.name-shorten-block-ids]
+original=Shorten block IDs
+translation=
+
+[importer.logseq.desc-shorten-block-ids]
+original=Convert Logseq UUIDs into shorter Obsidian block anchors.
+translation=
+
+[importer.logseq.name-remove-orphan-refs]
+original=Remove unresolved block references
+translation=
+
+[importer.logseq.desc-remove-orphan-refs]
+original=Remove references whose target block is missing from the graph.
+translation=
+
+[importer.logseq.name-embed-block-refs]
+original=Embed block references
+translation=
+
+[importer.logseq.desc-embed-block-refs]
+original=Show referenced block content in place instead of linking to it.
+translation=
+
+[importer.logseq.group-properties]
+original=Properties
+translation=
+
+[importer.logseq.name-drop-page-properties]
+original=Drop page properties
+translation=
+
+[importer.logseq.desc-drop-page-properties]
+original=Comma-separated page properties to remove.
+translation=
+
+[importer.logseq.name-drop-block-properties]
+original=Drop block properties
+translation=
+
+[importer.logseq.desc-drop-block-properties]
+original=Comma-separated block properties to remove in addition to Logseq-internal properties.
+translation=
+
+[importer.logseq.name-block-properties]
+original=Block properties
+translation=
+
+[importer.logseq.desc-block-properties]
+original=Keep, wrap as Dataview inline fields, or remove remaining block properties.
+translation=
+
+[importer.logseq.option-wrap-properties]
+original=Wrap as inline fields
+translation=
+
+[importer.logseq.name-snake-case-pages]
+original=Use snake_case page properties
+translation=
+
+[importer.logseq.desc-snake-case-pages]
+original=Replace hyphens in imported page property names with underscores.
+translation=
+
+[importer.logseq.name-snake-case-blocks]
+original=Use snake_case block properties
+translation=
+
+[importer.logseq.desc-snake-case-blocks]
+original=Replace hyphens in retained block property names with underscores.
+translation=
+
+[importer.logseq.group-cleanup]
+original=Cleanup
+translation=
+
+[importer.logseq.name-keep-alt-text]
+original=Keep image alt text
+translation=
+
+[importer.logseq.desc-keep-alt-text]
+original=Use source image alt text as the Obsidian embed display text.
+translation=
+
+[importer.logseq.name-normalize-whitespace]
+original=Normalize whitespace
+translation=
+
+[importer.logseq.desc-normalize-whitespace]
+original=Trim trailing whitespace and remove empty outline bullets.
+translation=
+
+[importer.logseq.msg-pick-graph]
+original=Please choose one Logseq graph folder.
+translation=
+
+[importer.logseq.msg-no-notes]
+original=The selected folder has no Markdown notes under pages or journals.
+translation=
+
+[importer.logseq.reason-empty-page]
+original=The converted page is empty
+translation=
+
+[importer.logseq.reason-missing-asset]
+original=Referenced by {{name}}, but missing from the graph
+translation=
+
+[importer.logseq.msg-kept-queries]
+original={{name}}: kept Logseq queries
+translation=
+
+[importer.logseq.msg-kept-flashcards]
+original={{name}}: kept Logseq flashcards
+translation=
+
 [importer.onenote.name]
 original=Microsoft OneNote
 translation=Microsoft OneNote

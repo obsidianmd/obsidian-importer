@@ -115,16 +115,16 @@ export class LogseqImporter extends FormatImporter {
 		this.keepsFolders = true;
 		this.defaultOutputFolder = 'Logseq';
 		this.idProperty = 'logseq-source';
-		this.idLabel = 'Logseq source';
+		this.idLabel = i18n.importer.logseq.labelId();
 		this.options = { ...DEFAULT_LOGSEQ_OPTIONS };
 
 		const dailyNotes = this.dailyNotesConfig();
 		this.options.journalDateFormat = dailyNotes.format;
 		this.options.journalFolder = dailyNotes.folder || 'Journals';
 
-		this.addExportSetting('Choose the root folder of a Logseq Markdown graph.');
-		this.addFileChooserSetting('Logseq graph', LogseqImporter.extensions, true,
-			'Choose one graph folder containing pages/, journals/, and assets/.');
+		this.addExportSetting(i18n.importer.logseq.descExport());
+		this.addFileChooserSetting(i18n.importer.logseq.fileType(), LogseqImporter.extensions, true,
+			i18n.importer.logseq.descFiles());
 
 		this.drawOptions(dailyNotes);
 	}
@@ -134,23 +134,23 @@ export class LogseqImporter extends FormatImporter {
 	}
 
 	private drawOptions(dailyNotes: { format: string, folder: string }): void {
-		this.startGroup('options', 'Tasks');
+		this.startGroup('options', i18n.importer.logseq.groupTasks());
 		this.addSetting()
-			?.setName('Task format')
-			.setDesc('Choose native checkboxes or Tasks plugin metadata.')
+			?.setName(i18n.importer.logseq.nameTaskFormat())
+			.setDesc(i18n.importer.logseq.descTaskFormat())
 			.addDropdown(dropdown => dropdown
-				.addOption('plain', 'Plain checkboxes')
-				.addOption('tasks-emoji', 'Tasks plugin — emoji')
-				.addOption('tasks-dataview', 'Tasks plugin — Dataview fields')
+				.addOption('plain', i18n.importer.logseq.optionPlainCheckboxes())
+				.addOption('tasks-emoji', i18n.importer.logseq.optionTasksEmoji())
+				.addOption('tasks-dataview', i18n.importer.logseq.optionTasksDataview())
 				.setValue(this.options.taskFormat)
 				.onChange(value => this.options.taskFormat = value as TaskFormat));
 
-		this.startGroup('options', 'Journals');
+		this.startGroup('options', i18n.importer.logseq.groupJournals());
 		let journalFolder: TextComponent | undefined;
 		let journalFormat: TextComponent | undefined;
 		this.addSetting()
-			?.setName('Use Daily Notes settings')
-			.setDesc('Write journals to the configured Daily Notes folder and filename format.')
+			?.setName(i18n.importer.logseq.nameUseDailyNotes())
+			.setDesc(i18n.importer.logseq.descUseDailyNotes())
 			.addToggle(toggle => toggle
 				.setValue(this.options.useDailyNotes)
 				.onChange(value => {
@@ -165,8 +165,8 @@ export class LogseqImporter extends FormatImporter {
 					}
 				}));
 		this.addSetting()
-			?.setName('Journal folder')
-			.setDesc('Folder relative to the import folder when Daily Notes settings are disabled.')
+			?.setName(i18n.importer.logseq.nameJournalFolder())
+			.setDesc(i18n.importer.logseq.descJournalFolder())
 			.addText(text => {
 				journalFolder = text;
 				text.setValue(this.options.journalFolder)
@@ -174,8 +174,8 @@ export class LogseqImporter extends FormatImporter {
 					.onChange(value => this.options.journalFolder = value);
 			});
 		this.addSetting()
-			?.setName('Journal date format')
-			.setDesc('Moment.js format used for imported journal filenames.')
+			?.setName(i18n.importer.logseq.nameJournalDateFormat())
+			.setDesc(i18n.importer.logseq.descJournalDateFormat())
 			.addText(text => {
 				journalFormat = text;
 				text.setValue(this.options.journalDateFormat)
@@ -183,119 +183,119 @@ export class LogseqImporter extends FormatImporter {
 					.onChange(value => this.options.journalDateFormat = value || ISO_FORMAT);
 			});
 		this.addSetting()
-			?.setName('De-outline journals')
-			.setDesc('Convert journal outlines into paragraphs, headings, and lists.')
+			?.setName(i18n.importer.logseq.nameDeOutlineJournals())
+			.setDesc(i18n.importer.logseq.descDeOutlineJournals())
 			.addToggle(toggle => toggle
 				.setValue(this.options.deOutlineJournals)
 				.onChange(value => this.options.deOutlineJournals = value));
 
-		this.startGroup('options', 'Pages');
+		this.startGroup('options', i18n.importer.logseq.groupPages());
 		this.addSetting()
-			?.setName('Pages folder')
-			.setDesc('Folder relative to the import folder. Leave empty to use the import folder.')
+			?.setName(i18n.importer.logseq.namePagesFolder())
+			.setDesc(i18n.importer.logseq.descPagesFolder())
 			.addText(text => text
 				.setValue(this.options.pagesFolder)
 				.onChange(value => this.options.pagesFolder = value));
 		this.addSetting()
-			?.setName('De-outline pages')
-			.setDesc('Convert page outlines into paragraphs, headings, and lists.')
+			?.setName(i18n.importer.logseq.nameDeOutlinePages())
+			.setDesc(i18n.importer.logseq.descDeOutlinePages())
 			.addToggle(toggle => toggle
 				.setValue(this.options.deOutlinePages)
 				.onChange(value => this.options.deOutlinePages = value));
 
-		this.startGroup('options', 'Links and tags');
+		this.startGroup('options', i18n.importer.logseq.groupLinks());
 		this.addSetting()
-			?.setName('Convert tags to links')
-			.setDesc('Convert Logseq tags into links to matching pages.')
+			?.setName(i18n.importer.logseq.nameConvertTags())
+			.setDesc(i18n.importer.logseq.descConvertTags())
 			.addToggle(toggle => toggle
 				.setValue(this.options.convertTagsToLinks)
 				.onChange(value => this.options.convertTagsToLinks = value));
 		this.addSetting()
-			?.setName('Only convert tags with a matching page')
-			.setDesc('Keep tags unchanged when the graph has no page with that name.')
+			?.setName(i18n.importer.logseq.nameOnlyExistingTags())
+			.setDesc(i18n.importer.logseq.descOnlyExistingTags())
 			.addToggle(toggle => toggle
 				.setValue(this.options.convertTagsOnlyExistingPages)
 				.onChange(value => this.options.convertTagsOnlyExistingPages = value));
 		this.addSetting()
-			?.setName('Drop tags')
-			.setDesc('Comma-separated tags to remove.')
+			?.setName(i18n.importer.logseq.nameDropTags())
+			.setDesc(i18n.importer.logseq.descDropTags())
 			.addText(text => text
 				.setValue(this.options.dropTags.join(', '))
 				.onChange(value => this.options.dropTags = this.listSetting(value)));
 
-		this.startGroup('options', 'Logseq-only content');
-		this.keepOrDropSetting('Queries', '{{query}} and query blocks have no direct Obsidian equivalent.',
+		this.startGroup('options', i18n.importer.logseq.groupLogseqOnly());
+		this.keepOrDropSetting(i18n.importer.logseq.nameQueries(), i18n.importer.logseq.descQueries(),
 			this.options.queries, value => this.options.queries = value);
-		this.keepOrDropSetting('Flashcards', 'Control #card markers and {{cloze}} wrappers.',
+		this.keepOrDropSetting(i18n.importer.logseq.nameFlashcards(), i18n.importer.logseq.descFlashcards(),
 			this.options.flashcards, value => this.options.flashcards = value);
-		this.keepOrDropSetting('Time tracking', 'Control LOGBOOK and CLOCK entries.',
+		this.keepOrDropSetting(i18n.importer.logseq.nameTimeTracking(), i18n.importer.logseq.descTimeTracking(),
 			this.options.logbook, value => this.options.logbook = value);
 
-		this.startGroup('options', 'Block references');
+		this.startGroup('options', i18n.importer.logseq.groupBlockReferences());
 		this.addSetting()
-			?.setName('Shorten block IDs')
-			.setDesc('Convert Logseq UUIDs into shorter Obsidian block anchors.')
+			?.setName(i18n.importer.logseq.nameShortenBlockIds())
+			.setDesc(i18n.importer.logseq.descShortenBlockIds())
 			.addToggle(toggle => toggle
 				.setValue(this.options.shortenBlockIds)
 				.onChange(value => this.options.shortenBlockIds = value));
 		this.addSetting()
-			?.setName('Remove unresolved block references')
-			.setDesc('Remove references whose target block is missing from the graph.')
+			?.setName(i18n.importer.logseq.nameRemoveOrphanRefs())
+			.setDesc(i18n.importer.logseq.descRemoveOrphanRefs())
 			.addToggle(toggle => toggle
 				.setValue(this.options.removeOrphanBlockRefs)
 				.onChange(value => this.options.removeOrphanBlockRefs = value));
 		this.addSetting()
-			?.setName('Embed block references')
-			.setDesc('Show referenced block content in place instead of linking to it.')
+			?.setName(i18n.importer.logseq.nameEmbedBlockRefs())
+			.setDesc(i18n.importer.logseq.descEmbedBlockRefs())
 			.addToggle(toggle => toggle
 				.setValue(this.options.alwaysEmbedBlockRefs)
 				.onChange(value => this.options.alwaysEmbedBlockRefs = value));
 
-		this.startGroup('options', 'Properties');
+		this.startGroup('options', i18n.importer.logseq.groupProperties());
 		this.addSetting()
-			?.setName('Drop page properties')
-			.setDesc('Comma-separated page properties to remove.')
+			?.setName(i18n.importer.logseq.nameDropPageProperties())
+			.setDesc(i18n.importer.logseq.descDropPageProperties())
 			.addText(text => text
 				.setValue(this.options.dropPageProperties.join(', '))
 				.onChange(value => this.options.dropPageProperties = this.listSetting(value)));
 		this.addSetting()
-			?.setName('Drop block properties')
-			.setDesc('Comma-separated block properties to remove in addition to Logseq-internal properties.')
+			?.setName(i18n.importer.logseq.nameDropBlockProperties())
+			.setDesc(i18n.importer.logseq.descDropBlockProperties())
 			.addText(text => text
 				.setValue(this.options.dropBlockProperties.join(', '))
 				.onChange(value => this.options.dropBlockProperties = this.listSetting(value)));
 		this.addSetting()
-			?.setName('Block properties')
-			.setDesc('Keep, wrap as Dataview inline fields, or remove remaining block properties.')
+			?.setName(i18n.importer.logseq.nameBlockProperties())
+			.setDesc(i18n.importer.logseq.descBlockProperties())
 			.addDropdown(dropdown => dropdown
-				.addOption('keep', 'Keep')
-				.addOption('wrap', 'Wrap as inline fields')
-				.addOption('drop', 'Drop')
+				.addOption('keep', i18n.importer.logseq.optionKeep())
+				.addOption('wrap', i18n.importer.logseq.optionWrapProperties())
+				.addOption('drop', i18n.importer.logseq.optionDrop())
 				.setValue(this.options.blockProperties)
 				.onChange(value => this.options.blockProperties = value as LogseqImportOptions['blockProperties']));
 		this.addSetting()
-			?.setName('Use snake_case page properties')
-			.setDesc('Replace hyphens in imported page property names with underscores.')
+			?.setName(i18n.importer.logseq.nameSnakeCasePages())
+			.setDesc(i18n.importer.logseq.descSnakeCasePages())
 			.addToggle(toggle => toggle
 				.setValue(this.options.snakeCasePageProperties)
 				.onChange(value => this.options.snakeCasePageProperties = value));
 		this.addSetting()
-			?.setName('Use snake_case block properties')
-			.setDesc('Replace hyphens in retained block property names with underscores.')
+			?.setName(i18n.importer.logseq.nameSnakeCaseBlocks())
+			.setDesc(i18n.importer.logseq.descSnakeCaseBlocks())
 			.addToggle(toggle => toggle
 				.setValue(this.options.snakeCaseBlockProperties)
 				.onChange(value => this.options.snakeCaseBlockProperties = value));
 
-		this.startGroup('options', 'Cleanup');
+		this.startGroup('options', i18n.importer.logseq.groupCleanup());
 		this.addSetting()
-			?.setName('Keep image alt text')
-			.setDesc('Use source image alt text as the Obsidian embed display text.')
+			?.setName(i18n.importer.logseq.nameKeepAltText())
+			.setDesc(i18n.importer.logseq.descKeepAltText())
 			.addToggle(toggle => toggle
 				.setValue(this.options.keepAssetAltText)
 				.onChange(value => this.options.keepAssetAltText = value));
 		this.addSetting()
-			?.setName('Normalize whitespace')
-			.setDesc('Trim trailing whitespace and remove empty outline bullets.')
+			?.setName(i18n.importer.logseq.nameNormalizeWhitespace())
+			.setDesc(i18n.importer.logseq.descNormalizeWhitespace())
 			.addToggle(toggle => toggle
 				.setValue(this.options.normalizeWhitespace)
 				.onChange(value => this.options.normalizeWhitespace = value));
@@ -311,8 +311,8 @@ export class LogseqImporter extends FormatImporter {
 			?.setName(name)
 			.setDesc(description)
 			.addDropdown(dropdown => dropdown
-				.addOption('keep', 'Keep')
-				.addOption('drop', 'Drop')
+				.addOption('keep', i18n.importer.logseq.optionKeep())
+				.addOption('drop', i18n.importer.logseq.optionDrop())
 				.setValue(value)
 				.onChange(next => changed(next as KeepOrDrop)));
 	}
@@ -413,13 +413,13 @@ export class LogseqImporter extends FormatImporter {
 	async import(ctx: ImportContext): Promise<void> {
 		const graph = await this.readGraph(ctx);
 		if (!graph) {
-			new Notice('Please choose one Logseq graph folder.');
+			new Notice(i18n.importer.logseq.msgPickGraph());
 			return;
 		}
 
 		const entries = this.noteEntries(graph);
 		if (entries.length === 0) {
-			new Notice('The selected folder has no Markdown notes under pages/ or journals/.');
+			new Notice(i18n.importer.logseq.msgNoNotes());
 			return;
 		}
 
@@ -543,7 +543,7 @@ export class LogseqImporter extends FormatImporter {
 			body = deOutline(body);
 		}
 		if (isBodyEmpty(yaml, body)) {
-			ctx.reportSkipped(note.path, 'The converted page is empty');
+			ctx.reportSkipped(note.path, i18n.importer.logseq.reasonEmptyPage());
 			return null;
 		}
 		return yaml ? `${yaml}\n\n${body}\n` : `${body}\n`;
@@ -551,14 +551,18 @@ export class LogseqImporter extends FormatImporter {
 
 	private applyLogseqOnly(body: string, name: string, ctx: ImportContext): string {
 		if (/\{\{query|#\+BEGIN_QUERY/i.test(body)) {
-			if (this.options.queries === 'keep') ctx.reportMessage(`${name}: kept Logseq queries`);
+			if (this.options.queries === 'keep') {
+				ctx.reportMessage(i18n.importer.logseq.msgKeptQueries({ name }));
+			}
 			else {
 				body = body.replace(/^[ \t]*#\+BEGIN_QUERY[\s\S]*?#\+END_QUERY[ \t]*$/gim, '');
 				body = body.replace(/\{\{query[\s\S]*?\}\}/gi, '');
 			}
 		}
 		if (/#card\b|\{\{cloze/i.test(body)) {
-			if (this.options.flashcards === 'keep') ctx.reportMessage(`${name}: kept Logseq flashcards`);
+			if (this.options.flashcards === 'keep') {
+				ctx.reportMessage(i18n.importer.logseq.msgKeptFlashcards({ name }));
+			}
 			else {
 				body = body.replace(/\{\{cloze\s+([\s\S]*?)\}\}/gi, '$1');
 				body = body.replace(/(^|\s)#card\b/gi, '$1');
@@ -616,7 +620,8 @@ export class LogseqImporter extends FormatImporter {
 				const source = this.resolveGraphAsset(graph, note.path, reference.sourcePath);
 				if (!source) {
 					note.assetTargets.set(reference.sourcePath, null);
-					ctx.reportSkipped(reference.sourcePath, `Referenced by ${note.path}, but missing from the graph`);
+					ctx.reportSkipped(reference.sourcePath,
+						i18n.importer.logseq.reasonMissingAsset({ name: note.path }));
 					continue;
 				}
 

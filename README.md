@@ -17,6 +17,7 @@ Import guides are hosted on the [official Obsidian Help site](https://obsidian.m
 - [Import from Microsoft OneNote](https://obsidian.md/help/import/onenote)
 - [Import from Notion](https://obsidian.md/help/import/notion)
 - [Import from Roam Research](https://obsidian.md/help/import/roam)
+- [Import from Logseq](https://obsidian.md/help/import/logseq)
 - [Import from HTML files](https://obsidian.md/help/import/html)
 - [Import from Markdown files](https://obsidian.md/help/import/markdown)
 - [Import from Textbundle files](https://obsidian.md/help/import/textbundle) (.textbundle, .textpack)
@@ -106,6 +107,7 @@ This plugin relies on important contributions:
 - [@joshuatazrein](https://github.com/joshuatazrein) for Notion file-based import
 - [@polyipseity](https://github.com/polyipseity) for HTML attachments
 - [@8bitgentleman](https://github.com/8bitgentleman) for Roam import
+- [@laughedelic](https://github.com/laughedelic) for Logseq import
 - [@p3rid0t](https://github.com/p3rid0t) for Microsoft OneNote import
 - [@mirnovov](https://github.com/mirnovov) for Apple Notes import
 - [@wzs](https://github.com/wzs) for Apple Journal import
