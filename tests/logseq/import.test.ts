@@ -291,6 +291,41 @@ test('does not let an alias retarget links away from a real page', async () => {
 	assert.doesNotMatch(reference, /\[\[Logseq\/Foo\|Bar\]\]/);
 });
 
+test('keeps slash-formatted journals in their date folders', async () => {
+	const graph = new SourceFolder('Journal folders', [
+		new SourceFolder('journals', [
+			new SourceFile('2024_06_15.md', '- First journal'),
+			new SourceFile('2024_07_15.md', '- Second journal'),
+		]),
+	]);
+	const { subject, vault } = await importer(graph);
+	subject.options.useDailyNotes = true;
+	subject.options.journalFolder = 'Daily';
+	subject.options.journalDateFormat = 'YYYY/MM/DD';
+
+	await subject.import(new ImportContext());
+
+	assert.ok(vault.contents.has('Daily/2024/06/15.md'));
+	assert.ok(vault.contents.has('Daily/2024/07/15.md'));
+});
+
+test('sanitizes every namespace folder and rewrites links to the planned path', async () => {
+	const graph = new SourceFolder('Sanitized namespace', [
+		new SourceFolder('pages', [
+			new SourceFile('Ask%3F%20Me.md', '- Parent'),
+			new SourceFile('Ask%3F%20Me___Child.md', '- Child'),
+			new SourceFile('Reference.md', '- [[Ask%3F%20Me___Child]]'),
+		]),
+	]);
+	const { subject, vault } = await importer(graph);
+
+	await subject.import(new ImportContext());
+
+	assert.ok(vault.contents.has('Logseq/Ask Me.md'));
+	assert.ok(vault.contents.has('Logseq/Ask Me/Child.md'));
+	assert.match(vault.contents.get('Logseq/Reference.md') as string, /\[\[Logseq\/Ask Me\/Child\]\]/);
+});
+
 test('preserves a missing asset link and reports it', async () => {
 	const graph = new SourceFolder('Missing asset', [
 		new SourceFolder('pages', [new SourceFile('A.md', '- ![missing](../assets/missing.png)')]),

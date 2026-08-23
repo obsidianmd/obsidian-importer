@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { parse } from 'yaml';
 
 import {
 	extractPageProperties,
@@ -8,6 +9,10 @@ import {
 	linkifyTagValuesInFrontmatter,
 } from '../../src/formats/logseq/properties';
 import { DEFAULT_DROP_PAGE_PROPERTIES } from '../../src/formats/logseq/options';
+
+function parseFrontmatter(yaml: string): Record<string, unknown> {
+	return parse(yaml.split('\n').slice(1, -1).join('\n')) as Record<string, unknown>;
+}
 
 test('returns empty yaml when there are no page properties', () => {
 	const { yaml, body } = extractPageProperties('- just a block\n- another');
@@ -26,6 +31,11 @@ test('alias and aliases map to an aliases list and strip wikilink brackets', () 
 	const input = 'alias:: ML, [[Machine Learning]]\n\ntext';
 	const { yaml } = extractPageProperties(input);
 	assert.equal(yaml, ['---', 'aliases:', '  - ML', '  - Machine Learning', '---'].join('\n'));
+});
+
+test('quotes YAML-sensitive alias list items', () => {
+	const { yaml } = extractPageProperties('alias:: [[Project: Alpha]], #draft\n\ntext');
+	assert.deepEqual(parseFrontmatter(yaml).aliases, ['Project: Alpha', '#draft']);
 });
 
 test('tags property strips # and wikilinks and becomes a list', () => {
@@ -198,6 +208,11 @@ test('convertHeadingProperty associates a property after inline code with its wh
 test('[I1] scalar value starting with # is quoted', () => {
 	const { yaml } = extractPageProperties('status:: #in-progress\n\ntext');
 	assert.equal(yaml, ['---', 'status: "#in-progress"', '---'].join('\n'));
+});
+
+test('quotes a property value containing an inline tag', () => {
+	const { yaml } = extractPageProperties('status:: doing #urgent\n\ntext');
+	assert.equal(parseFrontmatter(yaml).status, 'doing #urgent');
 });
 
 test('[I1] scalar value that is a markdown link is quoted', () => {

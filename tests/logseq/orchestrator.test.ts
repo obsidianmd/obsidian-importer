@@ -27,6 +27,13 @@ test('indexAliases: strips [[...]] wikilink syntax from alias values', () => {
 	assert.equal(aliasMap.get('my page'), 'pages/my-page');
 });
 
+test('indexAliases: does not split a comma inside a wikilink', () => {
+	const aliasMap = new Map<string, string>();
+	indexPageAliases({ alias: '[[Jul 18th, 2025]]' }, 'pages/date', aliasMap, new Set());
+	assert.equal(aliasMap.get('jul 18th, 2025'), 'pages/date');
+	assert.equal(aliasMap.size, 1);
+});
+
 test('indexAliases: registers title:: as an additional alias', () => {
 	const aliasMap = new Map<string, string>();
 	const ambiguous = new Set<string>();

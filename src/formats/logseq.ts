@@ -3,7 +3,7 @@ import { ImportContext } from '../import-context';
 import { NodePickedFile, PickedFile, PickedFolder, fsPromises } from '../filesystem';
 import { FormatImporter, NoteTemplateSample, PlannedNote, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { i18n } from '../i18n';
-import { sameBytes, sanitizeFileName } from '../util';
+import { sameBytes, sanitizeFileName, sanitizeFilePath } from '../util';
 import { convertAssetLinks } from './logseq/assets';
 import { BlockRefTarget, removeOrphanBlockRefs, resolveBlockRefs } from './logseq/block-ids';
 import { deOutline } from './logseq/de-outline';
@@ -124,7 +124,7 @@ export class LogseqImporter extends FormatImporter {
 
 		const dailyNotes = this.dailyNotesConfig();
 		this.options.journalDateFormat = dailyNotes.format;
-		this.options.journalFolder = dailyNotes.folder || 'Journals';
+		this.options.journalFolder = dailyNotes.folder;
 
 		this.addExportSetting(i18n.importer.logseq.descExport());
 		this.addFileChooserSetting(i18n.importer.logseq.fileType(), LogseqImporter.extensions, true,
@@ -328,7 +328,7 @@ export class LogseqImporter extends FormatImporter {
 	private dailyNotesConfig(): { format: string, folder: string } {
 		const app = this.app as { internalPlugins?: InternalPlugins };
 		const options = app.internalPlugins?.getPluginById('daily-notes')?.instance?.options;
-		return { format: options?.format || ISO_FORMAT, folder: options?.folder || '' };
+		return { format: options?.format || ISO_FORMAT, folder: options?.folder || 'Journals' };
 	}
 
 	private graphFolder(): PickedFolder | null {
@@ -373,15 +373,17 @@ export class LogseqImporter extends FormatImporter {
 			logicalName = iso
 				? moment(iso, ISO_FORMAT, true).format(this.options.journalDateFormat)
 				: entry.file.basename;
-			parent = this.options.useDailyNotes
+			const journalRoot = this.options.useDailyNotes
 				? this.options.journalFolder.trim()
 				: normalizePath([outputRoot, this.options.journalFolder.trim()].filter(Boolean).join('/'));
+			const logicalParent = sanitizeFilePath(graphParent(logicalName), journalRoot);
+			parent = normalizePath([journalRoot, logicalParent].filter(Boolean).join('/'));
 		}
 		else {
 			logicalName = namespaceToPath(entry.file.basename);
-			const logicalParent = graphParent(logicalName);
-			parent = normalizePath([outputRoot, this.options.pagesFolder.trim(), logicalParent]
-				.filter(Boolean).join('/'));
+			const pageRoot = normalizePath([outputRoot, this.options.pagesFolder.trim()].filter(Boolean).join('/'));
+			const logicalParent = sanitizeFilePath(graphParent(logicalName), pageRoot);
+			parent = normalizePath([pageRoot, logicalParent].filter(Boolean).join('/'));
 		}
 
 		const title = graphBasename(logicalName);

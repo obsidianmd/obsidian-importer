@@ -1,5 +1,5 @@
 import { LogseqImportOptions } from './options';
-import { extractPageProperties, convertHeadingProperty, removeLeftoverBlockProperties } from './properties';
+import { extractPageProperties, convertHeadingProperty, removeLeftoverBlockProperties, splitList } from './properties';
 import { convertTasks } from './tasks';
 import { convertNumberedLists, convertOrgBlocks, convertHighlights, convertMediaEmbeds, fixCodeBlocksInLists, fixHeadingChildLists } from './blocks';
 import { convertAssetLinks, AssetRef } from './assets';
@@ -88,7 +88,7 @@ export function indexPageAliases(
 	if (raw.aliases) aliasValues.push(raw.aliases);
 	if (raw.title) aliasValues.push(raw.title);
 	for (const value of aliasValues) {
-		for (const item of value.split(',')) {
+		for (const item of splitList(value)) {
 			const name = item.trim().replace(/^\[\[(.*)\]\]$/, '$1').trim();
 			if (!name) continue;
 			const key = name.toLowerCase();

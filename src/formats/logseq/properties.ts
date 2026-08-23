@@ -48,8 +48,7 @@ function stripWikiBrackets(value: string): string {
 	return m ? m[1] : value;
 }
 
-/** Splits commas outside wikilinks. */
-function splitList(value: string): string[] {
+export function splitList(value: string): string[] {
 	const items: string[] = [];
 	let current = '';
 	let depth = 0;
@@ -93,9 +92,14 @@ function needsQuoting(value: string): boolean {
 	if ('#[{>|*&!@`'.includes(first)) return true;
 	if (first === '"' || first === '\'') return true;
 	if (value.endsWith(':') || value.includes(': ')) return true;
+	if (/\s#/.test(value)) return true;
 	if (YAML_BOOL.test(value)) return true;
 	if (YAML_NUMBER.test(value) || YAML_LEADING_ZERO.test(value)) return true;
 	return false;
+}
+
+function yamlListItem(value: string): string {
+	return `  - ${needsQuoting(value) ? quote(value) : value}`;
 }
 
 function extractIsoDate(value: string): string | null {
@@ -132,7 +136,7 @@ function emitProperty(key: string, value: string, aliases: string[], dropPagePro
 	if (key === 'tags') {
 		const items = splitList(value).flatMap(tagsFromItem).filter(t => !dropTags.has(t));
 		if (items.length === 0) return [];
-		return ['tags:', ...items.map(i => `  - ${i}`)];
+		return ['tags:', ...items.map(yamlListItem)];
 	}
 	if (isAlwaysDroppedPageProp(key)) return [];
 	if (dropPageProps.has(key)) return [];
@@ -208,7 +212,7 @@ export function extractPageProperties(content: string, opts: ExtractPageProperti
 	const hasAny = propLines.length > 0 || aliases.length > 0;
 	if (hasAny) {
 		const aliasLines = aliases.length
-			? ['aliases:', ...aliases.map(a => `  - ${a}`)]
+			? ['aliases:', ...aliases.map(yamlListItem)]
 			: [];
 		yaml = ['---', ...aliasLines, ...propLines, '---'].join('\n');
 	}
