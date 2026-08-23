@@ -110,7 +110,6 @@ export const FALLBACK_ICONS: Record<string, IconName> = {
 	'csv': 'table',
 	'files': 'copy',
 	'html': 'code-2',
-	'logseq': 'network',
 	'markdown': 'file-text',
 	'textbundle': 'package',
 	'tomboy': 'sticky-note',
