@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { convertAliasLinks, convertTags, rewriteAliasReferences, disambiguateBasenameLinks } from '../../src/formats/logseq/links';
+import { convertAliasLinks, convertTags, rewriteAliasReferences, rewritePlannedPageLinks } from '../../src/formats/logseq/links';
 
 // Helper: build ConvertTagsOptions with minimal setup
 function tagOpts(toLinks: boolean, knownPages: string[] = [], dropTags: string[] = []) {
@@ -91,38 +91,6 @@ test('does not rewrite block or heading references', () => {
 	assert.equal(rewriteAliasReferences('[[ML#^abc123]]', index), '[[ML#^abc123]]');
 });
 
-// --- basename disambiguation ---
-test('disambiguates a bare [[name]] when two pages share the basename', () => {
-	const index = { basenameMap: new Map([['notes', ['folder-a/notes', 'folder-b/notes']]]) };
-	assert.equal(disambiguateBasenameLinks('see [[Notes]]', index), 'see [[folder-a/notes|Notes]]');
-});
-
-test('leaves [[name]] untouched when basename is unique', () => {
-	const index = { basenameMap: new Map([['notes', ['folder-a/notes']]]) };
-	assert.equal(disambiguateBasenameLinks('see [[Notes]]', index), 'see [[Notes]]');
-});
-
-test('leaves full-path links untouched even when basename is ambiguous', () => {
-	const index = { basenameMap: new Map([['notes', ['folder-a/notes', 'folder-b/notes']]]) };
-	assert.equal(disambiguateBasenameLinks('[[folder-a/notes]]', index), '[[folder-a/notes]]');
-});
-
-test('preserves embed prefix during disambiguation', () => {
-	const index = { basenameMap: new Map([['img', ['assets/img', 'pages/img']]]) };
-	assert.equal(disambiguateBasenameLinks('![[img]]', index), '![[assets/img|img]]');
-});
-
-test('preserves explicit display text during disambiguation', () => {
-	const index = { basenameMap: new Map([['notes', ['folder-a/notes', 'folder-b/notes']]]) };
-	assert.equal(disambiguateBasenameLinks('[[Notes|my notes]]', index), '[[folder-a/notes|my notes]]');
-});
-
-test('does not disambiguate links inside code', () => {
-	const index = { basenameMap: new Map([['notes', ['folder-a/notes', 'folder-b/notes']]]) };
-	const input = ['`[[Notes]]`', '~~~', '[[Notes]]', '~~~'].join('\n');
-	assert.equal(disambiguateBasenameLinks(input, index), input);
-});
-
 // ---------------------------------------------------------------------------
 // Documented transformation cases — G1, H1, and M1.
 // ---------------------------------------------------------------------------
@@ -139,10 +107,10 @@ test('[G1] does not rewrite a link when the alias equals the page name', () => {
 	assert.equal(rewriteAliasReferences('[[Same Page]]', index), '[[Same Page]]');
 });
 
-// M1: disambiguation must prefer an exact non-namespaced match over a namespaced one.
-test('[M1] prefers the exact top-level page over a namespaced same-basename page', () => {
-	const index = { basenameMap: new Map([['feedback', ['team-a/feedback', 'feedback']]]) };
-	assert.equal(disambiguateBasenameLinks('[[feedback]]', index), '[[feedback]]');
+// M1: source names must follow a collision-safe path selected during preflight.
+test('[M1] rewrites a source page name to its planned path', () => {
+	const plans = new Map([['feedback', { target: 'Logseq/feedback 1', display: 'feedback' }]]);
+	assert.equal(rewritePlannedPageLinks('[[feedback]]', plans), '[[Logseq/feedback 1|feedback]]');
 });
 
 // G1: an alias link whose target already has a pipe must not produce a double pipe.

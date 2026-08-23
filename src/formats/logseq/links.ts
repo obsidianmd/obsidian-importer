@@ -78,47 +78,6 @@ export function rewriteAliasReferences(content: string, index: LinkIndex): strin
 	);
 }
 
-export interface BasenameIndex {
-	/**
-	 * basename (lower-cased, without .md) -> full output path(s) without .md.
-	 * Entries with 2+ paths are ambiguous and wikilinks must be disambiguated.
-	 */
-	basenameMap: Map<string, string[]>;
-}
-
-/**
- * Rewrite wikilinks that are ambiguous due to same-basename pages in different folders.
- * A bare `[[name]]` that matches two or more notes becomes `[[full/path/to/note|name]]`.
- * Links that already contain a `/` (namespace-style) are left untouched — they already
- * point at the correct full path.
- */
-export function disambiguateBasenameLinks(content: string, index: BasenameIndex): string {
-	if (index.basenameMap.size === 0) return content;
-	return outsideMarkdownCode(content, segment =>
-		segment.replace(/(!?)\[\[([^\]]+)\]\]/g, (whole, bang, inner) => {
-			const pipe = inner.indexOf('|');
-			const target = (pipe >= 0 ? inner.slice(0, pipe) : inner).trim();
-			const display = pipe >= 0 ? inner.slice(pipe + 1) : null;
-
-			// Already a path (contains /) or a block ref — leave as-is.
-			if (target.includes('/') || target.includes('#')) return whole;
-
-			const paths = index.basenameMap.get(target.toLowerCase());
-			if (!paths || paths.length < 2) return whole;
-
-			// M1: if one of the paths is an exact top-level match (no namespace), use it as-is.
-			const exact = paths.find(p => !p.includes('/') && p.toLowerCase() === target.toLowerCase());
-			if (exact) return whole;
-
-			// Use the first known path as the canonical (same as write order).
-			// The display text is the original target name, or the explicit display if given.
-			const canonical = paths[0];
-			const displayText = display ?? target;
-			return `${bang}[[${canonical}|${displayText}]]`;
-		})
-	);
-}
-
 export interface PlannedPageLink {
 	target: string;
 	/** Preserve the source page name when collision handling renamed the note. */

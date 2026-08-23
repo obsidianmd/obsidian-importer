@@ -10,10 +10,10 @@ The exact behavior and defaults are documented in the
 ## 1. What was implemented
 
 The importer adds **Logseq (Markdown graph)** as a first-class source format in the Obsidian
-Importer plugin. It is registered in `src/main.ts` and implemented by
+Importer plugin. It is registered in `src/importers.ts` and implemented by
 `LogseqImporter` in `src/formats/logseq.ts`.
 
-On desktop, the user selects a Logseq graph root containing `pages/`, `journals/`, and optionally
+The user selects a Logseq graph root containing `pages/`, `journals/`, and optionally
 `assets/`. The importer:
 
 - recursively reads Markdown notes under `pages/` and `journals/`;
@@ -21,12 +21,12 @@ On desktop, the user selects a Logseq graph root containing `pages/`, `journals/
 - converts Logseq tasks, properties, block references, embeds, aliases, tags, org blocks,
   highlights, numbered lists, media, and local assets;
 - optionally de-outlines pages and journals into flatter Markdown;
-- writes notes into a selected vault folder and copies referenced assets into its `assets/`
-  subfolder;
+- plans notes and assets through the shared importer framework, including templates, source
+  identity, duplicate handling, and the vault's attachment-location setting;
 - reports note, attachment, skipped-file, and failure progress through `ImportContext`.
 
-The feature is desktop-only because graph selection and source reads use Electron/Node filesystem
-APIs. It targets Logseq's Markdown/file graph format, not the newer database graph format.
+Graph selection and reads use the importer's platform-neutral picked-file abstraction. The importer
+targets Logseq's Markdown/file graph format, not the newer database graph format.
 
 ## 2. Architecture
 
@@ -34,10 +34,11 @@ APIs. It targets Logseq's Markdown/file graph format, not the newer database gra
 
 `src/formats/logseq.ts` owns the Obsidian-specific concerns:
 
-- settings UI and graph-folder selection;
+- settings UI and graph-folder selection through `PickedFolder`;
 - Daily Notes configuration lookup;
-- filesystem traversal and source-path resolution;
-- output planning, collision reporting, vault writes, and asset copies;
+- graph traversal and source-path resolution;
+- integration with shared output planning, duplicate handling, templates, vault writes, and
+  attachment placement;
 - the vault-wide indexes required for cross-file conversion.
 
 All modules under `src/formats/logseq/` are pure and Obsidian-independent. This keeps the
@@ -52,7 +53,7 @@ transformation logic directly testable with Node:
 | `tasks.ts` | task states, metadata, repeaters, and LOGBOOK drawers |
 | `blocks.ts` | org blocks, highlights, numbered lists, media, and fence fixes |
 | `block-ids.ts` | block anchors, references, embeds, and orphan handling |
-| `links.ts` | aliases, tags, and same-basename disambiguation |
+| `links.ts` | aliases, tags, and rewrites to planned vault paths |
 | `journals.ts` | source date parsing and target date-link formatting |
 | `assets.ts` | local asset-link conversion and copy planning |
 | `de-outline.ts` | optional outline-to-Markdown restructuring |
@@ -66,16 +67,16 @@ cannot resolve those cases reliably.
 
 The implemented pipeline therefore has three stages:
 
-1. **Plan:** determine canonical names and output paths, detect exact output-path collisions, and
-   build the same-basename index.
+1. **Plan:** determine logical names, ask the shared framework for collision-safe final paths, and
+   retain source IDs and timestamps for duplicate handling.
 2. **Pass 1:** convert each file locally while collecting block IDs, aliases, referenced assets,
    and non-empty canonical page names.
-3. **Pass 2:** resolve block references and aliases, disambiguate same-basename links, convert tags
+3. **Pass 2:** resolve block references and aliases, rewrite links to planned paths, convert tags
    and tag-like frontmatter values, reformat date links, optionally de-outline, skip empty output,
    and write the note.
 
 This design follows the useful precedent of the existing Roam importer while accounting for
-Logseq's on-disk Markdown layout.
+Logseq's on-disk Markdown layout and the current shared output framework.
 
 ## 3. Main design decisions
 
@@ -156,13 +157,11 @@ This avoids creating dangling notes named after aliases while preserving the use
 Logseq's `___` and `%2F` namespace encodings become folder separators, and valid percent escapes are
 decoded before filename sanitization. The resulting full path is the page's canonical name.
 
-Two collision classes are handled separately:
-
-- **Exact output-path collisions:** the first planned source is imported and later sources are
-  reported and skipped.
-- **Same basename in different namespaces:** both notes are valid. Bare ambiguous links are
-  rewritten to a full-path target with the original basename as display text. A real top-level note
-  with that basename remains the natural target.
+The shared planner handles exact path and existing-vault collisions according to the selected
+duplicate mode. Two same-named sources remain distinct, and links are rewritten to the actual
+collision-safe paths selected during planning. Same basenames in different namespaces remain valid;
+a bare basename is rewritten only when it identifies one source unambiguously (or an exact
+top-level page exists), so an inherently ambiguous link is not guessed.
 
 This keeps namespace structure instead of flattening or globally renaming notes.
 
@@ -222,11 +221,9 @@ execution, PDF annotation geometry, and whiteboard-to-Canvas conversion are not 
 
 Markdown links and embeds whose path contains `assets/` become Obsidian wikilinks. Image dimensions
 take precedence over optional alt text. Referenced bytes are resolved relative to the source note
-and copied into `<output>/assets/`.
-
-The current implementation flattens assets by basename. If a destination filename already exists,
-it is retained and a later asset with the same basename is not copied. Renaming and rewriting
-colliding asset basenames remains a known limitation.
+and placed using the vault's attachment setting. Same-name collisions receive numbered paths;
+same-byte existing files are reused. A missing or unreadable source leaves its original Markdown
+link intact and is reported without aborting the rest of the graph.
 
 ## 4. User-facing options and defaults
 
@@ -267,7 +264,7 @@ for the comparatively small integration surface.
 
 ## 6. Known limitations and conscious tradeoffs
 
-- Only Markdown/file-based graphs are supported, and graph selection requires the desktop app.
+- Only Markdown/file-based graphs are supported.
 - Only Markdown under `pages/` and `journals/` is scanned. Graph-level whiteboards are outside the
   import and are not individually reported.
 - Physical subdirectories below `pages/` and `journals/` are not preserved by output planning;
@@ -281,13 +278,12 @@ for the comparatively small integration surface.
   option runs, so they are currently always retained.
 - With the defaults, `flashcards: keep` preserves cloze wrappers but `dropTags: ['card']` still
   removes `#card`.
-- Ambiguous aliases are left unresolved; ambiguous same-basename links choose the first planned
-  namespaced path when there is no exact top-level note.
+- Ambiguous aliases and ambiguous bare same-basename links are left unresolved rather than guessed.
 - Duplicate block UUID definitions use the later pass-1 target.
-- Assets are flattened by basename and collisions are not renamed or reported. A missing source
-  asset can leave a rewritten link without a copied file.
-- Existing vault notes at planned output paths are replaced; collision checks only prevent two
-  sources in the same import from claiming one output path.
+- Asset placement follows the vault setting rather than preserving the graph's physical asset
+  subfolders.
+- Existing notes are handled by the shared Update, Skip, or Create a copy modes. Source identity
+  enables later imports to find notes users have renamed or moved.
 - There is no TaskNotes extraction, query-language translation, SRS schedule migration,
   template/macro execution, PDF geometry migration, or whiteboard conversion.
 

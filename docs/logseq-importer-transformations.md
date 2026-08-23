@@ -39,15 +39,8 @@ The import runs in **two passes** so that cross-file references can be resolved 
 vault-wide index that only exists once every file has been planned and locally converted.
 
 **Planning.** Markdown files under `pages/` and `journals/` are enumerated recursively. Each is
-assigned a canonical name and an output path (section F). During planning, files are skipped when:
-
-- A scanned Markdown path contains `/whiteboards/` — not supported.
-- Two sources would map to the *same output path* — the first wins; later colliders are reported
-  and skipped (no silent overwrite).
-
-From the surviving plans we build:
-
-- a **basename disambiguation index** (`basename → [full path, …]`, section M).
+assigned a logical name, source identity, and collision-safe final path through the shared importer
+framework (section F). This is also where templates and the selected duplicate mode are applied.
 
 **Pass 1 — per-file local conversion** (`convertLocal` in `pipeline.ts`). Everything that can be
 done on a single file without the vault index. In order:
@@ -69,17 +62,16 @@ done on a single file without the vault index. In order:
 15. `normalizeWhitespace` — optionally normalize non-breaking spaces, trailing whitespace, and
     empty bullets.
 
-While iterating, pass 1 also builds the **block-id index** (`uuid → {page, shortId}`), the
-**alias index** (`alias → canonical page`, including `title::` — ambiguous aliases removed
-afterward), and the **asset plan** (absolute source → filename). Logseq-only content (queries,
-flashcards) is applied after `convertLocal`; section L documents how this ordering affects advanced
-query blocks and flashcard tags.
+After referenced assets have collision-safe vault paths, local conversion is repeated with those
+paths. The importer then builds the **block-id index** (`uuid → {page, shortId}`), the **alias
+index** (`alias → planned page`, including `title::` — ambiguous aliases removed afterward), and a
+source-name-to-planned-path link map. Logseq-only content (queries, flashcards) is applied after
+`convertLocal`; section L documents how this ordering affects advanced query blocks and flashcard
+tags.
 
-After pass 1, the **known-pages set** is built from the lower-cased canonical names of intermediates
-whose YAML or body is non-empty. Pages that are blank after pass-1 transforms are excluded so that
-tag conversion doesn't create links to pages that will never be written. A basename by itself does
-not represent a namespaced page in this set. A page that becomes empty only after pass-2 cleanup can
-still be present in the set.
+After planning, the **known-pages set** contains each lower-cased logical page name and basename.
+This lets tag conversion recognize both qualified namespace names and ordinary page-name tags. A
+page that becomes empty only after pass-2 cleanup can still be present in the set.
 
 > Tag conversion is **deliberately deferred to pass 2** because the `onlyExistingPages` option
 > needs the complete known-pages set, which is only available after pass 1 is complete.
@@ -90,14 +82,15 @@ still be present in the set.
    `{{embed [[Page]]}}` → `![[Page]]`.
 2. `removeOrphanBlockRefs` — *(option)* strip references whose uuid was never defined.
 3. `rewriteAliasReferences` — `[[Alias]]` → `[[Canonical|Alias]]`.
-4. `disambiguateBasenameLinks` — bare `[[name]]` → `[[full/path|name]]` when the basename is shared.
-5. `convertTags` — keep / sanitize / link / drop tags (section H).
-6. `linkifyTagValuesInFrontmatter` — apply the same tag-to-link policy to scalar frontmatter values.
-7. ISO date-link reformat — `[[YYYY-MM-DD]]` → target Daily-Notes format if it differs.
+4. `convertTags` — keep / sanitize / link / drop tags (section H).
+5. `linkifyTagValuesInFrontmatter` — apply the same tag-to-link policy to scalar frontmatter values.
+6. ISO date-link reformat — `[[YYYY-MM-DD]]` → target Daily-Notes format if it differs.
+7. `rewritePlannedPageLinks` — point source page names at their actual collision-safe vault paths.
 8. `deOutline` — *(option)* flatten the outline for journals and/or pages.
 9. **[A1] Empty-page check** — if the resulting body is blank and there is no YAML frontmatter, the page
    is skipped (reported via `ctx.reportSkipped`) rather than written as an empty file.
-10. Write or replace the note (`yaml + body`). After all notes, copy planned assets.
+10. Write, update, skip, or copy the note according to shared duplicate handling. After all notes,
+    write planned assets that were not safely reused.
 
 ---
 
@@ -486,7 +479,7 @@ The always-dropped set and `dropBlockProperties` keys win in every mode.
 
 | Logseq | Obsidian | Notes |
 |---|---|---|
-| `![alt](../assets/x.png)` | `![[x.png]]` | **[K1]** bytes copied to `<output>/assets/` |
+| `![alt](../assets/x.png)` | `![[planned/path/x.png]]` | **[K1]** bytes placed using the vault attachment setting |
 | `[label](../assets/x.pdf)` | `[[x.pdf]]` | **[K1]** plain (non-embed) asset links also converted |
 | `[label [nested] label](../assets/x.pdf)` | `[[x.pdf]]` | **[K1]** label allows one level of nested brackets |
 | `![alt](../assets/x.png){:height H, :width W}` | `![[x.png\|WxH]]` | dimensions always win over alt text |
@@ -498,11 +491,10 @@ The always-dropped set and `dropBlockProperties` keys win in every mode.
 **[K1]** Only links whose path contains `assets/` are treated as local assets; URLs (`http:`, `https:`,
 `data:`) and other paths are left alone. Asset links inside fenced code blocks **and inline code
 spans** are not converted. The byte copy resolves the source relative to the note's directory
-(tolerant of `../` prefixes) and flattens assets into `<output>/assets/`. If that destination
-filename already exists—whether from the vault or an earlier planned asset—it is retained and the
-later asset is not copied. Asset basename collisions are therefore not renamed or reported. If a
-rewritten source path cannot be resolved on disk, no asset is planned and the rewritten link remains
-without a corresponding copy.
+(tolerant of `../` prefixes), then uses the shared attachment-location and collision planner. An
+existing same-byte file may be reused; different same-name files receive numbered paths. If a
+source path is missing or unreadable, the original Markdown link is preserved and the failure is
+reported without aborting unrelated files.
 
 ---
 
@@ -540,16 +532,15 @@ basename: `[[personal/notes|notes]]`.
 
 The importer handles this natively, with no flattening:
 
-- **Output-path collisions** (two sources mapping to the *exact same* path) are detected during
-  planning. The first writer wins; later colliders are reported and skipped — no silent overwrite.
-- A note that already exists in the vault at a planned output path is replaced via
-  `vault.modify`; collision detection only covers sources within the current import plan.
-- **[M1] Ambiguous bare links.** A `basename → [paths]` index is built from all plans. In pass 2,
-  `disambiguateBasenameLinks` rewrites any bare `[[name]]` whose basename maps to 2+ notes into
-  `[[full/path|name]]` (using the first path as canonical, and preserving any explicit display
-  text). If one of the paths is an **exact top-level match** (no namespace / folder), the link is
-  left as-is — it already resolves unambiguously in Obsidian's shortest-path resolution. Links that
-  already contain a `/` (namespace-style) or a `#` (block/heading ref) are also left untouched.
+- Every source note is preflighted through the shared planner before anything is written. Two
+  sources requesting the same path receive distinct names, including case-insensitive collisions.
+- Existing vault notes follow the selected Update, Skip, or Create a copy mode. The managed
+  `logseq-source` identity lets an update find an imported note after the user moves or renames it.
+- **[M1] Planned links.** Links using a source page's full logical name are rewritten to the final
+  planned path, preserving the source basename as display text when collision handling changed the
+  filename. A bare basename is mapped when it identifies exactly one page, or when an exact
+  top-level page owns that name. If several namespaced pages share a basename and none is the
+  top-level page, the bare link remains untouched rather than choosing an arbitrary target.
 
 This uses Obsidian's full-path link syntax so same-named notes can remain in their namespaces
 without global renaming.
