@@ -124,7 +124,7 @@ translation=Notion
 
 [outliner.name-flatten-outlines]
 original=Flatten outlines
-translation=Aplanar esquemes
+translation=Aplana els esquemes
 
 [outliner.desc-flatten-outlines]
 original=Convert outlines into paragraphs, headings, and lists.
@@ -1464,7 +1464,7 @@ translation=Font de Logseq
 
 [importer.logseq.desc-instructions]
 original=Read the instructions for importing from Logseq.
-translation=Llegiu les instruccions per importar des de Logseq.
+translation=Llegeix les instruccions per importar des de Logseq.
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
@@ -1476,7 +1476,7 @@ translation=Utilitza la configuració de Notes diàries
 
 [importer.logseq.desc-use-daily-notes]
 original=Write journals to the configured daily notes folder and filename format.
-translation=Escriu els diaris a la carpeta i el format de nom de fitxer configurats per a les Notes diàries.
+translation=Escriu els diaris a la carpeta de Notes diàries configurada i amb el format de nom de fitxer establert.
 
 [importer.logseq.name-queries]
 original=Keep queries
@@ -1488,11 +1488,11 @@ translation=Obsidian no admet el format de cerca de Logseq, de manera que les ce
 
 [importer.logseq.name-flashcards]
 original=Keep flashcards
-translation=Conserva les targetes de memòria
+translation=Conserva les targetes d'estudi
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=Obsidian no admet les targetes de memòria de Logseq, de manera que els Marcadors de targetes i els embolcalls cloze s'importen com a text sense format.
+translation=Obsidian no admet les targetes d'estudi de Logseq, de manera que els Marcadors de targeta i els embolcalls cloze s'importen com a text sense format.
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking

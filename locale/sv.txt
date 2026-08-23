@@ -1468,15 +1468,15 @@ translation=Läs instruktionerna för att importera från Logseq.
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
-translation=Välj en grafmapp som innehåller sidor, journaler och tillgångar.
+translation=Välj en grafmapp som innehåller sidor, journaler och resurser.
 
 [importer.logseq.name-use-daily-notes]
 original=Use daily notes settings
-translation=Använd inställningar för dagliga anteckningar
+translation=Använd inställningar för Dagliga anteckningar
 
 [importer.logseq.desc-use-daily-notes]
 original=Write journals to the configured daily notes folder and filename format.
-translation=Skriv journaler till den konfigurerade mappen och filnamnsformatet för dagliga anteckningar.
+translation=Skriv journaler till den konfigurerade mappen och filnamnsformatet för Dagliga anteckningar.
 
 [importer.logseq.name-queries]
 original=Keep queries
@@ -1492,7 +1492,7 @@ translation=Behåll flashcards
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=Obsidian stöder inte Logseqs flashcards, så kortmarkörer och cloze-omslutningar importeras som oformaterad text.
+translation=Obsidian stöder inte Logseqs flashcards, så kortmarkörer och cloze-omslag importeras som oformaterad text.
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
@@ -1508,7 +1508,7 @@ translation=Välj en Logseq-grafmapp.
 
 [importer.logseq.msg-no-notes]
 original=The selected folder has no Markdown notes under pages or journals.
-translation=Den valda mappen har inga Markdown-anteckningar under pages eller journals.
+translation=Den valda mappen innehåller inga Markdown-anteckningar under pages eller journals.
 
 [importer.logseq.reason-empty-page]
 original=The converted page is empty

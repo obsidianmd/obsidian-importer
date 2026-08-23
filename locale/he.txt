@@ -124,11 +124,11 @@ translation=Notion
 
 [outliner.name-flatten-outlines]
 original=Flatten outlines
-translation=שטח מתארים
+translation=שטח מבני מתאר
 
 [outliner.desc-flatten-outlines]
 original=Convert outlines into paragraphs, headings, and lists.
-translation=המר מתארים לפסקאות, כותרות ורשימות.
+translation=המר מבני מתאר לפסקאות, כותרות ורשימות.
 
 [modal.title-pick-format]
 original=Import data into Obsidian
@@ -1464,11 +1464,11 @@ translation=מקור Logseq
 
 [importer.logseq.desc-instructions]
 original=Read the instructions for importing from Logseq.
-translation=קראו את ההוראות לייבוא מ-Logseq.
+translation=קרא את ההוראות לייבוא מ-Logseq.
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
-translation=בחר תיקייה אחת של גרף המכילה דפים, יומנים ונכסים.
+translation=בחר תיקיית גרף אחת המכילה דפים, יומנים ונכסים.
 
 [importer.logseq.name-use-daily-notes]
 original=Use daily notes settings
@@ -1476,7 +1476,7 @@ translation=השתמש בהגדרות הערות יומיות
 
 [importer.logseq.desc-use-daily-notes]
 original=Write journals to the configured daily notes folder and filename format.
-translation=כתוב יומנים לתיקייה וגם עיצוב שם הקובץ שהוגדרו עבור הערות יומיות.
+translation=כתוב יומנים לתיקיית הערות יומיות ועיצוב שם הקובץ שהוגדרו.
 
 [importer.logseq.name-queries]
 original=Keep queries
@@ -1484,7 +1484,7 @@ translation=שמור שאילתות
 
 [importer.logseq.desc-queries]
 original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
-translation=Obsidian לא תומך בעיצוב השאילתות של Logseq, ולכן שאילתות מיובאות כבלוקי קוד.
+translation=Obsidian לא תומך בעיצוב השאילתות של Logseq, לכן שאילתות מיובאות כבלוקי קוד.
 
 [importer.logseq.name-flashcards]
 original=Keep flashcards
@@ -1492,7 +1492,7 @@ translation=שמור כרטיסיות
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=Obsidian לא תומך בכרטיסיות של Logseq, ולכן סימנים של כרטיסיות ועטיפות מחיקה מיובאים כטקסט רגיל.
+translation=Obsidian לא תומך בכרטיסיות של Logseq, לכן סימנים של כרטיסיות ועטיפות השלמה מיובאים כטקסט רגיל.
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
@@ -1500,11 +1500,11 @@ translation=שמור מעקב זמן
 
 [importer.logseq.desc-time-tracking]
 original=Obsidian doesn't support Logseq's time tracking, so LOGBOOK and CLOCK entries are imported as plain text.
-translation=Obsidian לא תומך במעקב הזמן של Logseq, ולכן רשומות LOGBOOK וגם CLOCK מיובאות כטקסט רגיל.
+translation=Obsidian לא תומך במעקב הזמן של Logseq, לכן רשומות LOGBOOK ו-CLOCK מיובאות כטקסט רגיל.
 
 [importer.logseq.msg-pick-graph]
 original=Please choose one Logseq graph folder.
-translation=אנא בחר תיקייה אחת של גרף Logseq.
+translation=אנא בחר תיקיית גרף אחת של Logseq.
 
 [importer.logseq.msg-no-notes]
 original=The selected folder has no Markdown notes under pages or journals.
@@ -1516,7 +1516,7 @@ translation=הדף שהומר ריק
 
 [importer.logseq.reason-missing-asset]
 original=Referenced by {{name}}, but missing from the graph
-translation=מקושר על ידי {{name}}, אך חסר מהגרף
+translation=מאוזכר על ידי {{name}}, אך חסר מהגרף
 
 [importer.logseq.reason-whiteboards]
 original=Logseq whiteboards are not supported by Obsidian

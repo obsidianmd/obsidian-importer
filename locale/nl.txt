@@ -128,7 +128,7 @@ translation=Overzichten platmaken
 
 [outliner.desc-flatten-outlines]
 original=Convert outlines into paragraphs, headings, and lists.
-translation=Converteer overzichten naar alinea's, koppen en lijsten.
+translation=Overzichten omzetten naar alinea's, koppen en lijsten.
 
 [modal.title-pick-format]
 original=Import data into Obsidian
@@ -1468,7 +1468,7 @@ translation=Lees de instructies voor het importeren vanuit Logseq.
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
-translation=Kies één grafiekmap met pagina's, journaals en bijlagen.
+translation=Kies één grafiekmap met pagina's, dagboeken en bijlagen.
 
 [importer.logseq.name-use-daily-notes]
 original=Use daily notes settings
@@ -1476,7 +1476,7 @@ translation=Dagnotities-instellingen gebruiken
 
 [importer.logseq.desc-use-daily-notes]
 original=Write journals to the configured daily notes folder and filename format.
-translation=Schrijf journaals naar de geconfigureerde map en bestandsnaamindeling voor Dagnotities.
+translation=Schrijf dagboeken naar de geconfigureerde map en bestandsnaamindeling voor Dagnotities.
 
 [importer.logseq.name-queries]
 original=Keep queries

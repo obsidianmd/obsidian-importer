@@ -1476,7 +1476,7 @@ translation=使用日记设置
 
 [importer.logseq.desc-use-daily-notes]
 original=Write journals to the configured daily notes folder and filename format.
-translation=将日志写入已配置的日记文件夹并使用其文件名文本格式。
+translation=将日志写入已配置的日记文件夹，并使用相应的文件名文本格式。
 
 [importer.logseq.name-queries]
 original=Keep queries
@@ -1492,7 +1492,7 @@ translation=保留闪卡
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=Obsidian 不支持 Logseq 的闪卡，因此卡片项目符号和完形填空包裹将作为纯文本导入。
+translation=Obsidian 不支持 Logseq 的闪卡，因此卡片项目符号和完形填空包裹符将作为纯文本导入。
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking

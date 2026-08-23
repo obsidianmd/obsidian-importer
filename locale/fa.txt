@@ -124,11 +124,11 @@ translation=Notion
 
 [outliner.name-flatten-outlines]
 original=Flatten outlines
-translation=مسطح‌سازی طرح‌نماها
+translation=مسطح‌سازی طرح‌های کلی
 
 [outliner.desc-flatten-outlines]
 original=Convert outlines into paragraphs, headings, and lists.
-translation=تبدیل طرح‌نماها به پاراگراف‌ها، سرعنوان‌ها و فهرست‌ها.
+translation=تبدیل طرح‌های کلی به پاراگراف‌ها، سرتیترها و فهرست‌ها.
 
 [modal.title-pick-format]
 original=Import data into Obsidian
@@ -1464,11 +1464,11 @@ translation=منبع Logseq
 
 [importer.logseq.desc-instructions]
 original=Read the instructions for importing from Logseq.
-translation=دستورالعمل‌های وارد کردن از Logseq را بخوانید.
+translation=دستورالعمل‌های واردکردن از Logseq را بخوانید.
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
-translation=یک پوشه گراف شامل صفحات، ژورنال‌ها و دارایی‌ها را انتخاب کنید.
+translation=یک پوشه گراف شامل صفحات، ژورنال‌ها و فایل‌های پیوست را انتخاب کنید.
 
 [importer.logseq.name-use-daily-notes]
 original=Use daily notes settings
@@ -1476,7 +1476,7 @@ translation=استفاده از تنظیمات روزنوشت‌ها
 
 [importer.logseq.desc-use-daily-notes]
 original=Write journals to the configured daily notes folder and filename format.
-translation=ژورنال‌ها را در پوشه و قالب‌بندی نام فایل پیکربندی‌شده روزنوشت‌ها بنویسید.
+translation=ژورنال‌ها در پوشه و قالب‌بندی نام فایل پیکربندی‌شده روزنوشت‌ها نوشته می‌شوند.
 
 [importer.logseq.name-queries]
 original=Keep queries
@@ -1484,7 +1484,7 @@ translation=حفظ عبارت‌های جست‌وجو
 
 [importer.logseq.desc-queries]
 original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
-translation=Obsidian از قالب عبارت جست‌وجوی Logseq پشتیبانی نمی‌کند، بنابراین عبارت‌های جست‌وجو به صورت بلوک‌های کد واردسازی می‌شوند.
+translation=Obsidian از قالب عبارت جست‌وجوی Logseq پشتیبانی نمی‌کند، بنابراین عبارت‌های جست‌وجو به‌صورت بلوک‌های کد وارد می‌شوند.
 
 [importer.logseq.name-flashcards]
 original=Keep flashcards
@@ -1492,7 +1492,7 @@ translation=حفظ فلش‌کارت‌ها
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=Obsidian از فلش‌کارت‌های Logseq پشتیبانی نمی‌کند، بنابراین نشانگرهای کارت و پوشش‌های cloze به صورت متن ساده واردسازی می‌شوند.
+translation=Obsidian از فلش‌کارت‌های Logseq پشتیبانی نمی‌کند، بنابراین نشانگرهای کارت و پوشش‌های cloze به‌صورت متن ساده وارد می‌شوند.
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
@@ -1500,7 +1500,7 @@ translation=حفظ ردیابی زمان
 
 [importer.logseq.desc-time-tracking]
 original=Obsidian doesn't support Logseq's time tracking, so LOGBOOK and CLOCK entries are imported as plain text.
-translation=Obsidian از ردیابی زمان Logseq پشتیبانی نمی‌کند، بنابراین ورودی‌های LOGBOOK و CLOCK به صورت متن ساده واردسازی می‌شوند.
+translation=Obsidian از ردیابی زمان Logseq پشتیبانی نمی‌کند، بنابراین ورودی‌های LOGBOOK و CLOCK به‌صورت متن ساده وارد می‌شوند.
 
 [importer.logseq.msg-pick-graph]
 original=Please choose one Logseq graph folder.
@@ -1508,7 +1508,7 @@ translation=لطفاً یک پوشه گراف Logseq انتخاب کنید.
 
 [importer.logseq.msg-no-notes]
 original=The selected folder has no Markdown notes under pages or journals.
-translation=پوشه انتخاب‌شده هیچ یادداشت Markdown در بخش pages یا journals ندارد.
+translation=پوشه انتخاب‌شده هیچ یادداشت Markdown در pages یا journals ندارد.
 
 [importer.logseq.reason-empty-page]
 original=The converted page is empty
@@ -1516,7 +1516,7 @@ translation=صفحه تبدیل‌شده خالی است
 
 [importer.logseq.reason-missing-asset]
 original=Referenced by {{name}}, but missing from the graph
-translation=توسط {{name}} ارجاع داده شده، اما در گراف یافت نشد
+translation=توسط {{name}} ارجاع شده، اما در گراف موجود نیست
 
 [importer.logseq.reason-whiteboards]
 original=Logseq whiteboards are not supported by Obsidian

@@ -1464,7 +1464,7 @@ translation=Nguồn Logseq
 
 [importer.logseq.desc-instructions]
 original=Read the instructions for importing from Logseq.
-translation=Đọc hướng dẫn nhập dữ liệu từ Logseq.
+translation=Đọc hướng dẫn nhập từ Logseq.
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
@@ -1492,7 +1492,7 @@ translation=Giữ thẻ ghi nhớ
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=Obsidian không hỗ trợ thẻ ghi nhớ của Logseq, nên các dấu đánh dấu thẻ và trình bao cloze được nhập dưới dạng văn bản thuần.
+translation=Obsidian không hỗ trợ thẻ ghi nhớ của Logseq, nên các dấu đánh dấu thẻ và bộ bọc cloze được nhập dưới dạng văn bản thuần.
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
@@ -1508,7 +1508,7 @@ translation=Vui lòng chọn một thư mục đồ thị Logseq.
 
 [importer.logseq.msg-no-notes]
 original=The selected folder has no Markdown notes under pages or journals.
-translation=Thư mục đã chọn không có ghi chú Markdown nào trong pages hoặc journals.
+translation=Thư mục đã chọn không có ghi chú Markdown trong pages hoặc journals.
 
 [importer.logseq.reason-empty-page]
 original=The converted page is empty
@@ -1516,7 +1516,7 @@ translation=Trang đã chuyển đổi trống
 
 [importer.logseq.reason-missing-asset]
 original=Referenced by {{name}}, but missing from the graph
-translation=Được tham chiếu bởi {{name}}, nhưng không tìm thấy trong đồ thị
+translation=Được tham chiếu bởi {{name}}, nhưng không có trong đồ thị
 
 [importer.logseq.reason-whiteboards]
 original=Logseq whiteboards are not supported by Obsidian

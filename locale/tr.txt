@@ -1464,11 +1464,11 @@ translation=Logseq kaynağı
 
 [importer.logseq.desc-instructions]
 original=Read the instructions for importing from Logseq.
-translation=Logseq'dan içe aktarma talimatlarını okuyun.
+translation=Logseq'ten içe aktarma talimatlarını okuyun.
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
-translation=Sayfalar, günlükler ve varlıklar içeren bir grafik klasörü seçin.
+translation=Sayfaları, günlükleri ve varlıkları içeren bir grafik klasörü seçin.
 
 [importer.logseq.name-use-daily-notes]
 original=Use daily notes settings
@@ -1476,7 +1476,7 @@ translation=Günlük Notlar ayarlarını kullan
 
 [importer.logseq.desc-use-daily-notes]
 original=Write journals to the configured daily notes folder and filename format.
-translation=Günlükleri yapılandırılmış Günlük Notlar klasörüne ve dosya adı biçimine yazar.
+translation=Günlükleri yapılandırılmış Günlük Notlar klasörüne ve dosya adı biçimine yaz.
 
 [importer.logseq.name-queries]
 original=Keep queries
@@ -1492,7 +1492,7 @@ translation=Bilgi kartlarını koru
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=Obsidian, Logseq'in bilgi kartlarını desteklemez; bu nedenle kart İşaretçileri ve cloze sarmalayıcılar düz metin olarak içe aktarılır.
+translation=Obsidian, Logseq'in bilgi kartlarını desteklemez; bu nedenle kart İşaretçileri ve cloze sarmalayıcıları düz metin olarak içe aktarılır.
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
@@ -1520,7 +1520,7 @@ translation={{name}} tarafından referans verilmiş ancak grafikte bulunamadı
 
 [importer.logseq.reason-whiteboards]
 original=Logseq whiteboards are not supported by Obsidian
-translation=Logseq beyaz tahtaları Obsidian tarafından desteklenmemektedir
+translation=Logseq beyaz tahtaları Obsidian tarafından desteklenmiyor
 
 [importer.onenote.name]
 original=Microsoft OneNote

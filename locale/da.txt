@@ -124,7 +124,7 @@ translation=Notion
 
 [outliner.name-flatten-outlines]
 original=Flatten outlines
-translation=Flad dispositioner ud
+translation=Fladgør dispositioner
 
 [outliner.desc-flatten-outlines]
 original=Convert outlines into paragraphs, headings, and lists.
@@ -1468,15 +1468,15 @@ translation=Læs instruktionerne for import fra Logseq.
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
-translation=Vælg én graf-mappe, der indeholder sider, journaler og aktiver.
+translation=Vælg én graf-mappe, der indeholder sider, journaler og assets.
 
 [importer.logseq.name-use-daily-notes]
 original=Use daily notes settings
-translation=Brug indstillinger for daglige noter
+translation=Brug indstillinger for Daglige noter
 
 [importer.logseq.desc-use-daily-notes]
 original=Write journals to the configured daily notes folder and filename format.
-translation=Skriv journaler til den konfigurerede mappe og filnavnformat for daglige noter.
+translation=Skriv journaler til den konfigurerede mappe og filnavnformat for Daglige noter.
 
 [importer.logseq.name-queries]
 original=Keep queries
@@ -1492,7 +1492,7 @@ translation=Behold flashcards
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=Obsidian understøtter ikke Logseq's flashcards, så kortmarkører og cloze-ombrydninger importeres som almindelig tekst.
+translation=Obsidian understøtter ikke Logseq's flashcards, så kort-markører og cloze-indpakninger importeres som almindelig tekst.
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
@@ -1520,7 +1520,7 @@ translation=Refereret af {{name}}, men mangler i grafen
 
 [importer.logseq.reason-whiteboards]
 original=Logseq whiteboards are not supported by Obsidian
-translation=Logseq-whiteboards understøttes ikke af Obsidian
+translation=Logseq whiteboards understøttes ikke af Obsidian
 
 [importer.onenote.name]
 original=Microsoft OneNote

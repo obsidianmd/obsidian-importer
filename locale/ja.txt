@@ -124,7 +124,7 @@ translation=Notion
 
 [outliner.name-flatten-outlines]
 original=Flatten outlines
-translation=アウトラインをフラット化
+translation=アウトラインのフラット化
 
 [outliner.desc-flatten-outlines]
 original=Convert outlines into paragraphs, headings, and lists.
@@ -1464,11 +1464,11 @@ translation=Logseq ソース
 
 [importer.logseq.desc-instructions]
 original=Read the instructions for importing from Logseq.
-translation=Logseq からのインポート手順を確認してください。
+translation=Logseq からのインポート手順をお読みください。
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
-translation=pages、journals、assetsを含むグラフフォルダを1つ選択してください。
+translation=ページ、ジャーナル、アセットを含むグラフフォルダを1つ選択してください。
 
 [importer.logseq.name-use-daily-notes]
 original=Use daily notes settings
@@ -1476,7 +1476,7 @@ translation=デイリーノート設定を使用
 
 [importer.logseq.desc-use-daily-notes]
 original=Write journals to the configured daily notes folder and filename format.
-translation=ジャーナルを設定済みのデイリーノートフォルダおよびファイル名フォーマットに書き出します。
+translation=ジャーナルを設定済みのデイリーノートフォルダとファイル名フォーマットに書き出します。
 
 [importer.logseq.name-queries]
 original=Keep queries
@@ -1500,7 +1500,7 @@ translation=タイムトラッキングを保持
 
 [importer.logseq.desc-time-tracking]
 original=Obsidian doesn't support Logseq's time tracking, so LOGBOOK and CLOCK entries are imported as plain text.
-translation=Obsidian は Logseq のタイムトラッキングをサポートしていないため、LOGBOOK および CLOCK エントリはプレーンテキストとしてインポートされます。
+translation=Obsidian は Logseq のタイムトラッキングをサポートしていないため、LOGBOOK と CLOCK のエントリはプレーンテキストとしてインポートされます。
 
 [importer.logseq.msg-pick-graph]
 original=Please choose one Logseq graph folder.
@@ -1516,7 +1516,7 @@ translation=変換後のページは空です
 
 [importer.logseq.reason-missing-asset]
 original=Referenced by {{name}}, but missing from the graph
-translation={{name}} から参照されていますが、グラフに存在しません
+translation={{name}} から参照されていますが、グラフ内に見つかりません
 
 [importer.logseq.reason-whiteboards]
 original=Logseq whiteboards are not supported by Obsidian

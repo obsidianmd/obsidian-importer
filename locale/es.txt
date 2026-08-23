@@ -1476,7 +1476,7 @@ translation=Usar ajustes de Notas diarias
 
 [importer.logseq.desc-use-daily-notes]
 original=Write journals to the configured daily notes folder and filename format.
-translation=Escribir los diarios en la carpeta y el formato de nombre de archivo configurados para las Notas diarias.
+translation=Escribir los diarios en la carpeta de Notas diarias configurada y con el formato de nombre de archivo establecido.
 
 [importer.logseq.name-queries]
 original=Keep queries
@@ -1484,7 +1484,7 @@ translation=Conservar consultas
 
 [importer.logseq.desc-queries]
 original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
-translation=Obsidian no admite el formato de Consulta de Logseq, por lo que las consultas se importan como bloques de Código.
+translation=Obsidian no admite el formato de consultas de Logseq, por lo que las consultas se importan como bloques de código.
 
 [importer.logseq.name-flashcards]
 original=Keep flashcards
@@ -1492,15 +1492,15 @@ translation=Conservar tarjetas de estudio
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=Obsidian no admite las tarjetas de estudio de Logseq, por lo que los Marcadores de tarjetas y los envoltorios cloze se importan como texto sin formato.
+translation=Obsidian no admite las tarjetas de estudio de Logseq, por lo que los marcadores de tarjetas y los envoltorios cloze se importan como texto sin formato.
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
-translation=Conservar seguimiento de tiempo
+translation=Conservar seguimiento del tiempo
 
 [importer.logseq.desc-time-tracking]
 original=Obsidian doesn't support Logseq's time tracking, so LOGBOOK and CLOCK entries are imported as plain text.
-translation=Obsidian no admite el seguimiento de tiempo de Logseq, por lo que las entradas LOGBOOK y CLOCK se importan como texto sin formato.
+translation=Obsidian no admite el seguimiento del tiempo de Logseq, por lo que las entradas LOGBOOK y CLOCK se importan como texto sin formato.
 
 [importer.logseq.msg-pick-graph]
 original=Please choose one Logseq graph folder.
@@ -1508,7 +1508,7 @@ translation=Por favor, elige una carpeta de grafo de Logseq.
 
 [importer.logseq.msg-no-notes]
 original=The selected folder has no Markdown notes under pages or journals.
-translation=La carpeta seleccionada no tiene notas Markdown en páginas ni diarios.
+translation=La carpeta seleccionada no tiene notas Markdown en pages ni journals.
 
 [importer.logseq.reason-empty-page]
 original=The converted page is empty

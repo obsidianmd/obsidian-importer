@@ -124,11 +124,11 @@ translation=Notion
 
 [outliner.name-flatten-outlines]
 original=Flatten outlines
-translation=Ratakan kerangka
+translation=Ratakan outline
 
 [outliner.desc-flatten-outlines]
 original=Convert outlines into paragraphs, headings, and lists.
-translation=Ubah kerangka menjadi paragraf, judul, dan daftar.
+translation=Ubah outline menjadi paragraf, heading, dan daftar.
 
 [modal.title-pick-format]
 original=Import data into Obsidian
@@ -1476,7 +1476,7 @@ translation=Gunakan pengaturan Catatan harian
 
 [importer.logseq.desc-use-daily-notes]
 original=Write journals to the configured daily notes folder and filename format.
-translation=Tulis jurnal ke folder Catatan harian dan format nama berkas yang sudah dikonfigurasi.
+translation=Tulis jurnal ke folder Catatan harian dan format nama file yang telah dikonfigurasi.
 
 [importer.logseq.name-queries]
 original=Keep queries
@@ -1484,15 +1484,15 @@ translation=Pertahankan kueri
 
 [importer.logseq.desc-queries]
 original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
-translation=Obsidian tidak mendukung format kueri Logseq, sehingga kueri diimpor sebagai blok Kode.
+translation=Obsidian tidak mendukung format kueri Logseq, sehingga kueri diimpor sebagai blok kode.
 
 [importer.logseq.name-flashcards]
 original=Keep flashcards
-translation=Pertahankan kartu flash
+translation=Pertahankan flashcard
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=Obsidian tidak mendukung kartu flash Logseq, sehingga Penanda kartu dan pembungkus cloze diimpor sebagai teks biasa.
+translation=Obsidian tidak mendukung flashcard Logseq, sehingga penanda kartu dan pembungkus cloze diimpor sebagai teks biasa.
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
@@ -1512,7 +1512,7 @@ translation=Folder yang dipilih tidak memiliki catatan Markdown di bawah halaman
 
 [importer.logseq.reason-empty-page]
 original=The converted page is empty
-translation=Halaman yang dikonversi kosong
+translation=Halaman hasil konversi kosong
 
 [importer.logseq.reason-missing-asset]
 original=Referenced by {{name}}, but missing from the graph

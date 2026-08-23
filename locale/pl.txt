@@ -128,7 +128,7 @@ translation=Spłaszcz konspekty
 
 [outliner.desc-flatten-outlines]
 original=Convert outlines into paragraphs, headings, and lists.
-translation=Przekształć konspekty w akapity, nagłówki i listy.
+translation=Konwertuj konspekty na akapity, nagłówki i listy.
 
 [modal.title-pick-format]
 original=Import data into Obsidian
@@ -1464,7 +1464,7 @@ translation=Źródło Logseq
 
 [importer.logseq.desc-instructions]
 original=Read the instructions for importing from Logseq.
-translation=Przeczytaj instrukcje dotyczące importowania z Logseq.
+translation=Przeczytaj instrukcje importowania z Logseq.
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
@@ -1476,7 +1476,7 @@ translation=Użyj ustawień Dziennika
 
 [importer.logseq.desc-use-daily-notes]
 original=Write journals to the configured daily notes folder and filename format.
-translation=Zapisuj dzienniki w skonfigurowanym folderze Dziennika z odpowiednim formatem nazwy pliku.
+translation=Zapisuj dzienniki do skonfigurowanego folderu Dziennika i formatu nazwy pliku.
 
 [importer.logseq.name-queries]
 original=Keep queries
@@ -1484,7 +1484,7 @@ translation=Zachowaj zapytania
 
 [importer.logseq.desc-queries]
 original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
-translation=Obsidian nie obsługuje formatu zapytań Logseq, dlatego zapytania są importowane jako bloki kodu.
+translation=Obsidian nie obsługuje formatu zapytań Logseq, więc zapytania są importowane jako bloki kodu.
 
 [importer.logseq.name-flashcards]
 original=Keep flashcards
@@ -1492,7 +1492,7 @@ translation=Zachowaj fiszki
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=Obsidian nie obsługuje fiszek Logseq, dlatego Znaczniki kart i otoczenia typu cloze są importowane jako zwykły tekst.
+translation=Obsidian nie obsługuje fiszek Logseq, więc znaczniki kart i otoczenia luk są importowane jako zwykły tekst.
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
@@ -1500,7 +1500,7 @@ translation=Zachowaj śledzenie czasu
 
 [importer.logseq.desc-time-tracking]
 original=Obsidian doesn't support Logseq's time tracking, so LOGBOOK and CLOCK entries are imported as plain text.
-translation=Obsidian nie obsługuje śledzenia czasu Logseq, dlatego wpisy LOGBOOK i CLOCK są importowane jako zwykły tekst.
+translation=Obsidian nie obsługuje śledzenia czasu Logseq, więc wpisy LOGBOOK i CLOCK są importowane jako zwykły tekst.
 
 [importer.logseq.msg-pick-graph]
 original=Please choose one Logseq graph folder.
@@ -1512,11 +1512,11 @@ translation=Wybrany folder nie zawiera notatek Markdown w folderach pages ani jo
 
 [importer.logseq.reason-empty-page]
 original=The converted page is empty
-translation=Przekonwertowana strona jest pusta
+translation=Skonwertowana strona jest pusta
 
 [importer.logseq.reason-missing-asset]
 original=Referenced by {{name}}, but missing from the graph
-translation=Odwołanie z {{name}}, ale brak w grafie
+translation=Powiązany z {{name}}, ale brakuje go w grafie
 
 [importer.logseq.reason-whiteboards]
 original=Logseq whiteboards are not supported by Obsidian

@@ -124,11 +124,11 @@ translation=Notion
 
 [outliner.name-flatten-outlines]
 original=Flatten outlines
-translation=ធ្វើឱ្យគ្រោងស្មើ
+translation=បង្រួមគ្រោងការណ៍
 
 [outliner.desc-flatten-outlines]
 original=Convert outlines into paragraphs, headings, and lists.
-translation=បម្លែងគ្រោងទៅជាកថាខណ្ឌ ចំណងជើង និងបញ្ជី។
+translation=បំលែងគ្រោងការណ៍ទៅជាកថាខណ្ឌ ចំណងជើង និងបញ្ជី។
 
 [modal.title-pick-format]
 original=Import data into Obsidian
@@ -1468,7 +1468,7 @@ translation=អានការណែនាំសម្រាប់ការន�
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
-translation=ជ្រើសរើសថតក្រាហ្វមួយដែលមានទំព័រ កំណត់ហេតុប្រចាំថ្ងៃ និងទ្រព្យសកម្ម។
+translation=ជ្រើសរើសថតក្រាហ្វមួយដែលមានទំព័រ កំណត់ហេតុប្រចាំថ្ងៃ និងឯកសារភ្ជាប់។
 
 [importer.logseq.name-use-daily-notes]
 original=Use daily notes settings
@@ -1476,7 +1476,7 @@ translation=ប្រើការកំណត់កំណត់ចំណាំ�
 
 [importer.logseq.desc-use-daily-notes]
 original=Write journals to the configured daily notes folder and filename format.
-translation=សរសេរកំណត់ហេតុប្រចាំថ្ងៃទៅថតកំណត់ចំណាំប្រចាំថ្ងៃ និងទម្រង់ឈ្មោះឯកសារដែលបានកំណត់រួច។
+translation=សរសេរកំណត់ហេតុប្រចាំថ្ងៃទៅថត និងទម្រង់ឈ្មោះឯកសារកំណត់ចំណាំប្រចាំថ្ងៃដែលបានកំណត់រួច។
 
 [importer.logseq.name-queries]
 original=Keep queries
@@ -1492,7 +1492,7 @@ translation=រក្សាកាតចងចាំ
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=Obsidian មិនគាំទ្រកាតចងចាំរបស់ Logseq ទេ ដូច្នេះសញ្ញាសម្គាល់កាត និងអ្នកវេចខ្ចប់ cloze ត្រូវបាននាំចូលជាអក្សរធម្មតា។
+translation=Obsidian មិនគាំទ្រកាតចងចាំរបស់ Logseq ទេ ដូច្នេះសញ្ញាសម្គាល់កាត និងការរុំ cloze ត្រូវបាននាំចូលជាអក្សរធម្មតា។
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
@@ -1512,15 +1512,15 @@ translation=ថតដែលបានជ្រើសរើសមិនមាន�
 
 [importer.logseq.reason-empty-page]
 original=The converted page is empty
-translation=ទំព័រដែលបានបម្លែងទទេ
+translation=ទំព័រដែលបានបំលែងគឺទទេ
 
 [importer.logseq.reason-missing-asset]
 original=Referenced by {{name}}, but missing from the graph
-translation=បានយោងដោយ {{name}} ប៉ុន្តែបាត់ពីក្រាហ្វ
+translation=បានយោងដោយ {{name}} ប៉ុន្តែមិនមាននៅក្នុងក្រាហ្វទេ
 
 [importer.logseq.reason-whiteboards]
 original=Logseq whiteboards are not supported by Obsidian
-translation=Obsidian មិនគាំទ្រក្តារខៀនរបស់ Logseq ទេ
+translation=Obsidian មិនគាំទ្រក្តារសរបស់ Logseq ទេ
 
 [importer.onenote.name]
 original=Microsoft OneNote

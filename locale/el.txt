@@ -124,11 +124,11 @@ translation=Notion
 
 [outliner.name-flatten-outlines]
 original=Flatten outlines
-translation=Ισοπέδωση διαρθρώσεων
+translation=Ισοπέδωση περιγραμμάτων
 
 [outliner.desc-flatten-outlines]
 original=Convert outlines into paragraphs, headings, and lists.
-translation=Μετατροπή διαρθρώσεων σε παραγράφους, επικεφαλίδες και λίστες.
+translation=Μετατροπή περιγραμμάτων σε παραγράφους, επικεφαλίδες και λίστες.
 
 [modal.title-pick-format]
 original=Import data into Obsidian
@@ -1464,11 +1464,11 @@ translation=Πηγή Logseq
 
 [importer.logseq.desc-instructions]
 original=Read the instructions for importing from Logseq.
-translation=Διαβάστε τις οδηγίες για εισαγωγή από το Logseq.
+translation=Διαβάστε τις οδηγίες για εισαγωγή από Logseq.
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
-translation=Επιλέξτε έναν φάκελο γραφήματος που περιέχει σελίδες, ημερολόγια και πόρους.
+translation=Επιλέξτε έναν φάκελο γράφου που περιέχει σελίδες, ημερολόγια και αρχεία πολυμέσων.
 
 [importer.logseq.name-use-daily-notes]
 original=Use daily notes settings
@@ -1504,11 +1504,11 @@ translation=Το Obsidian δεν υποστηρίζει την παρακολο�
 
 [importer.logseq.msg-pick-graph]
 original=Please choose one Logseq graph folder.
-translation=Παρακαλώ επιλέξτε έναν φάκελο γραφήματος Logseq.
+translation=Παρακαλώ επιλέξτε έναν φάκελο γράφου Logseq.
 
 [importer.logseq.msg-no-notes]
 original=The selected folder has no Markdown notes under pages or journals.
-translation=Ο επιλεγμένος φάκελος δεν περιέχει σημειώσεις Markdown στους υποφακέλους pages ή journals.
+translation=Ο επιλεγμένος φάκελος δεν περιέχει σημειώσεις Markdown στα pages ή journals.
 
 [importer.logseq.reason-empty-page]
 original=The converted page is empty
@@ -1516,11 +1516,11 @@ translation=Η μετατρεπόμενη σελίδα είναι κενή
 
 [importer.logseq.reason-missing-asset]
 original=Referenced by {{name}}, but missing from the graph
-translation=Αναφέρεται από το {{name}}, αλλά λείπει από το γράφημα
+translation=Αναφέρεται από {{name}}, αλλά λείπει από τον γράφο
 
 [importer.logseq.reason-whiteboards]
 original=Logseq whiteboards are not supported by Obsidian
-translation=Οι πίνακες λευκής επιφάνειας του Logseq δεν υποστηρίζονται από το Obsidian
+translation=Οι πίνακες του Logseq δεν υποστηρίζονται από το Obsidian
 
 [importer.onenote.name]
 original=Microsoft OneNote

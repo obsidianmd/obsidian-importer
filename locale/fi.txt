@@ -1468,7 +1468,7 @@ translation=Lue ohjeet Logseq-tuontia varten.
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
-translation=Valitse yksi graafin kansio, joka sisältää sivut, päiväkirjat ja resurssit.
+translation=Valitse yksi graafin kansio, joka sisältää sivut, päiväkirjat ja liitetiedostot.
 
 [importer.logseq.name-use-daily-notes]
 original=Use daily notes settings
@@ -1492,7 +1492,7 @@ translation=Säilytä muistikortit
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=Obsidian ei tue Logseq-muistikortteja, joten korttien merkit ja aukkotehtävien kääreet tuodaan tekstinä ilman muotoilua.
+translation=Obsidian ei tue Logseq-muistikortteja, joten korttien merkit ja aukkotäyttöjen käärerakenteet tuodaan tekstinä ilman muotoilua.
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
@@ -1520,7 +1520,7 @@ translation=Viitattu muistiinpanosta {{name}}, mutta puuttuu graafista
 
 [importer.logseq.reason-whiteboards]
 original=Logseq whiteboards are not supported by Obsidian
-translation=Obsidian ei tue Logseq-tauluja
+translation=Obsidian ei tue Logseq-valkotauluja
 
 [importer.onenote.name]
 original=Microsoft OneNote

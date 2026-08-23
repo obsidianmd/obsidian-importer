@@ -1476,7 +1476,7 @@ translation=Použít nastavení každodenních poznámek
 
 [importer.logseq.desc-use-daily-notes]
 original=Write journals to the configured daily notes folder and filename format.
-translation=Zapisovat deníky do nakonfigurované složky každodenních poznámek a formátu názvu souboru.
+translation=Zapsat deníky do nakonfigurované složky každodenních poznámek a formátu názvů souborů.
 
 [importer.logseq.name-queries]
 original=Keep queries
@@ -1484,7 +1484,7 @@ translation=Zachovat dotazy
 
 [importer.logseq.desc-queries]
 original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
-translation=Obsidian nepodporuje formát dotazů Logseq, proto se dotazy importují jako bloky kódu.
+translation=Obsidian nepodporuje formát dotazů Logseq, proto jsou dotazy importovány jako bloky kódu.
 
 [importer.logseq.name-flashcards]
 original=Keep flashcards
@@ -1492,7 +1492,7 @@ translation=Zachovat kartičky
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=Obsidian nepodporuje kartičky Logseq, proto se značky karet a obaly cloze importují jako prostý text.
+translation=Obsidian nepodporuje kartičky Logseq, proto jsou značky kartiček a cloze wrappery importovány jako prostý text.
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
@@ -1500,15 +1500,15 @@ translation=Zachovat sledování času
 
 [importer.logseq.desc-time-tracking]
 original=Obsidian doesn't support Logseq's time tracking, so LOGBOOK and CLOCK entries are imported as plain text.
-translation=Obsidian nepodporuje sledování času v Logseq, proto se záznamy LOGBOOK a CLOCK importují jako prostý text.
+translation=Obsidian nepodporuje sledování času v Logseq, proto jsou záznamy LOGBOOK a CLOCK importovány jako prostý text.
 
 [importer.logseq.msg-pick-graph]
 original=Please choose one Logseq graph folder.
-translation=Vyberte prosím jednu složku grafu Logseq.
+translation=Vyberte jednu složku grafu Logseq.
 
 [importer.logseq.msg-no-notes]
 original=The selected folder has no Markdown notes under pages or journals.
-translation=Vybraná složka neobsahuje žádné Markdown poznámky ve složkách pages nebo journals.
+translation=Vybraná složka neobsahuje žádné Markdown poznámky ve složkách pages ani journals.
 
 [importer.logseq.reason-empty-page]
 original=The converted page is empty

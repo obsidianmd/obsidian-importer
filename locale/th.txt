@@ -124,7 +124,7 @@ translation=Notion
 
 [outliner.name-flatten-outlines]
 original=Flatten outlines
-translation=ทำให้โครงร่างแบน
+translation=แปลงโครงร่างให้แบน
 
 [outliner.desc-flatten-outlines]
 original=Convert outlines into paragraphs, headings, and lists.
@@ -1460,7 +1460,7 @@ translation=Logseq (.md)
 
 [importer.logseq.label-id]
 original=Logseq source
-translation=โหมดซอร์ส Logseq
+translation=แหล่งข้อมูล Logseq
 
 [importer.logseq.desc-instructions]
 original=Read the instructions for importing from Logseq.
@@ -1468,7 +1468,7 @@ translation=อ่านคำแนะนำสำหรับการนำ�
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
-translation=เลือกโฟลเดอร์กราฟหนึ่งโฟลเดอร์ที่มี pages, journals และ assets
+translation=เลือกโฟลเดอร์กราฟหนึ่งโฟลเดอร์ที่มีเพจ บันทึกประจำวัน และไฟล์แนบ
 
 [importer.logseq.name-use-daily-notes]
 original=Use daily notes settings
@@ -1476,7 +1476,7 @@ translation=ใช้การตั้งค่าโน้ตประจำ�
 
 [importer.logseq.desc-use-daily-notes]
 original=Write journals to the configured daily notes folder and filename format.
-translation=เขียน journals ไปยังโฟลเดอร์โน้ตประจำวัน และ รูปแบบชื่อไฟล์ที่กำหนดไว้
+translation=เขียนบันทึกประจำวันไปยังโฟลเดอร์โน้ตประจำวันและรูปแบบชื่อไฟล์ที่กำหนดไว้
 
 [importer.logseq.name-queries]
 original=Keep queries
@@ -1492,7 +1492,7 @@ translation=เก็บแฟลชการ์ด
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=Obsidian ไม่รองรับแฟลชการ์ดของ Logseq ดังนั้นสัญลักษณ์แสดงหัวข้อย่อยการ์ดและตัวครอบ cloze จะถูกนำเข้าเป็นข้อความธรรมดา
+translation=Obsidian ไม่รองรับแฟลชการ์ดของ Logseq ดังนั้นสัญลักษณ์แสดงหัวข้อย่อยของการ์ดและตัวครอบ cloze จะถูกนำเข้าเป็นข้อความธรรมดา
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking

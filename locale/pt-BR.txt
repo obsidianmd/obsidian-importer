@@ -124,11 +124,11 @@ translation=Notion
 
 [outliner.name-flatten-outlines]
 original=Flatten outlines
-translation=Achatar estruturas de tópicos
+translation=Achatar contornos
 
 [outliner.desc-flatten-outlines]
 original=Convert outlines into paragraphs, headings, and lists.
-translation=Converter estruturas de tópicos em parágrafos, títulos e listas.
+translation=Converter contornos em parágrafos, cabeçalhos e listas.
 
 [modal.title-pick-format]
 original=Import data into Obsidian
@@ -1468,7 +1468,7 @@ translation=Leia as instruções para importar do Logseq.
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
-translation=Escolher uma pasta de grafo contendo páginas, diários e recursos.
+translation=Escolha uma pasta de grafo contendo páginas, diários e assets.
 
 [importer.logseq.name-use-daily-notes]
 original=Use daily notes settings
@@ -1484,7 +1484,7 @@ translation=Manter consultas
 
 [importer.logseq.desc-queries]
 original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
-translation=Obsidian não suporta o formato de Consulta do Logseq, então as consultas são importadas como blocos de Código.
+translation=Obsidian não suporta o formato de consulta do Logseq, então as consultas são importadas como blocos de Código.
 
 [importer.logseq.name-flashcards]
 original=Keep flashcards
@@ -1516,7 +1516,7 @@ translation=A página convertida está vazia
 
 [importer.logseq.reason-missing-asset]
 original=Referenced by {{name}}, but missing from the graph
-translation=Referenciado por {{name}}, mas ausente no grafo
+translation=Referenciado por {{name}}, mas ausente do grafo
 
 [importer.logseq.reason-whiteboards]
 original=Logseq whiteboards are not supported by Obsidian

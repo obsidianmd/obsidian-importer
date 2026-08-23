@@ -124,11 +124,11 @@ translation=Notion
 
 [outliner.name-flatten-outlines]
 original=Flatten outlines
-translation=Sploštiť obrysy
+translation=Sploštiť osnovy
 
 [outliner.desc-flatten-outlines]
 original=Convert outlines into paragraphs, headings, and lists.
-translation=Previesť obrysy na odseky, nadpisy a zoznamy.
+translation=Konvertovať osnovy na odseky, nadpisy a zoznamy.
 
 [modal.title-pick-format]
 original=Import data into Obsidian
@@ -1464,7 +1464,7 @@ translation=Zdroj Logseq
 
 [importer.logseq.desc-instructions]
 original=Read the instructions for importing from Logseq.
-translation=Prečítajte si pokyny na importovanie z Logseq.
+translation=Prečítajte si pokyny na import z Logseq.
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
@@ -1476,7 +1476,7 @@ translation=Použiť nastavenia každodenných poznámok
 
 [importer.logseq.desc-use-daily-notes]
 original=Write journals to the configured daily notes folder and filename format.
-translation=Zapísať denníky do nakonfigurovaného priečinka každodenných poznámok s príslušným formátom názvu súboru.
+translation=Zapísať denníky do nakonfigurovaného priečinka každodenných poznámok a formátu názvov súborov.
 
 [importer.logseq.name-queries]
 original=Keep queries
@@ -1492,7 +1492,7 @@ translation=Ponechať kartičky
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=Obsidian nepodporuje kartičky Logseq, preto sa značky kartičiek a cloze obaly importujú ako obyčajný text.
+translation=Obsidian nepodporuje kartičky Logseq, preto sa značky kariet a cloze obaly importujú ako obyčajný text.
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
@@ -1500,7 +1500,7 @@ translation=Ponechať sledovanie času
 
 [importer.logseq.desc-time-tracking]
 original=Obsidian doesn't support Logseq's time tracking, so LOGBOOK and CLOCK entries are imported as plain text.
-translation=Obsidian nepodporuje sledovanie času Logseq, preto sa záznamy LOGBOOK a CLOCK importujú ako obyčajný text.
+translation=Obsidian nepodporuje sledovanie času v Logseq, preto sa záznamy LOGBOOK a CLOCK importujú ako obyčajný text.
 
 [importer.logseq.msg-pick-graph]
 original=Please choose one Logseq graph folder.
@@ -1512,7 +1512,7 @@ translation=Vybraný priečinok neobsahuje žiadne Markdown poznámky v priečin
 
 [importer.logseq.reason-empty-page]
 original=The converted page is empty
-translation=Skonvertovaná stránka je prázdna
+translation=Konvertovaná stránka je prázdna
 
 [importer.logseq.reason-missing-asset]
 original=Referenced by {{name}}, but missing from the graph

@@ -124,7 +124,7 @@ translation=Notion
 
 [outliner.name-flatten-outlines]
 original=Flatten outlines
-translation=Vázlatok laposítása
+translation=Vázlatok kiegyenlítése
 
 [outliner.desc-flatten-outlines]
 original=Convert outlines into paragraphs, headings, and lists.
@@ -1464,11 +1464,11 @@ translation=Logseq Forrás
 
 [importer.logseq.desc-instructions]
 original=Read the instructions for importing from Logseq.
-translation=Olvassa el a Logseq-ből történő importálás utasításait.
+translation=Olvasd el a Logseq importálási útmutatót.
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
-translation=Válassz ki egy gráfmappát, amely oldalakat, naplókat és eszközöket tartalmaz.
+translation=Válassz egy gráf mappát, amely oldalakat, naplókat és eszközöket tartalmaz.
 
 [importer.logseq.name-use-daily-notes]
 original=Use daily notes settings
@@ -1484,7 +1484,7 @@ translation=Lekérdezések megtartása
 
 [importer.logseq.desc-queries]
 original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
-translation=Az Obsidian nem támogatja a Logseq lekérdezési formátumát, ezért a lekérdezések Kód blokkokként kerülnek importálásra.
+translation=Az Obsidian nem támogatja a Logseq lekérdezés-formátumát, ezért a lekérdezések Kód blokkokként kerülnek importálásra.
 
 [importer.logseq.name-flashcards]
 original=Keep flashcards
@@ -1492,7 +1492,7 @@ translation=Tanulókártyák megtartása
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=Az Obsidian nem támogatja a Logseq tanulókártyáit, ezért a kártya Jelölők és a cloze burkolók egyszerű szövegként kerülnek importálásra.
+translation=Az Obsidian nem támogatja a Logseq tanulókártyáit, ezért a kártya Jelölők és a cloze-burkolók egyszerű szövegként kerülnek importálásra.
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
@@ -1504,23 +1504,23 @@ translation=Az Obsidian nem támogatja a Logseq időkövetését, ezért a LOGBO
 
 [importer.logseq.msg-pick-graph]
 original=Please choose one Logseq graph folder.
-translation=Kérlek, válassz ki egy Logseq gráfmappát.
+translation=Kérlek, válassz egy Logseq gráf mappát.
 
 [importer.logseq.msg-no-notes]
 original=The selected folder has no Markdown notes under pages or journals.
-translation=A kiválasztott mappa nem tartalmaz Markdown jegyzeteket a pages vagy journals mappákban.
+translation=A kiválasztott mappa nem tartalmaz Markdown jegyzeteket a pages vagy journals alatt.
 
 [importer.logseq.reason-empty-page]
 original=The converted page is empty
-translation=Az átalakított oldal üres
+translation=A konvertált oldal Üres
 
 [importer.logseq.reason-missing-asset]
 original=Referenced by {{name}}, but missing from the graph
-translation=A(z) {{name}} hivatkozik rá, de hiányzik a gráfból
+translation=A(z) {{name}} hivatkozza, de hiányzik a gráfból
 
 [importer.logseq.reason-whiteboards]
 original=Logseq whiteboards are not supported by Obsidian
-translation=A Logseq rajztábláit az Obsidian nem támogatja
+translation=Az Obsidian nem támogatja a Logseq tábláit
 
 [importer.onenote.name]
 original=Microsoft OneNote

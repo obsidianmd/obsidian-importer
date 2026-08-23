@@ -128,7 +128,7 @@ translation=আউটলাইন সমতল করুন
 
 [outliner.desc-flatten-outlines]
 original=Convert outlines into paragraphs, headings, and lists.
-translation=আউটলাইনগুলোকে অনুচ্ছেদ, শিরোনাম এবং তালিকায় রূপান্তর করুন।
+translation=আউটলাইনগুলোকে প্যারাগ্রাফ, শিরোনাম এবং তালিকায় রূপান্তর করুন।
 
 [modal.title-pick-format]
 original=Import data into Obsidian
@@ -1464,7 +1464,7 @@ translation=Logseq সোর্স
 
 [importer.logseq.desc-instructions]
 original=Read the instructions for importing from Logseq.
-translation=Logseq থেকে ইম্পোর্ট করার নির্দেশাবলী পড়ুন।
+translation=Logseq থেকে ইমপোর্ট করার নির্দেশাবলী পড়ুন।
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
@@ -1484,7 +1484,7 @@ translation=কোয়েরি রাখুন
 
 [importer.logseq.desc-queries]
 original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
-translation=Obsidian Logseq-এর কোয়েরি ফরম্যাটিং সমর্থন করে না, তাই কোয়েরিগুলো কোড ব্লক হিসেবে ইম্পোর্ট করা হয়।
+translation=Obsidian Logseq-এর কোয়েরি ফরম্যাটিং সমর্থন করে না, তাই কোয়েরিগুলো কোড ব্লক হিসেবে ইমপোর্ট করা হয়।
 
 [importer.logseq.name-flashcards]
 original=Keep flashcards
@@ -1492,7 +1492,7 @@ translation=ফ্ল্যাশকার্ড রাখুন
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=Obsidian Logseq-এর ফ্ল্যাশকার্ড সমর্থন করে না, তাই কার্ড মার্কার এবং ক্লোজ র‍্যাপার সাধারণ টেক্সট হিসেবে ইম্পোর্ট করা হয়।
+translation=Obsidian Logseq-এর ফ্ল্যাশকার্ড সমর্থন করে না, তাই কার্ড মার্কার এবং ক্লোজ র‍্যাপার সাধারণ টেক্সট হিসেবে ইমপোর্ট করা হয়।
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
@@ -1500,7 +1500,7 @@ translation=সময় ট্র্যাকিং রাখুন
 
 [importer.logseq.desc-time-tracking]
 original=Obsidian doesn't support Logseq's time tracking, so LOGBOOK and CLOCK entries are imported as plain text.
-translation=Obsidian Logseq-এর সময় ট্র্যাকিং সমর্থন করে না, তাই LOGBOOK এবং CLOCK এন্ট্রিগুলো সাধারণ টেক্সট হিসেবে ইম্পোর্ট করা হয়।
+translation=Obsidian Logseq-এর সময় ট্র্যাকিং সমর্থন করে না, তাই LOGBOOK এবং CLOCK এন্ট্রিগুলো সাধারণ টেক্সট হিসেবে ইমপোর্ট করা হয়।
 
 [importer.logseq.msg-pick-graph]
 original=Please choose one Logseq graph folder.

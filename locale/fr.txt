@@ -1464,11 +1464,11 @@ translation=Source Logseq
 
 [importer.logseq.desc-instructions]
 original=Read the instructions for importing from Logseq.
-translation=Lire les instructions pour importer depuis Logseq.
+translation=Lisez les instructions pour importer depuis Logseq.
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
-translation=Choisir un dossier de graphe contenant les pages, journaux et ressources.
+translation=Choisir un dossier de graphe contenant les pages, les journaux et les ressources.
 
 [importer.logseq.name-use-daily-notes]
 original=Use daily notes settings
@@ -1484,15 +1484,15 @@ translation=Conserver les requêtes
 
 [importer.logseq.desc-queries]
 original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
-translation=Obsidian ne prend pas en charge le format de Requête de Logseq, les requêtes sont donc importées sous forme de blocs de Code.
+translation=Obsidian ne prend pas en charge le format de requête de Logseq, les requêtes sont donc importées sous forme de blocs de Code.
 
 [importer.logseq.name-flashcards]
 original=Keep flashcards
-translation=Conserver les flashcards
+translation=Conserver les cartes mémoire
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=Obsidian ne prend pas en charge les flashcards de Logseq, les Marqueurs de cartes et les enveloppes de cloze sont donc importés en texte brut.
+translation=Obsidian ne prend pas en charge les cartes mémoire de Logseq, les Marqueurs de cartes et les enveloppes de closure sont donc importés en texte brut.
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
@@ -1516,7 +1516,7 @@ translation=La page convertie est vide
 
 [importer.logseq.reason-missing-asset]
 original=Referenced by {{name}}, but missing from the graph
-translation=Référencé par {{name}}, mais absent du graphe
+translation=Référencée par {{name}}, mais absente du graphe
 
 [importer.logseq.reason-whiteboards]
 original=Logseq whiteboards are not supported by Obsidian

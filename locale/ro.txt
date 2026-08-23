@@ -1464,7 +1464,7 @@ translation=Sursă Logseq
 
 [importer.logseq.desc-instructions]
 original=Read the instructions for importing from Logseq.
-translation=Citiți instrucțiunile pentru importul din Logseq.
+translation=Citește instrucțiunile pentru importul din Logseq.
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
@@ -1472,11 +1472,11 @@ translation=Alege un director de graf care conține pagini, jurnale și resurse.
 
 [importer.logseq.name-use-daily-notes]
 original=Use daily notes settings
-translation=Folosește setările pentru Note zilnice
+translation=Utilizează setările pentru Note zilnice
 
 [importer.logseq.desc-use-daily-notes]
 original=Write journals to the configured daily notes folder and filename format.
-translation=Scrie jurnalele în directorul configurat pentru Note zilnice și în formatul de nume de fișier corespunzător.
+translation=Scrie jurnalele în directorul configurat pentru Note zilnice și în formatul de denumire a fișierelor.
 
 [importer.logseq.name-queries]
 original=Keep queries
@@ -1488,11 +1488,11 @@ translation=Obsidian nu acceptă formatul de interogare al Logseq, așa că inte
 
 [importer.logseq.name-flashcards]
 original=Keep flashcards
-translation=Păstrează cardurile de studiu
+translation=Păstrează cardurile de învățare
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=Obsidian nu acceptă cardurile de studiu Logseq, așa că Marcatori de carduri și învelișurile cloze sunt importate ca text simplu.
+translation=Obsidian nu acceptă cardurile de învățare Logseq, așa că Marcatori de carduri și marcajele cloze sunt importate ca text simplu.
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
@@ -1508,7 +1508,7 @@ translation=Te rugăm să alegi un director de graf Logseq.
 
 [importer.logseq.msg-no-notes]
 original=The selected folder has no Markdown notes under pages or journals.
-translation=Directorul selectat nu conține note Markdown în subdirectoarele pages sau journals.
+translation=Directorul selectat nu conține note Markdown în directoarele pages sau journals.
 
 [importer.logseq.reason-empty-page]
 original=The converted page is empty

@@ -1508,7 +1508,7 @@ translation=Vennligst velg én Logseq-grafmappe.
 
 [importer.logseq.msg-no-notes]
 original=The selected folder has no Markdown notes under pages or journals.
-translation=Den valgte mappen har ingen Markdown-notater under sider eller journaler.
+translation=Den valgte mappen har ingen Markdown-notater under pages eller journals.
 
 [importer.logseq.reason-empty-page]
 original=The converted page is empty
@@ -1516,7 +1516,7 @@ translation=Den konverterte siden er tom
 
 [importer.logseq.reason-missing-asset]
 original=Referenced by {{name}}, but missing from the graph
-translation=Referert til av {{name}}, men mangler fra grafen
+translation=Referert av {{name}}, men mangler fra grafen
 
 [importer.logseq.reason-whiteboards]
 original=Logseq whiteboards are not supported by Obsidian

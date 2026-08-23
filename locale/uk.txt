@@ -124,11 +124,11 @@ translation=Notion
 
 [outliner.name-flatten-outlines]
 original=Flatten outlines
-translation=Згорнути контури
+translation=Вирівняти структуру
 
 [outliner.desc-flatten-outlines]
 original=Convert outlines into paragraphs, headings, and lists.
-translation=Перетворити контури на абзаци, заголовки і списки.
+translation=Перетворити структуру на абзаци, заголовки та списки.
 
 [modal.title-pick-format]
 original=Import data into Obsidian
@@ -1460,15 +1460,15 @@ translation=Logseq (.md)
 
 [importer.logseq.label-id]
 original=Logseq source
-translation=Джерельний код Logseq
+translation=Джерело Logseq
 
 [importer.logseq.desc-instructions]
 original=Read the instructions for importing from Logseq.
-translation=Прочитайте інструкції з імпорту з Logseq.
+translation=Прочитайте інструкцію з імпорту з Logseq.
 
 [importer.logseq.desc-files]
 original=Choose one graph folder containing pages, journals, and assets.
-translation=Оберіть одну теку графа, що містить сторінки, журнали і ресурси.
+translation=Оберіть одну теку графа, що містить сторінки, журнали та ресурси.
 
 [importer.logseq.name-use-daily-notes]
 original=Use daily notes settings
@@ -1476,7 +1476,7 @@ translation=Використовувати налаштування щоденн
 
 [importer.logseq.desc-use-daily-notes]
 original=Write journals to the configured daily notes folder and filename format.
-translation=Записувати журнали до налаштованої теки щоденних нотаток і формату імені файлу.
+translation=Записувати журнали до налаштованої теки щоденних нотаток у відповідному форматі імен файлів.
 
 [importer.logseq.name-queries]
 original=Keep queries
@@ -1488,11 +1488,11 @@ translation=Obsidian не підтримує формат запитів Logseq,
 
 [importer.logseq.name-flashcards]
 original=Keep flashcards
-translation=Зберегти флеш-картки
+translation=Зберегти картки
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=Obsidian не підтримує флеш-картки Logseq, тому маркери карток і обгортки cloze імпортуються як звичайний текст.
+translation=Obsidian не підтримує картки Logseq, тому маркери карток і обгортки cloze імпортуються як звичайний текст.
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
@@ -1512,11 +1512,11 @@ translation=Вибрана тека не містить нотаток Markdown 
 
 [importer.logseq.reason-empty-page]
 original=The converted page is empty
-translation=Конвертована сторінка є пустою
+translation=Перетворена сторінка є пустою
 
 [importer.logseq.reason-missing-asset]
 original=Referenced by {{name}}, but missing from the graph
-translation=Використовується в {{name}}, але відсутній у графі
+translation=Використовується у {{name}}, але відсутній у графі
 
 [importer.logseq.reason-whiteboards]
 original=Logseq whiteboards are not supported by Obsidian

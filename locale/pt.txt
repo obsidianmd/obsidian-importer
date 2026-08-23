@@ -124,11 +124,11 @@ translation=Notion
 
 [outliner.name-flatten-outlines]
 original=Flatten outlines
-translation=Aplanar esquemas
+translation=Aplanar contornos
 
 [outliner.desc-flatten-outlines]
 original=Convert outlines into paragraphs, headings, and lists.
-translation=Converter esquemas em parágrafos, cabeçalhos e listas.
+translation=Converter contornos em parágrafos, cabeçalhos e listas.
 
 [modal.title-pick-format]
 original=Import data into Obsidian
@@ -1476,7 +1476,7 @@ translation=Usar definições de Notas diárias
 
 [importer.logseq.desc-use-daily-notes]
 original=Write journals to the configured daily notes folder and filename format.
-translation=Escrever diários na pasta e formatação de nome de ficheiro configuradas para as Notas diárias.
+translation=Escrever diários na pasta e formato de nome de ficheiro configurados para Notas diárias.
 
 [importer.logseq.name-queries]
 original=Keep queries
@@ -1484,15 +1484,15 @@ translation=Manter pesquisas
 
 [importer.logseq.desc-queries]
 original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
-translation=O Obsidian não suporta o formato de Pesquisa do Logseq, por isso as pesquisas são importadas como blocos de Código.
+translation=O Obsidian não suporta o formato de pesquisa do Logseq, por isso as pesquisas são importadas como blocos de Código.
 
 [importer.logseq.name-flashcards]
 original=Keep flashcards
-translation=Manter flashcards
+translation=Manter cartões de estudo
 
 [importer.logseq.desc-flashcards]
 original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
-translation=O Obsidian não suporta os flashcards do Logseq, por isso os Marcadores de cartões e os invólucros cloze são importados como texto simples.
+translation=O Obsidian não suporta os cartões de estudo do Logseq, por isso os Marcadores de cartões e delimitadores de cloze são importados como texto simples.
 
 [importer.logseq.name-time-tracking]
 original=Keep time tracking
