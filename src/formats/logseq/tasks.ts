@@ -1,10 +1,5 @@
 import { logseqDateToISO } from './journals';
-import { nextNonBlankLine, outsideCodeSpans, outsideMarkdownFences } from '../../markdown';
-import { KeepOrDrop } from './options';
-
-interface TaskOptions {
-	logbook?: KeepOrDrop;
-}
+import { BLOCK_ANCHOR_PATTERN, nextNonBlankLine, outsideCodeSpans, outsideMarkdownFences } from '../../markdown';
 
 const KEYWORDS = [
 	'TODO',
@@ -20,6 +15,7 @@ const KEYWORDS = [
 	'CANCELED',
 ];
 const TASK_RE = new RegExp(`^(\\s*)- (${KEYWORDS.join('|')}):?(?:\\s+(.*))?$`);
+const TRAILING_BLOCK_ANCHOR = new RegExp(`(?:^|\\s)(${BLOCK_ANCHOR_PATTERN})\\s*$`);
 
 function checkbox(state: string): string {
 	switch (state) {
@@ -36,9 +32,10 @@ function checkbox(state: string): string {
 
 interface DateSpec { date: string, time?: string, repeater?: string }
 
-function parseDateSpec(inner: string): DateSpec {
+function parseDateSpec(inner: string): DateSpec | null {
 	const iso = inner.match(/\d{4}-\d{2}-\d{2}/)?.[0];
 	const date = iso ?? (logseqDateToISO(inner.replace(/\[\[|\]\]/g, '').trim()) ?? '');
+	if (!date) return null;
 	const time = inner.match(/(?:^|\s)([01]\d|2[0-3]):[0-5]\d(?:\s|$)/)?.[0].trim();
 	const repeater = inner.match(/[.+]{1,2}\d+[ymwdh]/)?.[0];
 	return { date, time, repeater };
@@ -71,24 +68,27 @@ function repeatPhrase(repeater: string): string {
 	return count === 1 ? `every ${unit}` : `every ${count} ${unit}s`;
 }
 
-/**
- * A date a plugin-less vault can still follow: the journal link the rest of the
- * import already repaths, rather than Logseq's `<...>` or a plugin's emoji.
- */
 function dateLink(date: string, time?: string): string {
 	if (!date) return '';
 	return time ? `[[${date}]] ${time}` : `[[${date}]]`;
 }
 
-export function convertTasks(content: string, options: TaskOptions = {}): string {
-	return outsideMarkdownFences(content, segment => convertTaskSegment(segment, options));
+function dateDetail(label: string, spec: DateSpec): string {
+	let detail = `${label} ${dateLink(spec.date, spec.time)}`;
+	if (spec.repeater) {
+		const phrase = repeatPhrase(spec.repeater);
+		detail += phrase ? ` ${phrase} (${spec.repeater})` : ` (${spec.repeater})`;
+	}
+	return detail;
 }
 
-function convertTaskSegment(content: string, options: TaskOptions): string {
-	const logbook = options.logbook ?? 'drop';
+export function convertTasks(content: string, keepTimeTracking = false): string {
+	return outsideMarkdownFences(content, segment => convertTaskSegment(segment, keepTimeTracking));
+}
 
+function convertTaskSegment(content: string, keepTimeTracking: boolean): string {
 	let processed = content;
-	if (logbook === 'drop') {
+	if (!keepTimeTracking) {
 		let inLogbook = false;
 		processed = content.split('\n').filter(line => {
 			if (/^\s*:LOGBOOK:/.test(line)) {
@@ -158,9 +158,11 @@ function convertTaskSegment(content: string, options: TaskOptions): string {
 		// Continuation metadata, Logseq's canonical form, overrides inline metadata.
 		rest = outsideCodeSpans(rest, segment =>
 			segment.replace(/\s*\b(SCHEDULED|DEADLINE):\s*<([^<>]+)>/g,
-				(_: string, keyword: string, inner: string) => {
-					if (keyword === 'SCHEDULED') scheduled = parseDateSpec(inner);
-					else deadline = parseDateSpec(inner);
+				(whole: string, keyword: string, inner: string) => {
+					const parsed = parseDateSpec(inner);
+					if (!parsed) return whole;
+					if (keyword === 'SCHEDULED') scheduled = parsed;
+					else deadline = parsed;
 					return '';
 				}));
 
@@ -179,17 +181,25 @@ function convertTaskSegment(content: string, options: TaskOptions): string {
 			}
 			const sched = cl.match(/^\s*SCHEDULED:\s*<(.+?)>/);
 			if (sched) {
-				scheduled = parseDateSpec(sched[1]);
+				const parsed = parseDateSpec(sched[1]);
+				if (parsed) scheduled = parsed;
+				else kept.push(cl);
 				continue;
 			}
 			const dead = cl.match(/^\s*DEADLINE:\s*<(.+?)>/);
 			if (dead) {
-				deadline = parseDateSpec(dead[1]);
+				const parsed = parseDateSpec(dead[1]);
+				if (parsed) deadline = parsed;
+				else kept.push(cl);
 				continue;
 			}
 			const prop = cl.match(/^\s*\.?(created|completed|done|cancelled|canceled):: ?(.*)$/);
 			if (prop) {
 				const date = extractDate(prop[2]);
+				if (!date) {
+					kept.push(cl);
+					continue;
+				}
 				if (prop[1] === 'created') created = date;
 				else if (prop[1] === 'completed' || prop[1] === 'done') done = date;
 				else cancelled = date;
@@ -200,16 +210,19 @@ function convertTaskSegment(content: string, options: TaskOptions): string {
 
 		const details: string[] = [];
 		if (priority) details.push(`priority ${priority}`);
-		if (scheduled?.date) details.push(`scheduled ${dateLink(scheduled.date, scheduled.time)}`);
-		if (deadline?.date) details.push(`due ${dateLink(deadline.date, deadline.time)}`);
+		if (scheduled) details.push(dateDetail('scheduled', scheduled));
+		if (deadline) details.push(dateDetail('due', deadline));
 		if (created) details.push(`created ${dateLink(created)}`);
 		if (done) details.push(`completed ${dateLink(done)}`);
 		if (cancelled) details.push(`cancelled ${dateLink(cancelled)}`);
-		const repeat = repeatPhrase(scheduled?.repeater ?? deadline?.repeater ?? '');
-		if (repeat) details.push(repeat);
 
+		const anchorMatch = rest.match(TRAILING_BLOCK_ANCHOR);
+		const anchor = anchorMatch?.[1] ?? '';
+		if (anchorMatch) rest = rest.slice(0, anchorMatch.index).trimEnd();
 		const text = [rest.trim(), details.join(', ')].filter(Boolean).join(' — ');
-		out.push(text ? `${indent}- [${checkbox(state)}] ${text}` : `${indent}- [${checkbox(state)}]`);
+		let task = text ? `${indent}- [${checkbox(state)}] ${text}` : `${indent}- [${checkbox(state)}]`;
+		if (anchor) task += ` ${anchor}`;
+		out.push(task);
 		out.push(...kept);
 		i = j;
 	}

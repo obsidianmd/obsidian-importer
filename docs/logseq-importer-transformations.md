@@ -43,7 +43,7 @@ done on a single file without the vault index. In order:
 
 1. `extractPageProperties` — leading `key:: value` block → YAML frontmatter (section I).
 2. `convertHeadingProperty` — `heading:: N` → `#`×N prefix on the block.
-3. `convertTasks` — task keywords → native checkbox markers while preserving source metadata (section D).
+3. `convertTasks` — task keywords → native checkbox markers, with recognized metadata converted to readable text and linked dates (section D).
 4. `convertNumberedLists` — `logseq.order-list-type:: number` → `1.`/`2.`/…
 5. `convertOrgBlocks` — `#+BEGIN_*`/`#+END_*` → callouts / blockquotes / comments.
 6. `convertHighlights` — `^^text^^` → `==text==`.
@@ -157,7 +157,17 @@ A colon may follow the keyword (`- TODO: do the thing`); **[D1]** it is recogniz
 | `DONE` | `[x]` |
 | `CANCELLED` / `CANCELED` | `[-]` |
 
-Priority markers, scheduling and deadline lines, repeaters, and created/completed/cancelled properties remain in their original Logseq form so the importer does not impose a third-party metadata convention.
+Recognized task metadata is appended as plain text after an em dash so it remains useful without a community plugin:
+
+| Logseq | Imported text |
+|---|---|
+| `[#A]` / `[#B]` / `[#C]` | `priority A` / `priority B` / `priority C` |
+| `SCHEDULED: <2024-06-15 Sat>` | `scheduled [[2024-06-15]]` |
+| `DEADLINE: <2024-06-20 Thu>` | `due [[2024-06-20]]` |
+| `created::`, `completed::`, `done::`, `cancelled::`, `canceled::` | `created`, `completed`, or `cancelled` followed by a linked date |
+| Repeater `+1w`, `++1w`, or `.+1w` | `every week` followed by the original token, preserving its Logseq recurrence mode |
+
+Scheduling expressions and date properties that cannot be parsed are retained verbatim. Existing block anchors remain at the end of the converted task line.
 
 **[D1]** `:LOGBOOK:` has no direct Obsidian target. Time tracking is disabled by default, which removes `:LOGBOOK:`/`CLOCK:` lines cleanly. Enabling it preserves the drawer verbatim. The drop pass applies to drawers on non-task blocks as well as tasks.
 
@@ -344,7 +354,7 @@ properties, where they are already handled by the frontmatter converter.)
 | `![alt](../assets/x.png)` | `![[planned/path/x.png]]` | **[K1]** bytes placed using the vault attachment setting |
 | `[label](../assets/x.pdf)` | `[[x.pdf]]` | **[K1]** plain (non-embed) asset links also converted |
 | `[label [nested] label](../assets/x.pdf)` | `[[x.pdf]]` | **[K1]** label allows one level of nested brackets |
-| `![alt](../assets/x.png){:height H, :width W}` | `![[x.png\|WxH]]` | dimensions always win over alt text |
+| `![alt](../assets/x.png){:height H, :width W}` | `![[x.png\|WxH]]` | dimensions are preserved; alt text is dropped |
 | `![](../assets/Book_(2024).pdf)` | `![[Book_(2024).pdf]]` | **[K1]** paren-balanced path matching |
 | `{{video URL}}` / `{{youtube URL}}` | `![](URL)` | |
 | `{{tweet URL}}` | `![](URL)` | |

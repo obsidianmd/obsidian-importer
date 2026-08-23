@@ -6,9 +6,7 @@ import {
 	extractPageProperties,
 	removeLeftoverBlockProperties,
 	convertHeadingProperty,
-	linkifyTagValuesInFrontmatter,
 } from '../../src/formats/logseq/properties';
-import { DEFAULT_DROP_PAGE_PROPERTIES } from '../../src/formats/logseq/options';
 
 function parseFrontmatter(yaml: string): Record<string, unknown> {
 	return parse(yaml.split('\n').slice(1, -1).join('\n')) as Record<string, unknown>;
@@ -109,57 +107,36 @@ test('removeLeftoverBlockProperties keeps unknown user block properties', () => 
 	assert.equal(removeLeftoverBlockProperties(input), input);
 });
 
-test('removeLeftoverBlockProperties drops user-specified extra keys', () => {
-	const input = ['- a block', '  my-status:: draft', '  rating:: 5'].join('\n');
-	assert.equal(removeLeftoverBlockProperties(input, ['my-status']), ['- a block', '  rating:: 5'].join('\n'));
-});
-
-test('[I1] keep mode leaves unknown block property unchanged', () => {
-	const input = ['- a block', '  rating:: 5'].join('\n');
-	assert.equal(removeLeftoverBlockProperties(input, [], 'keep'), input);
-});
-
-test('[I1] drop mode removes the line', () => {
-	const input = ['- a block', '  rating:: 5'].join('\n');
-	assert.equal(removeLeftoverBlockProperties(input, [], 'drop'), '- a block');
-});
-
-test('[I1] always-drop keys are removed in keep mode', () => {
+test('[I1] always-drop keys are removed', () => {
 	const input = [
 		'- a block',
 		'  collapsed:: true',
 		'  logseq.order-list-type:: number',
 		'  hl-color:: yellow',
 	].join('\n');
-	assert.equal(removeLeftoverBlockProperties(input, [], 'keep'), '- a block');
+	assert.equal(removeLeftoverBlockProperties(input), '- a block');
 });
 
-test('[I1] drop mode does not touch property-like lines inside code fences', () => {
+test('[I1] property-like lines inside code fences are unchanged', () => {
 	const input = ['- a block', '  ```', '  key:: value', '  ```'].join('\n');
-	assert.equal(removeLeftoverBlockProperties(input, [], 'drop'), input);
+	assert.equal(removeLeftoverBlockProperties(input), input);
 });
 
 test('[I1] property-like text after inline code is not treated as a line start', () => {
 	const input = '- See `x` key:: value';
-	assert.equal(removeLeftoverBlockProperties(input, [], 'drop'), input);
+	assert.equal(removeLeftoverBlockProperties(input), input);
 });
 
-test('extractPageProperties drops listed page property keys from frontmatter', () => {
-	const input = 'type:: note\npublic:: true\nmy-key:: val\n\ntext';
-	const { yaml } = extractPageProperties(input, { dropPageProperties: ['public', 'my-key'] });
+test('extractPageProperties drops Logseq-internal page properties', () => {
+	const input = 'type:: note\npublic:: true\nexclude-from-graph-view:: true\n\ntext';
+	const { yaml } = extractPageProperties(input);
 	assert.equal(yaml, ['---', 'type: note', '---'].join('\n'));
 });
 
 test('[I1] icon page property is dropped from frontmatter by default', () => {
 	const input = 'type:: note\nicon:: \uEAE5\n\ntext';
-	const { yaml } = extractPageProperties(input, { dropPageProperties: DEFAULT_DROP_PAGE_PROPERTIES });
+	const { yaml } = extractPageProperties(input);
 	assert.equal(yaml, ['---', 'type: note', '---'].join('\n'));
-});
-
-test('[I1] icon is retained when removed from the drop list', () => {
-	const input = 'type:: note\nicon:: star\n\ntext';
-	const { yaml } = extractPageProperties(input, { dropPageProperties: [] });
-	assert.equal(yaml, ['---', 'type: note', 'icon: star', '---'].join('\n'));
 });
 
 test('extractPageProperties drops listed tags from frontmatter tags list', () => {
@@ -262,67 +239,6 @@ test('[I1] duplicate page-property keys are de-duplicated (last wins)', () => {
 	assert.equal(yaml, ['---', 'type: b', '---'].join('\n'));
 });
 
-test('[I1] tag value linkifies to [[page]] when page exists and toLinks on', () => {
-	const yaml = ['---', 'status: "#IN-PROGRESS"', '---'].join('\n');
-	const out = linkifyTagValuesInFrontmatter(yaml, {
-		knownPages: new Set(['in-progress']),
-		toLinks: true,
-		onlyExistingPages: true,
-	});
-	assert.equal(out, ['---', 'status: "[[IN-PROGRESS]]"', '---'].join('\n'));
-});
-
-test('[I1] multi-word #[[tag]] value linkifies to [[tag]]', () => {
-	const yaml = ['---', 'area: "#[[Page One]]"', '---'].join('\n');
-	const out = linkifyTagValuesInFrontmatter(yaml, {
-		knownPages: new Set(['page one']),
-		toLinks: true,
-		onlyExistingPages: true,
-	});
-	assert.equal(out, ['---', 'area: "[[Page One]]"', '---'].join('\n'));
-});
-
-test('[I1] tag value stays quoted text when no matching page (onlyExistingPages)', () => {
-	const yaml = ['---', 'status: "#IN-PROGRESS"', '---'].join('\n');
-	const out = linkifyTagValuesInFrontmatter(yaml, {
-		knownPages: new Set(),
-		toLinks: true,
-		onlyExistingPages: true,
-	});
-	assert.equal(out, yaml);
-});
-
-test('[I1] tag value stays quoted text when toLinks is off (default)', () => {
-	const yaml = ['---', 'status: "#IN-PROGRESS"', '---'].join('\n');
-	const out = linkifyTagValuesInFrontmatter(yaml, {
-		knownPages: new Set(['in-progress']),
-		toLinks: false,
-		onlyExistingPages: true,
-	});
-	assert.equal(out, yaml);
-});
-
-test('[I1] tags: list is unaffected', () => {
-	const yaml = ['---', 'tags:', '  - foo', '  - bar', '---'].join('\n');
-	const out = linkifyTagValuesInFrontmatter(yaml, {
-		knownPages: new Set(['foo', 'bar']),
-		toLinks: true,
-		onlyExistingPages: true,
-	});
-	assert.equal(out, yaml);
-});
-
-test('[I1] tag value linkifies regardless of page set when onlyExistingPages is off', () => {
-	const yaml = ['---', 'area: "#security"', '---'].join('\n');
-	const out = linkifyTagValuesInFrontmatter(yaml, {
-		knownPages: new Set(),
-		toLinks: true,
-		onlyExistingPages: false,
-	});
-	assert.equal(out, ['---', 'area: "[[security]]"', '---'].join('\n'));
-});
-
-
 test('[I1] collapsed page property is always dropped from frontmatter', () => {
 	const { yaml } = extractPageProperties('collapsed:: true\ntype:: note\n\ntext');
 	assert.equal(yaml, ['---', 'type: note', '---'].join('\n'));
@@ -366,8 +282,7 @@ test('[I1] hl-* and ls-* prefixed page properties are always dropped', () => {
 
 test('[I1] alias block property is always dropped', () => {
 	const input = ['- a block', '  alias:: Some Alias'].join('\n');
-	assert.equal(removeLeftoverBlockProperties(input, [], 'keep'), '- a block');
-	assert.equal(removeLeftoverBlockProperties(input, [], 'drop'), '- a block');
+	assert.equal(removeLeftoverBlockProperties(input), '- a block');
 });
 
 test('[I1] template block property is always dropped', () => {
@@ -381,53 +296,14 @@ test('[I1] template-including-parent block property is always dropped', () => {
 });
 
 
-test('[T-snake] snakeCasePageProperties converts kebab-case keys to snake_case', () => {
-	const input = 'test-hyphen:: value\ntype:: note\n\ntext';
-	const { yaml } = extractPageProperties(input, { snakeCasePageProperties: true });
-	assert.equal(yaml, ['---', 'test_hyphen: value', 'type: note', '---'].join('\n'));
-});
-
-test('[T-snake] page properties keep kebab-case keys by default', () => {
+test('page properties keep kebab-case keys', () => {
 	const input = 'test-hyphen:: value\n\ntext';
 	const { yaml } = extractPageProperties(input);
 	assert.equal(yaml, ['---', 'test-hyphen: value', '---'].join('\n'));
 });
 
-test('[T-snake] snakeCasePageProperties does not affect drop-list matching (kebab key still dropped)', () => {
-	const input = 'test-hyphen:: value\ntype:: note\n\ntext';
-	const { yaml } = extractPageProperties(input, {
-		snakeCasePageProperties: true,
-		dropPageProperties: ['test-hyphen'],
-	});
-	assert.equal(yaml, ['---', 'type: note', '---'].join('\n'));
-});
-
-test('[T-snake] snakeCasePageProperties works with list-valued properties', () => {
-	const input = 'multi-word:: [[Page One]], [[Page Two]]\n\ntext';
-	const { yaml } = extractPageProperties(input, { snakeCasePageProperties: true });
-	assert.equal(yaml, ['---', 'multi_word:', '  - "[[Page One]]"', '  - "[[Page Two]]"', '---'].join('\n'));
-});
-
-test('[T-snake] snakeCaseBlockProperties converts kebab-case keys in keep mode', () => {
+test('block properties keep kebab-case keys', () => {
 	const input = ['- a block', '  test-hyphen:: value'].join('\n');
-	const out = removeLeftoverBlockProperties(input, [], 'keep', true);
-	assert.equal(out, ['- a block', '  test_hyphen:: value'].join('\n'));
-});
-
-test('[T-snake] block properties keep kebab-case keys by default', () => {
-	const input = ['- a block', '  test-hyphen:: value'].join('\n');
-	const out = removeLeftoverBlockProperties(input, [], 'keep');
+	const out = removeLeftoverBlockProperties(input);
 	assert.equal(out, input);
-});
-
-test('[T-snake] snakeCaseBlockProperties preserves trailing block anchor', () => {
-	const input = ['- a block', '  test-hyphen:: value ^abc123'].join('\n');
-	const out = removeLeftoverBlockProperties(input, [], 'keep', true);
-	assert.equal(out, ['- a block', '  test_hyphen:: value ^abc123'].join('\n'));
-});
-
-test('[T-snake] snakeCaseBlockProperties does not affect always-drop or user drop-list matching', () => {
-	const input = ['- a block', '  background-color:: red', '  custom-key:: val'].join('\n');
-	const out = removeLeftoverBlockProperties(input, ['custom-key'], 'keep', true);
-	assert.equal(out, '- a block');
 });

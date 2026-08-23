@@ -26,7 +26,7 @@ tags:
 - Tracking `{{query (todo TODO)}}` inline in a sentence
 - A quote is still prose
   - > Everything is a bullet.
-- [ ] Water the plants — scheduled [[Logseq/Journals/2024-06-15]], every 3 days
+- [ ] Water the plants — scheduled [[Logseq/Journals/2024-06-15]] every 3 days (.+3d)
 - Tagged #café and #日本語 and #dead
 - Painted #FF0000 which is a colour
 

@@ -6,7 +6,6 @@ export interface AssetRef {
 }
 
 export interface ConvertAssetOptions {
-	keepAltText: boolean;
 	/** Return null to preserve the source link. */
 	target?: (asset: AssetRef) => string | null;
 }
@@ -34,14 +33,14 @@ function dimensionDisplay(suffix: string | undefined): string | null {
 
 export function convertAssetLinks(
 	content: string,
-	options: ConvertAssetOptions
+	options: ConvertAssetOptions = {},
 ): { content: string, assets: AssetRef[] } {
 	const assets: AssetRef[] = [];
 	const seen = new Set<string>();
 
 	function rewriteAssets(text: string): string {
 		assetLinkRegex.lastIndex = 0;
-		return text.replace(assetLinkRegex, (match, bang: string, alt: string, path: string, dimSuffix?: string) => {
+		return text.replace(assetLinkRegex, (match, bang: string, _alt: string, path: string, dimSuffix?: string) => {
 			if (isUrl(path) || !path.includes('assets/')) return match;
 
 			const asset = { sourcePath: path, filename: basename(path) };
@@ -53,13 +52,8 @@ export function convertAssetLinks(
 			if (target === null) return match;
 
 			const dims = dimensionDisplay(dimSuffix);
-			let display: string | null = dims;
-			if (display === null && options.keepAltText && alt.trim().length > 0) {
-				display = alt;
-			}
-
 			const embed = bang === '!' ? '!' : '';
-			return display !== null ? `${embed}[[${target}|${display}]]` : `${embed}[[${target}]]`;
+			return dims !== null ? `${embed}[[${target}|${dims}]]` : `${embed}[[${target}]]`;
 		});
 	}
 

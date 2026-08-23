@@ -1,4 +1,4 @@
-import { DEFAULT_DROP_PAGE_PROPERTIES, LogseqImportOptions } from './options';
+import { LogseqImportOptions } from './options';
 import { extractPageProperties, convertHeadingProperty, removeLeftoverBlockProperties, splitList } from './properties';
 import { convertTasks } from './tasks';
 import { convertNumberedLists, convertOrgBlocks, convertHighlights, convertMediaEmbeds, convertSimpleQueries, fixCodeBlocksInLists, fixHeadingChildLists } from './blocks';
@@ -29,7 +29,6 @@ export function convertLocal(
 	runtime: LogseqConversionRuntime = {},
 ): LocalResult {
 	const { yaml, body: initialBody, raw } = extractPageProperties(content, {
-		dropPageProperties: DEFAULT_DROP_PAGE_PROPERTIES,
 		dropTags: options.flashcards ? [] : ['card'],
 		commaSeparatedProperties: runtime.commaSeparatedProperties,
 	});
@@ -37,7 +36,7 @@ export function convertLocal(
 	let body = initialBody;
 	let hasQueries = false;
 	body = convertHeadingProperty(body);
-	body = convertTasks(body, { logbook: options.timeTracking ? 'keep' : 'drop' });
+	body = convertTasks(body, options.timeTracking);
 	body = convertNumberedLists(body);
 	body = convertOrgBlocks(body, {
 		dropQueries: !options.queries,
@@ -53,7 +52,6 @@ export function convertLocal(
 	body = fixCodeBlocksInLists(body);
 
 	const assetResult = convertAssetLinks(body, {
-		keepAltText: false,
 		target: runtime.assetTarget
 			? asset => runtime.assetTarget!(asset.sourcePath, asset.filename)
 			: undefined,
@@ -64,10 +62,10 @@ export function convertLocal(
 	// Tag conversion needs the complete page index.
 	body = convertJournalDateLinks(body);
 
-	const idResult = attachBlockIds(body, true);
+	const idResult = attachBlockIds(body);
 	body = idResult.content;
 
-	body = removeLeftoverBlockProperties(body, [], 'keep', false);
+	body = removeLeftoverBlockProperties(body);
 	body = normalizeWhitespace(body);
 
 	return { yaml, body, raw, ids: idResult.ids, assets: assetResult.assets, hasQueries };

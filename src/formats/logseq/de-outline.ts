@@ -1,4 +1,6 @@
-import { markdownFenceLines, outsideMarkdownFences } from '../../markdown';
+import { BLOCK_ANCHOR_PATTERN, markdownFenceLines, outsideMarkdownFences } from '../../markdown';
+
+const BLOCK_ANCHOR_LINE = new RegExp(`^${BLOCK_ANCHOR_PATTERN}$`);
 
 interface OutlineNode {
 	content: string;
@@ -170,7 +172,7 @@ function serializeTopLevel(nodes: OutlineNode[]): string[] {
 			if (headingLines.length > 1) {
 				const nonBlankConts = headingLines.slice(1).filter(l => l.trim() !== '');
 				const isJustAnchors = nonBlankConts.length > 0 &&
-					nonBlankConts.every(l => /^\^[A-Za-z0-9-]+$/.test(l));
+					nonBlankConts.every(l => BLOCK_ANCHOR_LINE.test(l));
 				if (!isJustAnchors) output.push('');
 				output.push(...headingLines.slice(1));
 			}

@@ -68,25 +68,13 @@ function loadFixtureGraph(opts: LogseqImportOptions = DEFAULT_LOGSEQ_OPTIONS): C
 		locals.push({ file, local, outputPath });
 	}
 
-	const knownPages = new Set<string>();
-	for (const { outputPath } of locals) {
-		knownPages.add(outputPath.toLowerCase());
-		const parts = outputPath.split('/');
-		knownPages.add(parts[parts.length - 1].toLowerCase());
-	}
-
 	const linkIndex: LinkIndex = { aliasMap };
 	const results: ConvertedFile[] = [];
 
 	for (const { file, local, outputPath } of locals) {
 		let body = resolveBlockRefs(local.body, blockIndex);
 		body = rewriteAliasReferences(body, linkIndex);
-		body = convertTags(body, {
-			toLinks: false,
-			onlyExistingPages: true,
-			knownPages,
-			dropTags: new Set(opts.flashcards ? [] : ['card']),
-		});
+		body = convertTags(body, new Set(opts.flashcards ? [] : ['card']));
 		results.push({ outputPath, local, finalBody: body, sourceFile: file.path });
 	}
 
@@ -155,7 +143,7 @@ test('E2E: TODO converts priority and scheduling to text and date links', () => 
 
 test('E2E: DOING with priority B and DEADLINE with repeater', () => {
 	const pn = findByOutput(graph, 'Main Page');
-	assert.ok(pn.finalBody.includes('- [/] Review sample changes \u2014 priority B, due [[2024-06-20]], every week'));
+	assert.ok(pn.finalBody.includes('- [/] Review sample changes \u2014 priority B, due [[2024-06-20]] every week (.+1w)'));
 	assert.ok(!pn.finalBody.includes('DEADLINE: <'));
 });
 
@@ -190,7 +178,7 @@ test('E2E: IN-PROGRESS maps to in-progress checkbox', () => {
 
 test('E2E: LATER with both SCHEDULED and DEADLINE', () => {
 	const pn = findByOutput(graph, 'Main Page');
-	assert.ok(pn.finalBody.includes('- [ ] Low priority task \u2014 scheduled [[2024-09-01]], due [[2024-09-15]], every 2 weeks'));
+	assert.ok(pn.finalBody.includes('- [ ] Low priority task \u2014 scheduled [[2024-09-01]] every 2 weeks (++2w), due [[2024-09-15]]'));
 });
 
 test('E2E: NOW maps to in-progress checkbox', () => {

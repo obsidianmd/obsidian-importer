@@ -1,4 +1,4 @@
-import { markdownFenceLines, outsideCodeSpans, outsideMarkdownCode, outsideMarkdownFences } from '../../markdown';
+import { markdownFenceLines, outsideMarkdownCode } from '../../markdown';
 
 export interface DefinedId {
 	uuid: string;
@@ -17,7 +17,7 @@ export function shortenId(uuid: string): string {
 	return base.length > 0 ? base : 'ref';
 }
 
-export function attachBlockIds(content: string, shorten: boolean): { content: string, ids: DefinedId[] } {
+export function attachBlockIds(content: string): { content: string, ids: DefinedId[] } {
 	const lines = content.split('\n');
 	const fenced = markdownFenceLines(content);
 	const out: string[] = [];
@@ -48,7 +48,7 @@ export function attachBlockIds(content: string, shorten: boolean): { content: st
 		if (m && lastContentIndex >= 0) {
 			const uuid = m[2];
 			const indent = m[1];
-			const shortId = makeUnique(shorten ? shortenId(uuid) : uuid);
+			const shortId = makeUnique(shortenId(uuid));
 			ids.push({ uuid, shortId });
 			const target = out[lastContentIndex];
 			if (!target.trimEnd().endsWith(`^${shortId}`)) {
@@ -87,13 +87,11 @@ export function attachBlockIds(content: string, shorten: boolean): { content: st
 export function resolveBlockRefs(
 	content: string,
 	index: Map<string, BlockRefTarget>,
-	opts: { alwaysEmbedBlockRefs?: boolean } = {},
 ): string {
-	const alwaysEmbed = opts.alwaysEmbedBlockRefs ?? false;
-	return outsideMarkdownCode(content, segment => resolveSegment(segment, index, alwaysEmbed));
+	return outsideMarkdownCode(content, segment => resolveSegment(segment, index));
 }
 
-function resolveSegment(text: string, index: Map<string, BlockRefTarget>, alwaysEmbed: boolean): string {
+function resolveSegment(text: string, index: Map<string, BlockRefTarget>): string {
 	text = text.replace(/\{\{embed\s+\(\(([^()]+?)\)\)\}\}/g, (whole: string, uuid: string) => {
 		const target = index.get(uuid.trim());
 		return target ? `![[${target.page}#^${target.shortId}]]` : whole;
@@ -102,26 +100,7 @@ function resolveSegment(text: string, index: Map<string, BlockRefTarget>, always
 	text = text.replace(/\(\(([^()]+?)\)\)/g, (whole: string, uuid: string) => {
 		const target = index.get(uuid.trim());
 		if (!target) return whole;
-		return alwaysEmbed
-			? `![[${target.page}#^${target.shortId}]]`
-			: `[[${target.page}#^${target.shortId}]]`;
+		return `[[${target.page}#^${target.shortId}]]`;
 	});
 	return text;
-}
-
-export function removeOrphanBlockRefs(content: string): string {
-	return outsideMarkdownFences(content, removeOrphanBlockRefSegment);
-}
-
-function removeOrphanBlockRefSegment(content: string): string {
-	return content
-		.split('\n')
-		.map(line => {
-			const rewritten = outsideCodeSpans(line, segment => segment
-				.replace(/\{\{embed\s+\(\([^()]+?\)\)\}\}/g, '')
-				.replace(/\(\([^()]+?\)\)/g, ''));
-			return /^\s*[-*+]?\s*$/.test(rewritten) ? '' : rewritten;
-		})
-		.join('\n')
-		.replace(/\n{3,}/g, '\n\n');
 }

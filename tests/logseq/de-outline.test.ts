@@ -192,6 +192,11 @@ test('deOutline: ^id anchor on continuation line stays adjacent to heading', () 
 	assert.equal(deOutline(input), ['# Heading', '^ref1'].join('\n'));
 });
 
+test('deOutline: an underscored anchor stays adjacent to its heading', () => {
+	const input = ['- # Heading', '  ^ref_one'].join('\n');
+	assert.equal(deOutline(input), ['# Heading', '^ref_one'].join('\n'));
+});
+
 test('deOutline: ^id anchor preserved in list items', () => {
 	const input = [
 		'- List:',

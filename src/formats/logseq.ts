@@ -1,6 +1,7 @@
 import { moment, normalizePath, Notice, TFile } from 'obsidian';
+import { FileTimes, pickedFileTimes } from '../file-times';
 import { ImportContext } from '../import-context';
-import { NodePickedFile, PickedFile, PickedFolder, fsPromises } from '../filesystem';
+import { PickedFile, PickedFolder } from '../filesystem';
 import { FormatImporter, NoteTemplateSample, PlannedNote, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { i18n } from '../i18n';
 import { normalizeTreePath, parentTreePath } from '../imported-path-index';
@@ -19,10 +20,6 @@ import { convertLocal, indexPageAliases, isBodyEmpty, LocalResult } from './logs
 
 const ISO_FORMAT = 'YYYY-MM-DD';
 
-interface InternalPlugins {
-	getPluginById(id: string): { instance?: { options?: { format?: string, folder?: string } } } | null;
-}
-
 interface GraphFile {
 	file: PickedFile;
 	path: string;
@@ -35,8 +32,6 @@ interface GraphSource {
 	hasWhiteboards: boolean;
 	config: LogseqGraphConfig;
 }
-
-interface FileTimes { ctime: number, mtime: number }
 
 interface SourceNote extends GraphFile {
 	kind: 'page' | 'journal';
@@ -90,20 +85,6 @@ async function walkItems(items: (PickedFile | PickedFolder)[], parent: string, f
 		const path = normalizeTreePath(parent ? `${parent}/${item.name}` : item.name);
 		if (item.type === 'folder') await walkItems(await item.list(), path, files);
 		else files.push({ file: item, path });
-	}
-}
-
-async function fileTimes(file: PickedFile): Promise<FileTimes | undefined> {
-	if (!(file instanceof NodePickedFile)) return undefined;
-	try {
-		const stat = await fsPromises.stat(file.filepath);
-		return {
-			ctime: Math.round(stat.birthtimeMs || stat.ctimeMs),
-			mtime: Math.round(stat.mtimeMs),
-		};
-	}
-	catch {
-		return undefined;
 	}
 }
 
@@ -211,8 +192,7 @@ export class LogseqImporter extends FormatImporter {
 	}
 
 	private dailyNotesConfig(): { format: string, folder: string } {
-		const app = this.app as { internalPlugins?: InternalPlugins };
-		const options = app.internalPlugins?.getPluginById('daily-notes')?.instance?.options;
+		const options = this.dailyNotesOptions();
 		return { format: options?.format || ISO_FORMAT, folder: options?.folder || 'Journals' };
 	}
 
@@ -381,7 +361,7 @@ export class LogseqImporter extends FormatImporter {
 					assetTarget: () => null,
 					commaSeparatedProperties: graph.config.commaSeparatedProperties,
 				});
-				const times = await fileTimes(entry.file);
+				const times = await pickedFileTimes(entry.file);
 				const preliminary = local.yaml ? `${local.yaml}\n\n${local.body}\n` : `${local.body}\n`;
 				const planned = await this.planTemplatedNote(desired.parent, desired.title, preliminary, {
 					sourceId: desired.sourceId,
@@ -401,7 +381,6 @@ export class LogseqImporter extends FormatImporter {
 		// Re-plan titles so {{content}} sees final attachment links.
 		for (const note of notes) {
 			const linked = convertAssetLinks(note.local.body, {
-				keepAltText: false,
 				target: asset => note.assetTargets.get(asset.sourcePath) ?? null,
 			});
 			note.local = { ...note.local, body: linked.content };
@@ -435,7 +414,7 @@ export class LogseqImporter extends FormatImporter {
 		for (const note of notes) {
 			if (await ctx.shouldStop()) return;
 			try {
-				const final = this.resolveNote(note, blockIndex, aliasMap, knownPages, linkPlans, ctx);
+				const final = this.resolveNote(note, blockIndex, aliasMap, linkPlans, ctx);
 				if (final === null) {
 					this.releasePath(note.planned.targetPath);
 				}
@@ -472,19 +451,13 @@ export class LogseqImporter extends FormatImporter {
 		note: SourceNote,
 		blockIndex: Map<string, BlockRefTarget>,
 		aliasMap: Map<string, string>,
-		knownPages: Set<string>,
 		linkPlans: Map<string, PlannedPageLink>,
 		ctx: ImportContext,
 	): string | null {
 		let body = this.applyLogseqOnly(note.local.body, note.local.hasQueries, note.path, ctx);
 		body = resolveBlockRefs(body, blockIndex);
 		body = rewriteAliasReferences(body, { aliasMap });
-		body = convertTags(body, {
-			toLinks: false,
-			onlyExistingPages: true,
-			knownPages,
-			dropTags: new Set(this.options.flashcards ? [] : ['card']),
-		});
+		body = convertTags(body, new Set(this.options.flashcards ? [] : ['card']));
 		const yaml = note.local.yaml;
 		const journalDateFormat = this.options.useDailyNotes
 			? this.dailyNotesConfig().format
@@ -600,7 +573,7 @@ export class LogseqImporter extends FormatImporter {
 							file: source.file,
 							path: placed.path,
 							reuse: placed.reuse,
-							times: placed.reuse ? undefined : await fileTimes(source.file),
+							times: placed.reuse ? undefined : await pickedFileTimes(source.file),
 						};
 						bySource.set(sourceKey, asset);
 						planned.push(asset);

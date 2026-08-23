@@ -1,5 +1,6 @@
 import { normalizePath, Notice, TFile } from 'obsidian';
-import { fsPromises, NodePickedFile, PickedFile, PickedFolder } from '../filesystem';
+import { FileTimes, pickedFileTimes } from '../file-times';
+import { PickedFile, PickedFolder } from '../filesystem';
 import { DuplicateHandling, FormatImporter, leavesTheNoteAlone, NoteTemplateSample, PlannedNote, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { ImportedPathIndex, normalizeTreePath, parentTreePath, resolveTreePath } from '../imported-path-index';
@@ -7,7 +8,7 @@ import { i18n } from '../i18n';
 import { MarkdownFormatting, MarkdownLinkResolver } from '../markdown-output';
 import { isHiddenPickedItem, PickedFolderLoad, PickedFolderPicker, pickedFolderFileCount, pickedFolderNodes, plannedPickedItems, PlannedPickedItem } from '../picked-folder-tree';
 import { sameBytes } from '../util';
-import { withZipContents, ZipEntryFile } from '../zip';
+import { withZipContents } from '../zip';
 import { convertMarkdownNote } from './markdown/convert';
 
 const MARKDOWN_EXTS = ['md', 'markdown'];
@@ -27,35 +28,8 @@ interface PlannedAttachment {
 	times?: FileTimes;
 }
 
-interface FileTimes {
-	ctime: number;
-	mtime: number;
-}
-
 function isMarkdown(file: PickedFile): boolean {
 	return MARKDOWN_EXTS.includes(file.extension);
-}
-
-async function fileTimes(file: PickedFile): Promise<FileTimes | undefined> {
-	if (file instanceof ZipEntryFile) {
-		const mtime = (file.mtime ?? file.ctime)?.getTime();
-		return mtime ? { ctime: (file.ctime ?? file.mtime).getTime(), mtime } : undefined;
-	}
-
-	if (!(file instanceof NodePickedFile)) return undefined;
-
-	try {
-		const stat = await fsPromises.stat(file.filepath);
-
-		// Vault timestamps use integer milliseconds.
-		return {
-			ctime: Math.round(stat.birthtimeMs || stat.ctimeMs),
-			mtime: Math.round(stat.mtimeMs),
-		};
-	}
-	catch {
-		return undefined;
-	}
 }
 
 export class MarkdownImporter extends FormatImporter {
@@ -178,7 +152,7 @@ export class MarkdownImporter extends FormatImporter {
 					title: item.file.basename,
 					path: normalizePath(`${item.parent}/${item.file.basename}.md`),
 					content: markdown,
-					times: await fileTimes(item.file),
+					times: await pickedFileTimes(item.file),
 				});
 			}
 		}, (name, error) => ctx.reportFailed(name, error));
@@ -274,7 +248,7 @@ export class MarkdownImporter extends FormatImporter {
 		planned: PlannedNote,
 	): Promise<void> {
 		await this.createFolders(parent || '/');
-		const times = await fileTimes(file);
+		const times = await pickedFileTimes(file);
 
 		const disposition = this.preflightNote(ctx, planned, times?.mtime);
 		if (leavesTheNoteAlone(disposition)) {
@@ -298,7 +272,7 @@ export class MarkdownImporter extends FormatImporter {
 		const folder = await this.createFolders(parent || '/');
 		const candidate = this.namingIn(folder.path === '/' ? '' : folder.path, file.name);
 
-		const times = await fileTimes(file);
+		const times = await pickedFileTimes(file);
 		let data: ArrayBuffer | undefined;
 		const sourceData = async () => data ??= await file.read();
 		const { path, reuse } = await this.placeAttachmentAt(candidate, async existing => {

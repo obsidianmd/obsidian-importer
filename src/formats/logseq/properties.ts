@@ -1,7 +1,4 @@
 import { outsideMarkdownFences } from '../../markdown';
-import { BlockPropertyMode } from './options';
-
-export type { BlockPropertyMode };
 
 const PROPERTY_LINE = /^([A-Za-z0-9_.-]+):: ?(.*)$/;
 const BLOCK_PROPERTY_LINE = /^(\s*)(- )?([A-Za-z0-9_.-]+):: ?(.*)$/;
@@ -29,6 +26,9 @@ const ALWAYS_DROP_PAGE_PROPS = new Set([
 	'filters',
 	'background-color',
 	'heading',
+	'public',
+	'exclude-from-graph-view',
+	'icon',
 	'template',
 	'template-including-parent',
 ]);
@@ -125,17 +125,11 @@ function tagsFromItem(item: string): string[] {
 	return tokens;
 }
 
-function toSnakeCaseKey(key: string): string {
-	return key.replace(/-/g, '_');
-}
-
 function emitProperty(
 	key: string,
 	value: string,
 	aliases: string[],
-	dropPageProps: Set<string>,
 	dropTags: Set<string>,
-	snakeCase: boolean,
 	commaSeparatedProperties: ReadonlySet<string>,
 ): string[] {
 	if (value.trim() === '') return [];
@@ -150,37 +144,30 @@ function emitProperty(
 		return ['tags:', ...items.map(yamlListItem)];
 	}
 	if (isAlwaysDroppedPageProp(key)) return [];
-	if (dropPageProps.has(key)) return [];
-
-	const outKey = snakeCase ? toSnakeCaseKey(key) : key;
 
 	if ((key === 'created' || key === 'updated') && value.includes('[[')) {
 		const iso = extractIsoDate(value);
-		if (iso !== null) return [`${outKey}: ${iso}`];
+		if (iso !== null) return [`${key}: ${iso}`];
 	}
 
 	const parts = splitList(value);
 	const hasWiki = value.includes('[[');
 	if ((hasWiki || commaSeparatedProperties.has(key.toLowerCase())) && parts.length > 1) {
-		return [`${outKey}:`, ...parts.map(yamlListItem)];
+		return [`${key}:`, ...parts.map(yamlListItem)];
 	}
 	if (hasWiki || needsQuoting(value)) {
-		return [`${outKey}: ${quote(value)}`];
+		return [`${key}: ${quote(value)}`];
 	}
-	return [`${outKey}: ${value}`];
+	return [`${key}: ${value}`];
 }
 
 export interface ExtractPagePropertiesOptions {
-	dropPageProperties?: string[];
 	dropTags?: string[];
-	snakeCasePageProperties?: boolean;
 	commaSeparatedProperties?: ReadonlySet<string>;
 }
 
 export function extractPageProperties(content: string, opts: ExtractPagePropertiesOptions = {}): PageProperties {
-	const dropPageProps = new Set(opts.dropPageProperties ?? []);
 	const dropTags = new Set(opts.dropTags ?? []);
-	const snakeCase = opts.snakeCasePageProperties ?? false;
 	const commaSeparatedProperties = opts.commaSeparatedProperties ?? new Set<string>();
 	const lines = content.split('\n');
 	const raw: Record<string, string> = {};
@@ -195,7 +182,7 @@ export function extractPageProperties(content: string, opts: ExtractPageProperti
 		const value = m[2].trim();
 		raw[key] = value;
 		if (key === 'title') continue;
-		const emitted = emitProperty(key, value, aliases, dropPageProps, dropTags, snakeCase, commaSeparatedProperties);
+		const emitted = emitProperty(key, value, aliases, dropTags, commaSeparatedProperties);
 		// Map keeps a key in its first slot, so first occurrence wins the
 		// position and the last value wins the slot.
 		if (emitted.length > 0) propMap.set(key, emitted);
@@ -224,9 +211,9 @@ export function extractPageProperties(content: string, opts: ExtractPageProperti
 }
 
 
-function isAlwaysDroppedBlockProp(key: string, userDrop: Set<string>): boolean {
+function isAlwaysDroppedBlockProp(key: string): boolean {
 	if (isAlwaysDroppedByPrefix(key)) return true;
-	return ALWAYS_DROP_BLOCK_PROPS.has(key) || userDrop.has(key);
+	return ALWAYS_DROP_BLOCK_PROPS.has(key);
 }
 
 function isAlwaysDroppedPageProp(key: string): boolean {
@@ -234,32 +221,11 @@ function isAlwaysDroppedPageProp(key: string): boolean {
 	return ALWAYS_DROP_PAGE_PROPS.has(key);
 }
 
-function renameBlockPropertyKey(line: string, m: RegExpMatchArray, outKey: string): string {
-	const indent = m[1];
-	const bullet = m[2] ?? '';
-	const key = m[3];
-	const prefixLen = indent.length + bullet.length;
-	const rest = line.slice(prefixLen + key.length + 2);
-	return `${indent}${bullet}${outKey}::${rest}`;
+export function removeLeftoverBlockProperties(content: string): string {
+	return outsideMarkdownFences(content, removeLeftoverBlockPropertySegment);
 }
 
-export function removeLeftoverBlockProperties(
-	content: string,
-	dropBlockProperties: string[] = [],
-	mode: BlockPropertyMode = 'keep',
-	snakeCase = false
-): string {
-	return outsideMarkdownFences(content,
-		segment => removeLeftoverBlockPropertySegment(segment, dropBlockProperties, mode, snakeCase));
-}
-
-function removeLeftoverBlockPropertySegment(
-	content: string,
-	dropBlockProperties: string[],
-	mode: BlockPropertyMode,
-	snakeCase: boolean,
-): string {
-	const userDrop = new Set(dropBlockProperties);
+function removeLeftoverBlockPropertySegment(content: string): string {
 	const out: string[] = [];
 	for (const line of content.split('\n')) {
 		const m = line.match(BLOCK_PROPERTY_LINE);
@@ -268,38 +234,10 @@ function removeLeftoverBlockPropertySegment(
 			continue;
 		}
 		const key = m[3];
-		if (isAlwaysDroppedBlockProp(key, userDrop)) continue;
-		if (mode === 'drop') continue;
-		const outKey = snakeCase ? toSnakeCaseKey(key) : key;
-		out.push(snakeCase ? renameBlockPropertyKey(line, m, outKey) : line);
+		if (isAlwaysDroppedBlockProp(key)) continue;
+		out.push(line);
 	}
 	return out.join('\n');
-}
-
-export interface LinkifyTagValuesOptions {
-	knownPages: Set<string>;
-	toLinks: boolean;
-	onlyExistingPages: boolean;
-}
-
-const TAG_VALUE_LINE = /^(\s*[A-Za-z0-9_.-]+: )"(#(?:\[\[[^\]]+\]\]|[\w/-]+))"$/;
-
-export function linkifyTagValuesInFrontmatter(yaml: string, opts: LinkifyTagValuesOptions): string {
-	if (!yaml || !opts.toLinks) return yaml;
-	const { knownPages, onlyExistingPages } = opts;
-	return yaml
-		.split('\n')
-		.map(line => {
-			const m = line.match(TAG_VALUE_LINE);
-			if (!m) return line;
-			const prefix = m[1];
-			const token = m[2];
-			const multi = token.match(/^#\[\[([^\]]+)\]\]$/);
-			const name = multi ? multi[1] : token.slice(1);
-			if (onlyExistingPages && !knownPages.has(name.toLowerCase())) return line;
-			return `${prefix}"[[${name}]]"`;
-		})
-		.join('\n');
 }
 
 export function convertHeadingProperty(content: string): string {

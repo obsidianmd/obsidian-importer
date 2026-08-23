@@ -44,7 +44,7 @@ test('turns priority and scheduling metadata into plain text and date links', ()
 		'  created:: 2024-01-15',
 	].join('\n');
 	assert.equal(convertTasks(input),
-		'- [ ] do it \u2014 priority A, scheduled [[2024-09-10]], due [[2024-09-15]], created [[2024-01-15]], every day');
+		'- [ ] do it \u2014 priority A, scheduled [[2024-09-10]], due [[2024-09-15]] every day (.+1d), created [[2024-01-15]]');
 });
 
 test('a task with no metadata gains no suffix', () => {
@@ -54,6 +54,56 @@ test('a task with no metadata gains no suffix', () => {
 test('a scheduled time of day survives beside its date link', () => {
 	assert.equal(convertTasks('- TODO standup\n  SCHEDULED: <2024-09-10 Tue 09:30>'),
 		'- [ ] standup \u2014 scheduled [[2024-09-10]] 09:30');
+});
+
+test('preserves each repeater and its Logseq mode', () => {
+	const input = [
+		'- TODO recurring',
+		'  SCHEDULED: <2024-09-10 Tue +1d>',
+		'  DEADLINE: <2024-09-15 Sun ++2w>',
+	].join('\n');
+	assert.equal(convertTasks(input),
+		'- [ ] recurring \u2014 scheduled [[2024-09-10]] every day (+1d), due [[2024-09-15]] every 2 weeks (++2w)');
+});
+
+test('preserves inline scheduling that cannot be parsed', () => {
+	const input = '- TODO prepare SCHEDULED: <{{date:YYYY-MM-DD}}>';
+	assert.equal(convertTasks(input), '- [ ] prepare SCHEDULED: <{{date:YYYY-MM-DD}}>');
+});
+
+test('preserves continuation metadata that cannot be parsed', () => {
+	const input = [
+		'- TODO prepare',
+		'  DEADLINE: <someday>',
+		'  created:: [[{{date:YYYY-MM-DD}}]]',
+		'  completed:: #{"{"}',
+	].join('\n');
+	assert.equal(convertTasks(input), [
+		'- [ ] prepare',
+		'  DEADLINE: <someday>',
+		'  created:: [[{{date:YYYY-MM-DD}}]]',
+		'  completed:: #{"{"}',
+	].join('\n'));
+});
+
+test('keeps an existing block anchor after generated metadata', () => {
+	assert.equal(
+		convertTasks('- TODO anchored SCHEDULED: <2024-09-10 Tue> ^abc123'),
+		'- [ ] anchored \u2014 scheduled [[2024-09-10]] ^abc123',
+	);
+});
+
+test('continuation scheduling overrides inline scheduling', () => {
+	const input = [
+		'- TODO changed SCHEDULED: <2024-01-01 Mon>',
+		'  SCHEDULED: <2024-06-15 Sat>',
+	].join('\n');
+	assert.equal(convertTasks(input), '- [ ] changed \u2014 scheduled [[2024-06-15]]');
+});
+
+test('leaves scheduling syntax inside inline code unchanged', () => {
+	const input = '- TODO document `SCHEDULED: <2024-06-15 Sat>` literally';
+	assert.equal(convertTasks(input), '- [ ] document `SCHEDULED: <2024-06-15 Sat>` literally');
 });
 
 test('drops LOGBOOK drawers by default', () => {
@@ -73,7 +123,7 @@ test('keeps LOGBOOK drawers when configured', () => {
 		'  CLOCK: [2024-08-07 Wed 11:47:50]',
 		'  :END:',
 	].join('\n');
-	assert.equal(convertTasks(input, { logbook: 'keep' }), input.replace('- DONE', '- [x]'));
+	assert.equal(convertTasks(input, true), input.replace('- DONE', '- [x]'));
 });
 
 test('drops LOGBOOK drawers attached to non-task blocks', () => {

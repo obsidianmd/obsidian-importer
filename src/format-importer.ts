@@ -52,6 +52,11 @@ export interface AttachmentLocation {
 	path: string;
 }
 
+interface DailyNotesOptions {
+	format?: string;
+	folder?: string;
+}
+
 const ATTACHMENT_MODES: AttachmentLocationMode[] = ['vault', 'folder', 'note', 'subfolder'];
 
 function attachmentModeLabel(mode: AttachmentLocationMode): string {
@@ -315,6 +320,16 @@ export abstract class FormatImporter {
 
 	protected whenReady(work: Promise<unknown>): void {
 		this.pending.push(work);
+	}
+
+	protected dailyNotesOptions(): DailyNotesOptions | null {
+		const app = this.app as App & {
+			internalPlugins?: {
+				getPluginById(id: string): { instance?: { options?: DailyNotesOptions } } | null;
+			};
+		};
+		const instance = app.internalPlugins?.getPluginById('daily-notes')?.instance;
+		return instance ? instance.options ?? {} : null;
 	}
 
 	abstract init(): void | Promise<void>;

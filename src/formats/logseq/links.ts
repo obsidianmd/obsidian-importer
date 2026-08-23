@@ -1,4 +1,5 @@
 import { outsideMarkdownCode } from '../../markdown';
+import { sanitizeTag } from '../../util';
 import { LogseqFilenameFormat } from './config';
 import { namespaceToPath } from './paths';
 
@@ -13,35 +14,20 @@ export function convertAliasLinks(content: string): string {
 	);
 }
 
-export interface ConvertTagsOptions {
-	toLinks: boolean;
-	onlyExistingPages: boolean;
-	knownPages: Set<string>;
-	dropTags: Set<string>;
+function retainedTag(name: string): string {
+	return sanitizeTag(name.replace(/\s+/g, '-')).replace(/-+/g, '-');
 }
 
-const HEX_COLOUR = /^(?:[0-9A-Fa-f]{3,4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/;
-
-export function convertTags(content: string, options: ConvertTagsOptions): string {
-	const { toLinks, onlyExistingPages, knownPages, dropTags } = options;
-
+export function convertTags(content: string, dropTags: Set<string> = new Set()): string {
 	return outsideMarkdownCode(content, segment => {
 		segment = segment.replace(/(^|[\s([])#\[\[([^\]]+)\]\]/g, (_match: string, pre: string, name: string) => {
-			if (dropTags.has(name) || dropTags.has(name.replace(/\s+/g, '-'))) return pre;
-			if (toLinks) {
-				if (onlyExistingPages && !knownPages.has(name.toLowerCase())) return `${pre}#${name.replace(/\s+/g, '-')}`;
-				return `${pre}[[${name}]]`;
-			}
-			return `${pre}#${name.replace(/\s+/g, '-')}`;
+			const tag = retainedTag(name);
+			if (dropTags.has(name) || dropTags.has(tag)) return pre;
+			return tag ? `${pre}#${tag}` : pre;
 		});
 		segment = segment.replace(/(^|[\s([])#([\p{L}\p{M}\p{N}_/-]+)/gu,
 			(match: string, pre: string, name: string) => {
 				if (dropTags.has(name)) return pre;
-				if (HEX_COLOUR.test(name) && !knownPages.has(name.toLowerCase())) return match;
-				if (toLinks) {
-					if (onlyExistingPages && !knownPages.has(name.toLowerCase())) return match;
-					return `${pre}[[${name}]]`;
-				}
 				return match;
 			});
 		return segment;
