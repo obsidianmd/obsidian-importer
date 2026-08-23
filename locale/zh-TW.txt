@@ -1447,7 +1447,7 @@ original=Logseq
 translation=
 
 [importer.logseq.option-text]
-original=Logseq (Markdown graph)
+original=Logseq (.md)
 translation=
 
 [importer.logseq.file-type]

@@ -443,7 +443,7 @@ export const en = {
 		},
 		logseq: {
 			name: 'Logseq',
-			optionText: 'Logseq (Markdown graph)',
+			optionText: 'Logseq (.md)',
 			fileType: 'Logseq graph',
 			labelId: 'Logseq source',
 			descExport: 'Choose the root folder of a Logseq Markdown graph.',
