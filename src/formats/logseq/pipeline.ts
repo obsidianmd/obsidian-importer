@@ -13,6 +13,10 @@ import { convertJournalDateLinks } from './journals';
 import { attachBlockIds, DefinedId } from './block-ids';
 import { normalizeWhitespace } from './normalize';
 
+export interface LogseqConversionRuntime {
+	assetTarget?: (sourcePath: string, filename: string) => string | null;
+}
+
 export interface LocalResult {
 	/** YAML frontmatter block (with fences) or '' when there are no page properties. */
 	yaml: string;
@@ -26,7 +30,11 @@ export interface LocalResult {
 	assets: AssetRef[];
 }
 
-export function convertLocal(content: string, options: LogseqImportOptions): LocalResult {
+export function convertLocal(
+	content: string,
+	options: LogseqImportOptions,
+	runtime: LogseqConversionRuntime = {},
+): LocalResult {
 	const { yaml, body: initialBody, raw } = extractPageProperties(content, {
 		dropPageProperties: options.dropPageProperties,
 		dropTags: options.dropTags,
@@ -43,7 +51,12 @@ export function convertLocal(content: string, options: LogseqImportOptions): Loc
 	body = fixHeadingChildLists(body);
 	body = fixCodeBlocksInLists(body);
 
-	const assetResult = convertAssetLinks(body, { keepAltText: options.keepAssetAltText });
+	const assetResult = convertAssetLinks(body, {
+		keepAltText: options.keepAssetAltText,
+		target: runtime.assetTarget
+			? asset => runtime.assetTarget!(asset.sourcePath, asset.filename)
+			: undefined,
+	});
 	body = assetResult.content;
 
 	body = convertAliasLinks(body);
@@ -96,4 +109,3 @@ export function indexPageAliases(
 export function isBodyEmpty(yaml: string, body: string): boolean {
 	return !yaml && !body.trim();
 }
-

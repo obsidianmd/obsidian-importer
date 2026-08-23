@@ -7,11 +7,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
-import { join, basename } from 'node:path';
+import { join } from 'node:path';
 
 import { convertLocal, LocalResult } from '../../src/formats/logseq/pipeline';
 import { resolveBlockRefs, removeOrphanBlockRefs, BlockRefTarget } from '../../src/formats/logseq/block-ids';
-import { convertTags, rewriteAliasReferences, disambiguateBasenameLinks, LinkIndex, BasenameIndex } from '../../src/formats/logseq/links';
+import { convertTags, rewriteAliasReferences, LinkIndex } from '../../src/formats/logseq/links';
 import { DEFAULT_LOGSEQ_OPTIONS, LogseqImportOptions } from '../../src/formats/logseq/options';
 import { namespaceToPath, decodeLogseqName } from '../../src/formats/logseq/paths';
 import { journalFilenameToISO } from '../../src/formats/logseq/journals';
@@ -37,7 +37,7 @@ function loadFixtureGraph(opts: LogseqImportOptions = DEFAULT_LOGSEQ_OPTIONS): C
 	const pagesDir = join(FIXTURE_ROOT, 'pages');
 	const journalsDir = join(FIXTURE_ROOT, 'journals');
 
-	const files: { path: string; content: string; kind: 'page' | 'journal'; stem: string }[] = [];
+	const files: { path: string, content: string, kind: 'page' | 'journal', stem: string }[] = [];
 
 	for (const f of readdirSync(pagesDir)) {
 		if (!f.endsWith('.md')) continue;
@@ -51,7 +51,7 @@ function loadFixtureGraph(opts: LogseqImportOptions = DEFAULT_LOGSEQ_OPTIONS): C
 	}
 
 	// Pass 1: convert each file locally and build indices.
-	const locals: { file: typeof files[0]; local: LocalResult; outputPath: string }[] = [];
+	const locals: { file: typeof files[0], local: LocalResult, outputPath: string }[] = [];
 	const blockIndex = new Map<string, BlockRefTarget>();
 	const aliasMap = new Map<string, string>();
 
@@ -62,7 +62,8 @@ function loadFixtureGraph(opts: LogseqImportOptions = DEFAULT_LOGSEQ_OPTIONS): C
 		if (file.kind === 'journal') {
 			const iso = journalFilenameToISO(file.stem);
 			outputPath = iso ?? file.stem;
-		} else {
+		}
+		else {
 			outputPath = namespaceToPath(decodeLogseqName(file.stem));
 		}
 
@@ -445,7 +446,7 @@ test('E2E: COMMENT block becomes Obsidian comment', () => {
 test('E2E: IMPORTANT block becomes callout', () => {
 	const pn = findByOutput(graph, 'Main Page');
 	assert.ok(pn.finalBody.includes('> [!important]'));
-	assert.ok(pn.finalBody.includes("Don't forget this"));
+	assert.ok(pn.finalBody.includes('Don\'t forget this'));
 });
 
 test('E2E: CAUTION block becomes callout', () => {
@@ -474,7 +475,10 @@ test('E2E: code blocks in lists get proper fence alignment', () => {
 	// Find the closing fence after the opening
 	let closeIdx = -1;
 	for (let i = openIdx + 1; i < lines.length; i++) {
-		if (/^\s*```\s*$/.test(lines[i])) { closeIdx = i; break; }
+		if (/^\s*```\s*$/.test(lines[i])) {
+			closeIdx = i;
+			break;
+		}
 	}
 	assert.ok(closeIdx > openIdx);
 	const closeIndent = lines[closeIdx].indexOf('```');

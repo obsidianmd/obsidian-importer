@@ -82,8 +82,14 @@ export function convertTasks(content: string, format: TaskFormat, options: TaskO
 	if (logbook === 'drop') {
 		let inLogbook = false;
 		processed = content.split('\n').filter(line => {
-			if (/^\s*:LOGBOOK:/.test(line)) { inLogbook = true; return false; }
-			if (inLogbook && /:END:/.test(line)) { inLogbook = false; return false; }
+			if (/^\s*:LOGBOOK:/.test(line)) {
+				inLogbook = true;
+				return false;
+			}
+			if (inLogbook && /:END:/.test(line)) {
+				inLogbook = false;
+				return false;
+			}
 			if (inLogbook) return false;
 			return true;
 		}).join('\n');

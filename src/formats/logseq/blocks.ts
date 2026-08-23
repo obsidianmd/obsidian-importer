@@ -128,7 +128,10 @@ function processOrgLines(lines: string[]): string[] {
 		if (type === 'QUERY') {
 			let qend = -1;
 			for (let j = i + 1; j < lines.length; j++) {
-				if (END_RE.test(lines[j])) { qend = j; break; }
+				if (END_RE.test(lines[j])) {
+					qend = j;
+					break;
+				}
 			}
 			if (qend >= 0) {
 				const indent = begin[1];

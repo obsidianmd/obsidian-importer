@@ -4,10 +4,10 @@
 // lines) and map to Obsidian YAML frontmatter. Block properties are indented
 // `key:: value` continuation lines; most Logseq-internal ones are dropped.
 
-const PROPERTY_LINE = /^([A-Za-z0-9_.\-]+):: ?(.*)$/;
+const PROPERTY_LINE = /^([A-Za-z0-9_.-]+):: ?(.*)$/;
 // Also matches bullet-form block properties: `- key:: value`
 // Groups: 1=indent, 2=bullet (`- ` or undefined), 3=key, 4=value.
-const BLOCK_PROPERTY_LINE = /^(\s*)(- )?([A-Za-z0-9_.\-]+):: ?(.*)$/;
+const BLOCK_PROPERTY_LINE = /^(\s*)(- )?([A-Za-z0-9_.-]+):: ?(.*)$/;
 // A trailing Logseq block anchor on a property value, e.g. ` ^68dc12`.
 const BLOCK_ANCHOR = /\s+(\^[A-Za-z0-9_-]+)\s*$/;
 
@@ -74,8 +74,16 @@ function splitList(value: string): string[] {
 	let depth = 0;
 	for (let i = 0; i < value.length; i++) {
 		const ch = value[i];
-		if (ch === '[' && value[i + 1] === '[') { depth++; current += ch; continue; }
-		if (ch === ']' && value[i - 1] === ']' && depth > 0) { depth--; current += ch; continue; }
+		if (ch === '[' && value[i + 1] === '[') {
+			depth++;
+			current += ch;
+			continue;
+		}
+		if (ch === ']' && value[i - 1] === ']' && depth > 0) {
+			depth--;
+			current += ch;
+			continue;
+		}
 		if (ch === ',' && depth === 0) {
 			const trimmed = current.trim();
 			if (trimmed) items.push(trimmed);
@@ -116,7 +124,7 @@ function needsQuoting(value: string): boolean {
 	if (value.length === 0) return false;
 	const first = value[0];
 	if ('#[{>|*&!@`'.includes(first)) return true;
-	if (first === '"' || first === "'") return true;
+	if (first === '"' || first === '\'') return true;
 	if (value.endsWith(':') || value.includes(': ')) return true;
 	if (YAML_BOOL.test(value)) return true;
 	if (YAML_NUMBER.test(value) || YAML_LEADING_ZERO.test(value)) return true;
@@ -364,7 +372,7 @@ export interface LinkifyTagValuesOptions {
 
 // A frontmatter scalar line whose value is a single, quoted Logseq tag token,
 // e.g. `status: "#IN-PROGRESS"` or `area: "#[[Page One]]"`.
-const TAG_VALUE_LINE = /^(\s*[A-Za-z0-9_.\-]+: )"(#(?:\[\[[^\]]+\]\]|[\w/-]+))"$/;
+const TAG_VALUE_LINE = /^(\s*[A-Za-z0-9_.-]+: )"(#(?:\[\[[^\]]+\]\]|[\w/-]+))"$/;
 
 /**
  * Rewrite tag-style frontmatter scalar values (`key: "#tag"`) into wikilinks

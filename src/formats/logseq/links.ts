@@ -67,7 +67,7 @@ export function convertTags(content: string, options: ConvertTagsOptions): strin
 
 	return outsideCode(content, line => {
 		// #[[multi word tag]]
-		line = line.replace(/(^|[\s(\[])#\[\[([^\]]+)\]\]/g, (_, pre, name) => {
+		line = line.replace(/(^|[\s([])#\[\[([^\]]+)\]\]/g, (_, pre, name) => {
 			if (dropTags.has(name) || dropTags.has(name.replace(/\s+/g, '-'))) return pre;
 			if (toLinks) {
 				if (onlyExistingPages && !knownPages.has(name.toLowerCase())) return `${pre}#${name.replace(/\s+/g, '-')}`;
@@ -76,7 +76,7 @@ export function convertTags(content: string, options: ConvertTagsOptions): strin
 			return `${pre}#${name.replace(/\s+/g, '-')}`;
 		});
 		// #simple-tag (letters, digits, /_-), must follow start, whitespace, or `([`
-		line = line.replace(/(^|[\s(\[])#([\w/-]+)/g, (m, pre, name) => {
+		line = line.replace(/(^|[\s([])#([\w/-]+)/g, (m, pre, name) => {
 			// H1: skip full hex colour tokens like #FF0000 (exactly 6 hex digits)
 			if (/^[0-9A-Fa-f]{6}$/.test(name)) return m;
 			if (dropTags.has(name)) return pre;
@@ -146,4 +146,26 @@ export function disambiguateBasenameLinks(content: string, index: BasenameIndex)
 			return `${bang}[[${canonical}|${displayText}]]`;
 		})
 	);
+}
+
+export interface PlannedPageLink {
+	target: string;
+	/** Preserve the source page name when collision handling renamed the note. */
+	display?: string;
+}
+
+/** Point source page names at the collision-safe paths selected by the importer. */
+export function rewritePlannedPageLinks(content: string, pages: Map<string, PlannedPageLink>): string {
+	if (pages.size === 0) return content;
+
+	return outsideCode(content, outsideInlineCode(segment =>
+		segment.replace(/(!?)\[\[([^\]|#]+)(#[^\]|]+)?(?:\|([^\]]+))?\]\]/g,
+			(whole, bang: string, sourceTarget: string, suffix = '', sourceDisplay?: string) => {
+				const planned = pages.get(sourceTarget.trim().toLowerCase());
+				if (!planned) return whole;
+
+				const display = sourceDisplay ?? planned.display;
+				return `${bang}[[${planned.target}${suffix}${display ? `|${display}` : ''}]]`;
+			})
+	));
 }

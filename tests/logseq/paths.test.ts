@@ -123,9 +123,9 @@ function stripBrackets(name: string): string {
 }
 
 test('[F1] namespaced page with [[brackets]] in the name yields a bracket-free folder path', () => {
-	const basename = "Team A___feedback___[[Alice]]'s experience";
+	const basename = 'Team A___feedback___[[Alice]]\'s experience';
 	const path = stripBrackets(namespaceToPath(basename));
-	assert.equal(path, "Team A/feedback/Alice's experience");
+	assert.equal(path, 'Team A/feedback/Alice\'s experience');
 	assert.ok(!path.includes('['));
 	assert.ok(!path.includes(']'));
 });

@@ -9,11 +9,17 @@ export interface AssetRef {
 	filename: string;
 }
 
+export interface ConvertAssetOptions {
+	keepAltText: boolean;
+	/** Return the vault link target, or null to preserve the source link. */
+	target?: (asset: AssetRef) => string | null;
+}
+
 // `[alt](path)` or `![alt](path)` optionally followed by `{: ... }`.
 // K1: path allows balanced parens (e.g. filename with `(...)`).
 // K1: leading `!` is optional so plain links are also converted.
 // K1: label allows one level of nested brackets (e.g. `[Fw_ [Nested] _ desc]`).
-const assetLinkRegex = /(!?)\[([^\[\]]*(?:\[[^\]]*\][^\[\]]*)*)\]\(([^()]*(?:\([^()]*\)[^()]*)*)\)(\{:[^}]*\})?/g;
+const assetLinkRegex = /(!?)\[([^[\]]*(?:\[[^\]]*\][^[\]]*)*)\]\(([^()]*(?:\([^()]*\)[^()]*)*)\)(\{:[^}]*\})?/g;
 // Triple-backtick fenced code blocks, which must be left untouched.
 const fencedCodeRegex = /```[\s\S]*?```/g;
 // Inline-code spans that must not be rewritten.
@@ -41,7 +47,7 @@ function dimensionDisplay(suffix: string | undefined): string | null {
 
 export function convertAssetLinks(
 	content: string,
-	options: { keepAltText: boolean }
+	options: ConvertAssetOptions
 ): { content: string, assets: AssetRef[] } {
 	const assets: AssetRef[] = [];
 	const seen = new Set<string>();
@@ -66,11 +72,13 @@ export function convertAssetLinks(
 		return text.replace(assetLinkRegex, (match, bang: string, alt: string, path: string, dimSuffix?: string) => {
 			if (isUrl(path) || !path.includes('assets/')) return match;
 
-			const filename = basename(path);
+			const asset = { sourcePath: path, filename: basename(path) };
 			if (!seen.has(path)) {
 				seen.add(path);
-				assets.push({ sourcePath: path, filename });
+				assets.push(asset);
 			}
+			const target = options.target ? options.target(asset) : asset.filename;
+			if (target === null) return match;
 
 			const dims = dimensionDisplay(dimSuffix);
 			let display: string | null = dims;
@@ -79,7 +87,7 @@ export function convertAssetLinks(
 			}
 
 			const embed = bang === '!' ? '!' : '';
-			return display !== null ? `${embed}[[${filename}|${display}]]` : `${embed}[[${filename}]]`;
+			return display !== null ? `${embed}[[${target}|${display}]]` : `${embed}[[${target}]]`;
 		});
 	}
 

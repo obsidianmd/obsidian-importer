@@ -64,7 +64,8 @@ export function attachBlockIds(content: string, shorten: boolean): { content: st
 					if (isBulletHeading) {
 						// Outline mode: indent anchor at content level (id:: line's indent).
 						out.push(indent + `^${shortId}`);
-					} else {
+					}
+					else {
 						// Plain heading (rare): anchor directly below, no blank line.
 						out.push(`^${shortId}`);
 					}
