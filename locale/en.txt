@@ -1495,27 +1495,27 @@ original=Logseq-only content
 translation=
 
 [importer.logseq.name-queries]
-original=Queries
+original=Keep queries
 translation=
 
 [importer.logseq.desc-queries]
-original=Keep Logseq queries in imported notes.
+original=Obsidian doesn't support Logseq's query format, so queries are imported as code blocks.
 translation=
 
 [importer.logseq.name-flashcards]
-original=Flashcards
+original=Keep flashcards
 translation=
 
 [importer.logseq.desc-flashcards]
-original=Keep card markers and cloze wrappers.
+original=Obsidian doesn't support Logseq's flashcards, so card markers and cloze wrappers are imported as plain text.
 translation=
 
 [importer.logseq.name-time-tracking]
-original=Time tracking
+original=Keep time tracking
 translation=
 
 [importer.logseq.desc-time-tracking]
-original=Keep LOGBOOK and CLOCK entries.
+original=Obsidian doesn't support Logseq's time tracking, so LOGBOOK and CLOCK entries are imported as plain text.
 translation=
 
 [importer.logseq.msg-pick-graph]
