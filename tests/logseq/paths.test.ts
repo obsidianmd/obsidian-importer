@@ -73,20 +73,24 @@ test('namespaceToPath decodes each namespace segment', () => {
 	assert.equal(namespaceToPath('Encoded%3AColon___notes'), 'Encoded:Colon/notes');
 });
 
-test('namespaceToPath prefers %2F over ___ when both present', () => {
-	assert.equal(namespaceToPath('a%2Fb___c'), 'a/b___c');
+test('namespaceToPath decodes mixed encoded and triple-lowbar separators', () => {
+	assert.equal(namespaceToPath('a%2Fb___c'), 'a/b/c');
 });
 
 test('namespaceToPath handles empty string', () => {
 	assert.equal(namespaceToPath(''), '');
 });
 
-test('namespaceToPath preserves leading separator as empty segment', () => {
-	assert.equal(namespaceToPath('___a'), '/a');
+test('namespaceToPath removes an empty leading namespace', () => {
+	assert.equal(namespaceToPath('___a'), 'a');
 });
 
-test('namespaceToPath preserves trailing separator as empty segment', () => {
-	assert.equal(namespaceToPath('a___'), 'a/');
+test('namespaceToPath removes an empty trailing namespace', () => {
+	assert.equal(namespaceToPath('a___'), 'a');
+});
+
+test('namespaceToPath supports legacy dot-separated namespaces when configured', () => {
+	assert.equal(namespaceToPath('area.project%20alpha', 'legacy'), 'area/project alpha');
 });
 
 test('namespaceToPath leaves malformed percent untouched in segment', () => {

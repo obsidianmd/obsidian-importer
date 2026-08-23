@@ -1,0 +1,5 @@
+{:preferred-format "Markdown"
+ :file/name-format :triple-lowbar
+ :journal/file-name-format "yyyy_MM_dd"
+ :journal/page-title-format "MMM do, yyyy"
+ :property/separated-by-commas #{:authors}}

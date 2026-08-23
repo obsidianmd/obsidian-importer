@@ -127,7 +127,15 @@ function toSnakeCaseKey(key: string): string {
 	return key.replace(/-/g, '_');
 }
 
-function emitProperty(key: string, value: string, aliases: string[], dropPageProps: Set<string>, dropTags: Set<string>, snakeCase: boolean): string[] {
+function emitProperty(
+	key: string,
+	value: string,
+	aliases: string[],
+	dropPageProps: Set<string>,
+	dropTags: Set<string>,
+	snakeCase: boolean,
+	commaSeparatedProperties: ReadonlySet<string>,
+): string[] {
 	if (value.trim() === '') return [];
 
 	if (key === 'alias' || key === 'aliases') {
@@ -151,8 +159,8 @@ function emitProperty(key: string, value: string, aliases: string[], dropPagePro
 
 	const parts = splitList(value);
 	const hasWiki = value.includes('[[');
-	if (hasWiki && parts.length > 1) {
-		return [`${outKey}:`, ...parts.map(p => `  - ${quote(p)}`)];
+	if ((hasWiki || commaSeparatedProperties.has(key.toLowerCase())) && parts.length > 1) {
+		return [`${outKey}:`, ...parts.map(yamlListItem)];
 	}
 	if (hasWiki) {
 		return [`${outKey}: ${quote(value)}`];
@@ -167,12 +175,14 @@ export interface ExtractPagePropertiesOptions {
 	dropPageProperties?: string[];
 	dropTags?: string[];
 	snakeCasePageProperties?: boolean;
+	commaSeparatedProperties?: ReadonlySet<string>;
 }
 
 export function extractPageProperties(content: string, opts: ExtractPagePropertiesOptions = {}): PageProperties {
 	const dropPageProps = new Set(opts.dropPageProperties ?? []);
 	const dropTags = new Set(opts.dropTags ?? []);
 	const snakeCase = opts.snakeCasePageProperties ?? false;
+	const commaSeparatedProperties = opts.commaSeparatedProperties ?? new Set<string>();
 	const lines = content.split('\n');
 	const raw: Record<string, string> = {};
 	const bodyLines: string[] = [];
@@ -188,7 +198,7 @@ export function extractPageProperties(content: string, opts: ExtractPageProperti
 		const value = m[2].trim();
 		raw[key] = value;
 		if (key === 'title') continue;
-		const emitted = emitProperty(key, value, aliases, dropPageProps, dropTags, snakeCase);
+		const emitted = emitProperty(key, value, aliases, dropPageProps, dropTags, snakeCase, commaSeparatedProperties);
 		if (emitted.length > 0) {
 			if (!propMap.has(key)) propOrder.push(key);
 			propMap.set(key, emitted);

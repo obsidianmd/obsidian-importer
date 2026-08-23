@@ -7,8 +7,9 @@ import { outsideMarkdownCode } from '../markdown';
 import { sameBytes, sanitizeFileName, sanitizeFilePath } from '../util';
 import { convertAssetLinks } from './logseq/assets';
 import { BlockRefTarget, removeOrphanBlockRefs, resolveBlockRefs } from './logseq/block-ids';
+import { defaultLogseqConfig, LogseqFilenameFormat, LogseqGraphConfig, parseLogseqConfig } from './logseq/config';
 import { deOutline } from './logseq/de-outline';
-import { journalFilenameToISO, reformatDateLinks } from './logseq/journals';
+import { journalFilenameToISO, logseqDateFormatToMoment, reformatDateLinks } from './logseq/journals';
 import { convertTags, rewriteAliasReferences, rewritePlannedPageLinks, PlannedPageLink } from './logseq/links';
 import { DEFAULT_LOGSEQ_OPTIONS, KeepOrDrop, LogseqImportOptions, TaskFormat } from './logseq/options';
 import { namespaceToPath } from './logseq/paths';
@@ -31,6 +32,7 @@ interface GraphSource {
 	files: GraphFile[];
 	byPath: Map<string, GraphFile>;
 	hasWhiteboards: boolean;
+	config: LogseqGraphConfig;
 }
 
 interface FileTimes { ctime: number, mtime: number }
@@ -38,6 +40,8 @@ interface FileTimes { ctime: number, mtime: number }
 interface SourceNote extends GraphFile {
 	kind: 'page' | 'journal';
 	logicalName: string;
+	sourceNames: string[];
+	filenameFormat: LogseqFilenameFormat;
 	parent: string;
 	title: string;
 	sourceId: string;
@@ -86,6 +90,13 @@ function graphBasename(path: string): string {
 function graphParent(path: string): string {
 	const slash = path.lastIndexOf('/');
 	return slash < 0 ? '' : path.slice(0, slash);
+}
+
+function relativeToGraphDirectory(path: string, directory: string): string | null {
+	const lowerPath = path.toLowerCase();
+	const lowerDirectory = directory.toLowerCase();
+	const prefix = `${lowerDirectory}/`;
+	return lowerPath.startsWith(prefix) ? path.slice(prefix.length) : null;
 }
 
 async function walkItems(items: (PickedFile | PickedFolder)[], parent: string, files: GraphFile[]): Promise<void> {
@@ -356,24 +367,50 @@ export class LogseqImporter extends FormatImporter {
 
 		const byPath = new Map<string, GraphFile>();
 		for (const entry of files) byPath.set(entry.path.toLowerCase(), entry);
-		return { name: root.name, files, byPath, hasWhiteboards };
+		let config = defaultLogseqConfig();
+		const configFile = byPath.get('logseq/config.edn');
+		if (configFile) {
+			try {
+				config = parseLogseqConfig(await configFile.file.readText());
+			}
+			catch (error) {
+				ctx.reportFailed(configFile.path, error);
+			}
+		}
+		const whiteboardsPrefix = `${config.whiteboardsDirectory.toLowerCase()}/`;
+		hasWhiteboards ||= files.some(entry => entry.path.toLowerCase().startsWith(whiteboardsPrefix));
+		return { name: root.name, files, byPath, hasWhiteboards, config };
 	}
 
 	private noteEntries(graph: GraphSource): GraphFile[] {
-		return graph.files.filter(entry => /^(pages|journals)\/.*\.md$/i.test(entry.path));
+		return graph.files.filter(entry => entry.file.extension === 'md' && (
+			relativeToGraphDirectory(entry.path, graph.config.pagesDirectory) !== null ||
+			relativeToGraphDirectory(entry.path, graph.config.journalsDirectory) !== null
+		));
 	}
 
-	private desiredNote(entry: GraphFile, graphName: string, outputRoot: string): Omit<SourceNote,
+	private desiredNote(entry: GraphFile, graph: GraphSource, outputRoot: string): Omit<SourceNote,
 		'content' | 'local' | 'planned' | 'times' | 'assetTargets'> {
-		const journal = entry.path.toLowerCase().startsWith('journals/');
+		const journalPath = relativeToGraphDirectory(entry.path, graph.config.journalsDirectory);
+		const journal = journalPath !== null;
 		let logicalName: string;
 		let parent: string;
+		let sourceNames: string[];
 
 		if (journal) {
-			const iso = journalFilenameToISO(entry.file.basename);
+			const sourceStem = withoutMarkdownExtension(journalPath);
+			const iso = journalFilenameToISO(sourceStem, graph.config.journalFileNameFormat);
 			logicalName = iso
 				? moment(iso, ISO_FORMAT, true).format(this.options.journalDateFormat)
-				: entry.file.basename;
+				: sourceStem;
+			sourceNames = [logicalName];
+			if (iso) {
+				sourceNames.push(iso);
+				if (graph.config.journalPageTitleFormat) {
+					sourceNames.push(moment(iso, ISO_FORMAT, true)
+						.format(logseqDateFormatToMoment(graph.config.journalPageTitleFormat)));
+				}
+			}
 			const journalRoot = this.options.useDailyNotes
 				? this.options.journalFolder.trim()
 				: normalizePath([outputRoot, this.options.journalFolder.trim()].filter(Boolean).join('/'));
@@ -381,7 +418,8 @@ export class LogseqImporter extends FormatImporter {
 			parent = normalizePath([journalRoot, logicalParent].filter(Boolean).join('/'));
 		}
 		else {
-			logicalName = namespaceToPath(entry.file.basename);
+			logicalName = namespaceToPath(entry.file.basename, graph.config.filenameFormat);
+			sourceNames = [logicalName];
 			const pageRoot = normalizePath([outputRoot, this.options.pagesFolder.trim()].filter(Boolean).join('/'));
 			const logicalParent = sanitizeFilePath(graphParent(logicalName), pageRoot);
 			parent = normalizePath([pageRoot, logicalParent].filter(Boolean).join('/'));
@@ -392,9 +430,11 @@ export class LogseqImporter extends FormatImporter {
 			...entry,
 			kind: journal ? 'journal' : 'page',
 			logicalName,
+			sourceNames: [...new Set(sourceNames)],
+			filenameFormat: graph.config.filenameFormat,
 			parent,
 			title,
-			sourceId: `${graphName}/${entry.path}`,
+			sourceId: `${graph.name}/${entry.path}`,
 		};
 	}
 
@@ -407,8 +447,10 @@ export class LogseqImporter extends FormatImporter {
 		for (const entry of this.noteEntries(graph)) {
 			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
 			try {
-				const desired = this.desiredNote(entry, graph.name, outputRoot);
-				const local = convertLocal(await entry.file.readText(), this.options);
+				const desired = this.desiredNote(entry, graph, outputRoot);
+				const local = convertLocal(await entry.file.readText(), this.options, {
+					commaSeparatedProperties: graph.config.commaSeparatedProperties,
+				});
 				const content = local.yaml ? `${local.yaml}\n${local.body}` : local.body;
 				const path = normalizePath([desired.parent, `${sanitizeFileName(desired.title, desired.parent)}.md`]
 					.filter(Boolean).join('/'));
@@ -449,10 +491,13 @@ export class LogseqImporter extends FormatImporter {
 			if (await ctx.shouldStop()) return;
 			ctx.status(i18n.common.statusProcessing({ name: entry.path }));
 			try {
-				const desired = this.desiredNote(entry, graph.name, outputRoot);
+				const desired = this.desiredNote(entry, graph, outputRoot);
 				const content = await entry.file.readText();
 				// Attachment paths depend on every note's provisional claim.
-				const local = convertLocal(content, this.options, { assetTarget: () => null });
+				const local = convertLocal(content, this.options, {
+					assetTarget: () => null,
+					commaSeparatedProperties: graph.config.commaSeparatedProperties,
+				});
 				const times = await fileTimes(entry.file);
 				const preliminary = local.yaml ? `${local.yaml}\n\n${local.body}\n` : `${local.body}\n`;
 				const planned = await this.planTemplatedNote(desired.parent, desired.title, preliminary, {
@@ -569,7 +614,7 @@ export class LogseqImporter extends FormatImporter {
 				return date.isValid() ? date.format(this.options.journalDateFormat) : null;
 			});
 		}
-		body = rewritePlannedPageLinks(body, linkPlans);
+		body = rewritePlannedPageLinks(body, linkPlans, note.filenameFormat);
 		if (note.kind === 'journal' ? this.options.deOutlineJournals : this.options.deOutlinePages) {
 			body = deOutline(body);
 		}
@@ -604,10 +649,13 @@ export class LogseqImporter extends FormatImporter {
 			const target = withoutMarkdownExtension(note.planned.targetPath);
 			const sourceBase = graphBasename(note.logicalName);
 			const targetBase = graphBasename(target);
-			plans.set(note.logicalName.toLowerCase(), {
-				target,
-				display: sourceBase.toLowerCase() === targetBase.toLowerCase() ? undefined : sourceBase,
-			});
+			for (const sourceName of note.sourceNames) {
+				const display = graphBasename(sourceName);
+				plans.set(sourceName.toLowerCase(), {
+					target,
+					display: display.toLowerCase() === targetBase.toLowerCase() ? undefined : display,
+				});
+			}
 			const key = sourceBase.toLowerCase();
 			basenames.set(key, [...(basenames.get(key) ?? []), note]);
 		}
@@ -622,8 +670,10 @@ export class LogseqImporter extends FormatImporter {
 	private knownPages(notes: SourceNote[]): Set<string> {
 		const known = new Set<string>();
 		for (const note of notes) {
-			known.add(note.logicalName.toLowerCase());
-			known.add(graphBasename(note.logicalName).toLowerCase());
+			for (const sourceName of note.sourceNames) {
+				known.add(sourceName.toLowerCase());
+				known.add(graphBasename(sourceName).toLowerCase());
+			}
 		}
 		return known;
 	}

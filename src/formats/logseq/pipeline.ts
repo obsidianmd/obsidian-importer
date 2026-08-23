@@ -11,6 +11,7 @@ import { outsideMarkdownCode } from '../../markdown';
 
 export interface LogseqConversionRuntime {
 	assetTarget?: (sourcePath: string, filename: string) => string | null;
+	commaSeparatedProperties?: ReadonlySet<string>;
 }
 
 export interface LocalResult {
@@ -32,6 +33,7 @@ export function convertLocal(
 		dropPageProperties: options.dropPageProperties,
 		dropTags: options.dropTags,
 		snakeCasePageProperties: options.snakeCasePageProperties,
+		commaSeparatedProperties: runtime.commaSeparatedProperties,
 	});
 
 	let body = initialBody;

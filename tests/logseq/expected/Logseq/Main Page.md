@@ -7,6 +7,9 @@ aliases:
 tags:
   - topic
   - area
+authors:
+  - Alice
+  - Bob
 ---
 
 - This is the main fixture page

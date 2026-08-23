@@ -61,6 +61,14 @@ test('journalFilenameToISO handles dash-separated format', () => {
 	assert.equal(journalFilenameToISO('2024-01-15'), '2024-01-15');
 });
 
+test('journalFilenameToISO reads a configured Logseq date format', () => {
+	assert.equal(journalFilenameToISO('15-06-2024', 'dd-MM-yyyy'), '2024-06-15');
+});
+
+test('journalFilenameToISO reads a configured nested date path', () => {
+	assert.equal(journalFilenameToISO('2024/06/15', 'yyyy/MM/dd'), '2024-06-15');
+});
+
 test('journalFilenameToISO rejects day > 31', () => {
 	assert.equal(journalFilenameToISO('2024_01_32'), null);
 });

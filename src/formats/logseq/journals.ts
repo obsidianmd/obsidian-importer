@@ -1,3 +1,4 @@
+import { moment } from 'obsidian';
 import { outsideMarkdownCode } from '../../markdown';
 
 const MONTHS: Record<string, number> = {
@@ -14,7 +15,56 @@ function validYMD(y: number, m: number, d: number): boolean {
 	return true;
 }
 
-export function journalFilenameToISO(basename: string): string | null {
+export function logseqDateFormatToMoment(format: string): string {
+	const tokens: Record<string, string> = {
+		yyyy: 'YYYY', yyy: 'YYYY', yy: 'YY', y: 'YYYY',
+		EEEE: 'dddd', EEE: 'ddd', EE: 'ddd', E: 'ddd',
+		LLLL: 'MMMM', LLL: 'MMM', LL: 'MM', L: 'M',
+		MMMM: 'MMMM', MMM: 'MMM', MM: 'MM', M: 'M',
+		do: 'Do', dd: 'DD', d: 'D',
+	};
+	const ordered = Object.keys(tokens).sort((a, b) => b.length - a.length);
+	let result = '';
+	let literal = '';
+	let i = 0;
+	while (i < format.length) {
+		if (format[i] === '\'') {
+			if (format[i + 1] === '\'') {
+				literal += '\'';
+				i += 2;
+				continue;
+			}
+			const end = format.indexOf('\'', i + 1);
+			if (end < 0) {
+				literal += format.slice(i + 1);
+				break;
+			}
+			literal += format.slice(i + 1, end);
+			i = end + 1;
+			continue;
+		}
+		if (literal) {
+			result += `[${literal.replace(/]/g, '\\]')}]`;
+			literal = '';
+		}
+		const token = ordered.find(candidate => format.startsWith(candidate, i));
+		if (token) {
+			result += tokens[token];
+			i += token.length;
+		}
+		else {
+			result += format[i++];
+		}
+	}
+	if (literal) result += `[${literal.replace(/]/g, '\\]')}]`;
+	return result;
+}
+
+export function journalFilenameToISO(basename: string, sourceFormat?: string): string | null {
+	if (sourceFormat) {
+		const parsed = moment(basename, logseqDateFormatToMoment(sourceFormat), true);
+		if (parsed.isValid()) return parsed.format('YYYY-MM-DD');
+	}
 	const m = basename.match(/^(\d{4})[_-](\d{1,2})[_-](\d{1,2})$/);
 	if (!m) return null;
 	const y = parseInt(m[1], 10);

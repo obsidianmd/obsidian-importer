@@ -69,6 +69,14 @@ test('multiple wikilink values become a quoted list', () => {
 	assert.equal(yaml, ['---', 'related:', '  - "[[A]]"', '  - "[[B]]"', '---'].join('\n'));
 });
 
+test('configured comma-separated properties become YAML lists', () => {
+	const input = 'authors:: Alice, Bob\n\ntext';
+	const { yaml } = extractPageProperties(input, {
+		commaSeparatedProperties: new Set(['authors']),
+	});
+	assert.deepEqual(parseFrontmatter(yaml).authors, ['Alice', 'Bob']);
+});
+
 test('property block ends at the first non-property line', () => {
 	const input = 'type:: note\nthis is content:: not a prop line really\nmore';
 	const { yaml, body } = extractPageProperties(input);

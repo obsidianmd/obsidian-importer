@@ -1,4 +1,5 @@
 import { outsideMarkdownCode } from '../../markdown';
+import { LogseqFilenameFormat } from './config';
 import { namespaceToPath } from './paths';
 
 export interface LinkIndex {
@@ -68,13 +69,17 @@ export interface PlannedPageLink {
 	display?: string;
 }
 
-export function rewritePlannedPageLinks(content: string, pages: Map<string, PlannedPageLink>): string {
+export function rewritePlannedPageLinks(
+	content: string,
+	pages: Map<string, PlannedPageLink>,
+	filenameFormat: LogseqFilenameFormat = 'triple-lowbar',
+): string {
 	if (pages.size === 0) return content;
 
 	return outsideMarkdownCode(content, segment =>
 		segment.replace(/(!?)\[\[([^\]|#]+)(#[^\]|]+)?(?:\|([^\]]+))?\]\]/g,
 			(whole: string, bang: string, sourceTarget: string, suffix: string = '', sourceDisplay?: string) => {
-				const sourceKey = namespaceToPath(sourceTarget.trim()).toLowerCase();
+				const sourceKey = namespaceToPath(sourceTarget.trim(), filenameFormat).toLowerCase();
 				const planned = pages.get(sourceKey);
 				if (!planned) return whole;
 

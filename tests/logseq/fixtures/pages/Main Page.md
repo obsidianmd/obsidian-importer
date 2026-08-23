@@ -1,6 +1,7 @@
 title:: Main Page
 tags:: #topic, [[area]]
 alias:: [[MP]], [[main-page]]
+authors:: Alice, Bob
 
 - This is the main fixture page
 - TODO [#A] Write documentation

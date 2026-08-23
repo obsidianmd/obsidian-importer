@@ -93,6 +93,7 @@ function fixtureFolder(name: string): SourceFolder {
 
 function fixtureGraph(): SourceFolder {
 	return new SourceFolder('Fixture graph', [
+		fixtureFolder('logseq'),
 		fixtureFolder('pages'),
 		fixtureFolder('journals'),
 		fixtureFolder('assets'),
@@ -308,6 +309,73 @@ test('keeps slash-formatted journals in their date folders', async () => {
 
 	assert.ok(vault.contents.has('Daily/2024/06/15.md'));
 	assert.ok(vault.contents.has('Daily/2024/07/15.md'));
+});
+
+test('reads Markdown graph locations and property lists from config.edn', async () => {
+	const config = [
+		'{:pages-directory "notes"',
+		' :journals-directory "daily"',
+		' :journal/file-name-format "dd-MM-yyyy"',
+		' :journal/page-title-format "dd MMM yyyy"',
+		' :property/separated-by-commas #{:authors}}',
+	].join('\n');
+	const graph = new SourceFolder('Configured graph', [
+		new SourceFolder('logseq', [new SourceFile('config.edn', config)]),
+		new SourceFolder('notes', [
+			new SourceFile('People.md', [
+				'authors:: Alice, Bob',
+				'',
+				'- People',
+				'- [[15 Jun 2024]]',
+			].join('\n')),
+		]),
+		new SourceFolder('daily', [new SourceFile('15-06-2024.md', '- Journal')]),
+	]);
+	const { subject, vault } = await importer(graph);
+
+	await subject.import(new ImportContext());
+
+	assert.ok(vault.contents.has('Logseq/People.md'));
+	assert.ok(vault.contents.has('Logseq/Journals/2024-06-15.md'));
+	const people = vault.contents.get('Logseq/People.md') as string;
+	assert.match(people, /authors:\n  - Alice\n  - Bob/);
+	assert.match(people, /\[\[Logseq\/Journals\/2024-06-15\|15 Jun 2024\]\]/);
+});
+
+test('reads journal filename formats that create nested source folders', async () => {
+	const graph = new SourceFolder('Nested journals', [
+		new SourceFolder('logseq', [
+			new SourceFile('config.edn', '{:journal/file-name-format "yyyy/MM/dd"}'),
+		]),
+		new SourceFolder('journals', [
+			new SourceFolder('2024', [
+				new SourceFolder('06', [new SourceFile('15.md', '- Journal')]),
+			]),
+		]),
+	]);
+	const { subject, vault } = await importer(graph);
+
+	await subject.import(new ImportContext());
+
+	assert.ok(vault.contents.has('Logseq/Journals/2024-06-15.md'));
+});
+
+test('uses the configured filename format for legacy Markdown graphs', async () => {
+	const graph = new SourceFolder('Legacy graph', [
+		new SourceFolder('logseq', [
+			new SourceFile('config.edn', '{:file/name-format :legacy}'),
+		]),
+		new SourceFolder('pages', [
+			new SourceFile('area.project.md', '- Legacy namespace'),
+			new SourceFile('Reference.md', '- [[area/project]]'),
+		]),
+	]);
+	const { subject, vault } = await importer(graph);
+
+	await subject.import(new ImportContext());
+
+	assert.ok(vault.contents.has('Logseq/area/project.md'));
+	assert.match(vault.contents.get('Logseq/Reference.md') as string, /\[\[Logseq\/area\/project\]\]/);
 });
 
 test('sanitizes every namespace folder and rewrites links to the planned path', async () => {
