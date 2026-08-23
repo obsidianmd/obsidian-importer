@@ -1,5 +1,5 @@
-// User-configurable options for the Logseq importer. See
-// docs/logseq-importer-assessment.md for the rationale behind each one.
+// User-configurable options for the Logseq importer. See the transformation
+// reference in docs/logseq-importer-transformations.md for their behavior.
 
 /** How rich Logseq tasks are rendered in the Obsidian vault. */
 export type TaskFormat =

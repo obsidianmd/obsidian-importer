@@ -2,9 +2,7 @@
 
 This document is the authoritative, up-to-date reference for **every transformation the Logseq
 importer performs** and **every option that controls it**. It reflects the actual implementation
-under `src/formats/logseq/`. The companion
-[implementation summary](./logseq-importer-assessment.md) records the design considerations,
-decisions, and tradeoffs behind it.
+under `src/formats/logseq/`.
 
 Tests and implementation comments cross-reference this document with letter-number labels: one
 letter per top-level section (`A` through `M`) plus a rule number, such as `[G1]`. Older
@@ -247,7 +245,8 @@ Notes:
 - In **plain** format, priority and scheduling are not extracted into metadata — continuation lines
   are kept as-is, so no information is destroyed (it just stays inline).
 - The **repeater** emoji form distinguishes `.+`/`++` (→ "when done") from `+` (fixed).
-- **[D1]** Task metadata dates normalize ISO and Logseq long-date values to `YYYY-MM-DD`; unparsable values
+- **[D1]** Task metadata dates normalize ISO and Logseq long-date values to `YYYY-MM-DD`. A source
+  time in `HH:MM` form is retained after the date. Unparsable values
   such as template tokens are consumed but not emitted in the rich task formats. Plain mode keeps
   those continuation lines verbatim.
 - **[D1]** **LOGBOOK** has no Obsidian target; with `logbook: 'drop'` (default) it is removed cleanly,
@@ -291,8 +290,8 @@ used. Periodic Notes settings are not read.
   wikilinks target.
 - The scan is recursive, but output planning uses each source file's basename; physical
   subdirectories under `pages/` or `journals/` are not preserved unless encoded in the basename.
-- The importer does not scan the graph-level `whiteboards/` directory. A Markdown path containing
-  `whiteboards/` below a scanned note directory is reported as unsupported and skipped.
+- The importer does not scan the graph-level `whiteboards/` directory. If that directory is
+  present, it is reported once as unsupported and skipped.
 ---
 
 ## G. Links, references & embeds
@@ -502,7 +501,8 @@ existing same-byte file may be reused; different same-name files receive numbere
 holds only attachment metadata: bytes used for deduplication are released immediately and a new
 buffer is read only when the attachment is written. If a
 source path is missing or unreadable, the original Markdown link is preserved and the failure is
-reported without aborting unrelated files.
+reported without aborting unrelated files. Copied assets retain the source file's creation and
+modification times when the filesystem exposes them.
 
 ---
 
@@ -518,8 +518,8 @@ drawers. Their exact behavior reflects pipeline ordering and the separate tag co
 | Flashcards | `#card`, `{{cloze …}}` | `flashcards` | `keep` | cloze wrapper retained and a report entry is added; `#card` continues through tag handling | `{{cloze X}}` → `X`, `#card` removed |
 | Time tracking | `:LOGBOOK:` / `CLOCK:` drawers | `logbook` | `drop` | drawer lines kept | drawer lines removed |
 
-Because only Markdown under `pages/` and `journals/` is scanned, graph-level whiteboard `.edn`
-files are outside the import rather than individually reported.
+Graph-level whiteboards are skipped and reported once because Obsidian cannot read Logseq's
+whiteboard format.
 
 `dropTags` is applied after the flashcard keep/drop pass. With the defaults, `card` is in
 `dropTags`, so choosing `flashcards: 'keep'` preserves `{{cloze}}` wrappers but still removes
