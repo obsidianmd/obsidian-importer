@@ -223,7 +223,8 @@ Markdown links and embeds whose path contains `assets/` become Obsidian wikilink
 take precedence over optional alt text. Referenced bytes are resolved relative to the source note
 and placed using the vault's attachment setting. Same-name collisions receive numbered paths;
 same-byte existing files are reused. A missing or unreadable source leaves its original Markdown
-link intact and is reported without aborting the rest of the graph.
+link intact and is reported without aborting the rest of the graph. Attachment buffers are not
+retained across the graph-wide planning phase.
 
 ## 4. User-facing options and defaults
 
@@ -255,8 +256,8 @@ The transformation modules are covered by focused Node tests under `tests/logseq
   de-outlining, normalization, and orchestration helpers;
 - a multi-file end-to-end fixture graph covering cross-file references, aliases, namespaces,
   journals, tasks, org blocks, tags, properties, and assets;
-- regression cases for code fences, headings, retained anchors, duplicate names, YAML safety, and
-  option variants.
+- regression cases for backtick, tilde, and list-prefixed code fences, headings, retained anchors,
+  duplicate names, YAML safety, and option variants.
 
 Fixtures use synthetic graph data. Keeping pure transforms independent of `obsidian` allows the
 same pipeline to be exercised without a running vault, while the orchestrator remains responsible

@@ -15,8 +15,8 @@ Imports notes from other apps into an Obsidian vault.
 - `src/filesystem.ts` — The only place node modules are reached, and the seam tests inject through
 - `src/encoding.ts` — What encoding a file is read in; every `readText` goes through it
 - `src/util.ts` — `parseHTML`, `sanitizeFileName`, `sanitizeTag`, `serializeFrontMatter`, `getUniqueFilePath`
-- `src/outline.ts`, `src/block-refs.ts`, `src/markdown.ts` — what every outliner
-  format needs (see below)
+- `src/outline.ts`, `src/block-refs.ts`, `src/markdown.ts` — reusable outliner
+  primitives (see below)
 - `tests/shims/` — What a test needs to run importer code outside Obsidian: `obsidian.ts` (API), `dom.ts` (linkedom), `runtime.ts` (Obsidian's prototype extensions)
 - `tests/<importer>/` — Fixtures, with recorded output in `expected/`
 
@@ -125,27 +125,35 @@ Extracting a conversion is a **faithful move** — copy the code, do not improve
 
 ## Importing an outliner
 
-Roam and Logseq are the same shape of problem, so three modules are shared
-rather than written twice:
+Roam and Logseq are the same broad shape of problem, but their source models
+are different. Reuse the primitives that have the same contract; keep parsing
+and source-specific anchor rules in the format that owns them:
 
-- `src/outline.ts` — `OutlineNode` and `deOutline`. In an outliner everything is
+- `src/outline.ts` — `OutlineNode` and `deOutline` for importers that already
+  receive a block tree, currently Roam. In an outliner everything is
   a bullet, prose and headings included, so an import that keeps the outline is
   a vault where every note is a list. Flattening asks what each block was being
   used *as*. `anchorLines` lives here too: an anchor goes on the end of a block
   of one line and on a line of its own for a block of several — appended to a
-  closing fence it is read as code.
-- `src/block-refs.ts` — `BlockIndex`. One block names another by an id, and the
+  closing fence it is read as code. Logseq instead has to parse Markdown whose
+  continuation lines, physical indentation, and property lines are significant;
+  its parser and serializer live in `src/formats/logseq/de-outline.ts`.
+- `src/block-refs.ts` — `BlockIndex` for sources whose reference mentions and
+  definitions are available as separate graph records, currently Roam. One block names another by an id, and the
   block it names can be on any page, so no note is finished until the graph has
   been read. Where a block is and whether anything points at it are kept apart:
   only the second decides whether an anchor is written, and `((a passing
   thought))` reads as a reference in these formats while being nobody's id.
-- `src/markdown.ts` — `outsideCodeSpans`. These sources document their own
+  Logseq discovers `id::` definitions while rewriting Markdown and therefore
+  keeps its UUID-to-anchor conversion beside that parser in `block-ids.ts`.
+- `src/markdown.ts` — `outsideMarkdownCode` and `markdownFenceLines`, shared by
+  both importers. These sources document their own
   markup as examples in code, and a conversion that rewrote those too would
   mangle the page explaining the syntax.
 
-An importer builds `OutlineNode`s from whatever it has. Roam is handed the tree
-and builds them directly; a format stored as markdown on disk has to parse its
-outline first and gets the same answers afterwards.
+An importer handed a source tree can build shared `OutlineNode`s directly.
+A Markdown-backed outliner must preserve syntax and physical layout that the
+shared tree does not represent, so it may require a format-specific parser.
 
 ## Fixtures and recorded output
 

@@ -62,9 +62,12 @@ done on a single file without the vault index. In order:
 15. `normalizeWhitespace` — optionally normalize non-breaking spaces, trailing whitespace, and
     empty bullets.
 
-After referenced assets have collision-safe vault paths, local conversion is repeated with those
-paths. The importer then builds the **block-id index** (`uuid → {page, shortId}`), the **alias
-index** (`alias → planned page`, including `title::` — ambiguous aliases removed afterward), and a
+The local conversion initially leaves asset links unchanged while collecting their references.
+After attachments receive collision-safe vault paths, only those links are rewritten; the rest of
+the conversion is not repeated. Note-title preflight then runs again with the final links so a
+`{{content}}` title template sees the same content that will be written. The importer builds the
+**block-id index** (`uuid → {page, shortId}`), the **alias index** (`alias → planned page`, including
+both `alias::` and `aliases::`; ambiguous aliases and names owned by real pages are excluded), and a
 source-name-to-planned-path link map. Logseq-only content (queries, flashcards) is applied after
 `convertLocal`; section L documents how this ordering affects advanced query blocks and flashcard
 tags.
@@ -165,7 +168,7 @@ All options live in `src/formats/logseq/options.ts` (`LogseqImportOptions`). Def
 
 | Option | Type | Default | Effect |
 |---|---|---|---|
-| `normalizeWhitespace` | boolean | `true` | **[B1]** Trim trailing whitespace, remove lone empty bullets (`- `), and convert non-breaking spaces (U+00A0) to regular spaces. Fenced code blocks (both standard ` ``` ` and bullet-prefixed `- ``` ` fences) and intentional blank lines are left untouched; empty bullets that carry a `^anchor` are kept. This runs before Logseq-only drop operations and pass 2, not as a final cleanup pass. |
+| `normalizeWhitespace` | boolean | `true` | **[B1]** Trim trailing whitespace, remove lone empty bullets (`- `), and convert non-breaking spaces (U+00A0) to regular spaces. Backtick and tilde fenced code blocks, including bullet-prefixed fences, and intentional blank lines are left untouched; empty bullets that carry a `^anchor` or own child blocks are kept. This runs before Logseq-only drop operations and pass 2, not as a final cleanup pass. |
 
 ---
 
@@ -335,11 +338,10 @@ is context-aware:
 If the same full UUID is defined in more than one file, the later pass-1 definition replaces the
 earlier entry in the graph-wide index.
 
-**[G1] Block references inside code blocks.** `resolveBlockRefs` converts `((uuid))` and
-`{{embed ((uuid))}}` references **everywhere**, including inside fenced code blocks. The guard is
-that the UUID must exist in the block index — unrecognised UUIDs are left as-is. This means
-copy-pasteable code examples that include Logseq embed syntax are updated to the equivalent Obsidian
-form. Inline-code spans (single backticks) are still protected and never rewritten.
+**[G1] Code examples are inert.** `resolveBlockRefs`, orphan removal, task/property conversion,
+date and tag rewriting, and other semantic passes all run through the shared Markdown code-boundary
+helper. Inline code and backtick or tilde fenced blocks (including list-prefixed fences) retain the
+exact Logseq syntax they document. An `id::`-shaped line inside a fence is not indexed or removed.
 
 **[G1] Always-embed option (`alwaysEmbedBlockRefs`).** By default, bare `((uuid))` references become
 plain links `[[Page#^id]]`. With `alwaysEmbedBlockRefs: true`, they become embeds `![[Page#^id]]`
@@ -439,7 +441,7 @@ handled by the `blockProperties` option:
   indentation and any trailing `^anchor` (which stays outside the brackets). The label is hidden in
   reading view while the value stays queryable. Values containing a stray `]`/`[` (outside a
   `[[wikilink]]`) fall back to `keep` so the inline-field syntax isn't broken; property-like lines
-  inside standard fenced code blocks are never touched.
+  inside backtick or tilde fenced code blocks, including bullet-prefixed fences, are never touched.
 - `drop` — the line is removed entirely.
 
 The always-dropped set and `dropBlockProperties` keys win in every mode.
@@ -489,10 +491,12 @@ The always-dropped set and `dropBlockProperties` keys win in every mode.
 | `{{tweet URL}}` | `![](URL)` | |
 
 **[K1]** Only links whose path contains `assets/` are treated as local assets; URLs (`http:`, `https:`,
-`data:`) and other paths are left alone. Asset links inside fenced code blocks **and inline code
-spans** are not converted. The byte copy resolves the source relative to the note's directory
+`data:`) and other paths are left alone. Asset links inside backtick or tilde fenced code blocks
+(including list-prefixed fences) **and inline code spans** are not converted. The byte copy resolves the source relative to the note's directory
 (tolerant of `../` prefixes), then uses the shared attachment-location and collision planner. An
-existing same-byte file may be reused; different same-name files receive numbered paths. If a
+existing same-byte file may be reused; different same-name files receive numbered paths. Planning
+holds only attachment metadata: bytes used for deduplication are released immediately and a new
+buffer is read only when the attachment is written. If a
 source path is missing or unreadable, the original Markdown link is preserved and the failure is
 reported without aborting unrelated files.
 
