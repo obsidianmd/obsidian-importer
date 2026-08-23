@@ -5,46 +5,17 @@
 // one of its aliases*. Obsidian links must target the canonical note name, so
 // alias references have to be rewritten to `[[Canonical|Alias]]`.
 
+import { outsideMarkdownCode } from '../../markdown';
+
 export interface LinkIndex {
 	/** alias (lower-cased) -> canonical page name. Ambiguous aliases excluded. */
 	aliasMap: Map<string, string>;
 }
 
-/** Run a per-line transform, skipping fenced code blocks. */
-function outsideCode(content: string, fn: (line: string) => string): string {
-	let inFence = false;
-	return content
-		.split('\n')
-		.map(line => {
-			if (/^\s*```/.test(line)) {
-				inFence = !inFence;
-				return line;
-			}
-			return inFence ? line : fn(line);
-		})
-		.join('\n');
-}
-
-/** Wrap a per-segment transform so that inline-code spans are passed through unchanged. */
-function outsideInlineCode(fn: (segment: string) => string): (line: string) => string {
-	return (line: string) => {
-		const inlineRe = /`[^`]*`/g;
-		let result = '';
-		let last = 0;
-		let m: RegExpExecArray | null;
-		while ((m = inlineRe.exec(line)) !== null) {
-			result += fn(line.slice(last, m.index));
-			result += m[0];
-			last = m.index + m[0].length;
-		}
-		return result + fn(line.slice(last));
-	};
-}
-
 export function convertAliasLinks(content: string): string {
-	return outsideCode(content, line =>
+	return outsideMarkdownCode(content, segment =>
 		// [display]([[Target]]) -> [[Target|display]]. G1: strip any pre-existing pipe from target.
-		line.replace(/\[([^\]]+)\]\(\[\[([^\]]+)\]\]\)/g, (_, display, target) => `[[${target.split('|')[0]}|${display}]]`)
+		segment.replace(/\[([^\]]+)\]\(\[\[([^\]]+)\]\]\)/g, (_, display, target) => `[[${target.split('|')[0]}|${display}]]`)
 	);
 }
 
@@ -65,9 +36,9 @@ export interface ConvertTagsOptions {
 export function convertTags(content: string, options: ConvertTagsOptions): string {
 	const { toLinks, onlyExistingPages, knownPages, dropTags } = options;
 
-	return outsideCode(content, line => {
+	return outsideMarkdownCode(content, segment => {
 		// #[[multi word tag]]
-		line = line.replace(/(^|[\s([])#\[\[([^\]]+)\]\]/g, (_, pre, name) => {
+		segment = segment.replace(/(^|[\s([])#\[\[([^\]]+)\]\]/g, (_, pre, name) => {
 			if (dropTags.has(name) || dropTags.has(name.replace(/\s+/g, '-'))) return pre;
 			if (toLinks) {
 				if (onlyExistingPages && !knownPages.has(name.toLowerCase())) return `${pre}#${name.replace(/\s+/g, '-')}`;
@@ -76,7 +47,7 @@ export function convertTags(content: string, options: ConvertTagsOptions): strin
 			return `${pre}#${name.replace(/\s+/g, '-')}`;
 		});
 		// #simple-tag (letters, digits, /_-), must follow start, whitespace, or `([`
-		line = line.replace(/(^|[\s([])#([\w/-]+)/g, (m, pre, name) => {
+		segment = segment.replace(/(^|[\s([])#([\w/-]+)/g, (m, pre, name) => {
 			// H1: skip full hex colour tokens like #FF0000 (exactly 6 hex digits)
 			if (/^[0-9A-Fa-f]{6}$/.test(name)) return m;
 			if (dropTags.has(name)) return pre;
@@ -86,13 +57,13 @@ export function convertTags(content: string, options: ConvertTagsOptions): strin
 			}
 			return m;
 		});
-		return line;
+		return segment;
 	});
 }
 
 export function rewriteAliasReferences(content: string, index: LinkIndex): string {
 	if (index.aliasMap.size === 0) return content;
-	return outsideCode(content, outsideInlineCode(segment =>
+	return outsideMarkdownCode(content, segment =>
 		segment.replace(/(!?)\[\[([^\]]+)\]\]/g, (whole, bang, inner) => {
 			const pipe = inner.indexOf('|');
 			const target = (pipe >= 0 ? inner.slice(0, pipe) : inner).trim();
@@ -104,7 +75,7 @@ export function rewriteAliasReferences(content: string, index: LinkIndex): strin
 			if (canonical.toLowerCase() === target.toLowerCase()) return whole;
 			return `${bang}[[${canonical}|${display}]]`;
 		})
-	));
+	);
 }
 
 export interface BasenameIndex {
@@ -123,8 +94,8 @@ export interface BasenameIndex {
  */
 export function disambiguateBasenameLinks(content: string, index: BasenameIndex): string {
 	if (index.basenameMap.size === 0) return content;
-	return outsideCode(content, line =>
-		line.replace(/(!?)\[\[([^\]]+)\]\]/g, (whole, bang, inner) => {
+	return outsideMarkdownCode(content, segment =>
+		segment.replace(/(!?)\[\[([^\]]+)\]\]/g, (whole, bang, inner) => {
 			const pipe = inner.indexOf('|');
 			const target = (pipe >= 0 ? inner.slice(0, pipe) : inner).trim();
 			const display = pipe >= 0 ? inner.slice(pipe + 1) : null;
@@ -158,7 +129,7 @@ export interface PlannedPageLink {
 export function rewritePlannedPageLinks(content: string, pages: Map<string, PlannedPageLink>): string {
 	if (pages.size === 0) return content;
 
-	return outsideCode(content, outsideInlineCode(segment =>
+	return outsideMarkdownCode(content, segment =>
 		segment.replace(/(!?)\[\[([^\]|#]+)(#[^\]|]+)?(?:\|([^\]]+))?\]\]/g,
 			(whole, bang: string, sourceTarget: string, suffix = '', sourceDisplay?: string) => {
 				const planned = pages.get(sourceTarget.trim().toLowerCase());
@@ -167,5 +138,5 @@ export function rewritePlannedPageLinks(content: string, pages: Map<string, Plan
 				const display = sourceDisplay ?? planned.display;
 				return `${bang}[[${planned.target}${suffix}${display ? `|${display}` : ''}]]`;
 			})
-	));
+	);
 }

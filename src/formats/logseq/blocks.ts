@@ -1,38 +1,13 @@
 // Pure, side-effect-free text transforms for the Logseq -> Obsidian importer.
 // Each function takes the full multi-line file content and returns it transformed.
 
+import { outsideMarkdownCode } from '../../markdown';
+
 const HIGHLIGHT_RE = /\^\^(.+?)\^\^/g;
 
 /** Replace Logseq highlights `^^text^^` with Obsidian `==text==`, skipping code. */
 export function convertHighlights(content: string): string {
-	// J1: also match bullet-opened fences `- ``` `
-	const fenceRe = /^(?:\s*- )?\s*```/;
-	let inFence = false;
-	return content
-		.split('\n')
-		.map(line => {
-			if (fenceRe.test(line)) {
-				inFence = !inFence;
-				return line;
-			}
-			if (inFence) return line;
-			return replaceHighlightsOutsideInlineCode(line);
-		})
-		.join('\n');
-}
-
-function replaceHighlightsOutsideInlineCode(line: string): string {
-	const inlineCodeRe = /`[^`]*`/g;
-	let result = '';
-	let last = 0;
-	let m: RegExpExecArray | null;
-	while ((m = inlineCodeRe.exec(line)) !== null) {
-		result += line.slice(last, m.index).replace(HIGHLIGHT_RE, '==$1==');
-		result += m[0];
-		last = inlineCodeRe.lastIndex;
-	}
-	result += line.slice(last).replace(HIGHLIGHT_RE, '==$1==');
-	return result;
+	return outsideMarkdownCode(content, segment => segment.replace(HIGHLIGHT_RE, '==$1=='));
 }
 
 /** Convert Logseq `logseq.order-list-type:: number` bullets into `1.`, `2.`, ... */

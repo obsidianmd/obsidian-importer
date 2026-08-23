@@ -163,3 +163,10 @@ test('[K1] asset link inside inline code is not rewritten', () => {
 	assert.equal(content, input);
 	assert.deepEqual(assets, []);
 });
+
+test('asset link inside a tilde fence is not rewritten or collected', () => {
+	const input = ['~~~md', '![x](../assets/a.png)', '~~~'].join('\n');
+	const { content, assets } = convertAssetLinks(input, { keepAltText: false });
+	assert.equal(content, input);
+	assert.deepEqual(assets, []);
+});

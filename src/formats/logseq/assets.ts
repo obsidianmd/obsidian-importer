@@ -2,6 +2,8 @@
 // into Obsidian wiki-embeds (`![[x.png]]`). Pure functions only — no filesystem
 // access, no 'obsidian' import — so it can be unit-tested in isolation.
 
+import { outsideMarkdownCode } from '../../markdown';
+
 export interface AssetRef {
 	/** The path exactly as written in the original link, e.g. `../assets/image.png`. */
 	sourcePath: string;
@@ -20,11 +22,6 @@ export interface ConvertAssetOptions {
 // K1: leading `!` is optional so plain links are also converted.
 // K1: label allows one level of nested brackets (e.g. `[Fw_ [Nested] _ desc]`).
 const assetLinkRegex = /(!?)\[([^[\]]*(?:\[[^\]]*\][^[\]]*)*)\]\(([^()]*(?:\([^()]*\)[^()]*)*)\)(\{:[^}]*\})?/g;
-// Triple-backtick fenced code blocks, which must be left untouched.
-const fencedCodeRegex = /```[\s\S]*?```/g;
-// Inline-code spans that must not be rewritten.
-const inlineCodeRe = /`[^`]*`/g;
-
 function isUrl(path: string): boolean {
 	return /^(https?:|data:)/i.test(path.trim());
 }
@@ -52,21 +49,6 @@ export function convertAssetLinks(
 	const assets: AssetRef[] = [];
 	const seen = new Set<string>();
 
-	function transformSegment(segment: string): string {
-		// K1: protect inline-code spans — only rewrite content outside them.
-		let result = '';
-		let last = 0;
-		let icm: RegExpExecArray | null;
-		inlineCodeRe.lastIndex = 0;
-		while ((icm = inlineCodeRe.exec(segment)) !== null) {
-			result += rewriteAssets(segment.slice(last, icm.index));
-			result += icm[0];
-			last = icm.index + icm[0].length;
-		}
-		result += rewriteAssets(segment.slice(last));
-		return result;
-	}
-
 	function rewriteAssets(text: string): string {
 		assetLinkRegex.lastIndex = 0;
 		return text.replace(assetLinkRegex, (match, bang: string, alt: string, path: string, dimSuffix?: string) => {
@@ -91,16 +73,5 @@ export function convertAssetLinks(
 		});
 	}
 
-	let result = '';
-	let lastIndex = 0;
-	let fence: RegExpExecArray | null;
-	fencedCodeRegex.lastIndex = 0;
-	while ((fence = fencedCodeRegex.exec(content)) !== null) {
-		result += transformSegment(content.slice(lastIndex, fence.index));
-		result += fence[0];
-		lastIndex = fence.index + fence[0].length;
-	}
-	result += transformSegment(content.slice(lastIndex));
-
-	return { content: result, assets };
+	return { content: outsideMarkdownCode(content, rewriteAssets), assets };
 }

@@ -69,6 +69,13 @@ test('convertHighlights: language-tagged fence is protected', () => {
 	assert.equal(convertHighlights(input), input);
 });
 
+test('convertHighlights: tilde and list-prefixed fences are protected', () => {
+	const tilde = ['~~~md', '^^tilde^^', '~~~'].join('\n');
+	const listed = ['- ```md', '  ^^listed^^', '  ```'].join('\n');
+	assert.equal(convertHighlights(tilde), tilde);
+	assert.equal(convertHighlights(listed), listed);
+});
+
 // ---------------------------------------------------------------------------
 // convertNumberedLists
 // ---------------------------------------------------------------------------

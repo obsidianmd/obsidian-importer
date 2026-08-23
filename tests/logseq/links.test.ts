@@ -29,6 +29,11 @@ test('does not convert alias links inside fenced code', () => {
 	assert.equal(convertAliasLinks(input), input);
 });
 
+test('does not convert alias links inside inline code or tilde fences', () => {
+	const input = ['`[label]([[Page]])`', '~~~', '[label]([[Page]])', '~~~'].join('\n');
+	assert.equal(convertAliasLinks(input), input);
+});
+
 // --- tags ---
 test('keeps simple tags but sanitizes multi-word tags (keep-as-tag mode)', () => {
 	assert.equal(convertTags('a #tag b', tagOpts(false)), 'a #tag b');
@@ -110,6 +115,12 @@ test('preserves embed prefix during disambiguation', () => {
 test('preserves explicit display text during disambiguation', () => {
 	const index = { basenameMap: new Map([['notes', ['folder-a/notes', 'folder-b/notes']]]) };
 	assert.equal(disambiguateBasenameLinks('[[Notes|my notes]]', index), '[[folder-a/notes|my notes]]');
+});
+
+test('does not disambiguate links inside code', () => {
+	const index = { basenameMap: new Map([['notes', ['folder-a/notes', 'folder-b/notes']]]) };
+	const input = ['`[[Notes]]`', '~~~', '[[Notes]]', '~~~'].join('\n');
+	assert.equal(disambiguateBasenameLinks(input, index), input);
 });
 
 // ---------------------------------------------------------------------------
