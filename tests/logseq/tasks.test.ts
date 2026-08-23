@@ -37,13 +37,23 @@ test('does not touch non-task bullets or partial keywords', () => {
 	assert.equal(convertTasks('plain TODO line'), 'plain TODO line');
 });
 
-test('preserves priority and scheduling metadata as source text', () => {
+test('turns priority and scheduling metadata into plain text and date links', () => {
 	const input = [
 		'- TODO [#A] do it SCHEDULED: <2024-09-10 Tue>',
 		'  DEADLINE: <2024-09-15 Sun .+1d>',
 		'  created:: 2024-01-15',
 	].join('\n');
-	assert.equal(convertTasks(input), input.replace('- TODO', '- [ ]'));
+	assert.equal(convertTasks(input),
+		'- [ ] do it \u2014 priority A, scheduled [[2024-09-10]], due [[2024-09-15]], created [[2024-01-15]], every day');
+});
+
+test('a task with no metadata gains no suffix', () => {
+	assert.equal(convertTasks('- TODO plain thing'), '- [ ] plain thing');
+});
+
+test('a scheduled time of day survives beside its date link', () => {
+	assert.equal(convertTasks('- TODO standup\n  SCHEDULED: <2024-09-10 Tue 09:30>'),
+		'- [ ] standup \u2014 scheduled [[2024-09-10]] 09:30');
 });
 
 test('drops LOGBOOK drawers by default', () => {

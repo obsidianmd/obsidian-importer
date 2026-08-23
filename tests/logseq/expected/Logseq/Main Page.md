@@ -13,15 +13,10 @@ authors:
 ---
 
 - This is the main fixture page
-- [ ] [#A] Write documentation
-  SCHEDULED: <2024-06-15 Sat>
-  created:: 2024-06-01
-- [/] [#B] Review sample changes
-  DEADLINE: <2024-06-20 Thu .+1w>
-- [x] Ship v1.0
-  completed:: [[2024-06-10]]
-- [-] Old task
-  cancelled:: 2024-05-30
+- [ ] Write documentation — priority A, scheduled [[Logseq/Journals/2024-06-15]], created [[2024-06-01]]
+- [/] Review sample changes — priority B, due [[2024-06-20]], every week
+- [x] Ship v1.0 — completed [[2024-06-10]]
+- [-] Old task — cancelled [[2024-05-30]]
 - [ ] Waiting on upstream
 - [ ] For feedback
 - [/] Halfway done
@@ -66,7 +61,5 @@ internal note
 > some example text
 
 - ## Section header
-- [ ] Low priority task
-  SCHEDULED: <2024-09-01 Sun ++2w>
-  DEADLINE: <2024-09-15 Sun>
+- [ ] Low priority task — scheduled [[2024-09-01]], due [[2024-09-15]], every 2 weeks
 

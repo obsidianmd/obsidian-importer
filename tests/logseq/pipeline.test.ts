@@ -41,10 +41,10 @@ test('collects assets referenced by the page', () => {
 	assert.deepEqual(assets, [{ sourcePath: '../assets/image.png', filename: 'image.png' }]);
 });
 
-test('scheduled task metadata remains in its source format', () => {
+test('scheduled task metadata becomes a date link an unplugged vault can follow', () => {
 	const input = ['- TODO pay rent', '  SCHEDULED: <2024-09-01 Sun>'].join('\n');
 	const { body } = convertLocal(input, opts);
-	assert.equal(body, ['- [ ] pay rent', '  SCHEDULED: <2024-09-01 Sun>'].join('\n'));
+	assert.equal(body, '- [ ] pay rent \u2014 scheduled [[2024-09-01]]');
 });
 
 test('does not transform documented Logseq syntax inside Markdown code', () => {
@@ -61,7 +61,7 @@ test('does not transform documented Logseq syntax inside Markdown code', () => {
 	assert.equal(convertLocal(input, opts).body, input);
 });
 
-test('preserves inline-code spacing and keeps task metadata attached', () => {
+test('preserves inline-code spacing while converting task metadata', () => {
 	const input = [
 		'- Run `npm test` before you push.',
 		'- TODO update `README.md`',
@@ -70,8 +70,7 @@ test('preserves inline-code spacing and keeps task metadata attached', () => {
 	].join('\n');
 	const expected = [
 		'- Run `npm test` before you push.',
-		'- [ ] update `README.md`',
-		'  SCHEDULED: <2024-06-15 Sat>',
+		'- [ ] update `README.md` \u2014 scheduled [[2024-06-15]]',
 		'- The `id::` property marks a block.',
 	].join('\n');
 	assert.equal(convertLocal(input, opts).body, expected);

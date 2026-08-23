@@ -146,31 +146,31 @@ test('E2E: page without properties gets no frontmatter', () => {
 });
 
 
-test('E2E: TODO keeps priority and scheduling metadata', () => {
+test('E2E: TODO converts priority and scheduling to text and date links', () => {
 	const pn = findByOutput(graph, 'Main Page');
-	assert.ok(pn.finalBody.includes('- [ ] [#A] Write documentation'));
-	assert.ok(pn.finalBody.includes('SCHEDULED: <2024-06-15 Sat>'));
-	assert.ok(pn.finalBody.includes('created:: 2024-06-01'));
+	assert.ok(pn.finalBody.includes('- [ ] Write documentation \u2014 priority A, scheduled [[2024-06-15]], created [[2024-06-01]]'));
+	assert.ok(!pn.finalBody.includes('SCHEDULED: <'));
+	assert.ok(!pn.finalBody.includes('created::'));
 });
 
 test('E2E: DOING with priority B and DEADLINE with repeater', () => {
 	const pn = findByOutput(graph, 'Main Page');
-	assert.ok(pn.finalBody.includes('- [/] [#B] Review sample changes'));
-	assert.ok(pn.finalBody.includes('DEADLINE: <2024-06-20 Thu .+1w>'));
+	assert.ok(pn.finalBody.includes('- [/] Review sample changes \u2014 priority B, due [[2024-06-20]], every week'));
+	assert.ok(!pn.finalBody.includes('DEADLINE: <'));
 });
 
 test('E2E: DONE with completion date and LOGBOOK dropped', () => {
 	const pn = findByOutput(graph, 'Main Page');
-	assert.ok(pn.finalBody.includes('- [x] Ship v1.0'));
-	assert.ok(pn.finalBody.includes('completed:: [[2024-06-10]]'));
+	assert.ok(pn.finalBody.includes('- [x] Ship v1.0 \u2014 completed [[2024-06-10]]'));
+	assert.ok(!pn.finalBody.includes('completed::'));
 	assert.ok(!pn.finalBody.includes(':LOGBOOK:'));
 	assert.ok(!pn.finalBody.includes('CLOCK:'));
 });
 
 test('E2E: CANCELLED with cancelled date', () => {
 	const pn = findByOutput(graph, 'Main Page');
-	assert.ok(pn.finalBody.includes('- [-] Old task'));
-	assert.ok(pn.finalBody.includes('cancelled:: 2024-05-30'));
+	assert.ok(pn.finalBody.includes('- [-] Old task \u2014 cancelled [[2024-05-30]]'));
+	assert.ok(!pn.finalBody.includes('cancelled::'));
 });
 
 test('E2E: WAITING maps to open checkbox', () => {
@@ -190,9 +190,7 @@ test('E2E: IN-PROGRESS maps to in-progress checkbox', () => {
 
 test('E2E: LATER with both SCHEDULED and DEADLINE', () => {
 	const pn = findByOutput(graph, 'Main Page');
-	assert.ok(pn.finalBody.includes('- [ ] Low priority task'));
-	assert.ok(pn.finalBody.includes('SCHEDULED: <2024-09-01 Sun ++2w>'));
-	assert.ok(pn.finalBody.includes('DEADLINE: <2024-09-15 Sun>'));
+	assert.ok(pn.finalBody.includes('- [ ] Low priority task \u2014 scheduled [[2024-09-01]], due [[2024-09-15]], every 2 weeks'));
 });
 
 test('E2E: NOW maps to in-progress checkbox', () => {
@@ -202,7 +200,7 @@ test('E2E: NOW maps to in-progress checkbox', () => {
 
 test('E2E: priority C in journal', () => {
 	const j2 = findByOutput(graph, '2024-08-30');
-	assert.ok(j2.finalBody.includes('- [ ] [#C] Journal task with priority'));
+	assert.ok(j2.finalBody.includes('- [ ] Journal task with priority \u2014 priority C'));
 });
 
 

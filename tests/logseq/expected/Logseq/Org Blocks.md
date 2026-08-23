@@ -22,7 +22,7 @@ tags:
     ```
 - A quote is still prose
   - > Everything is a bullet.
-- [ ] Water the plants SCHEDULED: <2024-06-15 Sat .+3d>
+- [ ] Water the plants — scheduled [[Logseq/Journals/2024-06-15]], every 3 days
 - Tagged #café and #日本語 and #dead
 - Painted #FF0000 which is a colour
 
