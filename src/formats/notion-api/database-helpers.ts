@@ -15,7 +15,7 @@ import { ImportContext } from '../../import-context';
 import { sanitizeFileName, getUniqueFilePath, updatePropertyTypes } from '../../util';
 import { i18n } from '../../i18n';
 import { parseFilePath } from '../../filesystem';
-import { makeNotionRequest } from './api-helpers';
+import { fetchAllBlocks, makeNotionRequest } from './api-helpers';
 import { canConvertFormula, convertNotionFormulaToObsidian, getNotionFormulaExpression } from './formula-converter';
 import {
 	DatabaseInfo,
@@ -42,6 +42,40 @@ const OBSIDIAN_PROPERTY_TYPES = {
 	NUMBER: 'number',
 	TEXT: 'text',
 };
+
+/** Higher concurrency caused late request timeouts in large imports. */
+export const DATABASE_PAGE_PREFETCH = 4;
+
+export async function importDatabasePages(
+	pages: PageObjectResponse[],
+	client: Client,
+	ctx: ImportContext,
+	parentPath: string,
+	databaseTag: string,
+	importPage: DatabaseProcessingContext['importPageCallback'],
+): Promise<void> {
+	const blocks = new Map<number, Promise<BlockObjectResponse[]>>();
+
+	const prefetch = (index: number): void => {
+		if (index >= pages.length || blocks.has(index)) return;
+
+		const request = fetchAllBlocks(client, pages[index].id, ctx);
+		// Prevent unhandled rejections if the import stops before consuming this request.
+		void request.catch(() => undefined);
+		blocks.set(index, request);
+	};
+
+	for (let index = 0; index < pages.length; index++) {
+		if (await ctx.shouldStop()) break;
+
+		for (let ahead = index; ahead < index + DATABASE_PAGE_PREFETCH; ahead++) prefetch(ahead);
+
+		const page = pages[index];
+		const prefetchedBlocks = blocks.get(index)!;
+		blocks.delete(index);
+		await importPage(page.id, parentPath, databaseTag, undefined, page, prefetchedBlocks);
+	}
+}
 
 /**
  * Convert a child_database block to Markdown
@@ -307,11 +341,14 @@ export async function importDatabaseCore(
 	const { basename: baseFileName } = parseFilePath(baseFilePath);
 	const baseFileTag = `${baseFileName}.base`;
 
-	// Import each database page with .base file tag
-	for (const page of databasePages) {
-		if (await ctx.shouldStop()) break;
-		await importPageCallback(page.id, databaseFolderPath, baseFileTag);
-	}
+	await importDatabasePages(
+		databasePages,
+		client,
+		ctx,
+		databaseFolderPath,
+		baseFileTag,
+		importPageCallback,
+	);
 
 	// Import database template pages (if any)
 	// Templates are stored in the same folder as database pages

@@ -27,7 +27,126 @@ import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, FetchAndI
 import { downloadAttachment } from './notion-api/attachment-helpers';
 import { buildTree, collectItems, type NotionTreeNode } from './notion-api/discovery';
 
+const NOTION_REQUEST_RATE = 3;
+const NOTION_INITIAL_BURST = 100;
+const NOTION_SLOW_REQUEST_MS = 2_000;
 
+/** Allows a short burst, then limits sustained traffic to Notion's documented rate. */
+export class NotionRequestScheduler {
+	private tail: Promise<void> = Promise.resolve();
+	private tokens: number;
+	private lastRefill: number;
+	private blockedUntil = 0;
+	private readonly rate: number;
+	private readonly capacity: number;
+	private readonly now: () => number;
+	private readonly sleep: (milliseconds: number) => Promise<void>;
+
+	constructor(options: {
+		rate?: number;
+		burst?: number;
+		now?: () => number;
+		sleep?: (milliseconds: number) => Promise<void>;
+	} = {}) {
+		this.rate = options.rate ?? NOTION_REQUEST_RATE;
+		this.capacity = options.burst ?? NOTION_INITIAL_BURST;
+		this.now = options.now ?? (() => Date.now());
+		this.sleep = options.sleep ?? (milliseconds => new Promise(resolve => window.setTimeout(resolve, milliseconds)));
+		this.tokens = this.capacity;
+		this.lastRefill = this.now();
+	}
+
+	async waitForTurn(): Promise<void> {
+		let release!: () => void;
+		const previous = this.tail;
+		this.tail = new Promise<void>(resolve => release = resolve);
+
+		await previous;
+		try {
+			while (true) {
+				const now = this.now();
+				const blockedFor = this.blockedUntil - now;
+				if (blockedFor > 0) {
+					await this.sleep(blockedFor);
+					continue;
+				}
+
+				const elapsed = Math.max(0, now - this.lastRefill);
+				this.tokens = Math.min(
+					this.capacity,
+					this.tokens + elapsed * this.rate / 1000,
+				);
+				this.lastRefill = now;
+
+				if (this.tokens >= 1) {
+					this.tokens--;
+					return;
+				}
+
+				const wait = (1 - this.tokens) * 1000 / this.rate;
+				await this.sleep(wait);
+			}
+		}
+		finally {
+			release();
+		}
+	}
+
+	rateLimited(retryAfter: string | undefined): void {
+		const seconds = retryAfter ? Number.parseInt(retryAfter, 10) : NaN;
+		this.overloaded(Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 0);
+	}
+
+	/** Notion may stall instead of returning 429 when overloaded. */
+	overloaded(cooldownMs: number = 0): void {
+		this.tokens = 0;
+		const now = this.now();
+		this.blockedUntil = Math.max(this.blockedUntil, now + cooldownMs);
+		this.lastRefill = Math.max(now, this.blockedUntil);
+	}
+
+	requestSlow(): void {
+		this.overloaded();
+	}
+}
+
+/** Shares Notion's integration-level request budget across importer instances. */
+export class NotionRequestCoordinator {
+	private token: string | null = null;
+	private scheduler: NotionRequestScheduler | null = null;
+
+	forCredential(token: string): NotionRequestScheduler {
+		if (!this.scheduler || this.token !== token) {
+			this.token = token;
+			this.scheduler = new NotionRequestScheduler();
+		}
+
+		return this.scheduler;
+	}
+}
+
+const requestCoordinator = new NotionRequestCoordinator();
+
+/** Detects overload without abandoning a request that requestUrl cannot cancel. */
+export async function watchForNotionOverload<T>(
+	request: Promise<T>,
+	scheduler: NotionRequestScheduler,
+	timers: {
+		set: (callback: () => void, milliseconds: number) => number;
+		clear: (timer: number) => void;
+	} = {
+		set: (callback, milliseconds) => window.setTimeout(callback, milliseconds),
+		clear: timer => window.clearTimeout(timer),
+	},
+): Promise<T> {
+	const timer = timers.set(() => scheduler.requestSlow(), NOTION_SLOW_REQUEST_MS);
+	try {
+		return await request;
+	}
+	finally {
+		timers.clear(timer);
+	}
+}
 
 function childPageIds(blocksCache: Map<string, { id: string, type: string }[]>): string[] {
 	const ids: string[] = [];
@@ -410,20 +529,30 @@ export class NotionAPIImporter extends FormatImporter {
 	 * Initialize Notion client if not already initialized
 	 */
 	private initializeNotionClient(): void {
+		const scheduler = requestCoordinator.forCredential(this.notionToken);
 		this.notionClient = new Client({
 			auth: this.notionToken,
 			notionVersion: NOTION_VERSION,
+			// Keep retries behind the shared scheduler.
+			retry: false,
 			fetch: async (url: RequestInfo | URL, init?: RequestInit) => {
 				const urlString = url instanceof URL ? url.href : typeof url === 'string' ? url : url.url;
 
 				try {
-					const response = await requestUrl({
-						url: urlString,
-						method: init?.method || 'GET',
-						headers: init?.headers as Record<string, string>,
-						body: init?.body as string | ArrayBuffer,
-						throw: false,
-					});
+					await scheduler.waitForTurn();
+					const response = await watchForNotionOverload(
+						requestUrl({
+							url: urlString,
+							method: init?.method || 'GET',
+							headers: init?.headers as Record<string, string>,
+							body: init?.body as string | ArrayBuffer,
+							throw: false,
+						}),
+						scheduler,
+					);
+					if (response.status === 429 || response.status === 529) {
+						scheduler.rateLimited(response.headers['retry-after'] ?? response.headers['Retry-After']);
+					}
 
 					// Convert Obsidian response to fetch Response format
 					return new Response(response.arrayBuffer, {
@@ -866,8 +995,8 @@ export class NotionAPIImporter extends FormatImporter {
 					processedDatabases: this.processedDatabases,
 					relationPlaceholders: this.relationPlaceholders,
 					databasePropertyName: this.databasePropertyName,
-					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string, customFileName?: string) => {
-						await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName });
+					importPageCallback: async (pageId, parentPath, databaseTag, customFileName, page, blocks) => {
+						await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName, page, blocks });
 					},
 					onPagesDiscovered: pageIds => this.pagesDiscovered(ctx, pageIds)
 				},
@@ -885,7 +1014,7 @@ export class NotionAPIImporter extends FormatImporter {
 	 * Fetch and import a Notion page recursively
 	 */
 	protected async fetchAndImportPage(params: FetchAndImportPageParams): Promise<void> {
-		const { ctx, pageId, parentPath, databaseTag, customFileName } = params;
+		const { ctx, pageId, parentPath, databaseTag, customFileName, page: prefetchedPage, blocks: prefetchedBlocks } = params;
 
 		if (await ctx.shouldStop()) return;
 
@@ -902,8 +1031,13 @@ export class NotionAPIImporter extends FormatImporter {
 		let reportedName = i18n.importer.notionApi.labelPage({ id: pageId });
 
 		try {
+			const blocksRequest = prefetchedBlocks
+				?? fetchAllBlocks(this.notionClient!, pageId, ctx);
+			// Avoid an unhandled rejection if metadata fails first.
+			void blocksRequest.catch(() => undefined);
+
 			// Fetch page metadata with rate limit handling
-			const page = await makeNotionRequest(
+			const page = prefetchedPage ?? await makeNotionRequest(
 				() => this.notionClient!.pages.retrieve({ page_id: pageId }) as Promise<PageObjectResponse>,
 				ctx
 			);
@@ -922,7 +1056,7 @@ export class NotionAPIImporter extends FormatImporter {
 			const blocksCache = new Map<string, any[]>();
 
 			// Fetch page blocks (content) with rate limit handling
-			const blocks = await fetchAllBlocks(this.notionClient!, pageId, ctx);
+			const blocks = await blocksRequest;
 			// Cache the root page blocks immediately
 			blocksCache.set(pageId, blocks);
 
@@ -1052,8 +1186,8 @@ export class NotionAPIImporter extends FormatImporter {
 					databasePropertyName: this.databasePropertyName, // Add database property name for child databases
 					blocksCache, // Pass blocks cache for recursive block search
 					// Callback to import database pages
-					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string, customFileName?: string) => {
-						await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName });
+					importPageCallback: async (pageId, parentPath, databaseTag, customFileName, page, blocks) => {
+						await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName, page, blocks });
 					},
 					onPagesDiscovered: pageIds => this.pagesDiscovered(ctx, pageIds)
 				}
@@ -1301,7 +1435,7 @@ export class NotionAPIImporter extends FormatImporter {
 						console.warn(`Could not find related page file: ${relatedPagePath}`);
 					}
 
-					const title = await this.relatedPageTitle(relatedPageId);
+					const title = await this.relatedPageTitle(relatedPageId, ctx);
 					if (title) {
 						replacements.set(relatedPageId, title);
 					}
@@ -1347,14 +1481,17 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 	}
 
-	private async relatedPageTitle(pageId: string): Promise<string | null> {
+	private async relatedPageTitle(pageId: string, ctx: ImportContext): Promise<string | null> {
 		const cached = this.relatedPageTitles.get(pageId);
 		if (cached !== undefined) return cached;
 
 		let title: string | null = null;
 
 		try {
-			const page = await this.notionClient!.pages.retrieve({ page_id: pageId });
+			const page = await makeNotionRequest(
+				() => this.notionClient!.pages.retrieve({ page_id: pageId }),
+				ctx,
+			);
 			title = extractPageTitle(page as PageObjectResponse);
 		}
 		catch (error) {
@@ -1387,8 +1524,8 @@ export class NotionAPIImporter extends FormatImporter {
 				formulaStrategy: this.formulaStrategy,
 				processedDatabases: this.processedDatabases,
 				relationPlaceholders: this.relationPlaceholders,
-				importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string, customFileName?: string) => {
-					await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName });
+				importPageCallback: async (pageId, parentPath, databaseTag, customFileName, page, blocks) => {
+					await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName, page, blocks });
 				},
 				// onPagesDiscovered callback not provided - not needed for unimported databases
 				databasePropertyName: this.databasePropertyName

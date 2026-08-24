@@ -25,7 +25,7 @@ function attachmentTypeLabel(type: AttachmentType): string {
 			return i18n.importer.notionApi.labelAttachmentPdf();
 	}
 }
-import { getBlockChildren, processBlockChildren } from './api-helpers';
+import { getBlockChildren, makeNotionRequest, processBlockChildren } from './api-helpers';
 import { downloadAndFormatAttachment, extractAttachmentFromBlock, getCaptionFromBlock } from './attachment-helpers';
 import { BlockConversionContext, AttachmentType, AttachmentBlockConfig, BlockContext, HeaderContentWithRichTextAndColorResponse } from './types';
 import { createPlaceholder, extractPlaceholderIds, PlaceholderType } from './utils';
@@ -816,7 +816,10 @@ async function createSyncedBlockFile(
 	
 	try {
 		// Fetch the block to get its content
-		const retrievedBlock = await client.blocks.retrieve({ block_id: blockId });
+		const retrievedBlock = await makeNotionRequest(
+			() => client.blocks.retrieve({ block_id: blockId }),
+			ctx,
+		);
 		
 		// Check if it's a full block (not partial)
 		if (!('type' in retrievedBlock)) {
