@@ -132,15 +132,20 @@ test('an interrupted editor mount returns to a usable Edit state', async () => {
 	const editButton = Array.from(container.querySelectorAll('button'))
 		.find(button => button.textContent === 'Edit');
 	assert.ok(editButton);
+	const editLabel = container.querySelector<HTMLElement>('.importer-template-preview-edit-label');
+	assert.ok(editLabel);
+	assert.equal(editLabel.style.display, 'none', 'the editing label should be hidden in preview mode');
 
 	editButton.click();
 	await Promise.resolve();
 	assert.equal(editButton.textContent, 'Save');
+	assert.notEqual(editLabel.style.display, 'none', 'the editing label should be shown while editing');
 	previewChanged();
 	pendingEditors[0](editor());
 	await new Promise(resolve => setTimeout(resolve, 0));
 
 	assert.equal(editButton.textContent, 'Edit');
+	assert.equal(editLabel.style.display, 'none', 'the editing label should be hidden after editing is interrupted');
 	assert.equal(editButton.disabled, false);
 	editButton.click();
 	await Promise.resolve();

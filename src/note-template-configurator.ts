@@ -445,10 +445,11 @@ export class NoteTemplateConfigurator {
 			const previewPathTitle = previewPath.createDiv('view-header-title-container');
 			const previewPathParent = previewPathTitle.createDiv('view-header-title-parent');
 			const previewPathName = previewPathTitle.createDiv('view-header-title');
-			previewPathTitle.createDiv({
+			const previewEditLabel = previewPathTitle.createDiv({
 				cls: 'view-header-title importer-template-preview-edit-label',
 				text: i18n.template.labelEditImportTemplate(),
 			});
+			previewEditLabel.hide();
 			const previewNavButtons = previewNav.createDiv('importer-template-preview-nav-buttons');
 			const previousButton = previewNavButtons.createEl('button');
 			setIcon(previousButton, 'lucide-arrow-left');
@@ -593,6 +594,7 @@ export class NoteTemplateConfigurator {
 				editing = value;
 				previewEl.toggleClass('is-editing', value);
 				previewPath.toggleClass('is-editing', value);
+				previewEditLabel.toggle(value);
 				if (value) hideShowMore();
 				if (value) previewPath.show();
 				editButton.setButtonText(value
