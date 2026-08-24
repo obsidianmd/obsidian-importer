@@ -52,6 +52,7 @@ export interface Run {
 export interface NoteSpec {
 	title: string;
 	runs: Run[];
+	pinned?: boolean;
 	/**
 	 * The note's zidentifier. Left out, it gets one of its own, which is what
 	 * Apple does. Set to null for a note that carries none, so that what the
@@ -173,7 +174,7 @@ const SCHEMA = `
 		ZFILENAME TEXT, ZTYPEUTI TEXT, ZIDENTIFIER1 TEXT,
 		ZCREATIONDATE INTEGER, ZMODIFICATIONDATE INTEGER,
 		ZCREATIONDATE1 INTEGER, ZMODIFICATIONDATE1 INTEGER,
-		ZISPASSWORDPROTECTED INTEGER, ZMARKEDFORDELETION INTEGER,
+		ZISPASSWORDPROTECTED INTEGER, ZISPINNED INTEGER, ZMARKEDFORDELETION INTEGER,
 		ZFALLBACKIMAGEGENERATION TEXT, ZSIZEWIDTH INTEGER, ZSIZEHEIGHT INTEGER
 	);
 
@@ -208,8 +209,8 @@ export function buildStore(filepath: string, spec: StoreSpec): BuiltStore {
 		INSERT INTO ziccloudsyncingobject (
 			Z_PK, Z_ENT, ZTITLE1, ZTITLE2, ZIDENTIFIER, ZALTTEXT, ZTOKENCONTENTIDENTIFIER,
 			ZURLSTRING, ZTITLE, ZFOLDER, ZFOLDERTYPE, ZMEDIA, ZMERGEABLEDATA1,
-			ZHANDWRITINGSUMMARY, ZCREATIONDATE1, ZMODIFICATIONDATE1
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			ZHANDWRITINGSUMMARY, ZCREATIONDATE1, ZMODIFICATIONDATE1, ZISPINNED
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`);
 	const insertData = db.prepare('INSERT INTO zicnotedata (Z_PK, ZNOTE, ZDATA) VALUES (?, ?, ?)');
 
@@ -217,16 +218,16 @@ export function buildStore(filepath: string, spec: StoreSpec): BuiltStore {
 	const created = 700000000; // an Apple timestamp, so the dates are fixed
 
 	// One account and one folder, which every note belongs to
-	insertObject.run(pk++, entity.ICAccount, null, 'Test account', 'ACCOUNT-1', null, null, null, null, null, null, null, null, null, created, created);
+	insertObject.run(pk++, entity.ICAccount, null, 'Test account', 'ACCOUNT-1', null, null, null, null, null, null, null, null, null, created, created, 0);
 	const folderPk = pk++;
-	insertObject.run(folderPk, entity.ICFolder, null, 'Notes', 'FOLDER-1', null, null, null, null, null, 0, null, null, null, created, created);
+	insertObject.run(folderPk, entity.ICFolder, null, 'Notes', 'FOLDER-1', null, null, null, null, null, 0, null, null, null, created, created, 0);
 
 	const notePks: number[] = [];
 	for (const note of spec.notes) {
 		const notePk = pk++;
 		notePks.push(notePk);
 
-		insertObject.run(notePk, entity.ICNote, note.title, null, note.identifier === undefined ? `NOTE-${notePk}` : note.identifier, null, null, null, null, folderPk, null, null, null, null, created, created);
+		insertObject.run(notePk, entity.ICNote, note.title, null, note.identifier === undefined ? `NOTE-${notePk}` : note.identifier, null, null, null, null, folderPk, null, null, null, null, created, created, note.pinned ? 1 : 0);
 		insertData.run(notePk, notePk, encodeNote(note));
 	}
 

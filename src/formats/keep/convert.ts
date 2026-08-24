@@ -31,12 +31,14 @@ function collectTags(keepJson: KeepJson): string[] {
 
 export function keepTemplateVariables(keepJson: KeepJson): Record<string, unknown> {
 	return {
-		...keepJson,
-		labelNames: keepJson.labels?.map(label => label.name).filter(Boolean) ?? [],
-		taskIds: keepJson.tasks?.map(task => task.id).filter(Boolean) ?? [],
-		annotationUrls: keepJson.annotations
-			?.map(annotation => annotation.url?.trim())
-			.filter((url): url is string => !!url) ?? [],
+		isArchived: keepJson.isArchived,
+		isPinned: keepJson.isPinned,
+		isTrashed: keepJson.isTrashed,
+		title: keepJson.title,
+		color: keepJson.color,
+		labels: keepJson.labels?.map(label => label.name).filter(Boolean) ?? [],
+		sharees: keepJson.sharees,
+		annotations: keepJson.annotations,
 	};
 }
 

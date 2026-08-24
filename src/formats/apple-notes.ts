@@ -69,6 +69,7 @@ interface AppleNotePreviewRow {
 	ZCREATIONDATE3: number;
 	ZMODIFICATIONDATE1: number;
 	ZISPASSWORDPROTECTED: number;
+	ZISPINNED: number | null;
 	zfoldertitle: string | null;
 	zfolderidentifier: string | null;
 }
@@ -465,11 +466,12 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 					nd.z_pk, hex(nd.zdata) AS zhexdata, note.ztitle1, note.zfolder,
 					note.zidentifier, note.zcreationdate1, note.zcreationdate2,
 					note.zcreationdate3, note.zmodificationdate1, note.zispasswordprotected,
+					note.zispinned,
 					folder.ztitle2 AS zfoldertitle, folder.zidentifier AS zfolderidentifier
 				FROM
 					zicnotedata AS nd,
 					(SELECT *, NULL AS zcreationdate3, NULL AS zcreationdate2,
-						NULL AS zispasswordprotected FROM ziccloudsyncingobject) AS note
+						NULL AS zispasswordprotected, NULL AS zispinned FROM ziccloudsyncingobject) AS note
 				LEFT JOIN ziccloudsyncingobject AS folder ON folder.z_pk = note.zfolder
 				WHERE
 					note.z_pk = nd.znote
@@ -507,7 +509,10 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 					title,
 					path: notePath,
 					content,
-					variables: { originalTitle: storedTitle },
+					variables: {
+						originalTitle: storedTitle,
+						isPinned: row.ZISPINNED === 1,
+					},
 					sourceId: String(row.ZIDENTIFIER),
 					times: {
 						ctime,
@@ -598,12 +603,13 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		const row = await this.database.get`
 			SELECT
 				nd.z_pk, hex(nd.zdata) as zhexdata, zcso.ztitle1, zfolder, zcso.zidentifier,
-				zcreationdate1, zcreationdate2, zcreationdate3, zmodificationdate1, zispasswordprotected
+				zcreationdate1, zcreationdate2, zcreationdate3, zmodificationdate1,
+				zispasswordprotected, zispinned
 			FROM
 				zicnotedata AS nd,
 				(SELECT
 					*, NULL AS zcreationdate3, NULL AS zcreationdate2,
-					NULL AS zispasswordprotected FROM ziccloudsyncingobject
+					NULL AS zispasswordprotected, NULL AS zispinned FROM ziccloudsyncingobject
 				) AS zcso
 			WHERE
 				zcso.z_pk = nd.znote
@@ -625,11 +631,15 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			ctime: this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1),
 			mtime: this.decodeTime(row.ZMODIFICATIONDATE1),
 		};
+		const variables = {
+			originalTitle: storedTitle,
+			isPinned: row.ZISPINNED === 1,
+		};
 		const title = await this.configuredNoteTitle(
 			sourceTitle,
 			folder,
 			'',
-			{ originalTitle: storedTitle },
+			variables,
 			row.ZIDENTIFIER,
 			times,
 		);
@@ -669,7 +679,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			title,
 			file.path,
 			body,
-			{ originalTitle: storedTitle },
+			variables,
 			row.ZIDENTIFIER,
 			times,
 		);

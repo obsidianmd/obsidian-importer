@@ -38,6 +38,7 @@ test('template previews decode the lowercase SQLite data alias', async () => {
 	const store = buildStore(nodePath.join(directory, 'NoteStore.sqlite'), {
 		notes: [{
 			title: 'Preview note',
+			pinned: true,
 			runs: [
 				{ text: 'Preview note\n' },
 				{ text: 'Selected Apple Notes content.' },
@@ -67,6 +68,7 @@ test('template previews decode the lowercase SQLite data alias', async () => {
 		assert.match(samples[0].content, /Selected Apple Notes content\./);
 		assert.doesNotMatch(samples[0].content, /Preview note/);
 		assert.equal(samples[0].sourceId, `NOTE-${store.notePks[0]}`);
+		assert.equal(samples[0].variables?.isPinned, true);
 
 		subject.omitFirstLine = false;
 		const previewsWithFirstLine = await subject.samples();

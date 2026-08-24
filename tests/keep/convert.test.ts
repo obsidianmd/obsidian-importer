@@ -76,16 +76,29 @@ test('converts microseconds to the milliseconds the vault wants', () => {
 
 test('offers simple list values to the shared template metadata editor', () => {
 	const variables = keepTemplateVariables({
+		textContent: 'Raw note text',
+		listContent: [{ text: 'Raw checklist item', isChecked: false }],
 		labels: [{ name: 'Recipes' }, { name: 'Later' }],
+		sharees: [{ email: 'owner@example.com', isOwner: true, type: 'USER' }],
 		tasks: [{ id: 'task-1' }],
+		attachments: [{ filePath: 'drawing.png', mimetype: 'image/png' }],
 		annotations: [{ url: 'https://example.com/' }, { title: 'No URL' }],
 		createdTimestampUsec: 1690425909718000,
 		userEditedTimestampUsec: 1690864927360000,
 	} as KeepJson);
 
-	assert.deepEqual(variables.labelNames, ['Recipes', 'Later']);
-	assert.deepEqual(variables.taskIds, ['task-1']);
-	assert.deepEqual(variables.annotationUrls, ['https://example.com/']);
+	assert.deepEqual(variables.labels, ['Recipes', 'Later']);
+	assert.equal(variables.labelNames, undefined);
+	assert.deepEqual(variables.sharees, [{ email: 'owner@example.com', isOwner: true, type: 'USER' }]);
+	assert.deepEqual(variables.annotations, [{ url: 'https://example.com/' }, { title: 'No URL' }]);
+	assert.equal(variables.annotationUrls, undefined);
+	assert.equal(variables.tasks, undefined);
+	assert.equal(variables.taskIds, undefined);
+	assert.equal(variables.attachments, undefined);
+	assert.equal(variables.textContent, undefined);
+	assert.equal(variables.listContent, undefined);
+	assert.equal(variables.createdTimestampUsec, undefined);
+	assert.equal(variables.userEditedTimestampUsec, undefined);
 });
 
 test('formats annotation fallbacks and skips empty annotations', () => {

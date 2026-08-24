@@ -9,6 +9,7 @@ import * as nodeZlib from 'node:zlib';
 
 import { provideNodeModules } from '../../src/filesystem';
 import { DuplicateHandling } from '../../src/format-importer';
+import { parseFrontMatterBlock } from '../../src/util';
 import { importing } from './importing';
 
 provideNodeModules({ fs: nodeFs as never, os: nodeOs, path: nodePath, zlib: nodeZlib });
@@ -43,6 +44,26 @@ test('a soft return is spelled out when the vault has strict line breaks on', as
 		const body = String(run.vault.contents.get(file!.path));
 
 		assert.ok(body.contains('A paragraph  \nbroken'), `got ${JSON.stringify(body)}`);
+	}
+	finally {
+		run.close();
+	}
+});
+
+test('templates can preserve whether an Apple Note was pinned', async () => {
+	const run = await importing([{
+		title: 'Important note',
+		pinned: true,
+		runs: [{ text: 'Important note\nPinned content.' }],
+	}], DuplicateHandling.CreateCopy, {
+		inlineTemplate: '---\npinned: {{isPinned}}\n---\n{{content}}',
+	});
+
+	try {
+		const file = await run.resolve(run.notePks[0]);
+		const content = String(run.vault.contents.get(file!.path));
+
+		assert.equal(parseFrontMatterBlock(content)?.frontMatter.pinned, true);
 	}
 	finally {
 		run.close();
