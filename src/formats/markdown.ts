@@ -13,9 +13,13 @@ import { convertMarkdownNote } from './markdown/convert';
 
 const MARKDOWN_EXTS = ['md', 'markdown'];
 
+const TEXT_EXTS = ['txt'];
+
+const NOTE_EXTS = [...MARKDOWN_EXTS, ...TEXT_EXTS];
+
 const NATIVE_EXTS = ['base', 'canvas'];
 
-const SOURCE_EXTS = [...MARKDOWN_EXTS, ...NATIVE_EXTS, 'zip'];
+const SOURCE_EXTS = [...NOTE_EXTS, ...NATIVE_EXTS, 'zip'];
 
 interface PlannedItem extends PlannedPickedItem {
 	note?: PlannedNote;
@@ -28,12 +32,12 @@ interface PlannedAttachment {
 	times?: FileTimes;
 }
 
-function isMarkdown(file: PickedFile): boolean {
-	return MARKDOWN_EXTS.includes(file.extension);
+function isNote(file: PickedFile): boolean {
+	return NOTE_EXTS.includes(file.extension);
 }
 
 export class MarkdownImporter extends FormatImporter {
-	static extensions = [...MARKDOWN_EXTS, 'zip'];
+	static extensions = [...NOTE_EXTS, 'zip'];
 
 	interruption = 'pause' as const;
 
@@ -57,7 +61,7 @@ export class MarkdownImporter extends FormatImporter {
 			async (source, isCurrent) => {
 				let loaded: PickedFolderLoad = { nodes: [], files: 0 };
 				await withZipContents(source, async items => {
-					const countFile = (file: PickedFile) => !isHiddenPickedItem(file) && isMarkdown(file);
+					const countFile = (file: PickedFile) => !isHiddenPickedItem(file) && isNote(file);
 					const nodes = await pickedFolderNodes(items, {
 						includeFolder: (folder, chosen) => chosen || !isHiddenPickedItem(folder),
 						countFile,
@@ -134,7 +138,7 @@ export class MarkdownImporter extends FormatImporter {
 		await withZipContents(this.source(), async items => {
 			const planned = await plannedPickedItems(items, this.outputLocation.trim(), {
 				selection: this.folderPicker.selection(),
-				includeFile: (file, chosen) => (chosen || !isHiddenPickedItem(file)) && isMarkdown(file),
+				includeFile: (file, chosen) => (chosen || !isHiddenPickedItem(file)) && isNote(file),
 				includeFolder: (folder, chosen) => chosen || !isHiddenPickedItem(folder),
 				folderPath: (folder, parent, chosen) => this.mirroredFolderPath(parent, folder.name, chosen),
 				onFolder: () => {},
@@ -144,7 +148,7 @@ export class MarkdownImporter extends FormatImporter {
 
 			for (const item of planned) {
 				if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
-				if (!item.file || !isMarkdown(item.file)) continue;
+				if (!item.file || !isNote(item.file)) continue;
 				const { markdown } = convertMarkdownNote(await item.file.readText(), {
 					tagsAsProperties: this.tagsAsProperties,
 				});
@@ -200,7 +204,7 @@ export class MarkdownImporter extends FormatImporter {
 				ctx.status(i18n.common.statusProcessing({ name: file ? file.name : parent }));
 				try {
 					if (!file) await this.createFolders(parent);
-					else if (isMarkdown(file)) await this.importNote(ctx, parent, source, file, note!);
+					else if (isNote(file)) await this.importNote(ctx, parent, source, file, note!);
 					else if (attachment) await this.copyAttachment(ctx, source, file, attachment);
 				}
 				catch (error) {
@@ -217,7 +221,7 @@ export class MarkdownImporter extends FormatImporter {
 		// Notes win path collisions regardless of source order.
 		for (const item of items) {
 			const { file } = item;
-			if (!file || !isMarkdown(file)) continue;
+			if (!file || !isNote(file)) continue;
 
 			item.note = await this.planTemplatedNote(item.parent || '/', file.basename);
 			this.notePlannedPath(item.source, item.note.targetPath);
@@ -226,7 +230,7 @@ export class MarkdownImporter extends FormatImporter {
 
 		for (const item of items) {
 			const { file } = item;
-			if (!file || isMarkdown(file)) continue;
+			if (!file || isNote(file)) continue;
 			if (await ctx.shouldStop()) return false;
 
 			try {
@@ -332,7 +336,7 @@ export class MarkdownImporter extends FormatImporter {
 		const root = resolveTreePath('', path);
 
 		for (const candidate of path.startsWith('/') ? [root] : [relative, root]) {
-			for (const key of [candidate, `${candidate}.md`, `${candidate}.markdown`]) {
+			for (const key of [candidate, ...NOTE_EXTS.map(extension => `${candidate}.${extension}`)]) {
 				const imported = this.importedPaths.get(key);
 				if (imported && this.pathChanged(path, outputPath, imported)) return imported;
 			}

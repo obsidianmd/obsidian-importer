@@ -442,9 +442,9 @@ export const en = {
 		},
 		markdown: {
 			name: 'Markdown',
-			optionText: 'Markdown (.md, .zip)',
-			fileType: 'Markdown',
-			descSource: 'Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.',
+			optionText: 'Markdown (.md, .txt, .zip)',
+			fileType: 'Markdown and text',
+			descSource: 'Choose individual Markdown or text files, whole folders, or zip files. Everything in folders stays organized the same way.',
 			nameStandardizeFormatting: 'Standardize formatting',
 			descStandardizeFormatting: 'Use this vault\'s settings for lists, indentation, and links.',
 			nameTagsAsProperties: 'Convert inline tags to properties',

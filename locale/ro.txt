@@ -1439,15 +1439,15 @@ original=Markdown
 translation=Markdown
 
 [importer.markdown.option-text]
-original=Markdown (.md, .zip)
+original=Markdown (.md, .txt, .zip)
 translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
-original=Markdown
+original=Markdown and text
 translation=Markdown
 
 [importer.markdown.desc-source]
-original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+original=Choose individual Markdown or text files, whole folders, or zip files. Everything in folders stays organized the same way.
 translation=Alege fișiere Markdown individuale, dosare întregi sau fișiere zip. Tot ce se află în dosare rămâne organizat în același mod.
 
 [importer.markdown.name-standardize-formatting]
