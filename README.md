@@ -9,6 +9,7 @@ Install Importer in Obsidian → Community Plugins.
 Import guides are hosted on the [official Obsidian Help site](https://obsidian.md/help/import). You can help contribute to the guides on the [obsidian-help](https://github.com/obsidianmd/obsidian-help) repo.
 
 - [Import from Airtable](https://obsidian.md/help/import/airtable)
+- [Import from Apple Journal](https://obsidian.md/help/import/apple-journal)
 - [Import from Apple Notes](https://obsidian.md/help/import/apple-notes)
 - [Import from Bear](https://obsidian.md/help/import/bear)
 - [Import from CSV files](https://obsidian.md/help/import/csv)
@@ -21,10 +22,9 @@ Import guides are hosted on the [official Obsidian Help site](https://obsidian.m
 - [Import from HTML files](https://obsidian.md/help/import/html)
 - [Import from Markdown files](https://obsidian.md/help/import/markdown)
 - [Import from Textbundle files](https://obsidian.md/help/import/textbundle) (.textbundle, .textpack)
-- Import from Apple Journal (HTML export)
-- Import from Tomboy/Gnote (.note)
+- [Import from Tomboy/Gnote](https://obsidian.md/help/import/tomboy) (.note)
 
-See [Import templates](/docs/templates.md) for the shared template variables and the additional values provided by each importer.
+See [Import templates](https://obsidian.md/help/import/templates) for the shared template variables and the additional values provided by each importer.
 
 ## Developers
 
