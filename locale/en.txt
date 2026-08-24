@@ -1343,7 +1343,7 @@ original=Google Keep
 translation=
 
 [importer.keep.option-text]
-original=Google Keep (.zip/.json)
+original=Google Keep (.zip, .json)
 translation=
 
 [importer.keep.file-type]

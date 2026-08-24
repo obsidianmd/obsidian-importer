@@ -1343,8 +1343,8 @@ original=Google Keep
 translation=Google Keep
 
 [importer.keep.option-text]
-original=Google Keep (.zip/.json)
-translation=Google Keep (.zip/.json)
+original=Google Keep (.zip, .json)
+translation=Google Keep (.zip, .json)
 
 [importer.keep.file-type]
 original=Notes & attachments

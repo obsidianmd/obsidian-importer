@@ -414,7 +414,7 @@ export const en = {
 		},
 		keep: {
 			name: 'Google Keep',
-			optionText: 'Google Keep (.zip/.json)',
+			optionText: 'Google Keep (.zip, .json)',
 			fileType: 'Notes & attachments',
 			descExport: 'Get your Google Keep data from Google Takeout.',
 			nameArchived: 'Import archived notes',
