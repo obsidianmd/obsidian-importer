@@ -727,8 +727,12 @@ original=Template
 translation=เทมเพลต
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=ไม่บังคับ เลือกเทมเพลตจากห้องนิรภัยของคุณเพื่อจัดรูปแบบเนื้อหาโน้ต ดูวิธีใช้สำหรับไวยากรณ์เทมเพลต
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=ไม่บังคับ เลือกเทมเพลตจากห้องนิรภัยของคุณเพื่อจัดรูปแบบเนื้อหาโน้ต ดูวิธีใช้สำหรับ {{link}}
+
+[template.link-template-syntax]
+original=template syntax
+translation=ไวยากรณ์เทมเพลต
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=เซฟ
 [template.button-reset-template]
 original=Reset to default
 translation=รีเซ็ตเป็นค่าเริ่มต้น
+
+[template.button-start-import]
+original=Start import
+translation=เริ่มนำเข้า
 
 [template.link-show-more]
 original=Show more

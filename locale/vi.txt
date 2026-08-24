@@ -727,8 +727,12 @@ original=Template
 translation=mẫu
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=Tùy chọn. Chọn một mẫu từ kho của bạn để định dạng nội dung ghi chú. Xem Trợ giúp để biết cú pháp mẫu.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=Tùy chọn. Chọn một mẫu từ kho của bạn để định dạng nội dung ghi chú. Xem Trợ giúp về {{link}}.
+
+[template.link-template-syntax]
+original=template syntax
+translation=cú pháp mẫu
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=Lưu
 [template.button-reset-template]
 original=Reset to default
 translation=Đặt lại về mặc định
+
+[template.button-start-import]
+original=Start import
+translation=Bắt đầu nhập
 
 [template.link-show-more]
 original=Show more

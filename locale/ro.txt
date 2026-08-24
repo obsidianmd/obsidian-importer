@@ -727,8 +727,12 @@ original=Template
 translation=șablon
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=Opțional. Alegeți un șablon din seiful dvs. pentru a formata conținutul însemnării. Consultați secțiunea de ajutor pentru sintaxa șablonului.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=Opțional. Alege un șablon din seiful tău pentru a formata conținutul însemnării. Consultă Ajutor pentru {{link}}.
+
+[template.link-template-syntax]
+original=template syntax
+translation=sintaxa șablonului
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=Salvează
 [template.button-reset-template]
 original=Reset to default
 translation=Resetare la implicit
+
+[template.button-start-import]
+original=Start import
+translation=Începe importul
 
 [template.link-show-more]
 original=Show more

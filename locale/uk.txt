@@ -727,8 +727,12 @@ original=Template
 translation=шаблон
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=Необов'язково. Оберіть шаблон зі свого сховища для форматування вмісту нотатки. Перегляньте довідку щодо синтаксису шаблонів.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=Необов'язково. Оберіть шаблон зі свого сховища, щоб форматувати вміст нотатки. Див. довідку щодо {{link}}.
+
+[template.link-template-syntax]
+original=template syntax
+translation=синтаксис шаблону
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=Зберегти
 [template.button-reset-template]
 original=Reset to default
 translation=Скинути за замовчуванням
+
+[template.button-start-import]
+original=Start import
+translation=Почати імпорт
 
 [template.link-show-more]
 original=Show more

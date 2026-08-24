@@ -727,8 +727,12 @@ original=Template
 translation=mal
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=Valgfritt. Velg en mal fra hvelvet ditt for å formatere notatinnholdet. Se Hjelp for malsyntaks.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=Valgfritt. Velg en mal fra hvelvet ditt for å formatere notatinnholdet. Se Hjelp for {{link}}.
+
+[template.link-template-syntax]
+original=template syntax
+translation=malsyntaks
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=Lagre
 [template.button-reset-template]
 original=Reset to default
 translation=Tilbakestill til standard
+
+[template.button-start-import]
+original=Start import
+translation=Start import
 
 [template.link-show-more]
 original=Show more

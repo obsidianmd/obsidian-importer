@@ -727,8 +727,12 @@ original=Template
 translation=قالب
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=اختیاری. یک الگو از گاوصندوق خود انتخاب کنید تا محتوای یادداشت قالب‌بندی شود. برای آشنایی با نحو الگو به راهنما مراجعه کنید.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=اختیاری. یک قالب از گاوصندوق خود انتخاب کنید تا محتوای یادداشت قالب‌بندی شود. برای {{link}} به راهنما مراجعه کنید.
+
+[template.link-template-syntax]
+original=template syntax
+translation=نحو قالب
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=ذخیره
 [template.button-reset-template]
 original=Reset to default
 translation=بازنشانی به پیش‌فرض
+
+[template.button-start-import]
+original=Start import
+translation=شروع واردکردن
 
 [template.link-show-more]
 original=Show more

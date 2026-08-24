@@ -727,8 +727,12 @@ original=Template
 translation=modello
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=Opzionale. Scegli un modello dal tuo vault per formattare il contenuto della nota. Consulta l'Aiuto per la sintassi dei modelli.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=Opzionale. Scegli un modello dal tuo vault per formattare il contenuto della nota. Consulta l'aiuto per {{link}}.
+
+[template.link-template-syntax]
+original=template syntax
+translation=sintassi del modello
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=Salva
 [template.button-reset-template]
 original=Reset to default
 translation=Ripristina predefinito
+
+[template.button-start-import]
+original=Start import
+translation=Avvia importazione
 
 [template.link-show-more]
 original=Show more

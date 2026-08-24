@@ -727,8 +727,12 @@ original=Template
 translation=templat
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=Opsional. Pilih templat dari brankas Anda untuk memformat konten catatan. Lihat Bantuan untuk sintaks templat.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=Opsional. Pilih templat dari brankas Anda untuk memformat konten catatan. Lihat Bantuan untuk {{link}}.
+
+[template.link-template-syntax]
+original=template syntax
+translation=sintaks templat
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=Simpan
 [template.button-reset-template]
 original=Reset to default
 translation=Atur ulang ke bawaan
+
+[template.button-start-import]
+original=Start import
+translation=Mulai impor
 
 [template.link-show-more]
 original=Show more

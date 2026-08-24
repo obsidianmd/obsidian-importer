@@ -727,8 +727,12 @@ original=Template
 translation=sjabloon
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=Optioneel. Kies een sjabloon uit uw kluis om de notitie-inhoud op te maken. Zie Help voor sjabloonsyntaxis.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=Optioneel. Kies een sjabloon uit je kluis om de notitie-inhoud te vormgeven. Zie help voor {{link}}.
+
+[template.link-template-syntax]
+original=template syntax
+translation=sjabloonsyntaxis
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=Opslaan
 [template.button-reset-template]
 original=Reset to default
 translation=Standaard herstellen
+
+[template.button-start-import]
+original=Start import
+translation=Import starten
 
 [template.link-show-more]
 original=Show more

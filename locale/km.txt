@@ -727,8 +727,12 @@ original=Template
 translation=ពុម្ព
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=ស្រេចចិត្ត។ ជ្រើសរើសពុម្ពពីវ៉ាល់របស់អ្នកដើម្បីធ្វើទម្រង់មាតិកាកំណត់ចំណាំ។ សូមមើលជំនួយសម្រាប់វាក្យសម្ពន្ធពុម្ព។
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=ស្រេចចិត្ត។ ជ្រើសរើសពុម្ពពីវ៉ាល់របស់អ្នកដើម្បីកំណត់ទម្រង់មាតិកាកំណត់ចំណាំ។ សូមមើលជំនួយសម្រាប់ {{link}}។
+
+[template.link-template-syntax]
+original=template syntax
+translation=វាក្យសម្ពន្ធពុម្ព
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=រក្សាទុក
 [template.button-reset-template]
 original=Reset to default
 translation=កំណត់ឡើងវិញទៅលំនាំដើម
+
+[template.button-start-import]
+original=Start import
+translation=ចាប់ផ្តើមនាំចូល
 
 [template.link-show-more]
 original=Show more

@@ -727,8 +727,12 @@ original=Template
 translation=plantilla
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=Opcional. Elige una plantilla de tu bóveda para dar formato al contenido de la nota. Consulta la ayuda para la sintaxis de plantillas.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=Opcional. Elegir una plantilla de tu bóveda para dar formato al contenido de la nota. Consulta la ayuda para {{link}}.
+
+[template.link-template-syntax]
+original=template syntax
+translation=sintaxis de plantilla
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=Guardar
 [template.button-reset-template]
 original=Reset to default
 translation=Restablecer a predeterminado
+
+[template.button-start-import]
+original=Start import
+translation=Iniciar importación
 
 [template.link-show-more]
 original=Show more

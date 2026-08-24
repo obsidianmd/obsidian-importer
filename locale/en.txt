@@ -727,7 +727,11 @@ original=Template
 translation=
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=
+
+[template.link-template-syntax]
+original=template syntax
 translation=
 
 [template.heading-preview]
@@ -748,6 +752,10 @@ translation=
 
 [template.button-reset-template]
 original=Reset to default
+translation=
+
+[template.button-start-import]
+original=Start import
 translation=
 
 [template.link-show-more]

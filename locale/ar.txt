@@ -727,8 +727,12 @@ original=Template
 translation=قالب
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=اختياري. اختر قالبًا من خزنتك لتنسيق محتوى الملاحظة. راجع المساعدة للاطلاع على صيغة القالب.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=اختياري. اختر قالب من خزنتك لتنسيق محتوى الملاحظة. راجع المساعدة لمعرفة {{link}}.
+
+[template.link-template-syntax]
+original=template syntax
+translation=صيغة القالب
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=حفظ
 [template.button-reset-template]
 original=Reset to default
 translation=إعادة التعيين إلى الافتراضي
+
+[template.button-start-import]
+original=Start import
+translation=بدء الاستيراد
 
 [template.link-show-more]
 original=Show more

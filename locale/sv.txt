@@ -727,8 +727,12 @@ original=Template
 translation=mall
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=Valfritt. Välj en mall från ditt valv för att formatera anteckningens innehåll. Se hjälp för mallsyntax.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=Valfritt. Välj en mall från ditt valv för att formatera anteckningsinnehållet. Se hjälp för {{link}}.
+
+[template.link-template-syntax]
+original=template syntax
+translation=mallsyntax
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=Spara
 [template.button-reset-template]
 original=Reset to default
 translation=Återställ till standard
+
+[template.button-start-import]
+original=Start import
+translation=Starta import
 
 [template.link-show-more]
 original=Show more

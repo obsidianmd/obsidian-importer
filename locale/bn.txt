@@ -727,8 +727,12 @@ original=Template
 translation=টেমপ্লেট
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=ঐচ্ছিক। নোটের বিষয়বস্তু ফরম্যাট করতে আপনার ভল্ট থেকে একটি টেমপ্লেট নির্বাচন করুন। টেমপ্লেট সিনট্যাক্সের জন্য সহায়তা দেখুন।
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=ঐচ্ছিক। নোটের বিষয়বস্তু ফরম্যাটিং করতে আপনার ভল্ট থেকে একটি টেমপ্লেট নির্বাচন করুন। {{link}}-এর জন্য সহায়তা দেখুন।
+
+[template.link-template-syntax]
+original=template syntax
+translation=টেমপ্লেট সিনট্যাক্স
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=সংরক্ষণ
 [template.button-reset-template]
 original=Reset to default
 translation=ডিফল্টে রিসেট করুন
+
+[template.button-start-import]
+original=Start import
+translation=ইম্পোর্ট শুরু করুন
 
 [template.link-show-more]
 original=Show more

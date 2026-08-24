@@ -727,8 +727,12 @@ original=Template
 translation=modèle
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=Optionnel. Choisissez un modèle de votre coffre pour formater le contenu de la note. Consultez l'aide pour la syntaxe des modèles.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=Optionnel. Choisir un modèle depuis votre coffre pour formater le contenu de la note. Consultez l'aide pour {{link}}.
+
+[template.link-template-syntax]
+original=template syntax
+translation=la syntaxe des modèles
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=Sauvegarder
 [template.button-reset-template]
 original=Reset to default
 translation=Réinitialiser par défaut
+
+[template.button-start-import]
+original=Start import
+translation=Lancer l'importation
 
 [template.link-show-more]
 original=Show more

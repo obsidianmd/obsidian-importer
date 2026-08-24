@@ -727,8 +727,12 @@ original=Template
 translation=šablóna
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=Voliteľné. Zvoľte šablónu z vášho trezoru na formátovanie obsahu poznámky. Pozrite si pomocníka pre syntax šablón.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=Voliteľné. Zvoľte šablónu z vášho trezora na formátovanie obsahu poznámky. Pozrite pomocníka pre {{link}}.
+
+[template.link-template-syntax]
+original=template syntax
+translation=syntax šablóny
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=Uložiť
 [template.button-reset-template]
 original=Reset to default
 translation=Obnoviť na predvolené
+
+[template.button-start-import]
+original=Start import
+translation=Spustiť import
 
 [template.link-show-more]
 original=Show more

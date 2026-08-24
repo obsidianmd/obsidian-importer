@@ -727,8 +727,12 @@ original=Template
 translation=skabelon
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=Valgfrit. Vælg en skabelon fra din boks til at formatere noteindholdet. Se Hjælp for skabelonsyntaks.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=Valgfrit. Vælg en skabelon fra din boks til at formatere noteindholdet. Se hjælp for {{link}}.
+
+[template.link-template-syntax]
+original=template syntax
+translation=skabelonsyntaks
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=Gem
 [template.button-reset-template]
 original=Reset to default
 translation=Nulstil til standard
+
+[template.button-start-import]
+original=Start import
+translation=Start import
 
 [template.link-show-more]
 original=Show more

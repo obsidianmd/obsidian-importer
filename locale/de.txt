@@ -727,8 +727,12 @@ original=Template
 translation=Vorlage
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=Optional. Wähle eine Vorlage aus deinem Vault, um den Notizinhalt zu formatieren. Siehe Hilfe für die Vorlagensyntax.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=Optional. Wähle eine Vorlage aus deinem Vault, um den Inhalt der Notiz zu formatieren. Siehe Hilfe für {{link}}.
+
+[template.link-template-syntax]
+original=template syntax
+translation=Vorlagen-Syntax
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=Speichern
 [template.button-reset-template]
 original=Reset to default
 translation=Auf Standard zurücksetzen
+
+[template.button-start-import]
+original=Start import
+translation=Import starten
 
 [template.link-show-more]
 original=Show more

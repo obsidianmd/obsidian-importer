@@ -727,8 +727,12 @@ original=Template
 translation=şablon
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=İsteğe bağlı. Not içeriğini biçimlendirmek için kasanızdan bir şablon seçin. Şablon söz dizimi için Yardım'a bakın.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=İsteğe bağlı. Not içeriğini biçimlendirmek için kasanızdan bir şablon seçin. {{link}} için Yardım bölümüne bakın.
+
+[template.link-template-syntax]
+original=template syntax
+translation=şablon söz dizimi
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=Kaydet
 [template.button-reset-template]
 original=Reset to default
 translation=Varsayılana sıfırla
+
+[template.button-start-import]
+original=Start import
+translation=İçe aktarmayı başlat
 
 [template.link-show-more]
 original=Show more

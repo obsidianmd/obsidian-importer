@@ -727,8 +727,12 @@ original=Template
 translation=テンプレート
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=任意。保管庫からテンプレートを選択してノート内容をフォーマットします。テンプレート構文についてはヘルプを参照してください。
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=任意。保管庫からテンプレートを選択して、ノートの内容をフォーマットします。{{link}}についてはヘルプを参照してください。
+
+[template.link-template-syntax]
+original=template syntax
+translation=テンプレート構文
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=保存
 [template.button-reset-template]
 original=Reset to default
 translation=デフォルトにリセット
+
+[template.button-start-import]
+original=Start import
+translation=インポートを開始
 
 [template.link-show-more]
 original=Show more

@@ -727,8 +727,12 @@ original=Template
 translation=模板
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=可选。从仓库中选择一个模板来格式化笔记内容。模板语法请参阅帮助。
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=可选。从仓库中选择一个模板来设置笔记内容的文本格式。请参阅帮助了解 {{link}}。
+
+[template.link-template-syntax]
+original=template syntax
+translation=模板语法
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=保存
 [template.button-reset-template]
 original=Reset to default
 translation=重置为默认
+
+[template.button-start-import]
+original=Start import
+translation=开始导入
 
 [template.link-show-more]
 original=Show more

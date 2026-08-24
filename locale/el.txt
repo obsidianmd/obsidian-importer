@@ -727,8 +727,12 @@ original=Template
 translation=πρότυπο
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=Προαιρετικό. Επιλέξτε ένα πρότυπο από το θησαυροφυλάκιό σας για μορφοποίηση του περιεχομένου της σημείωσης. Δείτε τη βοήθεια για τη σύνταξη προτύπων.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=Προαιρετικό. Επιλογή ενός πρότυπου από το θησαυροφυλάκιό σας για μορφοποίηση του περιεχομένου της σημείωσης. Δείτε τη βοήθεια για {{link}}.
+
+[template.link-template-syntax]
+original=template syntax
+translation=σύνταξη πρότυπου
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=Αποθήκευση
 [template.button-reset-template]
 original=Reset to default
 translation=Επαναφορά στην προεπιλογή
+
+[template.button-start-import]
+original=Start import
+translation=Έναρξη εισαγωγής
 
 [template.link-show-more]
 original=Show more

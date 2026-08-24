@@ -727,8 +727,12 @@ original=Template
 translation=szablon
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=Opcjonalnie. Wybierz szablon ze swojego skarbca, aby sformatować treść notatki. Składnia szablonów opisana jest w sekcji pomocy.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=Opcjonalne. Wybierz szablon ze swojego skarbca, aby sformatować zawartość notatki. Zobacz pomoc dotyczącą {{link}}.
+
+[template.link-template-syntax]
+original=template syntax
+translation=składni szablonów
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=Zapisz
 [template.button-reset-template]
 original=Reset to default
 translation=Przywróć domyślne
+
+[template.button-start-import]
+original=Start import
+translation=Rozpocznij import
 
 [template.link-show-more]
 original=Show more

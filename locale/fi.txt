@@ -727,8 +727,12 @@ original=Template
 translation=pohja/pohjatiedosto
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=Valinnainen. Valitse holvistasi pohja muotoilemaan muistiinpanon sisältö. Katso ohje pohjan syntaksista.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=Valinnainen. Valitse holviisi tallennettu pohja muistiinpanon sisällön muotoiluun. Katso ohje: {{link}}.
+
+[template.link-template-syntax]
+original=template syntax
+translation=pohjatiedoston syntaksi
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=Tallenna
 [template.button-reset-template]
 original=Reset to default
 translation=Palauta oletukseen
+
+[template.button-start-import]
+original=Start import
+translation=Aloita tuonti
 
 [template.link-show-more]
 original=Show more

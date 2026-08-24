@@ -727,8 +727,12 @@ original=Template
 translation=תבנית
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=אופציונלי. בחר תבנית מהכספת שלך לעיצוב תוכן ההערה. ראה עזרה לתחביר תבניות.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=אופציונלי. בחר תבנית מהכספת שלך כדי לעצב את תוכן ההערה. עיין בעזרה עבור {{link}}.
+
+[template.link-template-syntax]
+original=template syntax
+translation=תחביר תבנית
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=שמור
 [template.button-reset-template]
 original=Reset to default
 translation=אפס לברירת מחדל
+
+[template.button-start-import]
+original=Start import
+translation=התחל ייבוא
 
 [template.link-show-more]
 original=Show more

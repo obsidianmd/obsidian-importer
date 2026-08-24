@@ -727,8 +727,12 @@ original=Template
 translation=plantilla
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=Opcional. Trieu una plantilla de la vostra cambra forta per formatar el contingut de la nota. Consulteu l'ajuda per a la sintaxi de plantilles.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=Opcional. Tria una plantilla de la teva cambra forta per donar format al contingut de la nota. Consulta l'ajuda per a {{link}}.
+
+[template.link-template-syntax]
+original=template syntax
+translation=sintaxi de plantilla
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=Desa
 [template.button-reset-template]
 original=Reset to default
 translation=Restableix per defecte
+
+[template.button-start-import]
+original=Start import
+translation=Inicia la importació
 
 [template.link-show-more]
 original=Show more

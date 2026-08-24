@@ -727,8 +727,12 @@ original=Template
 translation=sablon
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=Opcionális. Válassz egy sablont a széfedből a jegyzet tartalmának formázásához. A sablon szintaxisát lásd a Súgóban.
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=Opcionális. Válassz egy sablont a széfedből a jegyzet tartalmának formázásához. Lásd a súgót a {{link}} témában.
+
+[template.link-template-syntax]
+original=template syntax
+translation=sablon szintaxis
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=Mentés
 [template.button-reset-template]
 original=Reset to default
 translation=Visszaállítás alapértelmezettre
+
+[template.button-start-import]
+original=Start import
+translation=Importálás indítása
 
 [template.link-show-more]
 original=Show more

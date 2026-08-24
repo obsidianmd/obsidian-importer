@@ -727,8 +727,12 @@ original=Template
 translation=範本
 
 [template.desc-template-file]
-original=Optional. Choose a template from your vault to format the note content. See Help for template syntax.
-translation=可選。從您的保管庫中選擇範本來格式化筆記內容。請參閱說明以了解範本語法。
+original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
+translation=選填。從保管庫中選擇範本以格式化筆記內容。請參閱說明以了解 {{link}}。
+
+[template.link-template-syntax]
+original=template syntax
+translation=範本語法
 
 [template.heading-preview]
 original=Preview
@@ -749,6 +753,10 @@ translation=儲存
 [template.button-reset-template]
 original=Reset to default
 translation=重設為預設
+
+[template.button-start-import]
+original=Start import
+translation=開始匯入
 
 [template.link-show-more]
 original=Show more

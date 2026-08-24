@@ -1,4 +1,5 @@
 import { App, ButtonComponent, MarkdownRenderChild, MarkdownRenderer, MarkdownView, normalizePath, Notice, parseYaml, setIcon, Setting, SettingGroup, stringifyYaml, TFile, WorkspaceLeaf } from 'obsidian';
+import { helpUrl } from './constants';
 import { i18n } from './i18n';
 import { MarkdownFileSuggest } from './markdown-file-suggest';
 import { parseFrontMatterBlock } from './util';
@@ -51,6 +52,22 @@ function previewTitle(preview: NoteTemplatePreview): string {
 
 function previewIsValid(preview: NoteTemplatePreview): boolean {
 	return preview.valid ?? !preview.diagnostics?.length;
+}
+
+function templateFileDescription(): DocumentFragment {
+	const marker = '\uFFFC';
+	const description = i18n.template.descTemplateFile({ link: marker });
+	const [before, after = ''] = description.split(marker);
+
+	return createFragment(fragment => {
+		fragment.appendText(before);
+		fragment.createEl('a', {
+			text: i18n.template.linkTemplateSyntax(),
+			href: helpUrl('import/templates'),
+			attr: { target: '_blank', rel: 'noopener' },
+		});
+		fragment.appendText(after);
+	});
 }
 
 function propertyValueText(value: unknown): string {
@@ -414,7 +431,7 @@ export class NoteTemplateConfigurator {
 			const previewGroup = new SettingGroup(container);
 			const fileSetting = new Setting(previewGroup.listEl)
 				.setName(i18n.template.nameTemplateFile())
-				.setDesc(i18n.template.descTemplateFile());
+				.setDesc(templateFileDescription());
 			const pathInput = fileSetting.controlEl.createEl('input', {
 				type: 'text',
 				value: this.path,
@@ -809,7 +826,7 @@ export class NoteTemplateConfigurator {
 			};
 			pathInput.addEventListener('input', () => void loadTemplate());
 
-			actionButtonEl = buttonsEl.createEl('button', { cls: 'mod-cta', text: i18n.modal.buttonImport() }, button => {
+			actionButtonEl = buttonsEl.createEl('button', { cls: 'mod-cta', text: i18n.template.buttonStartImport() }, button => {
 				button.addEventListener('click', () => {
 					finishEditing();
 					void updatePreview(true, true).then(valid => {
