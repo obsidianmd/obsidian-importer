@@ -732,7 +732,7 @@ translation=Необязательно. Выберите шаблон из ва�
 
 [template.link-template-syntax]
 original=template syntax
-translation=синтаксис шаблонов
+translation=синтаксису шаблонов
 
 [template.heading-preview]
 original=Preview

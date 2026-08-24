@@ -728,11 +728,11 @@ translation=pohja/pohjatiedosto
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
-translation=Valinnainen. Valitse holviisi tallennettu pohja muistiinpanon sisällön muotoiluun. Katso ohje: {{link}}.
+translation=Valinnainen. Valitse pohja holvistasi muistiinpanon sisällön muotoiluun. Katso ohje: {{link}}.
 
 [template.link-template-syntax]
 original=template syntax
-translation=pohjatiedoston syntaksi
+translation=pohjasyntaksi
 
 [template.heading-preview]
 original=Preview

@@ -728,7 +728,7 @@ translation=เทมเพลต
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
-translation=ไม่บังคับ เลือกเทมเพลตจากห้องนิรภัยของคุณเพื่อจัดรูปแบบเนื้อหาโน้ต ดูวิธีใช้สำหรับ {{link}}
+translation=ไม่บังคับ เลือกเทมเพลตจากห้องนิรภัยของคุณเพื่อจัดรูปแบบเนื้อหาโน้ต ดูวิธีใช้สำหรับ{{link}}
 
 [template.link-template-syntax]
 original=template syntax

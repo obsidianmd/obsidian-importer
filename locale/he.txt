@@ -728,7 +728,7 @@ translation=תבנית
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
-translation=אופציונלי. בחר תבנית מהכספת שלך כדי לעצב את תוכן ההערה. עיין בעזרה עבור {{link}}.
+translation=אופציונלי. בחר תבנית מהכספת שלך לעיצוב תוכן ההערה. ראה עזרה עבור {{link}}.
 
 [template.link-template-syntax]
 original=template syntax

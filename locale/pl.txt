@@ -728,7 +728,7 @@ translation=szablon
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
-translation=Opcjonalne. Wybierz szablon ze swojego skarbca, aby sformatować zawartość notatki. Zobacz pomoc dotyczącą {{link}}.
+translation=Opcjonalnie. Wybierz szablon ze swojego skarbca, aby sformatować zawartość notatki. Zobacz pomoc dotyczącą {{link}}.
 
 [template.link-template-syntax]
 original=template syntax

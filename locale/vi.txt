@@ -728,7 +728,7 @@ translation=mẫu
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
-translation=Tùy chọn. Chọn một mẫu từ kho của bạn để định dạng nội dung ghi chú. Xem Trợ giúp về {{link}}.
+translation=Tùy chọn. Chọn một mẫu từ kho của bạn để định dạng nội dung ghi chú. Xem Trợ giúp để biết thêm về {{link}}.
 
 [template.link-template-syntax]
 original=template syntax

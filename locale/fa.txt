@@ -732,7 +732,7 @@ translation=اختیاری. یک قالب از گاوصندوق خود انتخ�
 
 [template.link-template-syntax]
 original=template syntax
-translation=نحو قالب
+translation=دستور قالب
 
 [template.heading-preview]
 original=Preview
@@ -756,7 +756,7 @@ translation=بازنشانی به پیش‌فرض
 
 [template.button-start-import]
 original=Start import
-translation=شروع واردکردن
+translation=شروع وارد کردن
 
 [template.link-show-more]
 original=Show more

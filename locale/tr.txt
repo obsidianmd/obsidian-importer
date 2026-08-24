@@ -732,7 +732,7 @@ translation=İsteğe bağlı. Not içeriğini biçimlendirmek için kasanızdan 
 
 [template.link-template-syntax]
 original=template syntax
-translation=şablon söz dizimi
+translation=şablon sözdizimi
 
 [template.heading-preview]
 original=Preview

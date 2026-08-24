@@ -728,7 +728,7 @@ translation=sjabloon
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
-translation=Optioneel. Kies een sjabloon uit je kluis om de notitie-inhoud te vormgeven. Zie help voor {{link}}.
+translation=Optioneel. Kies een sjabloon uit je kluis om de inhoud van de notitie te formatteren. Zie help voor {{link}}.
 
 [template.link-template-syntax]
 original=template syntax

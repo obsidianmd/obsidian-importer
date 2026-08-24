@@ -728,11 +728,11 @@ translation=modèle
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
-translation=Optionnel. Choisir un modèle depuis votre coffre pour formater le contenu de la note. Consultez l'aide pour {{link}}.
+translation=Optionnel. Choisir un modèle de votre coffre pour formater le contenu de la note. Consultez l'aide pour la {{link}}.
 
 [template.link-template-syntax]
 original=template syntax
-translation=la syntaxe des modèles
+translation=syntaxe des modèles
 
 [template.heading-preview]
 original=Preview
@@ -756,7 +756,7 @@ translation=Réinitialiser par défaut
 
 [template.button-start-import]
 original=Start import
-translation=Lancer l'importation
+translation=Démarrer l'import
 
 [template.link-show-more]
 original=Show more

@@ -728,7 +728,7 @@ translation=範本
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
-translation=選填。從保管庫中選擇範本以格式化筆記內容。請參閱說明以了解 {{link}}。
+translation=選填。從保管庫中選擇範本來格式化筆記內容。請參閱說明以了解 {{link}}。
 
 [template.link-template-syntax]
 original=template syntax

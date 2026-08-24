@@ -728,7 +728,7 @@ translation=টেমপ্লেট
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
-translation=ঐচ্ছিক। নোটের বিষয়বস্তু ফরম্যাটিং করতে আপনার ভল্ট থেকে একটি টেমপ্লেট নির্বাচন করুন। {{link}}-এর জন্য সহায়তা দেখুন।
+translation=ঐচ্ছিক। নোট বিষয়বস্তু ফরম্যাটিং করতে আপনার ভল্ট থেকে একটি টেমপ্লেট নির্বাচন করুন। {{link}}-এর জন্য সহায়তা দেখুন।
 
 [template.link-template-syntax]
 original=template syntax

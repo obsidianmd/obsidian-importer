@@ -756,7 +756,7 @@ translation=デフォルトにリセット
 
 [template.button-start-import]
 original=Start import
-translation=インポートを開始
+translation=インポート開始
 
 [template.link-show-more]
 original=Show more

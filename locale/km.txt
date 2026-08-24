@@ -728,7 +728,7 @@ translation=ពុម្ព
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
-translation=ស្រេចចិត្ត។ ជ្រើសរើសពុម្ពពីវ៉ាល់របស់អ្នកដើម្បីកំណត់ទម្រង់មាតិកាកំណត់ចំណាំ។ សូមមើលជំនួយសម្រាប់ {{link}}។
+translation=ស្រេចចិត្ត។ ជ្រើសរើសពុម្ពមួយពីវ៉ាល់របស់អ្នកដើម្បីធ្វើទម្រង់មាតិកាកំណត់ចំណាំ។ សូមមើលជំនួយសម្រាប់ {{link}}។
 
 [template.link-template-syntax]
 original=template syntax

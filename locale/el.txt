@@ -728,11 +728,11 @@ translation=πρότυπο
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
-translation=Προαιρετικό. Επιλογή ενός πρότυπου από το θησαυροφυλάκιό σας για μορφοποίηση του περιεχομένου της σημείωσης. Δείτε τη βοήθεια για {{link}}.
+translation=Προαιρετικό. Επιλέξτε ένα πρότυπο από το θησαυροφυλάκιό σας για να μορφοποιήσετε το περιεχόμενο της σημείωσης. Δείτε τη βοήθεια για {{link}}.
 
 [template.link-template-syntax]
 original=template syntax
-translation=σύνταξη πρότυπου
+translation=σύνταξη προτύπου
 
 [template.heading-preview]
 original=Preview

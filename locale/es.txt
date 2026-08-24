@@ -728,7 +728,7 @@ translation=plantilla
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
-translation=Opcional. Elegir una plantilla de tu bóveda para dar formato al contenido de la nota. Consulta la ayuda para {{link}}.
+translation=Opcional. Elige una plantilla de tu bóveda para dar formato al contenido de la nota. Consulta la ayuda para {{link}}.
 
 [template.link-template-syntax]
 original=template syntax

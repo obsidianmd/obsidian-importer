@@ -728,11 +728,11 @@ translation=шаблон
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
-translation=Необов'язково. Оберіть шаблон зі свого сховища, щоб форматувати вміст нотатки. Див. довідку щодо {{link}}.
+translation=Необов'язково. Оберіть шаблон із вашого сховища для форматування вмісту нотатки. Див. довідку щодо {{link}}.
 
 [template.link-template-syntax]
 original=template syntax
-translation=синтаксис шаблону
+translation=синтаксис шаблонів
 
 [template.heading-preview]
 original=Preview

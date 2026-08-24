@@ -756,7 +756,7 @@ translation=Obnovit výchozí
 
 [template.button-start-import]
 original=Start import
-translation=Zahájit import
+translation=Spustit import
 
 [template.link-show-more]
 original=Show more

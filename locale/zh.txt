@@ -728,7 +728,7 @@ translation=模板
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
-translation=可选。从仓库中选择一个模板来设置笔记内容的文本格式。请参阅帮助了解 {{link}}。
+translation=可选。从你的仓库中选择一个模板来设置笔记内容的文本格式。请参阅帮助了解 {{link}}。
 
 [template.link-template-syntax]
 original=template syntax
