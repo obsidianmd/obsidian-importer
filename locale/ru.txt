@@ -1440,15 +1440,15 @@ translation=Markdown
 
 [importer.markdown.option-text]
 original=Markdown (.md, .txt, .zip)
-translation=Markdown (.md, .zip)
+translation=Markdown (.md, .txt, .zip)
 
 [importer.markdown.file-type]
 original=Markdown and text
-translation=Markdown
+translation=Markdown и Текст
 
 [importer.markdown.desc-source]
 original=Choose individual Markdown or text files, whole folders, or zip files. Everything in folders stays organized the same way.
-translation=Выберите отдельные файлы Markdown, целые папки или zip-архивы. Структура папок сохраняется.
+translation=Выберите отдельные файлы Markdown или текстовые файлы, целые папки или zip-архивы. Структура папок будет сохранена.
 
 [importer.markdown.name-standardize-formatting]
 original=Standardize formatting
