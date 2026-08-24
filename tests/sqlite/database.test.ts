@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 
 import initSqlJs from 'sql.js';
 
-import { openSQLiteDatabase, readSQLiteDatabase } from '../../src/sqlite';
+import { openSQLiteDatabase, readSQLiteDatabase, SQLiteFactory } from '../../src/sqlite';
 import type {
 	SQLiteAdapter,
 	SQLiteDatabase,
@@ -73,4 +73,25 @@ test('format adapters close their SQLite database after a failure', async () => 
 
 	await assert.rejects(readSQLiteDatabase(await exampleDatabase(), adapter), /adapter failed/);
 	assert.throws(() => opened.query('SELECT 1'), /database is closed/i);
+});
+
+test('a failed SQLite initialization can be retried', async () => {
+	const SQL = await initSqlJs();
+	let attempts = 0;
+	const factory = new SQLiteFactory(() => {
+		attempts++;
+		return attempts === 1
+			? Promise.reject(new Error('temporary initialization failure'))
+			: Promise.resolve(SQL);
+	});
+
+	await assert.rejects(factory.open(await exampleDatabase()), /temporary initialization failure/);
+	const database = await factory.open(await exampleDatabase());
+	try {
+		assert.equal(database.query<{ value: number } & SQLiteRow>('SELECT 1 AS value')[0].value, 1);
+		assert.equal(attempts, 2);
+	}
+	finally {
+		database.close();
+	}
 });

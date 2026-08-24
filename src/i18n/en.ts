@@ -379,7 +379,8 @@ export const en = {
 			statusImportingAsset: 'Importing asset {{name}}',
 			statusUpdatingLinks: 'Updating internal links…',
 			reasonUnknownType: 'unknown type of file',
-			reasonEncrypted: 'Encrypted note',
+			reasonEncrypted: 'encrypted note',
+			reasonMissingAttachment: 'the attachment is missing from the export',
 		},
 		csv: {
 			name: 'CSV',

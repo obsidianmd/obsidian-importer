@@ -130,6 +130,23 @@ if (nodeFs.existsSync(localBearApplicationData)) {
 		assert.ok(dataUrls.length > 0, 'expected image previews or placeholders');
 		assert.ok(dataUrls.every(url => url.length <= maximumEncodedLength));
 	});
+
+	test('Bear shares the preview limit across backup formats', async () => {
+		const backup = fixture('bear', 'backup.bear2bk');
+		const { samples } = await previews(
+			Bear2bkImporter,
+			'bear',
+			backup,
+			importer => {
+				(importer as unknown as Previewable).files = [
+					new NodePickedFile(backup),
+					new NodePickedFile(localBearApplicationData),
+				];
+			},
+		);
+
+		assert.ok(samples.length <= TEMPLATE_PREVIEW_LIMIT);
+	});
 }
 
 for (const entry of cases) {
@@ -169,6 +186,23 @@ test('Bear keeps supported attachment images in mobile previews', async () => {
 
 		assert.ok(withImage, 'expected an image in the mobile preview');
 		assert.match(withImage.content, /(?<!\\)!\[/);
+	}
+	finally {
+		Platform.isMobile = wasMobile;
+	}
+});
+
+test('Bear mobile previews leave dollar signs in code unchanged', () => {
+	const wasMobile = Platform.isMobile;
+	try {
+		Platform.isMobile = true;
+		const subject = Object.create(Bear2bkImporter.prototype) as {
+			mobileSafePreview(content: string): string;
+		};
+		const content = 'Price: $5\n`echo $HOME`\n```sh\necho $HOME\n```';
+
+		assert.equal(subject.mobileSafePreview(content),
+			'Price: \\$5\n`echo $HOME`\n```sh\necho $HOME\n```');
 	}
 	finally {
 		Platform.isMobile = wasMobile;

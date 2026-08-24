@@ -9,7 +9,7 @@ import { sanitizeFileName } from '../util';
 import { readZip, ZipEntryFile } from '../zip';
 import { prepareBearApplicationMarkdown, readBearApplicationDatabase } from './bear/application-data';
 import type { BearApplicationAttachment } from './bear/application-data';
-import { BearTagPlacement, convertBearNote } from './bear/convert';
+import { BearTagPlacement, convertBearNote, transformBearMarkdownOutsideCode } from './bear/convert';
 
 
 type Metadata = {
@@ -33,6 +33,7 @@ export class Bear2bkImporter extends FormatImporter {
 	interruption = 'pause' as const;
 
 	private attachmentMap: Record<string, string> = {};
+	private writtenAttachmentPaths = new Set<string>();
 	private flattenTags: boolean = false;
 	private tagPlacement: BearTagPlacement = 'inline';
 
@@ -81,7 +82,8 @@ export class Bear2bkImporter extends FormatImporter {
 			await readZip(file, async (_zip, entries) => {
 				const database = this.applicationDatabase(entries);
 				if (database) {
-					samples.push(...await this.applicationPreviewSamples(ctx, database, entries));
+					const remaining = TEMPLATE_PREVIEW_LIMIT - samples.length;
+					samples.push(...await this.applicationPreviewSamples(ctx, database, entries, remaining));
 					return;
 				}
 
@@ -118,6 +120,8 @@ export class Bear2bkImporter extends FormatImporter {
 						console.warn(`Could not preview Bear note ${entry.fullpath}`, error);
 					}
 				}
+			}).catch(error => {
+				console.warn(`Could not preview Bear backup ${file.fullpath}`, error);
 			});
 		}
 		return samples;
@@ -130,7 +134,9 @@ export class Bear2bkImporter extends FormatImporter {
 		// rejecting with a bare DOM Event and leaving the preview partly mounted.
 		// Show TeX source notation instead. Images remain fully previewable, and
 		// this changes only the template preview, never the imported note.
-		return content.replace(/(?<!\\)\$/g, '\\$');
+		return transformBearMarkdownOutsideCode(content, outsideCode =>
+			outsideCode.replace(/(?<!\\)\$/g, '\\$')
+		);
 	}
 
 	private applicationDatabase(entries: ZipEntryFile[]): ZipEntryFile | undefined {
@@ -157,6 +163,7 @@ export class Bear2bkImporter extends FormatImporter {
 		ctx: ImportContext,
 		database: ZipEntryFile,
 		entries: ZipEntryFile[],
+		limit: number,
 	): Promise<NoteTemplateSample[]> {
 		const samples: NoteTemplateSample[] = [];
 		const notes = await readBearApplicationDatabase(await database.read());
@@ -164,7 +171,7 @@ export class Bear2bkImporter extends FormatImporter {
 		const previewEntry = this.previewAssetResolver(entries);
 
 		for (const note of notes) {
-			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
+			if (samples.length >= limit || await ctx.shouldStop()) break;
 			if (note.encrypted) continue;
 
 			try {
@@ -331,6 +338,7 @@ export class Bear2bkImporter extends FormatImporter {
 							const noteName = parseFilePath(noteParent).basename;
 							const notePath = normalizePath(`${noteFolder.path}/${noteName}.md`);
 							const outputPath = await this.getAttachmentStoragePath(entry.filepath, notePath);
+							if (this.writtenAttachmentPaths.has(outputPath)) continue;
 							const assetData = await entry.read();
 
 							const writeOptions: DataWriteOptions = {};
@@ -348,6 +356,7 @@ export class Bear2bkImporter extends FormatImporter {
 								await this.vault.createBinary(outputPath, assetData);
 							}
 
+							this.writtenAttachmentPaths.add(outputPath);
 							ctx.reportAttachmentSuccess(entry.fullpath);
 						}
 						else {
@@ -358,6 +367,8 @@ export class Bear2bkImporter extends FormatImporter {
 						ctx.reportFailed(fullpath, e);
 					}
 				}
+			}).catch(error => {
+				ctx.reportFailed(file.fullpath, error);
 			});
 		}
 
@@ -407,7 +418,13 @@ export class Bear2bkImporter extends FormatImporter {
 					tagPlacement: this.tagPlacement,
 					resolveAsset: async assetPath => {
 						const attachment = prepared.assets.get(normalizePath(assetPath));
-						if (!attachment) return assetPath;
+						if (!attachment) {
+							const prefix = `${normalizePath(parent)}/`;
+							const normalizedPath = normalizePath(assetPath);
+							return normalizedPath.startsWith(prefix)
+								? normalizedPath.slice(prefix.length)
+								: normalizedPath;
+						}
 
 						const key = this.applicationAttachmentKey(attachment);
 						const entry = attachmentEntries.get(key);
@@ -451,17 +468,25 @@ export class Bear2bkImporter extends FormatImporter {
 				if (await ctx.shouldStop()) return;
 				const key = this.applicationAttachmentKey(attachment);
 				const entry = attachmentEntries.get(key);
-				if (!entry) continue;
+				if (!entry) {
+					ctx.reportSkipped(
+						`${attachment.id}/${attachment.filename}`,
+						i18n.importer.bear.reasonMissingAttachment(),
+					);
+					continue;
+				}
 
 				try {
 					ctx.status(i18n.importer.bear.statusImportingAsset({ name: entry.name }));
 					const outputPath = attachmentPaths.get(key)
 						?? await this.getAttachmentStoragePath(entry.filepath, notePath);
+					if (this.writtenAttachmentPaths.has(outputPath)) continue;
 					const writeOptions: DataWriteOptions = {};
 					if (entry.ctime) writeOptions.ctime = entry.ctime.getTime();
 					if (entry.mtime) writeOptions.mtime = entry.mtime.getTime();
 
 					await this.vault.createBinary(outputPath, await entry.read(), writeOptions);
+					this.writtenAttachmentPaths.add(outputPath);
 					ctx.reportAttachmentSuccess(entry.fullpath);
 				}
 				catch (error) {

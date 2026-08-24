@@ -5,6 +5,7 @@ import type {
 	SQLiteRow,
 	SQLiteValue,
 } from '../../sqlite';
+import { transformBearMarkdownOutsideCode } from './convert';
 
 const CORE_DATA_EPOCH = 978_307_200;
 
@@ -33,6 +34,11 @@ type NoteRow = SQLiteRow & Record<
 >;
 
 type AttachmentRow = SQLiteRow & Record<'note_key' | 'id' | 'filename', SQLiteValue>;
+
+type OrderedAttachment = {
+	attachment: BearApplicationAttachment;
+	order: number;
+};
 
 function number(value: SQLiteValue): number {
 	return typeof value === 'number' ? value : 0;
@@ -68,23 +74,31 @@ export const bearApplicationDatabaseAdapter: SQLiteAdapter<BearApplicationNote[]
 			ORDER BY Z_PK
 		`);
 
-		const attachments = new Map<number, BearApplicationAttachment[]>();
+		const attachments = new Map<number, OrderedAttachment[]>();
+		const unownedAttachments = new Map<string, OrderedAttachment>();
+		let attachmentOrder = 0;
 		for (const row of database.query<AttachmentRow>(`
 			SELECT ZNOTE AS note_key, ZUNIQUEIDENTIFIER AS id, ZFILENAME AS filename
 			FROM ZSFNOTEFILE
 			WHERE
-				ZNOTE IS NOT NULL
-				AND COALESCE(ZPERMANENTLYDELETED, 0) = 0
+				COALESCE(ZPERMANENTLYDELETED, 0) = 0
 				AND COALESCE(ZUNUSED, 0) = 0
 			ORDER BY Z_PK
 		`)) {
 			const noteKey = number(row.note_key);
 			const id = string(row.id);
 			const filename = string(row.filename);
-			if (!noteKey || !id || !filename) continue;
+			if (!id || !filename) continue;
+
+			const attachment = { id, filename };
+			const orderedAttachment = { attachment, order: attachmentOrder++ };
+			if (!noteKey) {
+				unownedAttachments.set(`${id}/${filename}`.normalize('NFC'), orderedAttachment);
+				continue;
+			}
 
 			const noteAttachments = attachments.get(noteKey) ?? [];
-			noteAttachments.push({ id, filename });
+			noteAttachments.push(orderedAttachment);
 			attachments.set(noteKey, noteAttachments);
 		}
 
@@ -92,17 +106,27 @@ export const bearApplicationDatabaseAdapter: SQLiteAdapter<BearApplicationNote[]
 			const key = number(row.key);
 			const archived = number(row.archived) !== 0;
 			const trashed = number(row.trashed) !== 0;
+			const text = string(row.text);
+			const referencedUnowned = unownedAttachments.size === 0
+				? []
+				: [...markdownLinkTargets(text)].flatMap(target => {
+					const attachment = unownedAttachments.get(target);
+					return attachment ? [attachment] : [];
+				});
+			const noteAttachments = [...(attachments.get(key) ?? []), ...referencedUnowned]
+				.sort((a, b) => a.order - b.order)
+				.map(({ attachment }) => attachment);
 			return {
 				key,
 				id: string(row.id),
 				title: string(row.title),
-				text: string(row.text),
+				text,
 				ctime: coreDataTime(row.creation),
 				mtime: coreDataTime(row.modification),
 				archivedtime: archived ? coreDataTime(row.archived_date) : undefined,
 				trashedtime: trashed ? coreDataTime(row.trashed_date) : undefined,
 				encrypted: number(row.encrypted) !== 0,
-				attachments: attachments.get(key) ?? [],
+				attachments: noteAttachments,
 			};
 		});
 	},
@@ -138,6 +162,26 @@ function encodedTarget(target: string): string {
 	);
 }
 
+function transformMarkdownLinks(
+	content: string,
+	transform: (target: string) => string,
+): string {
+	return transformBearMarkdownOutsideCode(content, outsideCode =>
+		outsideCode.replace(MARKDOWN_LINK, (_match, opening: string, target: string, closing: string) =>
+			`${opening}${transform(target)}${closing}`
+		)
+	);
+}
+
+function markdownLinkTargets(content: string): Set<string> {
+	const targets = new Set<string>();
+	transformMarkdownLinks(content, target => {
+		targets.add(decodedTarget(target));
+		return target;
+	});
+	return targets;
+}
+
 /**
  * Make Application Data attachment links look like the `assets/` links in a
  * .bear2bk textbundle, so the existing Bear Markdown conversion can resolve
@@ -149,23 +193,29 @@ export function prepareBearApplicationMarkdown(note: BearApplicationNote): {
 } {
 	const parent = `${note.id}.textbundle`;
 	const assets = new Map<string, BearApplicationAttachment>();
-	const byTarget = new Map<string, { path: string, attachment: BearApplicationAttachment }>();
+	const byTarget = new Map<string, Array<{ path: string, attachment: BearApplicationAttachment }>>();
 
 	for (const attachment of note.attachments) {
 		const filename = attachment.filename.normalize('NFC');
 		const id = attachment.id.normalize('NFC');
 		const relative = `assets/${id}/${filename}`;
 		const path = `${parent}/${relative}`;
+		const found = { path: relative, attachment };
 		assets.set(path, attachment);
-		byTarget.set(filename, { path: relative, attachment });
-		byTarget.set(`${id}/${filename}`, { path: relative, attachment });
+		byTarget.set(filename, [...(byTarget.get(filename) ?? []), found]);
+		byTarget.set(`${id}/${filename}`, [found]);
 	}
 
-	const content = note.text.replace(MARKDOWN_LINK, (match, opening: string, target: string, closing: string) => {
-		const found = byTarget.get(decodedTarget(target));
-		if (!found) return match;
+	const uses = new Map<string, number>();
+	const content = transformMarkdownLinks(note.text, target => {
+		const decoded = decodedTarget(target);
+		const candidates = byTarget.get(decoded);
+		if (!candidates) return target;
 
-		return `${opening}${encodedTarget(found.path)}${closing}`;
+		const used = uses.get(decoded) ?? 0;
+		uses.set(decoded, used + 1);
+		const found = candidates[Math.min(used, candidates.length - 1)];
+		return encodedTarget(found.path);
 	});
 
 	return { content, assets };

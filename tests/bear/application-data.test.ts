@@ -25,7 +25,7 @@ async function databaseFixture(): Promise<ArrayBuffer> {
 	const SQL = await initSqlJs();
 	const database = new SQL.Database();
 	try {
-		database.run(`
+			database.run(`
 			CREATE TABLE ZSFNOTE (
 				Z_PK INTEGER PRIMARY KEY,
 				ZPERMANENTLYDELETED INTEGER,
@@ -51,13 +51,13 @@ async function databaseFixture(): Promise<ArrayBuffer> {
 		`);
 		database.run(`
 			INSERT INTO ZSFNOTE VALUES
-				(1, 0, 1, 0, 0, 1, 2, 3, NULL, 'A note', '# A note\n![](photo%201.png)', 'NOTE-1'),
+				(1, 0, 1, 0, 0, 1, 2, 3, NULL, 'A note', '# A note\n![](photo%201.png)\n![](FILE-3/orphan.png)', 'NOTE-1'),
 				(2, 0, 0, 1, 1, 4, 5, NULL, 6, 'Secret', NULL, 'NOTE-2'),
 				(3, 1, 0, 0, 0, 7, 8, NULL, NULL, 'Deleted', 'gone', 'NOTE-3');
 			INSERT INTO ZSFNOTEFILE VALUES
+				(0, NULL, 0, 0, 'orphan.png', 'FILE-3'),
 				(1, 1, 0, 0, 'photo 1.png', 'FILE-1'),
-				(2, 1, 0, 1, 'unused.png', 'FILE-2'),
-				(3, NULL, 0, 0, 'orphan.png', 'FILE-3');
+				(2, 1, 0, 1, 'unused.png', 'FILE-2');
 		`);
 
 		const bytes = database.export();
@@ -76,13 +76,16 @@ test('reads notes, metadata, and live attachments from Application Data', async 
 		key: 1,
 		id: 'NOTE-1',
 		title: 'A note',
-		text: '# A note\n![](photo%201.png)',
+		text: '# A note\n![](photo%201.png)\n![](FILE-3/orphan.png)',
 		ctime: 978307201000,
 		mtime: 978307202000,
 		archivedtime: 978307203000,
 		trashedtime: undefined,
 		encrypted: false,
-		attachments: [{ id: 'FILE-1', filename: 'photo 1.png' }],
+		attachments: [
+			{ id: 'FILE-3', filename: 'orphan.png' },
+			{ id: 'FILE-1', filename: 'photo 1.png' },
+		],
 	});
 	assert.equal(notes[1].encrypted, true);
 	assert.equal(notes[1].trashedtime, 978307206000);
@@ -96,11 +99,43 @@ test('rewrites only known local attachment targets for the Bear converter', asyn
 	const prepared = prepareBearApplicationMarkdown(note);
 
 	assert.equal(prepared.content,
-		'# A note\n![](assets/FILE-1/photo%201.png)\n![](assets/FILE-4/diagram%20%28final%29.png)\n[site](https://bear.app/)\n![](missing.png)');
+		'# A note\n![](assets/FILE-1/photo%201.png)\n![](assets/FILE-3/orphan.png)\n![](assets/FILE-4/diagram%20%28final%29.png)\n[site](https://bear.app/)\n![](missing.png)');
 	assert.deepEqual([...prepared.assets.keys()], [
+		'NOTE-1.textbundle/assets/FILE-3/orphan.png',
 		'NOTE-1.textbundle/assets/FILE-1/photo 1.png',
 		'NOTE-1.textbundle/assets/FILE-4/diagram (final).png',
 	]);
+});
+
+test('does not rewrite attachment examples inside inline or fenced code', () => {
+	const prepared = prepareBearApplicationMarkdown({
+		key: 1,
+		id: 'NOTE-1',
+		title: 'Examples',
+		text: '![](photo.png)\n`![](photo.png)`\n```md\n![](photo.png)\n```',
+		encrypted: false,
+		attachments: [{ id: 'FILE-1', filename: 'photo.png' }],
+	});
+
+	assert.equal(prepared.content,
+		'![](assets/FILE-1/photo.png)\n`![](photo.png)`\n```md\n![](photo.png)\n```');
+});
+
+test('same-named attachment links resolve in attachment-list order', () => {
+	const prepared = prepareBearApplicationMarkdown({
+		key: 1,
+		id: 'NOTE-1',
+		title: 'Duplicates',
+		text: '![](photo.png)\n![](photo.png)',
+		encrypted: false,
+		attachments: [
+			{ id: 'FILE-1', filename: 'photo.png' },
+			{ id: 'FILE-2', filename: 'photo.png' },
+		],
+	});
+
+	assert.equal(prepared.content,
+		'![](assets/FILE-1/photo.png)\n![](assets/FILE-2/photo.png)');
 });
 
 for (const fixture of fixtures(__dirname, '.zip').filter(candidate => candidate.local)) {
@@ -116,6 +151,10 @@ for (const fixture of fixtures(__dirname, '.zip').filter(candidate => candidate.
 			);
 			assert.ok(notes.length > 0, 'expected at least one Bear note');
 			assert.ok(notes.some(note => note.attachments.length > 0), 'expected at least one note with an attachment');
+			const sketch = notes.find(note => note.id === '5FCB5C31-AD3B-4219-90D1-65CF0CEA273D-7849-000007C0613F99DF');
+			assert.ok(sketch?.attachments.some(attachment =>
+				attachment.id === 'A34137F8-0D13-4C8B-B3D1-BBC86A14E509-7849-000007C081E622AD'
+			), 'expected the note to adopt its unjoined, explicitly referenced sketch');
 
 			const attachmentEntries = new Set(entries.map(entry =>
 				entry.filename.split('/').slice(-2).join('/').normalize('NFC').toLocaleLowerCase('en')

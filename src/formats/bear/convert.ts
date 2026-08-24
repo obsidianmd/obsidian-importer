@@ -82,6 +82,15 @@ function unmaskCode(content: string, code: string[]): string {
 	return content.replace(MASKED, (_match, index: string) => code[Number(index)]);
 }
 
+/** Apply a Markdown rewrite without changing fenced or inline code examples. */
+export function transformBearMarkdownOutsideCode(
+	content: string,
+	transform: (content: string) => string,
+): string {
+	const code: string[] = [];
+	return unmaskCode(transform(maskCode(content, code)), code);
+}
+
 function tracksFences(): (line: string) => boolean {
 	let fence: string | null = null;
 

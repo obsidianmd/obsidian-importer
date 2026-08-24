@@ -1235,7 +1235,11 @@ original=unknown type of file
 translation=Neznáma typ súboru
 
 [importer.bear.reason-encrypted]
-original=Encrypted note
+original=encrypted note
+translation=
+
+[importer.bear.reason-missing-attachment]
+original=the attachment is missing from the export
 translation=
 
 [importer.csv.name]
