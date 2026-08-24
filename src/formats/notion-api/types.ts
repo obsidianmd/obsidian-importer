@@ -160,9 +160,7 @@ export interface FetchAndImportPageParams {
 	parentPath: string;
 	databaseTag?: string;
 	customFileName?: string; // Custom file name (without .md extension) to override the page title
-	/** Page metadata already returned by a database query. */
 	page?: PageObjectResponse;
-	/** Root blocks started ahead of this page's ordered conversion. */
 	blocks?: Promise<BlockObjectResponse[]>;
 }
 

@@ -82,7 +82,6 @@ test('database rows read a window ahead but import in order', async () => {
 	const row = (index: number) => `row-${index}`;
 	assert.deepEqual(imported, Array.from({ length: total }, (_, index) => row(index)));
 
-	// Reading row n starts every row up to the end of the window, and no more.
 	assert.deepEqual(
 		requestedWhenImported,
 		Array.from({ length: total }, (_, index) =>

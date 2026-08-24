@@ -31,16 +31,7 @@ const NOTION_REQUEST_RATE = 3;
 const NOTION_INITIAL_BURST = 100;
 const NOTION_SLOW_REQUEST_MS = 2_000;
 
-/**
- * Spend a modest burst before settling at Notion's documented average rate.
- *
- * Notion documents an average of three requests a second, with some bursts
- * allowed. Measured against a thousand-row database, short bursts completed
- * cleanly but sustained excess traffic eventually stopped receiving responses
- * instead of returning 429. A token bucket gets the useful part of both
- * behaviours: small imports can finish inside the burst, while long imports
- * converge on the documented rate before exhausting the server-side bucket.
- */
+/** Allows a short burst, then limits sustained traffic to Notion's documented rate. */
 export class NotionRequestScheduler {
 	private tail: Promise<void> = Promise.resolve();
 	private tokens: number;
@@ -101,14 +92,12 @@ export class NotionRequestScheduler {
 		}
 	}
 
-	/** A rate-limited response drains our local burst and honours Retry-After. */
 	rateLimited(retryAfter: string | undefined): void {
 		const seconds = retryAfter ? Number.parseInt(retryAfter, 10) : NaN;
 		this.overloaded(Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 0);
 	}
 
-	/** A slow or timed-out request is the overload signal Notion often sends in
-	 * place of 429. Drain the burst globally so retries cannot keep piling on. */
+	/** Notion may stall instead of returning 429 when overloaded. */
 	overloaded(cooldownMs: number = 0): void {
 		this.tokens = 0;
 		const now = this.now();
@@ -121,17 +110,7 @@ export class NotionRequestScheduler {
 	}
 }
 
-/**
- * Keep one server-side budget across every SDK client made for a credential.
- *
- * The budget being spent is Notion's, held against the integration rather than
- * against anything this plugin owns, so the scheduler has to outlive whatever
- * asks for it. An importer does not: finishing an import returns to the format
- * list, and choosing a format there builds a new importer. A coordinator any
- * shorter-lived than the plugin would hand the next import a fresh burst to
- * spend against a bucket the last one already emptied - the state that makes
- * Notion stop answering rather than reply 429.
- */
+/** Shares Notion's integration-level request budget across importer instances. */
 export class NotionRequestCoordinator {
 	private token: string | null = null;
 	private scheduler: NotionRequestScheduler | null = null;
@@ -146,12 +125,9 @@ export class NotionRequestCoordinator {
 	}
 }
 
-/** Every import shares one budget, for as long as the plugin is loaded. */
 const requestCoordinator = new NotionRequestCoordinator();
 
-/** A slow request drains the burst while the original request remains alive.
- * requestUrl has no AbortSignal support, so rejecting early would only start a
- * retry beside the request that was still occupying the connection. */
+/** Detects overload without abandoning a request that requestUrl cannot cancel. */
 export async function watchForNotionOverload<T>(
 	request: Promise<T>,
 	scheduler: NotionRequestScheduler,
@@ -557,8 +533,7 @@ export class NotionAPIImporter extends FormatImporter {
 		this.notionClient = new Client({
 			auth: this.notionToken,
 			notionVersion: NOTION_VERSION,
-			// makeNotionRequest owns retries so an overload signal can slow every
-			// endpoint before the next attempt starts.
+			// Keep retries behind the shared scheduler.
 			retry: false,
 			fetch: async (url: RequestInfo | URL, init?: RequestInit) => {
 				const urlString = url instanceof URL ? url.href : typeof url === 'string' ? url : url.url;
@@ -1056,13 +1031,9 @@ export class NotionAPIImporter extends FormatImporter {
 		let reportedName = i18n.importer.notionApi.labelPage({ id: pageId });
 
 		try {
-			// What a page is and what is on it are two reads that do not need
-			// each other, so a page reached on its own asks for both at once
-			// rather than paying a round trip for the title before starting on
-			// the blocks. A row arrives with both already in hand.
 			const blocksRequest = prefetchedBlocks
 				?? fetchAllBlocks(this.notionClient!, pageId, ctx);
-			// Metadata failing reports the page before the blocks are awaited.
+			// Avoid an unhandled rejection if metadata fails first.
 			void blocksRequest.catch(() => undefined);
 
 			// Fetch page metadata with rate limit handling
