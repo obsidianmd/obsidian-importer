@@ -10,6 +10,7 @@ Imports notes from other apps into an Obsidian vault.
 - `src/importer-setting-tab.ts` — The same flow, shown in Settings
 - `src/progress-ui.ts` — `ImportProgressUI`: the progress screen an `ImportContext` drives
 - `src/format-importer.ts` — Base class every importer extends: file pickers, output folder, attachment paths
+- `src/list-properties.ts` — Final normalization for Obsidian's built-in list properties
 - `src/formats/<name>.ts` — One importer per format; the vault-facing half
 - `src/formats/<name>/` — The conversion, extracted so it runs without a vault (see below)
 - `src/filesystem.ts` — The only place node modules are reached, and the seam tests inject through
@@ -160,6 +161,12 @@ shared tree does not represent, so it may require a format-specific parser.
 ## Fixtures and recorded output
 
 Every importer is tested by converting a real file and comparing against a recorded output committed beside it.
+
+Recordings describe the note that lands in the vault. Every Markdown note shown
+in preview or written by `FormatImporter` passes through
+`normalizeListProperties`; a conversion harness whose output is changed by that
+final step must apply it too, so its recording does not stop short of the write
+boundary.
 
 ```
 tests/notion/Export-xyz.zip              fixture

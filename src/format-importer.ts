@@ -5,6 +5,7 @@ import { AuthCallback, helpUrl } from './constants';
 import { FolderSuggest } from './folder-suggest';
 import { ImportContext } from './import-context';
 import { formatImportReport, importReportName } from './import-report';
+import { normalizeListProperties } from './list-properties';
 import { createMarkdown, formattedMarkdown, MarkdownFormatting, MarkdownLinkResolver, modifyMarkdown, standardizedMarkdown, standardizeMarkdownFile } from './markdown-output';
 import { i18n } from './i18n';
 import { NoteTemplateVariables, renderNoteTemplate, renderNoteTemplateResult } from './note-template';
@@ -552,6 +553,7 @@ export abstract class FormatImporter {
 		const result = await renderNoteTemplateResult(template, variables);
 		let content = this.withGeneratedProperties(result.output, sample.generatedProperties);
 		content = this.withSourceId(content, sample.sourceId);
+		content = normalizeListProperties(content);
 		return {
 			label: title,
 			path: targetPath,
@@ -1897,13 +1899,17 @@ export abstract class FormatImporter {
 	}
 
 	async createMarkdown(path: string, content: string, options?: DataWriteOptions): Promise<TFile> {
-		const file = await createMarkdown(this.vault, path, content, options, this.markdownFormatting);
+		const file = await createMarkdown(
+			this.vault, path, normalizeListProperties(content), options, this.markdownFormatting
+		);
 		this.trackMarkdownFile(file);
 		return file;
 	}
 
 	async modifyMarkdown(file: TFile, content: string, options?: DataWriteOptions): Promise<void> {
-		await modifyMarkdown(this.vault, file, content, options, this.markdownFormatting);
+		await modifyMarkdown(
+			this.vault, file, normalizeListProperties(content), options, this.markdownFormatting
+		);
 		this.trackMarkdownFile(file);
 	}
 

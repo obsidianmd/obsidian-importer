@@ -9,6 +9,7 @@ import * as nodeZlib from 'node:zlib';
 
 import { provideNodeModules } from '../../src/filesystem';
 import { DuplicateHandling } from '../../src/format-importer';
+import { parseFrontMatterBlock } from '../../src/util';
 import { importing } from './importing';
 import { NoteSpec } from './store';
 
@@ -63,6 +64,22 @@ test('and not written unless it was asked for', async () => {
 		finally {
 			run.close();
 		}
+	}
+});
+
+test('template list properties are normalized in the Apple Notes write path', async () => {
+	const run = await importing([SAME_TITLE[0]], DuplicateHandling.CreateCopy, {
+		inlineTemplate: '---\ntags: "#groceries #errands"\n---\n{{content}}',
+	});
+	try {
+		const file = await run.resolve(run.notePks[0]);
+		const content = String(run.vault.contents.get(file!.path));
+
+		assert.deepEqual(parseFrontMatterBlock(content)?.frontMatter.tags, ['groceries', 'errands']);
+		assert.match(content, /Milk/u);
+	}
+	finally {
+		run.close();
 	}
 });
 

@@ -3,7 +3,9 @@ import '../shims/dom';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
+import { normalizeListProperties } from '../../src/list-properties';
 import { renderNoteTemplate } from '../../src/note-template';
+import { parseFrontMatterBlock } from '../../src/util';
 
 test('registers Knap standard filters', async () => {
 	assert.equal(await renderNoteTemplate(
@@ -47,6 +49,46 @@ test('renders CSV values as YAML scalars', async () => {
 		'SKU: "0x1F"',
 		'Exponent: "1e5"',
 	].join('\n'));
+});
+
+test('normalizes Obsidian list properties after rendering', async () => {
+	const rendered = await renderNoteTemplate(
+		[
+			'---',
+			'Tags: {{tags | yaml}}',
+			'Aliases: {{aliases | yaml}}',
+			'cssclasses: {{classes | yaml}}',
+			'Other: {{other | yaml}}',
+			'---',
+		].join('\n'),
+		{
+			tags: '[#travel, #wishlist, 007]',
+			aliases: '[Don\'t, "Doe, John", Note: draft, 007]',
+			classes: 'wide, dashboard compact',
+			other: '[007, 2024]',
+		},
+	);
+	const parsed = parseFrontMatterBlock(normalizeListProperties(rendered));
+	assert.deepEqual(parsed?.frontMatter, {
+		Tags: ['travel', 'wishlist', '007'],
+		Aliases: ["Don't", 'Doe, John', 'Note: draft', '007'],
+		cssclasses: ['wide', 'dashboard', 'compact'],
+		Other: '[007, 2024]',
+	});
+});
+
+test('leaves empty Obsidian list properties byte-identical', () => {
+	const content = [
+		'---',
+		'Title: "Empty lists"',
+		'tags:',
+		'aliases:',
+		'cssclasses:',
+		'---',
+		'Body',
+	].join('\n');
+
+	assert.equal(normalizeListProperties(content), content);
 });
 
 test('resolves exact variable names before treating dots as nested paths', async () => {

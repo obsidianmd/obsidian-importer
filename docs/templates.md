@@ -6,6 +6,8 @@ When **Save … ID** is enabled, Edit shows the importer ID as a managed propert
 
 Templates use the shared Knap language and the same [variable syntax](https://obsidian.md/help/web-clipper/variables), [filters](https://obsidian.md/help/web-clipper/filters), and [template logic](https://obsidian.md/help/web-clipper/logic) as Obsidian Web Clipper. Importers expose a different set of variables, documented below. The default template for most importers is `{{content}}`, which keeps the importer's generated Markdown unchanged.
 
+Before previewing or writing any imported Markdown note, Importer enforces Obsidian's built-in list types for `tags`, `aliases`, and `cssclasses`. This applies both to importer-generated frontmatter and properties produced by a custom template. Empty properties stay empty. Populated tags and CSS classes split on spaces or commas; aliases split on commas or newlines; leading `#` characters are removed from tags. A bracketed list can preserve a comma inside an alias, for example `["Doe, John", "John Doe"]`.
+
 The Files importer is excluded because it copies existing files without rewriting their contents.
 
 CSV generates a template from its headers. Each header becomes a variable and, by default, a frontmatter property. Its first row is used for the preview. The generated template uses bracket notation so punctuation in a header is safe, for example `{{source["Project: status"]}}`. It uses the shared `yaml` filter to serialize each cell as a YAML scalar, for example `Status: {{source["Status"] | yaml}}`. **Note title** and **Note location** are configured on this same template page and use Knap syntax, including filters and logic.
