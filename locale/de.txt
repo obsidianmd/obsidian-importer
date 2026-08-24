@@ -728,7 +728,7 @@ translation=Vorlage
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
-translation=Optional. Wähle eine Vorlage aus deinem Vault, um den Notizinhalt zu formatieren. Siehe Hilfe für {{link}}.
+translation=Optional. Wähle eine Vorlage aus deinem Vault, um den Notizinhalt zu formatieren. Weitere Informationen zur {{link}} findest du in der Hilfe.
 
 [template.link-template-syntax]
 original=template syntax

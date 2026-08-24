@@ -728,11 +728,11 @@ translation=šablona
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
-translation=Volitelné. Vyberte šablonu z vašeho trezoru pro formátování obsahu poznámky. Viz nápověda pro {{link}}.
+translation=Volitelné. Vyberte šablonu z vašeho trezoru pro formátování obsahu poznámky. Další informace najdete v nápovědě: {{link}}.
 
 [template.link-template-syntax]
 original=template syntax
-translation=syntaxi šablon
+translation=syntax šablon
 
 [template.heading-preview]
 original=Preview

@@ -728,7 +728,7 @@ translation=шаблон
 
 [template.desc-template-file]
 original=Optional. Choose a template from your vault to format the note content. See Help for {{link}}.
-translation=Необязательно. Выберите шаблон из вашего хранилища для форматирования содержимого заметки. См. помощь по {{link}}.
+translation=Необязательно. Выберите шаблон из вашего хранилища, чтобы отформатировать содержимое заметки. Подробнее см. в разделе «Помощь»: {{link}}.
 
 [template.link-template-syntax]
 original=template syntax

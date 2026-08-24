@@ -756,7 +756,7 @@ translation=بازنشانی به پیش‌فرض
 
 [template.button-start-import]
 original=Start import
-translation=شروع وارد کردن
+translation=شروع درون‌ریزی
 
 [template.link-show-more]
 original=Show more

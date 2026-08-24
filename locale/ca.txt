@@ -732,7 +732,7 @@ translation=Opcional. Tria una plantilla de la teva cambra forta per donar forma
 
 [template.link-template-syntax]
 original=template syntax
-translation=sintaxi de plantilla
+translation=la sintaxi de les plantilles
 
 [template.heading-preview]
 original=Preview

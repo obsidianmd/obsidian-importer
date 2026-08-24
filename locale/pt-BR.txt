@@ -732,7 +732,7 @@ translation=Opcional. Escolher um modelo do seu cofre para formatar o conteúdo 
 
 [template.link-template-syntax]
 original=template syntax
-translation=sintaxe de modelo
+translation=a sintaxe dos modelos
 
 [template.heading-preview]
 original=Preview

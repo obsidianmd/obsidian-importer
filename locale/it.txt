@@ -732,7 +732,7 @@ translation=Opzionale. Scegli un modello dal tuo vault per formattare il contenu
 
 [template.link-template-syntax]
 original=template syntax
-translation=sintassi del modello
+translation=la sintassi dei modelli
 
 [template.heading-preview]
 original=Preview
