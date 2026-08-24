@@ -509,10 +509,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 					title,
 					path: notePath,
 					content,
-					variables: {
-						originalTitle: storedTitle,
-						isPinned: row.ZISPINNED === 1,
-					},
+					variables: { isPinned: row.ZISPINNED === 1 },
 					sourceId: String(row.ZIDENTIFIER),
 					times: {
 						ctime,
@@ -631,10 +628,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 			ctime: this.decodeTime(row.ZCREATIONDATE3 || row.ZCREATIONDATE2 || row.ZCREATIONDATE1),
 			mtime: this.decodeTime(row.ZMODIFICATIONDATE1),
 		};
-		const variables = {
-			originalTitle: storedTitle,
-			isPinned: row.ZISPINNED === 1,
-		};
+		const variables = { isPinned: row.ZISPINNED === 1 };
 		const title = await this.configuredNoteTitle(
 			sourceTitle,
 			folder,

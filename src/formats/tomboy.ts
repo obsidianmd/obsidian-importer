@@ -133,6 +133,10 @@ export class TomboyImporter extends FormatImporter {
 			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
 			try {
 				const note = this.coreConverter.parseTomboyXML(await file.readText());
+				const times = {
+					ctime: note.createDate?.getTime(),
+					mtime: note.lastChangeDate?.getTime(),
+				};
 				samples.push({
 					title: note.title,
 					path: normalizePath([
@@ -140,8 +144,8 @@ export class TomboyImporter extends FormatImporter {
 						`${sanitizeFileName(note.title)}.md`,
 					].filter(Boolean).join('/')),
 					content: this.coreConverter.convertToMarkdown(note),
-					variables: { ...note },
 					sourceId: file.basename,
+					times,
 				});
 			}
 			catch (error) {
@@ -159,7 +163,8 @@ export class TomboyImporter extends FormatImporter {
 
 		return await this.writeNote(ctx, folder, tomboyNote.title, markdownContent, {
 			sourceId: file.basename,
-			templateVariables: { ...tomboyNote },
+			ctime: tomboyNote.createDate?.getTime(),
+			mtime: tomboyNote.lastChangeDate?.getTime(),
 		});
 	}
 }
