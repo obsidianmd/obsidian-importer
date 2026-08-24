@@ -6,7 +6,7 @@ import { i18n } from './i18n';
  * Each field corresponds to a piece of data that can be inserted into templates using placeholder syntax.
  */
 export interface TemplateField {
-	/** Unique identifier for the field (used in placeholders like {{id}}) */
+	/** Unique identifier for the field (used in placeholders like {{title}}) */
 	id: string;
 	/** Human-readable label for the field */
 	label: string;

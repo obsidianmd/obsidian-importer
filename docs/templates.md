@@ -2,7 +2,7 @@
 
 Every note importer has a Markdown template preview step. The importer starts with a generated template, so a template file is not required. The rendered preview shows how imported notes will appear, including their Properties panel and any source ID property enabled in the importer's output settings. Previous and Next switch between up to ten examples from the user's selection. Previewing does not write or place attachments; formats that cannot fully resolve an attachment or nested remote item show the source link or a placeholder instead. An existing Markdown (`.md`) template in the current vault can replace the generated template for this import.
 
-When **Save … ID** is enabled, Edit shows the importer ID as a managed property, for example `bear-id: {{id}}`. The property name is editable and remembered; the `{{id}}` value is disabled because the importer supplies it for each note. The managed row is applied during import rather than written into the selected template file.
+When **Save … ID** is enabled, Edit shows the importer ID as a managed property, for example `bear-id: {{sourceId}}`. The property name is editable and remembered; the `{{sourceId}}` value is disabled because the importer supplies it for each note. The managed row is applied during import rather than written into the selected template file.
 
 Templates use the shared Knap language and the same [variable syntax](https://obsidian.md/help/web-clipper/variables), [filters](https://obsidian.md/help/web-clipper/filters), and [template logic](https://obsidian.md/help/web-clipper/logic) as Obsidian Web Clipper. Importers expose a different set of variables, documented below. The default template for most importers is `{{content}}`, which keeps the importer's generated Markdown unchanged.
 
@@ -28,7 +28,7 @@ These variables are available to every note importer.
 
 | Variable | Description |
 | --- | --- |
-| `{{title}}` | Imported note title used to plan the target file. |
+| `{{title}}` | Note title. In the **Note title** template this is the title provided by the importer; in the note template it is the rendered title, before filename sanitization or conflict suffixes. |
 | `{{noteName}}` | Final target filename without the `.md` extension. |
 | `{{path}}` | Final vault-relative path, including the `.md` extension. |
 | `{{folder}}` | Final vault-relative parent folder. Empty at the vault root. |
@@ -37,7 +37,6 @@ These variables are available to every note importer.
 | `{{properties}}` | Object containing the generated frontmatter properties. |
 | `{{source}}` | Object containing generated properties and importer-specific values. |
 | `{{sourceId}}` | Stable source identifier when the importer provides one; otherwise empty. |
-| `{{id}}` | Alias for `{{sourceId}}`, used by the managed source-ID property in the template editor. |
 | `{{importer}}` | Importer ID, such as `keep`, `html`, or `notion-api`. |
 | `{{ctime}}` | Source creation time as an ISO 8601 timestamp; empty when unavailable. |
 | `{{mtime}}` | Source modification time as an ISO 8601 timestamp; empty when unavailable. |

@@ -300,13 +300,13 @@ test('the managed source identity overrides the same property in a template', as
 	assert.equal(vault.contents.get(file.path), '---\nsource-id: abc-123\n---\nBody');
 });
 
-test('{{id}} is an alias for the source identifier', async () => {
+test('source identifiers are exposed as {{sourceId}}', async () => {
 	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
-	subject.useInlineTemplate('{{id}} / {{sourceId}}');
+	subject.useInlineTemplate('{{sourceId}}');
 
 	const { file } = await subject.writeNote(ctx, vault.root, 'Note', 'Body', { sourceId: 'abc-123' });
 
-	assert.equal(vault.contents.get(file.path), 'abc-123 / abc-123');
+	assert.equal(vault.contents.get(file.path), 'abc-123');
 });
 
 test('the template preview includes source identity when it will be saved', async () => {

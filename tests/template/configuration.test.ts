@@ -269,7 +269,7 @@ test('source identity is configured beside the template while existing-note beha
 			'Database property name',
 		]);
 		assert.deepEqual(managedProperties.map(property => [property.key, property.value]), [
-			['source-id', '{{id}}'],
+			['source-id', '{{sourceId}}'],
 			['tags', '{{tags}}'],
 		]);
 

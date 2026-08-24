@@ -470,7 +470,7 @@ export abstract class FormatImporter {
 				if (!this.idProperty || !this.saveSourceId) return properties;
 				return [{
 					key: this.idProperty,
-					value: '{{id}}',
+					value: '{{sourceId}}',
 					onKeyChange: key => {
 						const property = key.trim();
 						if (!property) return;
@@ -1789,7 +1789,6 @@ export abstract class FormatImporter {
 			ctime: timestampVariable(times.ctime),
 			mtime: timestampVariable(times.mtime),
 			importer: this.host.importerId,
-			id: sourceId ?? '',
 			sourceId: sourceId ?? '',
 		};
 
