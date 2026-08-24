@@ -1196,7 +1196,7 @@ translation=Bear (.bear2bk, .zip)
 
 [importer.bear.file-type]
 original=Bear backups
-translation=Bear2bk
+translation=پشتیبان‌های Bear
 
 [importer.bear.label-id]
 original=Bear ID
@@ -1204,7 +1204,7 @@ translation=شناسه Bear
 
 [importer.bear.desc-export]
 original=Back up your notes in Bear and choose the resulting .bear2bk file. On iPhone and iPad, you can also export Application Data and choose its .zip file.
-translation=از یادداشت‌هایتان در Bear پشتیبان بگیرید، یک فایل .bear2bk دریافت خواهید کرد.
+translation=از یادداشت‌های خود در Bear پشتیبان بگیرید و فایل .bear2bk حاصل را انتخاب کنید. در iPhone و iPad، همچنین می‌توانید Application Data را خروجی بگیرید و فایل .zip آن را انتخاب کنید.
 
 [importer.bear.name-tags-property]
 original=Move tags to a property
@@ -1236,11 +1236,11 @@ translation=نوع نامعلوم فایل
 
 [importer.bear.reason-encrypted]
 original=encrypted note
-translation=
+translation=یادداشت رمزگذاری‌شده
 
 [importer.bear.reason-missing-attachment]
 original=the attachment is missing from the export
-translation=
+translation=پیوست در خروجی موجود نیست
 
 [importer.csv.name]
 original=CSV

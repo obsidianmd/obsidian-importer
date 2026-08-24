@@ -1196,7 +1196,7 @@ translation=Bear (.bear2bk, .zip)
 
 [importer.bear.file-type]
 original=Bear backups
-translation=Bear2bk
+translation=Bản sao lưu Bear
 
 [importer.bear.label-id]
 original=Bear ID
@@ -1204,7 +1204,7 @@ translation=Bear ID
 
 [importer.bear.desc-export]
 original=Back up your notes in Bear and choose the resulting .bear2bk file. On iPhone and iPad, you can also export Application Data and choose its .zip file.
-translation=Sao lưu ghi chú trong Bear, bạn sẽ nhận được một tệp .bear2bk.
+translation=Sao lưu ghi chú của bạn trong Bear và Chọn tệp .bear2bk được tạo ra. Trên iPhone và iPad, bạn cũng có thể xuất Dữ liệu ứng dụng và Chọn tệp .zip của nó.
 
 [importer.bear.name-tags-property]
 original=Move tags to a property
@@ -1236,11 +1236,11 @@ translation=loại tệp Không rõ
 
 [importer.bear.reason-encrypted]
 original=encrypted note
-translation=
+translation=ghi chú được mã hóa
 
 [importer.bear.reason-missing-attachment]
 original=the attachment is missing from the export
-translation=
+translation=tệp đính kèm bị thiếu trong bản xuất
 
 [importer.csv.name]
 original=CSV
