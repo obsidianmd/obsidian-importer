@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 
 import { DuplicateHandling, FormatImporter } from '../../src/format-importer';
 import { ImportContext } from '../../src/import-context';
+import { parseFrontMatterBlock } from '../../src/util';
 import { MemoryVault, memoryApp } from '../shims/vault';
 
 class WritingImporter extends FormatImporter {
@@ -189,6 +190,45 @@ test('an inline template renders importer-specific source values', async () => {
 		'---',
 		'# Roadmap',
 	].join('\n'));
+});
+
+test('written notes automatically normalize Obsidian list properties', async () => {
+	const { vault, subject, ctx } = importer(DuplicateHandling.CreateCopy);
+	const { file } = await subject.writeNote(ctx, vault.root, 'Lists', [
+		'---',
+		'tags: "#travel, #wishlist 007"',
+		'aliases: "Ada Lovelace, Countess of Lovelace"',
+		'cssclasses: "wide dashboard"',
+		'ordinary: "one, two"',
+		'---',
+		'Body',
+	].join('\n'));
+	const parsed = parseFrontMatterBlock(String(vault.contents.get(file.path)));
+
+	assert.deepEqual(parsed?.frontMatter, {
+		tags: ['travel', 'wishlist', '007'],
+		aliases: ['Ada Lovelace', 'Countess of Lovelace'],
+		cssclasses: ['wide', 'dashboard'],
+		ordinary: 'one, two',
+	});
+	assert.equal(parsed?.body, 'Body');
+});
+
+test('template previews automatically normalize Obsidian list properties', async () => {
+	const { subject } = importer(DuplicateHandling.CreateCopy);
+	const preview = await subject.preview([
+		'---',
+		'tags: "#one #two"',
+		'aliases: "One, Two"',
+		'---',
+		'Body',
+	].join('\n'));
+	const parsed = parseFrontMatterBlock(preview.content);
+
+	assert.deepEqual(parsed?.frontMatter, {
+		tags: ['one', 'two'],
+		aliases: ['One', 'Two'],
+	});
 });
 
 test('the shared title template names the imported file with Knap variables and filters', async () => {

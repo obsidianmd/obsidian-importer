@@ -13,6 +13,8 @@
  * newline inside a field, a doubled quote meaning one. comprehensive-test.csv
  * is built around exactly that, so its notes pin the behaviour.
  */
+import '../shims/runtime';
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as nodeFs from 'node:fs';
@@ -21,9 +23,10 @@ import * as nodePath from 'node:path';
 
 import { convertRow, defaultNoteTemplate, defaultTemplateConfig, sanitizeYAMLKey } from '../../src/formats/csv/convert';
 import { parseCSV, parseCSVLine, splitCSVLines } from '../../src/formats/csv/parse';
-import { sanitizeFileName } from '../../src/util';
+import { parseFrontMatterBlock, sanitizeFileName } from '../../src/util';
 import { renderNoteTemplate } from '../../src/note-template';
 import { applyTemplate } from '../../src/template';
+import { normalizeListProperties } from '../../src/list-properties';
 import { expectedFor, expectTree, fixtures } from '../helpers';
 
 const FIXTURES = __dirname;
@@ -36,14 +39,39 @@ test('there are fixtures to convert', () => {
 
 test('generates a Markdown template from CSV headers', () => {
 	assert.equal(defaultNoteTemplate(
-		['Name', 'Project: status', ''],
+		['Name', 'Project: status', 'Tags', 'ALIASES', 'cssclasses', ''],
 		sanitizeYAMLKey,
 	), [
 		'---',
 		'Name: {{source["Name"] | yaml}}',
 		'Project status: {{source["Project: status"] | yaml}}',
+		'Tags: {{source["Tags"] | yaml}}',
+		'ALIASES: {{source["ALIASES"] | yaml}}',
+		'cssclasses: {{source["cssclasses"] | yaml}}',
 		'---',
 	].join('\n'));
+});
+
+test('CSV defaults render Obsidian list properties as lists', async () => {
+	const headers = ['Title', 'Tags', 'Aliases', 'cssclasses'];
+	const source = {
+		Title: 'Example',
+		Tags: '#travel, #wishlist #reference',
+		Aliases: '["Doe, John", "John Doe"]',
+		cssclasses: 'wide, dashboard compact',
+	};
+
+	const rendered = await renderNoteTemplate(defaultNoteTemplate(headers, sanitizeYAMLKey), {
+		...source,
+		source,
+	});
+	const parsed = parseFrontMatterBlock(normalizeListProperties(rendered));
+	assert.deepEqual(parsed?.frontMatter, {
+		Title: 'Example',
+		Tags: ['travel', 'wishlist', 'reference'],
+		Aliases: ['Doe, John', 'John Doe'],
+		cssclasses: ['wide', 'dashboard', 'compact'],
+	});
 });
 
 test('CSV defaults resolve safe source expressions for punctuated headers', async () => {
@@ -75,11 +103,14 @@ for (const file of files) {
 				const note = convertRow(row, config);
 				if (!note.title.trim()) continue; // the importer skips these
 
-				// Written the way the importer would: through the same
-				// sanitiser, under the location the template produced.
+				// Written the way the importer would: through the shared final normalization
+				// and sanitiser, under the location the template produced.
 				const dir = note.location ? nodePath.join(produced, note.location) : produced;
 				nodeFs.mkdirSync(dir, { recursive: true });
-				nodeFs.writeFileSync(nodePath.join(dir, `${sanitizeFileName(note.title)}.md`), note.content);
+				nodeFs.writeFileSync(
+					nodePath.join(dir, `${sanitizeFileName(note.title)}.md`),
+					normalizeListProperties(note.content),
+				);
 			}
 
 			expectTree(produced, expectedFor(file, nodePath.basename(file.name, '.csv')), file.name);

@@ -12,6 +12,12 @@ import { descriptor } from '../../src/formats/apple-notes/descriptor';
 import { MemoryVault } from '../shims/vault';
 import { buildStore, NoteSpec } from './store';
 
+class TestingAppleNotesImporter extends AppleNotesImporter {
+	useInlineTemplate(template: string): void {
+		this.inlineTemplate = template;
+	}
+}
+
 export function reporter() {
 	const skipped: string[] = [];
 	return {
@@ -29,13 +35,17 @@ export function reporter() {
 	};
 }
 
-export async function importing(notes: NoteSpec[], mode: DuplicateHandling, options: { saveSourceId?: boolean } = {}) {
+export async function importing(
+	notes: NoteSpec[],
+	mode: DuplicateHandling,
+	options: { inlineTemplate?: string; saveSourceId?: boolean } = {},
+) {
 	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
 	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), { notes });
 
 	const vault = new MemoryVault();
 	const { ctx, skipped } = reporter();
-	const subject = new AppleNotesImporter(
+	const subject = new TestingAppleNotesImporter(
 		{ vault, loadLocalStorage: () => null, saveLocalStorage: () => {} } as never,
 		{ sourceEl: null, optionsEl: null } as never
 	);
@@ -46,6 +56,7 @@ export async function importing(notes: NoteSpec[], mode: DuplicateHandling, opti
 	subject.protobufRoot = Root.fromJSON(descriptor);
 	subject.duplicateHandling = mode;
 	subject.saveSourceId = options.saveSourceId ?? false;
+	if (options.inlineTemplate !== undefined) subject.useInlineTemplate(options.inlineTemplate);
 	subject.keys = Object.fromEntries(
 		(await store.database.all`SELECT z_ent, z_name FROM z_primarykey`).map(k => [k.Z_NAME, k.Z_ENT])
 	);
