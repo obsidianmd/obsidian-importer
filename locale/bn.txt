@@ -1439,15 +1439,15 @@ original=Markdown
 translation=Markdown
 
 [importer.markdown.option-text]
-original=Markdown (.md, .zip)
+original=Markdown (.md, .txt, .zip)
 translation=Markdown (.md, .zip)
 
 [importer.markdown.file-type]
-original=Markdown
+original=Markdown and text
 translation=Markdown
 
 [importer.markdown.desc-source]
-original=Choose individual Markdown files, whole folders, or zip files. Everything in folders stays organized the same way.
+original=Choose individual Markdown or text files, whole folders, or zip files. Everything in folders stays organized the same way.
 translation=পৃথক Markdown ফাইল, সম্পূর্ণ ফোল্ডার বা zip ফাইল নির্বাচন করুন। ফোল্ডারের সবকিছু একই কাঠামোতে সংগঠিত থাকবে।
 
 [importer.markdown.name-standardize-formatting]

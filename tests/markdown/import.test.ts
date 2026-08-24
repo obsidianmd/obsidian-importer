@@ -95,6 +95,35 @@ test('a link is rewritten in this vault\'s form, still reaching the note it name
 	assert.equal(vault.contents.get('Import/Notes/Index.md'), '# Index\n\n[[Day|A day]]\n\n![](cover.png)\n');
 });
 
+test('text files become notes and links to them are repaired', async () => {
+	const { vault, subject } = importer();
+
+	await importing(subject, [new SourceFolder('Notes', [
+		new SourceFile('Index.md', '[[Journal?/Day]]\n\n[A day](Journal?/Day.txt)\n'),
+		new SourceFolder('Journal?', [new SourceFile('Day.txt', 'A *text* note.\n')]),
+	])]);
+
+	assert.deepEqual(vault.paths(), [
+		'Import/Notes/Index.md',
+		'Import/Notes/Journal/Day.md',
+	]);
+	assert.equal(vault.contents.get('Import/Notes/Journal/Day.md'), 'A *text* note.\n');
+	assert.equal(vault.contents.get('Import/Notes/Index.md'), '[[Day]]\n\n[[Day|A day]]\n');
+});
+
+test('an extensionless link to a text note is repaired without standardization', async () => {
+	const { vault, subject } = importer();
+
+	await subject.ready;
+	subject.standardizeFormatting = false;
+	await importing(subject, [new SourceFolder('Notes', [
+		new SourceFile('Index.md', '[[Journal?/Day]]\n'),
+		new SourceFolder('Journal?', [new SourceFile('Day.txt', 'A day.\n')]),
+	])]);
+
+	assert.equal(vault.contents.get('Import/Notes/Index.md'), '[[Day]]\n');
+});
+
 test('source link syntax is kept while a renamed target is repaired', async () => {
 	const { vault, subject } = importer();
 
