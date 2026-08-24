@@ -121,7 +121,17 @@ export class NotionRequestScheduler {
 	}
 }
 
-/** Keep one server-side budget across every SDK client made for a credential. */
+/**
+ * Keep one server-side budget across every SDK client made for a credential.
+ *
+ * The budget being spent is Notion's, held against the integration rather than
+ * against anything this plugin owns, so the scheduler has to outlive whatever
+ * asks for it. An importer does not: finishing an import returns to the format
+ * list, and choosing a format there builds a new importer. A coordinator any
+ * shorter-lived than the plugin would hand the next import a fresh burst to
+ * spend against a bucket the last one already emptied - the state that makes
+ * Notion stop answering rather than reply 429.
+ */
 export class NotionRequestCoordinator {
 	private token: string | null = null;
 	private scheduler: NotionRequestScheduler | null = null;
@@ -135,6 +145,9 @@ export class NotionRequestCoordinator {
 		return this.scheduler;
 	}
 }
+
+/** Every import shares one budget, for as long as the plugin is loaded. */
+const requestCoordinator = new NotionRequestCoordinator();
 
 /** A slow request drains the burst while the original request remains alive.
  * requestUrl has no AbortSignal support, so rejecting early would only start a
@@ -361,7 +374,6 @@ export class NotionAPIImporter extends FormatImporter {
 		return this.duplicateHandling !== DuplicateHandling.CreateCopy;
 	}
 	protected notionClient: Client | null = null;
-	private requestCoordinator = new NotionRequestCoordinator();
 	private processedPages: Set<string> = new Set();
 	private requestCount: number = 0;
 	// The total grows as databases and page blocks reveal more pages.
@@ -541,7 +553,7 @@ export class NotionAPIImporter extends FormatImporter {
 	 * Initialize Notion client if not already initialized
 	 */
 	private initializeNotionClient(): void {
-		const scheduler = this.requestCoordinator.forCredential(this.notionToken);
+		const scheduler = requestCoordinator.forCredential(this.notionToken);
 		this.notionClient = new Client({
 			auth: this.notionToken,
 			notionVersion: NOTION_VERSION,
