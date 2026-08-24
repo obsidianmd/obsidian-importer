@@ -59,6 +59,30 @@ const stubOptionalNodePlugin = {
 	},
 };
 
+// Community plugins ship as one JS file. sql.js normally loads its WASM as a
+// second file, so wrap its browser loader and embed that binary in main.js.
+// Tests still import sql.js normally and use its Node loader.
+const inlineSqlJsPlugin = {
+	name: 'inline-sqljs',
+	setup(build) {
+		build.onResolve({ filter: /^sql\.js$/ }, () => ({
+			path: 'sql.js',
+			namespace: 'inline-sqljs',
+		}));
+		build.onLoad({ filter: /.*/, namespace: 'inline-sqljs' }, () => ({
+			contents: `
+				import initSqlJs from ${JSON.stringify(path.resolve('node_modules/sql.js/dist/sql-wasm-browser.js'))};
+				import wasmBinary from ${JSON.stringify(path.resolve('node_modules/sql.js/dist/sql-wasm-browser.wasm'))};
+				export default function init(config = {}) {
+					return initSqlJs({ ...config, wasmBinary });
+				}
+			`,
+			loader: 'js',
+			resolveDir: process.cwd(),
+		}));
+	},
+};
+
 const PLUGIN_ID = JSON.parse(fs.readFileSync("manifest.json", "utf8")).id;
 
 // Load OBSIDIAN_PATH from .env (path to your vault's plugins folder, relative
@@ -262,7 +286,10 @@ const context = await esbuild.context({
 
 	// We don't need to include code to create zip files (deflate), only read them (inflate),
 	// so this cuts it out and makes the final bundle smaller.
-	alias: {'@zip.js/zip.js': '@zip.js/zip.js/lib/zip-no-worker-inflate.js'},
+	alias: {
+		'@zip.js/zip.js': '@zip.js/zip.js/lib/zip-no-worker-inflate.js',
+	},
+	loader: { '.wasm': 'binary' },
 	format: "cjs",
 	target: "es2018",
 	logLevel: "info",
@@ -271,8 +298,8 @@ const context = await esbuild.context({
 	platform: 'browser',
 	treeShaking: true,
 	plugins: prod
-		? [stubInquirePlugin, stubOptionalNodePlugin]
-		: [stubInquirePlugin, stubOptionalNodePlugin, copyPlugin],
+		? [stubInquirePlugin, stubOptionalNodePlugin, inlineSqlJsPlugin]
+		: [stubInquirePlugin, stubOptionalNodePlugin, inlineSqlJsPlugin, copyPlugin],
 	outfile,
 });
 

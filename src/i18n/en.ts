@@ -368,10 +368,10 @@ export const en = {
 		},
 		bear: {
 			name: 'Bear',
-			optionText: 'Bear (.bear2bk)',
-			fileType: 'Bear2bk',
+			optionText: 'Bear (.bear2bk, .zip)',
+			fileType: 'Bear backups',
 			labelId: 'Bear ID',
-			descExport: 'Back up your notes in Bear, you will receive a .bear2bk file.',
+			descExport: 'Back up your notes in Bear and choose the resulting .bear2bk file. On iPhone and iPad, you can also export Application Data and choose its .zip file.',
 			nameTagsProperty: 'Move tags to a property',
 			descTagsProperty: 'When enabled, tags are taken out of the note and listed in its tags property. Bear keeps tags in the text of a note, and Obsidian reads them there too.',
 			nameFlattenTags: 'Flatten nested tags',
@@ -379,6 +379,8 @@ export const en = {
 			statusImportingAsset: 'Importing asset {{name}}',
 			statusUpdatingLinks: 'Updating internal links…',
 			reasonUnknownType: 'unknown type of file',
+			reasonEncrypted: 'encrypted note',
+			reasonMissingAttachment: 'the attachment is missing from the export',
 		},
 		csv: {
 			name: 'CSV',

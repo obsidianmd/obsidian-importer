@@ -1,4 +1,4 @@
-import { path } from '../../filesystem';
+import { normalizePath } from 'obsidian';
 import { ILLEGAL_TAG_CHARS, sanitizeTag } from '../../util';
 
 // Separators are allowed only inside tags.
@@ -80,6 +80,15 @@ function maskCode(content: string, code: string[]): string {
 
 function unmaskCode(content: string, code: string[]): string {
 	return content.replace(MASKED, (_match, index: string) => code[Number(index)]);
+}
+
+/** Apply a Markdown rewrite without changing fenced or inline code examples. */
+export function transformBearMarkdownOutsideCode(
+	content: string,
+	transform: (content: string) => string,
+): string {
+	const code: string[] = [];
+	return unmaskCode(transform(maskCode(content, code)), code);
 }
 
 function tracksFences(): (line: string) => boolean {
@@ -222,7 +231,7 @@ export async function convertBearNote(
 
 	for (const match of [...content.matchAll(ASSET_LINK)]) {
 		const [fullMatch, linkPath] = match;
-		const assetPath = path.join(parent, decodeURI(linkPath));
+		const assetPath = normalizePath(`${parent}/${decodeURI(linkPath)}`);
 
 		const replacementPath = encodeURI(await resolveAsset(assetPath));
 

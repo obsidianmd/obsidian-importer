@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { importersForFiles, readableFiles } from '../../src/importer-match';
 
 const IMPORTERS = [
-	{ id: 'bear', extensions: ['bear2bk'] },
+	{ id: 'bear', extensions: ['bear2bk', 'zip'] },
 	{ id: 'evernote', extensions: ['enex'] },
 	{ id: 'html', extensions: ['htm', 'html'] },
 	{ id: 'apple-journal', extensions: ['htm', 'html'] },
@@ -19,7 +19,7 @@ test('an extension only one importer reads names that importer', () => {
 });
 
 test('an extension several importers read leaves the choice open', () => {
-	assert.deepEqual(importersForFiles(IMPORTERS, ['zip']), ['notion', 'textbundle', 'keep']);
+	assert.deepEqual(importersForFiles(IMPORTERS, ['zip']), ['notion', 'bear', 'textbundle', 'keep']);
 });
 
 test('an extension no importer reads matches nothing', () => {

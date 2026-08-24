@@ -22,13 +22,9 @@ import * as nodePath from 'node:path';
 import { BlobReader, TextWriter, Uint8ArrayWriter, ZipReader } from '@zip.js/zip.js';
 import type { FrontMatterCache } from 'obsidian';
 
-import { provideNodeModules } from '../../src/filesystem';
 import { convertBearNote } from '../../src/formats/bear/convert';
 import { serializeFrontMatter } from '../../src/util';
 import { expectedFor, expectTree, fixtures } from '../helpers';
-
-// The conversion joins a note's folder with the asset path it references
-provideNodeModules({ path: nodePath });
 
 const FIXTURES = __dirname;
 
@@ -153,6 +149,20 @@ const noteOptions = {
 	tagPlacement: 'inline' as const,
 	resolveAsset: async () => assert.fail('no assets here'),
 };
+
+test('resolves assets without desktop Node modules', async () => {
+	let resolved = '';
+	const converted = await convertBearNote('![](assets/image.png)', {
+		...noteOptions,
+		resolveAsset: async assetPath => {
+			resolved = assetPath;
+			return 'image.png';
+		},
+	});
+
+	assert.equal(resolved, 'note.textbundle/assets/image.png');
+	assert.equal(converted.content, '![](image.png)');
+});
 
 test('splits a nested tag when asked to', async () => {
 	const nested = await convertBearNote('#parent/child', { ...noteOptions, flattenTags: false });
