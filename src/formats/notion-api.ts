@@ -29,7 +29,6 @@ import { buildTree, collectItems, type NotionTreeNode } from './notion-api/disco
 
 const NOTION_REQUEST_RATE = 3;
 const NOTION_INITIAL_BURST = 100;
-const NOTION_REQUEST_TIMEOUT_MS = 10_000;
 const NOTION_SLOW_REQUEST_MS = 2_000;
 
 /**
@@ -117,8 +116,46 @@ export class NotionRequestScheduler {
 		this.lastRefill = Math.max(now, this.blockedUntil);
 	}
 
-	requestCompleted(durationMs: number): void {
-		if (durationMs >= NOTION_SLOW_REQUEST_MS) this.overloaded();
+	requestSlow(): void {
+		this.overloaded();
+	}
+}
+
+/** Keep one server-side budget across every SDK client made for a credential. */
+export class NotionRequestCoordinator {
+	private token: string | null = null;
+	private scheduler: NotionRequestScheduler | null = null;
+
+	forCredential(token: string): NotionRequestScheduler {
+		if (!this.scheduler || this.token !== token) {
+			this.token = token;
+			this.scheduler = new NotionRequestScheduler();
+		}
+
+		return this.scheduler;
+	}
+}
+
+/** A slow request drains the burst while the original request remains alive.
+ * requestUrl has no AbortSignal support, so rejecting early would only start a
+ * retry beside the request that was still occupying the connection. */
+export async function watchForNotionOverload<T>(
+	request: Promise<T>,
+	scheduler: NotionRequestScheduler,
+	timers: {
+		set: (callback: () => void, milliseconds: number) => number;
+		clear: (timer: number) => void;
+	} = {
+		set: (callback, milliseconds) => window.setTimeout(callback, milliseconds),
+		clear: timer => window.clearTimeout(timer),
+	},
+): Promise<T> {
+	const timer = timers.set(() => scheduler.requestSlow(), NOTION_SLOW_REQUEST_MS);
+	try {
+		return await request;
+	}
+	finally {
+		timers.clear(timer);
 	}
 }
 
@@ -324,6 +361,7 @@ export class NotionAPIImporter extends FormatImporter {
 		return this.duplicateHandling !== DuplicateHandling.CreateCopy;
 	}
 	protected notionClient: Client | null = null;
+	private requestCoordinator = new NotionRequestCoordinator();
 	private processedPages: Set<string> = new Set();
 	private requestCount: number = 0;
 	// The total grows as databases and page blocks reveal more pages.
@@ -503,7 +541,7 @@ export class NotionAPIImporter extends FormatImporter {
 	 * Initialize Notion client if not already initialized
 	 */
 	private initializeNotionClient(): void {
-		const scheduler = new NotionRequestScheduler();
+		const scheduler = this.requestCoordinator.forCredential(this.notionToken);
 		this.notionClient = new Client({
 			auth: this.notionToken,
 			notionVersion: NOTION_VERSION,
@@ -515,9 +553,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 				try {
 					await scheduler.waitForTurn();
-					const started = Date.now();
-					let timeout: number | undefined;
-					const response = await Promise.race([
+					const response = await watchForNotionOverload(
 						requestUrl({
 							url: urlString,
 							method: init?.method || 'GET',
@@ -525,19 +561,8 @@ export class NotionAPIImporter extends FormatImporter {
 							body: init?.body as string | ArrayBuffer,
 							throw: false,
 						}),
-						new Promise<never>((_resolve, reject) => {
-							timeout = window.setTimeout(() => {
-								scheduler.overloaded(1000);
-								const error = Object.assign(new Error('Request to Notion API has timed out'), {
-									code: 'notionhq_client_request_timeout',
-								});
-								reject(error);
-							}, NOTION_REQUEST_TIMEOUT_MS);
-						}),
-					]).finally(() => {
-						if (timeout !== undefined) window.clearTimeout(timeout);
-					});
-					scheduler.requestCompleted(Date.now() - started);
+						scheduler,
+					);
 					if (response.status === 429 || response.status === 529) {
 						scheduler.rateLimited(response.headers['retry-after'] ?? response.headers['Retry-After']);
 					}
