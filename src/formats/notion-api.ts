@@ -27,7 +27,100 @@ import { DatabaseInfo, RelationPlaceholder, DatabaseProcessingContext, FetchAndI
 import { downloadAttachment } from './notion-api/attachment-helpers';
 import { buildTree, collectItems, type NotionTreeNode } from './notion-api/discovery';
 
+const NOTION_REQUEST_RATE = 3;
+const NOTION_INITIAL_BURST = 100;
+const NOTION_REQUEST_TIMEOUT_MS = 10_000;
+const NOTION_SLOW_REQUEST_MS = 2_000;
 
+/**
+ * Spend a modest burst before settling at Notion's documented average rate.
+ *
+ * Notion documents an average of three requests a second, with some bursts
+ * allowed. Measured against a thousand-row database, short bursts completed
+ * cleanly but sustained excess traffic eventually stopped receiving responses
+ * instead of returning 429. A token bucket gets the useful part of both
+ * behaviours: small imports can finish inside the burst, while long imports
+ * converge on the documented rate before exhausting the server-side bucket.
+ */
+export class NotionRequestScheduler {
+	private tail: Promise<void> = Promise.resolve();
+	private tokens: number;
+	private lastRefill: number;
+	private blockedUntil = 0;
+	private readonly rate: number;
+	private readonly capacity: number;
+	private readonly now: () => number;
+	private readonly sleep: (milliseconds: number) => Promise<void>;
+
+	constructor(options: {
+		rate?: number;
+		burst?: number;
+		now?: () => number;
+		sleep?: (milliseconds: number) => Promise<void>;
+	} = {}) {
+		this.rate = options.rate ?? NOTION_REQUEST_RATE;
+		this.capacity = options.burst ?? NOTION_INITIAL_BURST;
+		this.now = options.now ?? (() => Date.now());
+		this.sleep = options.sleep ?? (milliseconds => new Promise(resolve => window.setTimeout(resolve, milliseconds)));
+		this.tokens = this.capacity;
+		this.lastRefill = this.now();
+	}
+
+	async waitForTurn(): Promise<void> {
+		let release!: () => void;
+		const previous = this.tail;
+		this.tail = new Promise<void>(resolve => release = resolve);
+
+		await previous;
+		try {
+			while (true) {
+				const now = this.now();
+				const blockedFor = this.blockedUntil - now;
+				if (blockedFor > 0) {
+					await this.sleep(blockedFor);
+					continue;
+				}
+
+				const elapsed = Math.max(0, now - this.lastRefill);
+				this.tokens = Math.min(
+					this.capacity,
+					this.tokens + elapsed * this.rate / 1000,
+				);
+				this.lastRefill = now;
+
+				if (this.tokens >= 1) {
+					this.tokens--;
+					return;
+				}
+
+				const wait = (1 - this.tokens) * 1000 / this.rate;
+				await this.sleep(wait);
+			}
+		}
+		finally {
+			release();
+		}
+	}
+
+	/** A rate-limited response drains our local burst and honours Retry-After. */
+	rateLimited(retryAfter: string | undefined): void {
+		const seconds = retryAfter ? Number.parseInt(retryAfter, 10) : NaN;
+		this.overloaded(Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 0);
+	}
+
+	/** A slow or timed-out request is the overload signal Notion often sends in
+	 * place of 429. Drain the burst globally so retries cannot keep piling on. */
+	overloaded(cooldownMs: number = 0): void {
+		this.tokens = 0;
+		const now = this.now();
+		this.blockedUntil = Math.max(this.blockedUntil, now + cooldownMs);
+		this.lastRefill = Math.max(now, this.blockedUntil);
+	}
+
+	requestCompleted(durationMs: number): void {
+		if (durationMs >= NOTION_SLOW_REQUEST_MS) this.overloaded();
+	}
+}
 
 function childPageIds(blocksCache: Map<string, { id: string, type: string }[]>): string[] {
 	const ids: string[] = [];
@@ -410,20 +503,44 @@ export class NotionAPIImporter extends FormatImporter {
 	 * Initialize Notion client if not already initialized
 	 */
 	private initializeNotionClient(): void {
+		const scheduler = new NotionRequestScheduler();
 		this.notionClient = new Client({
 			auth: this.notionToken,
 			notionVersion: NOTION_VERSION,
+			// makeNotionRequest owns retries so an overload signal can slow every
+			// endpoint before the next attempt starts.
+			retry: false,
 			fetch: async (url: RequestInfo | URL, init?: RequestInit) => {
 				const urlString = url instanceof URL ? url.href : typeof url === 'string' ? url : url.url;
 
 				try {
-					const response = await requestUrl({
-						url: urlString,
-						method: init?.method || 'GET',
-						headers: init?.headers as Record<string, string>,
-						body: init?.body as string | ArrayBuffer,
-						throw: false,
+					await scheduler.waitForTurn();
+					const started = Date.now();
+					let timeout: number | undefined;
+					const response = await Promise.race([
+						requestUrl({
+							url: urlString,
+							method: init?.method || 'GET',
+							headers: init?.headers as Record<string, string>,
+							body: init?.body as string | ArrayBuffer,
+							throw: false,
+						}),
+						new Promise<never>((_resolve, reject) => {
+							timeout = window.setTimeout(() => {
+								scheduler.overloaded(1000);
+								const error = Object.assign(new Error('Request to Notion API has timed out'), {
+									code: 'notionhq_client_request_timeout',
+								});
+								reject(error);
+							}, NOTION_REQUEST_TIMEOUT_MS);
+						}),
+					]).finally(() => {
+						if (timeout !== undefined) window.clearTimeout(timeout);
 					});
+					scheduler.requestCompleted(Date.now() - started);
+					if (response.status === 429 || response.status === 529) {
+						scheduler.rateLimited(response.headers['retry-after'] ?? response.headers['Retry-After']);
+					}
 
 					// Convert Obsidian response to fetch Response format
 					return new Response(response.arrayBuffer, {
@@ -866,8 +983,8 @@ export class NotionAPIImporter extends FormatImporter {
 					processedDatabases: this.processedDatabases,
 					relationPlaceholders: this.relationPlaceholders,
 					databasePropertyName: this.databasePropertyName,
-					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string, customFileName?: string) => {
-						await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName });
+					importPageCallback: async (pageId, parentPath, databaseTag, customFileName, page, blocks) => {
+						await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName, page, blocks });
 					},
 					onPagesDiscovered: pageIds => this.pagesDiscovered(ctx, pageIds)
 				},
@@ -885,7 +1002,7 @@ export class NotionAPIImporter extends FormatImporter {
 	 * Fetch and import a Notion page recursively
 	 */
 	protected async fetchAndImportPage(params: FetchAndImportPageParams): Promise<void> {
-		const { ctx, pageId, parentPath, databaseTag, customFileName } = params;
+		const { ctx, pageId, parentPath, databaseTag, customFileName, page: prefetchedPage, blocks: prefetchedBlocks } = params;
 
 		if (await ctx.shouldStop()) return;
 
@@ -902,8 +1019,17 @@ export class NotionAPIImporter extends FormatImporter {
 		let reportedName = i18n.importer.notionApi.labelPage({ id: pageId });
 
 		try {
+			// What a page is and what is on it are two reads that do not need
+			// each other, so a page reached on its own asks for both at once
+			// rather than paying a round trip for the title before starting on
+			// the blocks. A row arrives with both already in hand.
+			const blocksRequest = prefetchedBlocks
+				?? fetchAllBlocks(this.notionClient!, pageId, ctx);
+			// Metadata failing reports the page before the blocks are awaited.
+			void blocksRequest.catch(() => undefined);
+
 			// Fetch page metadata with rate limit handling
-			const page = await makeNotionRequest(
+			const page = prefetchedPage ?? await makeNotionRequest(
 				() => this.notionClient!.pages.retrieve({ page_id: pageId }) as Promise<PageObjectResponse>,
 				ctx
 			);
@@ -922,7 +1048,7 @@ export class NotionAPIImporter extends FormatImporter {
 			const blocksCache = new Map<string, any[]>();
 
 			// Fetch page blocks (content) with rate limit handling
-			const blocks = await fetchAllBlocks(this.notionClient!, pageId, ctx);
+			const blocks = await blocksRequest;
 			// Cache the root page blocks immediately
 			blocksCache.set(pageId, blocks);
 
@@ -1052,8 +1178,8 @@ export class NotionAPIImporter extends FormatImporter {
 					databasePropertyName: this.databasePropertyName, // Add database property name for child databases
 					blocksCache, // Pass blocks cache for recursive block search
 					// Callback to import database pages
-					importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string, customFileName?: string) => {
-						await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName });
+					importPageCallback: async (pageId, parentPath, databaseTag, customFileName, page, blocks) => {
+						await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName, page, blocks });
 					},
 					onPagesDiscovered: pageIds => this.pagesDiscovered(ctx, pageIds)
 				}
@@ -1301,7 +1427,7 @@ export class NotionAPIImporter extends FormatImporter {
 						console.warn(`Could not find related page file: ${relatedPagePath}`);
 					}
 
-					const title = await this.relatedPageTitle(relatedPageId);
+					const title = await this.relatedPageTitle(relatedPageId, ctx);
 					if (title) {
 						replacements.set(relatedPageId, title);
 					}
@@ -1347,14 +1473,17 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 	}
 
-	private async relatedPageTitle(pageId: string): Promise<string | null> {
+	private async relatedPageTitle(pageId: string, ctx: ImportContext): Promise<string | null> {
 		const cached = this.relatedPageTitles.get(pageId);
 		if (cached !== undefined) return cached;
 
 		let title: string | null = null;
 
 		try {
-			const page = await this.notionClient!.pages.retrieve({ page_id: pageId });
+			const page = await makeNotionRequest(
+				() => this.notionClient!.pages.retrieve({ page_id: pageId }),
+				ctx,
+			);
 			title = extractPageTitle(page as PageObjectResponse);
 		}
 		catch (error) {
@@ -1387,8 +1516,8 @@ export class NotionAPIImporter extends FormatImporter {
 				formulaStrategy: this.formulaStrategy,
 				processedDatabases: this.processedDatabases,
 				relationPlaceholders: this.relationPlaceholders,
-				importPageCallback: async (pageId: string, parentPath: string, databaseTag?: string, customFileName?: string) => {
-					await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName });
+				importPageCallback: async (pageId, parentPath, databaseTag, customFileName, page, blocks) => {
+					await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName, page, blocks });
 				},
 				// onPagesDiscovered callback not provided - not needed for unimported databases
 				databasePropertyName: this.databasePropertyName

@@ -23,7 +23,8 @@ import * as nodePath from 'node:path';
 import { stringifyYaml } from 'obsidian';
 
 import { extractFrontMatter, extractPageTitle } from '../../src/formats/notion-api/api-helpers';
-import { processRelationProperties, replaceRelationValue, yamlScalar } from '../../src/formats/notion-api/database-helpers';
+import { DATABASE_PAGE_PREFETCH, importDatabasePages, processRelationProperties, replaceRelationValue, yamlScalar } from '../../src/formats/notion-api/database-helpers';
+import { ImportContext } from '../../src/import-context';
 import type { RelationPlaceholder } from '../../src/formats/notion-api/types';
 import { expectFile, expectedFor, type Fixture } from '../helpers';
 
@@ -39,6 +40,60 @@ interface DatabaseFixture {
 }
 
 const fixture = JSON.parse(nodeFs.readFileSync(FIXTURE.path, 'utf8')) as DatabaseFixture;
+
+test('database rows read a window ahead but import in order', async () => {
+	const total = DATABASE_PAGE_PREFETCH + 3;
+	const pages = Array.from({ length: total }, (_, index) => ({
+		object: 'page',
+		id: `row-${index}`,
+		properties: {},
+	})) as never[];
+	const requested: string[] = [];
+	const requestedWhenImported: string[][] = [];
+	const imported: string[] = [];
+	const client = {
+		blocks: {
+			children: {
+				list: async ({ block_id }: { block_id: string }) => {
+					requested.push(block_id);
+					return { results: [], has_more: false, next_cursor: null };
+				},
+			},
+		},
+	} as never;
+
+	await importDatabasePages(
+		pages,
+		client,
+		new ImportContext(),
+		'Notion/Database',
+		'Database.base',
+		async (pageId, parentPath, databaseTag, customFileName, page, blocks) => {
+			requestedWhenImported.push([...requested]);
+			assert.equal(parentPath, 'Notion/Database');
+			assert.equal(databaseTag, 'Database.base');
+			assert.equal(customFileName, undefined);
+			assert.equal(page, pages[Number(pageId.slice(4))]);
+			assert.deepEqual(await blocks, []);
+			imported.push(pageId);
+		},
+	);
+
+	const row = (index: number) => `row-${index}`;
+	assert.deepEqual(imported, Array.from({ length: total }, (_, index) => row(index)));
+
+	// Reading row n starts every row up to the end of the window, and no more.
+	assert.deepEqual(
+		requestedWhenImported,
+		Array.from({ length: total }, (_, index) =>
+			Array.from(
+				{ length: Math.min(index + DATABASE_PAGE_PREFETCH, total) },
+				(_, ahead) => row(ahead),
+			)),
+	);
+	assert.equal(requestedWhenImported[0].length, DATABASE_PAGE_PREFETCH);
+	assert.deepEqual(requested, Array.from({ length: total }, (_, index) => row(index)));
+});
 
 test('the fixture has a relation that stays in the import and one that leaves it', () => {
 	const relations = Object.entries(fixture.properties).filter(([, p]) => p.type === 'relation');

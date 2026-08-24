@@ -43,7 +43,14 @@ export interface DatabaseProcessingContext {
 	formulaStrategy: FormulaImportStrategy;
 	processedDatabases: Map<string, DatabaseInfo>;
 	relationPlaceholders: RelationPlaceholder[];
-	importPageCallback: (pageId: string, parentPath: string, databaseTag?: string, customFileName?: string) => Promise<void>;
+	importPageCallback: (
+		pageId: string,
+		parentPath: string,
+		databaseTag?: string,
+		customFileName?: string,
+		page?: PageObjectResponse,
+		blocks?: Promise<BlockObjectResponse[]>,
+	) => Promise<void>;
 	onPagesDiscovered?: (pageIds: string[]) => void;
 	databasePropertyName?: string; // Property name for linking pages to their database .base file
 	blocksCache?: Map<string, BlockObjectResponse[]>; // Cache of fetched blocks for recursive search
@@ -153,6 +160,10 @@ export interface FetchAndImportPageParams {
 	parentPath: string;
 	databaseTag?: string;
 	customFileName?: string; // Custom file name (without .md extension) to override the page title
+	/** Page metadata already returned by a database query. */
+	page?: PageObjectResponse;
+	/** Root blocks started ahead of this page's ordered conversion. */
+	blocks?: Promise<BlockObjectResponse[]>;
 }
 
 export interface CreateBaseFileParams {

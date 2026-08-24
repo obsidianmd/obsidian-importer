@@ -37,6 +37,16 @@ class CountingImporter extends NotionAPIImporter {
 		return this.fetchAndImportPage({ ctx, pageId, parentPath: 'Notion' });
 	}
 
+	importPrefetchedPage(ctx: ImportContext, page: any, blocks: Promise<any[]>) {
+		return this.fetchAndImportPage({
+			ctx,
+			pageId: page.id,
+			parentPath: 'Notion',
+			page,
+			blocks,
+		});
+	}
+
 	discover(ctx: ImportContext, pageIds: string[]) {
 		(this as unknown as { pagesDiscovered(c: ImportContext, ids: string[]): void }).pagesDiscovered(ctx, pageIds);
 	}
@@ -61,6 +71,33 @@ test('a page nobody ticked in the tree still counts', async () => {
 
 	assert.equal(ctx.progressTotal, 1);
 	assert.equal(remaining(ctx), 0);
+});
+
+test('a database row reuses prefetched metadata and blocks', async () => {
+	const { subject, ctx } = await importer();
+	let metadataReads = 0;
+	let blockReads = 0;
+	(subject as any).notionClient = {
+		pages: { retrieve: async () => { metadataReads++; throw new Error('metadata was fetched again'); } },
+		blocks: { children: { list: async () => { blockReads++; throw new Error('blocks were fetched again'); } } },
+	};
+
+	const page = {
+		object: 'page',
+		id: 'row-1',
+		created_time: '2025-01-01T00:00:00.000Z',
+		last_edited_time: '2025-01-01T00:00:00.000Z',
+		properties: {
+			Name: { type: 'title', title: [{ plain_text: 'Row one' }] },
+		},
+	};
+
+	await subject.importPrefetchedPage(ctx, page, Promise.resolve([]));
+
+	assert.equal(metadataReads, 0);
+	assert.equal(blockReads, 0);
+	assert.equal(ctx.notes, 1);
+	assert.deepEqual(ctx.failed, []);
 });
 
 test('a database raises the total by the rows it turned out to hold', async () => {
