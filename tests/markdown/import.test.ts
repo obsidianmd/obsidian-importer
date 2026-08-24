@@ -111,6 +111,19 @@ test('text files become notes and links to them are repaired', async () => {
 	assert.equal(vault.contents.get('Import/Notes/Index.md'), '[[Day]]\n\n[[Day|A day]]\n');
 });
 
+test('an extensionless link to a text note is repaired without standardization', async () => {
+	const { vault, subject } = importer();
+
+	await subject.ready;
+	subject.standardizeFormatting = false;
+	await importing(subject, [new SourceFolder('Notes', [
+		new SourceFile('Index.md', '[[Journal?/Day]]\n'),
+		new SourceFolder('Journal?', [new SourceFile('Day.txt', 'A day.\n')]),
+	])]);
+
+	assert.equal(vault.contents.get('Import/Notes/Index.md'), '[[Day]]\n');
+});
+
 test('source link syntax is kept while a renamed target is repaired', async () => {
 	const { vault, subject } = importer();
 
