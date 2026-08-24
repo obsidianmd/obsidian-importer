@@ -5,8 +5,8 @@ import {
 	type TemplateFilter,
 	type TemplateResult,
 	type TemplateVariables,
-} from '@obsidianmd/knap';
-import { htmlFilters } from '@obsidianmd/knap/html';
+} from 'knap';
+import { htmlFilters } from 'knap/html';
 import { createMarkdownContent } from 'defuddle/full';
 
 export type NoteTemplateVariables = TemplateVariables;

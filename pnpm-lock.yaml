@@ -17,9 +17,6 @@ importers:
       '@notionhq/client':
         specifier: 5.20.0
         version: 5.20.0
-      '@obsidianmd/knap':
-        specifier: ^0.1.0
-        version: 0.1.0
       '@zip.js/zip.js':
         specifier: 2.7.60
         version: 2.7.60
@@ -29,6 +26,9 @@ importers:
       defuddle:
         specifier: ^0.19.2
         version: 0.19.2
+      knap:
+        specifier: ^0.2.1
+        version: 0.2.1
       mathml-to-latex:
         specifier: ^1.5.0
         version: 1.5.0
@@ -366,10 +366,6 @@ packages:
   '@notionhq/client@5.20.0':
     resolution: {integrity: sha512-MS0DFSfHPLZ0wi+e9mOP16gCCYbWAkaiMuu/rVK9KxDlKac4oAgHReOfTglcd77g/nlg78snp+KB7fNWP75bEw==}
     engines: {node: '>=18'}
-
-  '@obsidianmd/knap@0.1.0':
-    resolution: {integrity: sha512-DabTnAL+u/UcuwbtW8LccwxEYZGzBsazPIMWhV8QyG7zvldDDApZovfLK2WB6Ep5H19CDJBLOft3Av4/lf0WiQ==}
-    engines: {node: '>=20'}
 
   '@parcel/watcher-android-arm64@2.6.0':
     resolution: {integrity: sha512-trgpLSCKRC/huFjXX/Smh+0sWe4+YtKfktIToiMl59ghz7z+qkH6kMvNnUbLyRs9N11t8l4svSCs1+5B3rOAhA==}
@@ -1354,6 +1350,10 @@ packages:
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
 
+  knap@0.2.1:
+    resolution: {integrity: sha512-5Bd4lrgsMhPMe+Uv2EGMozoM6ne+/Q7DpN2eOCmRUuIba0Z6ktd/uUvzqsqd24hlLWoIc122ypXpmFtrw+35Qg==}
+    engines: {node: '>=20'}
+
   levn@0.4.1:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
@@ -2042,10 +2042,6 @@ snapshots:
   '@mixmark-io/domino@2.2.0': {}
 
   '@notionhq/client@5.20.0': {}
-
-  '@obsidianmd/knap@0.1.0':
-    dependencies:
-      dayjs: 1.11.23
 
   '@parcel/watcher-android-arm64@2.6.0':
     optional: true
@@ -3318,6 +3314,10 @@ snapshots:
   keyv@4.5.4:
     dependencies:
       json-buffer: 3.0.1
+
+  knap@0.2.1:
+    dependencies:
+      dayjs: 1.11.23
 
   levn@0.4.1:
     dependencies:
