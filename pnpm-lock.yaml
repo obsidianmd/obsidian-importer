@@ -41,6 +41,9 @@ importers:
       sax:
         specifier: 1.6.0
         version: 1.6.0
+      sql.js:
+        specifier: 1.14.2
+        version: 1.14.2
       static-params:
         specifier: 0.4.0
         version: 0.4.0
@@ -60,6 +63,9 @@ importers:
       '@types/sax':
         specifier: 1.2.7
         version: 1.2.7
+      '@types/sql.js':
+        specifier: 1.4.11
+        version: 1.4.11
       '@types/turndown':
         specifier: 5.0.6
         version: 5.0.6
@@ -484,6 +490,9 @@ packages:
   '@types/codemirror@5.60.8':
     resolution: {integrity: sha512-VjFgDF/eB+Aklcy15TtOTLQeMjTo07k7KAjql8OK5Dirr7a6sJY4T1uVBDuTVG9VEmn1uUsohOpYnVfgC6/jyw==}
 
+  '@types/emscripten@1.41.5':
+    resolution: {integrity: sha512-cMQm7pxu6BxtHyqJ7mQZ2kXWV5SLmugybFdHCBbJ5eHzOo6VhBckEgAT3//rP5FwPHNPeEiq4SmQ5ucBwsOo4Q==}
+
   '@types/eslint@9.6.1':
     resolution: {integrity: sha512-FXx2pKgId/WyYo2jXw63kk7/+TY7u7AziEJxJAnSFzHlqTAS3Ync6SvgYAN/k4/PQpnnVuzoMuVnByKK2qp0ag==}
 
@@ -507,6 +516,9 @@ packages:
 
   '@types/sax@1.2.7':
     resolution: {integrity: sha512-rO73L89PJxeYM3s3pPPjiPgVVcymqU490g0YO5n5By0k2Erzj6tay/4lr1CHAAU4JyOWd1rpQ8bCf6cZfHU96A==}
+
+  '@types/sql.js@1.4.11':
+    resolution: {integrity: sha512-QXIx38p2ZThJaK9vP5ZdqdlRe1FG9I8SmCZOS7FHfB/2qPAjZwkL7/vlfPg6N/oWHuuOaGg/P/IRwfP2W0kWVQ==}
 
   '@types/tern@0.23.9':
     resolution: {integrity: sha512-ypzHFE/wBzh+BlH6rrBgS5I/Z7RD21pGhZ2rltb/+ZrVM1awdZwjx7hE5XfuYgHWk9uvV5HLZN3SloevCAp3Bw==}
@@ -1648,6 +1660,9 @@ packages:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
 
+  sql.js@1.14.2:
+    resolution: {integrity: sha512-3ZGPovObMFrdw79zrUHbfdE/DLIsy8jdNdssmMSQuRAymedU6q84asPt0kgiqrdMYlPegDItiIMfmIXzZnYFcw==}
+
   static-params@0.4.0:
     resolution: {integrity: sha512-PV5nE992wwLEaXOUtXKrJeyVPBiizGpC8xyqqRrACxc8duz3Ym/pyraEkd/hYOmQFuZPTF9CRaL+Ac+84yxzyg==}
 
@@ -2127,6 +2142,8 @@ snapshots:
     dependencies:
       '@types/tern': 0.23.9
 
+  '@types/emscripten@1.41.5': {}
+
   '@types/eslint@9.6.1':
     dependencies:
       '@types/estree': 1.0.9
@@ -2150,6 +2167,11 @@ snapshots:
 
   '@types/sax@1.2.7':
     dependencies:
+      '@types/node': 20.19.27
+
+  '@types/sql.js@1.4.11':
+    dependencies:
+      '@types/emscripten': 1.41.5
       '@types/node': 20.19.27
 
   '@types/tern@0.23.9':
@@ -3637,6 +3659,8 @@ snapshots:
       side-channel-weakmap: 1.0.2
 
   source-map-js@1.2.1: {}
+
+  sql.js@1.14.2: {}
 
   static-params@0.4.0: {}
 

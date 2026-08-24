@@ -11,6 +11,7 @@ const IMAGE_MIME: Record<string, string> = {
 	webp: 'image/webp',
 };
 
+// Keep preview memory bounded without changing imported attachments.
 export const MAX_PREVIEW_IMAGE_BYTES = 5 * 1024 * 1024;
 export const MAX_PREVIEW_IMAGES_BYTES = 10 * 1024 * 1024;
 export const PREVIEW_IMAGE_PLACEHOLDER =

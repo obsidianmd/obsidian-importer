@@ -1,11 +1,14 @@
-import { DataWriteOptions, normalizePath, Notice, TFile, TFolder } from 'obsidian';
+import { DataWriteOptions, normalizePath, Notice, Platform, TFile, TFolder } from 'obsidian';
 import { parseFilePath } from '../filesystem';
 import { FormatImporter, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import type { ManagedTemplateProperty } from '../note-template-configurator';
 import { MAX_PREVIEW_IMAGE_BYTES, MAX_PREVIEW_IMAGES_BYTES, PREVIEW_IMAGE_PLACEHOLDER, previewImageDataUrl, previewImageMime } from '../preview-image';
+import { sanitizeFileName } from '../util';
 import { readZip, ZipEntryFile } from '../zip';
+import { prepareBearApplicationMarkdown, readBearApplicationDatabase } from './bear/application-data';
+import type { BearApplicationAttachment } from './bear/application-data';
 import { BearTagPlacement, convertBearNote } from './bear/convert';
 
 
@@ -25,7 +28,7 @@ type IDMappingValue = {
 };
 
 export class Bear2bkImporter extends FormatImporter {
-	static extensions = ['bear2bk'];
+	static extensions = ['bear2bk', 'zip'];
 
 	interruption = 'pause' as const;
 
@@ -76,6 +79,12 @@ export class Bear2bkImporter extends FormatImporter {
 		for (const file of this.files) {
 			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
 			await readZip(file, async (_zip, entries) => {
+				const database = this.applicationDatabase(entries);
+				if (database) {
+					samples.push(...await this.applicationPreviewSamples(ctx, database, entries));
+					return;
+				}
+
 				const metadata = await this.collectMetadata(ctx, entries);
 				const resolvePreviewAsset = this.previewAssetResolver(entries);
 				for (const entry of entries) {
@@ -98,7 +107,7 @@ export class Bear2bkImporter extends FormatImporter {
 						samples.push({
 							title,
 							path: normalizePath(`${this.outputLocation}/${title}.md`),
-							content: converted.content,
+							content: this.mobileSafePreview(converted.content),
 							variables: { tags: converted.tags },
 							generatedProperties,
 							sourceId: noteMetadata?.id,
@@ -111,6 +120,88 @@ export class Bear2bkImporter extends FormatImporter {
 				}
 			});
 		}
+		return samples;
+	}
+
+	private mobileSafePreview(content: string): string {
+		if (!Platform.isMobile) return content;
+
+		// The iOS test build can fail to load Obsidian's lazy Temml resource,
+		// rejecting with a bare DOM Event and leaving the preview partly mounted.
+		// Show TeX source notation instead. Images remain fully previewable, and
+		// this changes only the template preview, never the imported note.
+		return content.replace(/(?<!\\)\$/g, '\\$');
+	}
+
+	private applicationDatabase(entries: ZipEntryFile[]): ZipEntryFile | undefined {
+		return entries.find(entry => /(?:^|\/)Application Data\/database\.sqlite$/i.test(entry.filepath));
+	}
+
+	private applicationAttachmentKey(attachment: BearApplicationAttachment): string {
+		return normalizePath(`${attachment.id}/${attachment.filename}`).normalize('NFC').toLocaleLowerCase('en');
+	}
+
+	private applicationAttachmentEntries(entries: ZipEntryFile[]): Map<string, ZipEntryFile> {
+		const result = new Map<string, ZipEntryFile>();
+		for (const entry of entries) {
+			const parts = normalizePath(entry.filepath).split('/');
+			if (parts.length < 2 || !/\/Local Files\//i.test(entry.filepath)) continue;
+
+			const key = parts.slice(-2).join('/').normalize('NFC').toLocaleLowerCase('en');
+			result.set(key, entry);
+		}
+		return result;
+	}
+
+	private async applicationPreviewSamples(
+		ctx: ImportContext,
+		database: ZipEntryFile,
+		entries: ZipEntryFile[],
+	): Promise<NoteTemplateSample[]> {
+		const samples: NoteTemplateSample[] = [];
+		const notes = await readBearApplicationDatabase(await database.read());
+		const attachmentEntries = this.applicationAttachmentEntries(entries);
+		const previewEntry = this.previewAssetResolver(entries);
+
+		for (const note of notes) {
+			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
+			if (note.encrypted) continue;
+
+			try {
+				const title = sanitizeFileName(note.title, this.outputLocation);
+				const parent = `${note.id}.textbundle`;
+				const prepared = prepareBearApplicationMarkdown(note);
+				const converted = await convertBearNote(prepared.content, {
+					basename: note.title,
+					parent,
+					flattenTags: this.flattenTags,
+					tagPlacement: this.tagPlacement,
+					resolveAsset: async assetPath => {
+						const attachment = prepared.assets.get(normalizePath(assetPath));
+						if (!attachment) return PREVIEW_IMAGE_PLACEHOLDER;
+
+						const entry = attachmentEntries.get(this.applicationAttachmentKey(attachment));
+						return entry ? await previewEntry(entry.filepath) : PREVIEW_IMAGE_PLACEHOLDER;
+					},
+				});
+				const generatedProperties = this.tagPlacement === 'property' && converted.tags.length > 0
+					? { tags: converted.tags }
+					: undefined;
+				samples.push({
+					title,
+					path: normalizePath(`${this.outputLocation}/${title}.md`),
+					content: this.mobileSafePreview(converted.content),
+					variables: { tags: converted.tags },
+					generatedProperties,
+					sourceId: note.id,
+					times: { ctime: note.ctime, mtime: note.mtime },
+				});
+			}
+			catch (error) {
+				console.warn(`Could not preview Bear note ${note.id}`, error);
+			}
+		}
+
 		return samples;
 	}
 
@@ -174,6 +265,12 @@ export class Bear2bkImporter extends FormatImporter {
 			if (await ctx.shouldStop()) return;
 			ctx.status(i18n.common.statusProcessing({ name: file.name }));
 			await readZip(file, async (zip, entries) => {
+				const database = this.applicationDatabase(entries);
+				if (database) {
+					await this.importApplicationData(ctx, database, entries, folderFor, idMapping);
+					return;
+				}
+
 				const metadataLookup = await this.collectMetadata(ctx, entries);
 				for (let entry of entries) {
 					if (await ctx.shouldStop()) return;
@@ -269,6 +366,109 @@ export class Bear2bkImporter extends FormatImporter {
 		// Second pass to update links based on note IDs
 		await this.updateNotesLinks(idMapping);
 
+	}
+
+	private async importApplicationData(
+		ctx: ImportContext,
+		database: ZipEntryFile,
+		entries: ZipEntryFile[],
+		folderFor: (metadata: Metadata | undefined) => Promise<TFolder>,
+		idMapping: Record<string, IDMappingValue>,
+	): Promise<void> {
+		const notes = await readBearApplicationDatabase(await database.read());
+		const attachmentEntries = this.applicationAttachmentEntries(entries);
+
+		for (const note of notes) {
+			if (await ctx.shouldStop()) return;
+			if (note.encrypted) {
+				ctx.reportSkipped(note.title || note.id, i18n.importer.bear.reasonEncrypted());
+				continue;
+			}
+
+			const metadata: Metadata = {
+				id: note.id,
+				ctime: note.ctime,
+				mtime: note.mtime,
+				archivedtime: note.archivedtime,
+				trashedtime: note.trashedtime,
+			};
+			const targetFolder = await folderFor(metadata);
+			const title = sanitizeFileName(note.title, targetFolder.path);
+			const notePath = normalizePath(`${targetFolder.path}/${title}.md`);
+			const parent = `${note.id}.textbundle`;
+			const prepared = prepareBearApplicationMarkdown(note);
+			const attachmentPaths = new Map<string, string>();
+
+			try {
+				const converted = await convertBearNote(prepared.content, {
+					basename: note.title,
+					parent,
+					flattenTags: this.flattenTags,
+					tagPlacement: this.tagPlacement,
+					resolveAsset: async assetPath => {
+						const attachment = prepared.assets.get(normalizePath(assetPath));
+						if (!attachment) return assetPath;
+
+						const key = this.applicationAttachmentKey(attachment);
+						const entry = attachmentEntries.get(key);
+						if (!entry) return attachment.filename;
+
+						const outputPath = await this.getAttachmentStoragePath(entry.filepath, notePath);
+						attachmentPaths.set(key, outputPath);
+						return outputPath;
+					},
+				});
+
+				ctx.status(i18n.common.statusImportingNote({ name: title }));
+				const { file, written } = await this.writeNote(ctx, targetFolder, title, converted.content, {
+					sourceId: note.id,
+					ctime: note.ctime,
+					mtime: note.mtime,
+				});
+				const noteTags = this.tagPlacement === 'property' ? converted.tags : [];
+
+				if (written) {
+					if (note.archivedtime || note.trashedtime || noteTags.length > 0) {
+						await this.updateNoteFrontmatter(metadata, file, noteTags);
+					}
+					if (note.ctime && note.mtime) await this.modifyFileTimestamps(metadata, file);
+					ctx.reportNoteSuccess(title);
+				}
+
+				idMapping[note.id] = {
+					filename: parseFilePath(file.path).basename,
+					metadata,
+					file,
+					written,
+				};
+			}
+			catch (error) {
+				ctx.reportFailed(note.title || note.id, error);
+				continue;
+			}
+
+			for (const attachment of note.attachments) {
+				if (await ctx.shouldStop()) return;
+				const key = this.applicationAttachmentKey(attachment);
+				const entry = attachmentEntries.get(key);
+				if (!entry) continue;
+
+				try {
+					ctx.status(i18n.importer.bear.statusImportingAsset({ name: entry.name }));
+					const outputPath = attachmentPaths.get(key)
+						?? await this.getAttachmentStoragePath(entry.filepath, notePath);
+					const writeOptions: DataWriteOptions = {};
+					if (entry.ctime) writeOptions.ctime = entry.ctime.getTime();
+					if (entry.mtime) writeOptions.mtime = entry.mtime.getTime();
+
+					await this.vault.createBinary(outputPath, await entry.read(), writeOptions);
+					ctx.reportAttachmentSuccess(entry.fullpath);
+				}
+				catch (error) {
+					ctx.reportFailed(entry.fullpath, error);
+				}
+			}
+		}
 	}
 
 	private async updateNoteFrontmatter(metaData: Metadata | undefined, file: TFile, tags: string[]) {

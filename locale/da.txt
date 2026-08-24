@@ -1191,11 +1191,11 @@ original=Bear
 translation=Bear
 
 [importer.bear.option-text]
-original=Bear (.bear2bk)
-translation=Bear (.bear2bk)
+original=Bear (.bear2bk, .zip)
+translation=Bear (.bear2bk, .zip)
 
 [importer.bear.file-type]
-original=Bear2bk
+original=Bear backups
 translation=Bear2bk
 
 [importer.bear.label-id]
@@ -1203,7 +1203,7 @@ original=Bear ID
 translation=Bear ID
 
 [importer.bear.desc-export]
-original=Back up your notes in Bear, you will receive a .bear2bk file.
+original=Back up your notes in Bear and choose the resulting .bear2bk file. On iPhone and iPad, you can also export Application Data and choose its .zip file.
 translation=Sikkerhedskopiér dine noter i Bear, så modtager du en .bear2bk-fil.
 
 [importer.bear.name-tags-property]
@@ -1233,6 +1233,10 @@ translation=Opdaterer interne links…
 [importer.bear.reason-unknown-type]
 original=unknown type of file
 translation=Ukendt filtype
+
+[importer.bear.reason-encrypted]
+original=Encrypted note
+translation=
 
 [importer.csv.name]
 original=CSV

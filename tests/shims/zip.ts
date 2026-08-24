@@ -1,4 +1,4 @@
-import { BlobReader, BlobWriter, TextReader, ZipReader, ZipWriter } from '@zip.js/zip.js';
+import { BlobReader, BlobWriter, TextReader, Uint8ArrayReader, ZipReader, ZipWriter } from '@zip.js/zip.js';
 
 import { PickedFile } from '../../src/filesystem';
 
@@ -36,10 +36,13 @@ export class SourceZip implements PickedFile {
 	}
 }
 
-export async function zipOf(entries: Record<string, string>, name = 'Export.zip'): Promise<SourceZip> {
+export async function zipOf(entries: Record<string, string | ArrayBuffer | Uint8Array>, name = 'Export.zip'): Promise<SourceZip> {
 	const writer = new ZipWriter(new BlobWriter('application/zip'));
 	for (const [path, content] of Object.entries(entries)) {
-		await writer.add(path, new TextReader(content));
+		const reader = typeof content === 'string'
+			? new TextReader(content)
+			: new Uint8ArrayReader(content instanceof Uint8Array ? content : new Uint8Array(content));
+		await writer.add(path, reader);
 	}
 
 	return new SourceZip(name, await writer.close());

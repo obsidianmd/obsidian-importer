@@ -1,4 +1,4 @@
-import { path } from '../../filesystem';
+import { normalizePath } from 'obsidian';
 import { ILLEGAL_TAG_CHARS, sanitizeTag } from '../../util';
 
 // Separators are allowed only inside tags.
@@ -222,7 +222,7 @@ export async function convertBearNote(
 
 	for (const match of [...content.matchAll(ASSET_LINK)]) {
 		const [fullMatch, linkPath] = match;
-		const assetPath = path.join(parent, decodeURI(linkPath));
+		const assetPath = normalizePath(`${parent}/${decodeURI(linkPath)}`);
 
 		const replacementPath = encodeURI(await resolveAsset(assetPath));
 
