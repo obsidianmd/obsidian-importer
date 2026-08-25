@@ -10,6 +10,7 @@ import {
 	sourceVariableExpression,
 } from '../template';
 import { createBaseFile } from '../base';
+import { pickedFileTimes } from '../file-times';
 import { sanitizeFileName } from '../util';
 import { renderNoteTemplate } from '../note-template';
 
@@ -181,6 +182,7 @@ export class CSVImporter extends FormatImporter {
 		}
 
 		ctx.reportProgress(0, this.csvRows.length);
+		const times = this.files.length === 1 ? await pickedFileTimes(this.files[0]) : undefined;
 
 		for (let i = 0; i < this.csvRows.length; i++) {
 			if (await ctx.shouldStop()) return;
@@ -199,6 +201,7 @@ export class CSVImporter extends FormatImporter {
 
 				const targetFolder = await this.getTargetFolder(folder, location);
 				const { written } = await this.writeNote(ctx, targetFolder, title, '', {
+					...times,
 					templateVariables: row,
 				});
 				if (written) ctx.reportNoteSuccess(title);
