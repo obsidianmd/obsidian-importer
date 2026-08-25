@@ -27,8 +27,8 @@ importers:
         specifier: ^0.19.2
         version: 0.19.2
       knap:
-        specifier: ^0.2.1
-        version: 0.2.1
+        specifier: ^0.2.2
+        version: 0.2.2
       mathml-to-latex:
         specifier: ^1.5.0
         version: 1.5.0
@@ -1350,8 +1350,8 @@ packages:
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
 
-  knap@0.2.1:
-    resolution: {integrity: sha512-5Bd4lrgsMhPMe+Uv2EGMozoM6ne+/Q7DpN2eOCmRUuIba0Z6ktd/uUvzqsqd24hlLWoIc122ypXpmFtrw+35Qg==}
+  knap@0.2.2:
+    resolution: {integrity: sha512-qkkLi55+Z79KNrL81UD2Iox2vV02ofAE4xSx1qPP8I694CeRLpCExndM9L7KzazPT57wz80F8OzwqI9pzO244A==}
     engines: {node: '>=20'}
 
   levn@0.4.1:
@@ -3315,7 +3315,7 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  knap@0.2.1:
+  knap@0.2.2:
     dependencies:
       dayjs: 1.11.23
 

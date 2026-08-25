@@ -28,16 +28,6 @@ const markdownFilter: TemplateFilter<ImporterTemplateContext> = (value, param, f
 	);
 markdownFilter.metadata = {};
 
-const yamlFilter: TemplateFilter<ImporterTemplateContext> = value => {
-	const trimmed = value.trim();
-	if (/^(?:true|false|null)$/iu.test(trimmed)) return trimmed;
-	// Quote strings YAML would reinterpret, such as 007 or 1e5.
-	const number = Number(trimmed);
-	if (Number.isFinite(number) && String(number) === trimmed) return trimmed;
-	return JSON.stringify(value);
-};
-yamlFilter.metadata = {};
-
 const fragmentLinkFilter: TemplateFilter<ImporterTemplateContext> = (value, param, filterContext) => {
 	const combinedParam = [param, filterContext?.context?.sourceUrl].filter(Boolean).join(':');
 	return standardFilters.fragment_link(value, combinedParam, filterContext);
@@ -50,7 +40,6 @@ const engine = createEngine<ImporterTemplateContext>({
 		...htmlFilters,
 		markdown: markdownFilter,
 		fragment_link: fragmentLinkFilter,
-		yaml: yamlFilter,
 	},
 });
 
