@@ -355,6 +355,8 @@ export class NotionAPIImporter extends FormatImporter {
 	// The total grows as databases and page blocks reveal more pages.
 	private knownPages: Set<string> = new Set();
 	private finishedPages: number = 0;
+	// Last .base file written, opened once the import finishes
+	private lastBaseFilePath: string | null = null;
 	private picker: TreePicker<NotionTreeNode>;
 	private templatePreviewRead: NotionTemplatePreviewRead | null = null;
 
@@ -833,6 +835,7 @@ export class NotionAPIImporter extends FormatImporter {
 	}
 
 	async import(ctx: ImportContext): Promise<void> {
+		this.lastBaseFilePath = null;
 		this.writtenPaths.clear();
 		this.recoveredPaths.clear();
 		this.syncedChildPagesToReach.clear();
@@ -948,7 +951,10 @@ export class NotionAPIImporter extends FormatImporter {
 				await this.cleanupNotionIds(ctx);
 			}
 
-			if (!ctx.isCancelled()) ctx.status(i18n.importer.notionApi.statusDone());
+			if (!ctx.isCancelled()) {
+				ctx.status(i18n.importer.notionApi.statusDone());
+				await this.openLastBaseFile();
+			}
 
 		}
 		catch (error) {
@@ -956,6 +962,39 @@ export class NotionAPIImporter extends FormatImporter {
 			ctx.reportFailed(i18n.importer.notionApi.labelImport(), error);
 			new Notice(i18n.importer.notionApi.msgImportFailed({ error: extractErrorMessage(error) ?? '' }));
 		}
+	}
+
+	/**
+	 * Open the last .base file the import wrote.
+	 *
+	 * Best effort: a failure here has no bearing on whether the import
+	 * succeeded, so it is reported to the console and otherwise ignored.
+	 */
+	private async openLastBaseFile(): Promise<void> {
+		if (!this.lastBaseFilePath) return;
+
+		try {
+			const file = this.vault.getAbstractFileByPath(this.lastBaseFilePath);
+			if (file instanceof TFile) {
+				// New tab rather than the active one, so whatever the user had
+				// open is left where it was
+				await this.app.workspace.getLeaf(true).openFile(file);
+
+				// Opening a file does not move the navigation tree, so without this
+				// the import gives no indication of where in the vault it landed
+				this.revealInFileExplorer(file);
+			}
+		}
+		catch (error) {
+			console.error(`Failed to open base file: ${this.lastBaseFilePath}`, error);
+		}
+	}
+
+	private revealInFileExplorer(file: TFile): void {
+		const explorerView = this.app.workspace.getLeavesOfType('file-explorer').first()?.view as
+			{ revealInFolder?(file: TFile): void } | undefined;
+
+		explorerView?.revealInFolder?.(file);
 	}
 
 	/**
@@ -994,6 +1033,7 @@ export class NotionAPIImporter extends FormatImporter {
 					formulaStrategy: this.formulaStrategy,
 					processedDatabases: this.processedDatabases,
 					relationPlaceholders: this.relationPlaceholders,
+					onBaseFileWritten: path => this.lastBaseFilePath = path,
 					databasePropertyName: this.databasePropertyName,
 					importPageCallback: async (pageId, parentPath, databaseTag, customFileName, page, blocks) => {
 						await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName, page, blocks });
@@ -1183,6 +1223,7 @@ export class NotionAPIImporter extends FormatImporter {
 					formulaStrategy: this.formulaStrategy,
 					processedDatabases: this.processedDatabases,
 					relationPlaceholders: this.relationPlaceholders,
+					onBaseFileWritten: path => this.lastBaseFilePath = path,
 					databasePropertyName: this.databasePropertyName, // Add database property name for child databases
 					blocksCache, // Pass blocks cache for recursive block search
 					// Callback to import database pages
@@ -1524,6 +1565,7 @@ export class NotionAPIImporter extends FormatImporter {
 				formulaStrategy: this.formulaStrategy,
 				processedDatabases: this.processedDatabases,
 				relationPlaceholders: this.relationPlaceholders,
+				onBaseFileWritten: path => this.lastBaseFilePath = path,
 				importPageCallback: async (pageId, parentPath, databaseTag, customFileName, page, blocks) => {
 					await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName, page, blocks });
 				},

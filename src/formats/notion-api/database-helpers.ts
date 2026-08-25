@@ -213,6 +213,7 @@ export async function importDatabaseCore(
 		relationPlaceholders,
 		importPageCallback,
 		onPagesDiscovered,
+		onBaseFileWritten,
 		databasePropertyName = 'base'
 	} = context;
 
@@ -336,6 +337,7 @@ export async function importDatabaseCore(
 		formulaStrategy,
 		databasePropertyName
 	});
+	onBaseFileWritten?.(baseFilePath);
 
 	// Extract .base file name for database tag (e.g., "Database name.base")
 	const { basename: baseFileName } = parseFilePath(baseFilePath);

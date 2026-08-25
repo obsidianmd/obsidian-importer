@@ -967,7 +967,10 @@ export class ImporterFlow implements ImporterHost {
 			});
 		}
 
-		buttonsEl.createEl('button', { text: i18n.modal.buttonImportMore() }, el => {
+		buttonsEl.createEl('button', {
+			cls: 'importer-import-more-button',
+			text: i18n.modal.buttonImportMore(),
+		}, el => {
 			el.disabled = !enabled;
 			el.addEventListener('click', () => {
 				this.selectedId = state.importerId;

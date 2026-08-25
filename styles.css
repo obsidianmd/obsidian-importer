@@ -45,6 +45,10 @@ body.is-mobile .modal.mod-importer .modal-button-container {
   border-top: none;
 }
 
+body.is-phone .importer-import-more-button {
+  display: none;
+}
+
 body:not(.is-mobile) .modal.mod-settings .setting-page.importer-flow.has-button-bar {
   height: calc(100% - (var(--input-height) + var(--size-4-8)));
   padding-bottom: var(--size-4-4);
@@ -249,10 +253,8 @@ body.is-phone .modal.mod-settings .importer-button-bar {
   pointer-events: none;
 }
 
-/* Stacked, the buttons read down the screen, and stopping the import should
-   not be the one under the thumb. In a row it reads as it does anywhere else. */
 body.is-phone .importer-progress-buttons .mod-destructive {
-  order: -1;
+  order: 0;
 }
 
 /* In the card the progress row is in, under the divider that follows it. */
@@ -340,6 +342,11 @@ body.is-phone .importer-progress-buttons .mod-destructive {
 /* Separate the report action from the navigation actions. */
 .modal-button-container .importer-report-button {
   margin-inline-end: auto;
+}
+
+body.is-phone .modal-button-container .importer-report-button {
+  width: 100%;
+  margin-inline-end: 0;
 }
 
 /* Template configuration styles */

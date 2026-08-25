@@ -23,10 +23,11 @@ import * as nodePath from 'node:path';
 import { stringifyYaml } from 'obsidian';
 
 import { extractFrontMatter, extractPageTitle } from '../../src/formats/notion-api/api-helpers';
-import { DATABASE_PAGE_PREFETCH, importDatabasePages, processRelationProperties, replaceRelationValue, yamlScalar } from '../../src/formats/notion-api/database-helpers';
+import { DATABASE_PAGE_PREFETCH, importDatabaseCore, importDatabasePages, processRelationProperties, replaceRelationValue, yamlScalar } from '../../src/formats/notion-api/database-helpers';
 import { ImportContext } from '../../src/import-context';
 import type { RelationPlaceholder } from '../../src/formats/notion-api/types';
 import { expectFile, expectedFor, type Fixture } from '../helpers';
+import { MemoryVault, memoryApp } from '../shims/vault';
 
 const FIXTURE: Fixture = { name: 'example-database.json', path: nodePath.join(__dirname, 'example-database.json'), local: false };
 
@@ -40,6 +41,35 @@ interface DatabaseFixture {
 }
 
 const fixture = JSON.parse(nodeFs.readFileSync(FIXTURE.path, 'utf8')) as DatabaseFixture;
+
+test('reports a base as soon as it is written', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Notion');
+	const written: string[] = [];
+	const client = {
+		dataSources: {
+			retrieve: async () => ({ name: 'Roadmap', properties: {} }),
+			query: async () => ({ results: [], has_more: false, next_cursor: null }),
+			listTemplates: async () => ({ templates: [] }),
+		},
+	};
+
+	await importDatabaseCore('data-source-id', {
+		ctx: new ImportContext(),
+		currentPageFolderPath: 'Notion',
+		client: client as never,
+		vault: vault as never,
+		app: memoryApp(vault),
+		outputRootPath: 'Notion',
+		formulaStrategy: 'hybrid',
+		processedDatabases: new Map(),
+		relationPlaceholders: [],
+		importPageCallback: async () => assert.fail('an empty database has no pages to import'),
+		onBaseFileWritten: path => written.push(path),
+	}, true);
+
+	assert.deepEqual(written, ['Notion/Roadmap/Roadmap.base']);
+});
 
 test('database rows read a window ahead but import in order', async () => {
 	const total = DATABASE_PAGE_PREFETCH + 3;

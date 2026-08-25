@@ -118,7 +118,7 @@ export class AppleNotesImporter extends FormatImporter implements ANContext<TFil
 		this.noteTitleTemplate = DEFAULT_NOTE_TITLE_TEMPLATE;
 
 		if (!Platform.isMacOS || !Platform.isDesktop) {
-			this.addExportSetting(i18n.importer.appleNotes.msgPlatform());
+			this.addInstructions(this.addExportSetting(i18n.importer.appleNotes.msgPlatform()));
 
 			this.notAvailable = true;
 			return;

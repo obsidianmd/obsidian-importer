@@ -52,6 +52,7 @@ export interface DatabaseProcessingContext {
 		blocks?: Promise<BlockObjectResponse[]>,
 	) => Promise<void>;
 	onPagesDiscovered?: (pageIds: string[]) => void;
+	onBaseFileWritten?: (path: string) => void;
 	databasePropertyName?: string; // Property name for linking pages to their database .base file
 	blocksCache?: Map<string, BlockObjectResponse[]>; // Cache of fetched blocks for recursive search
 }
