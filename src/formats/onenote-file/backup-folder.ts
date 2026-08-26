@@ -1,4 +1,9 @@
-export type ListDirectory = (directory: string) => string[] | undefined;
+export interface BackupFolderEntry {
+	name: string;
+	isDirectory: boolean;
+}
+
+export type ListDirectory = (directory: string) => Promise<BackupFolderEntry[] | undefined>;
 
 export interface BackupFolderProbe {
 	root: string;
@@ -10,33 +15,40 @@ export interface BackupFolderProbe {
 const SECTION = /\.one$/i;
 const VERSION = /^\d+\.\d+$/;
 
-function holdsASection(directory: string, probe: BackupFolderProbe, depth: number): boolean {
-	const entries = probe.list(directory);
+async function holdsASection(directory: string, probe: BackupFolderProbe, depth: number): Promise<boolean> {
+	const entries = await probe.list(directory);
 	if (!entries) return false;
-	if (entries.some(entry => SECTION.test(entry))) return true;
+	if (entries.some(entry => !entry.isDirectory && SECTION.test(entry.name))) return true;
 	if (depth <= 0) return false;
 
-	return entries.some(entry => holdsASection(probe.join(directory, entry), probe, depth - 1));
+	for (const entry of entries) {
+		if (!entry.isDirectory) continue;
+		if (await holdsASection(probe.join(directory, entry.name), probe, depth - 1)) return true;
+	}
+
+	return false;
 }
 
-export function findBackupFolder(probe: BackupFolderProbe): string | undefined {
-	const versions = probe.list(probe.root);
+export async function findBackupFolder(probe: BackupFolderProbe): Promise<string | undefined> {
+	const versions = await probe.list(probe.root);
 	if (!versions) return undefined;
 
 	const ordered = versions
-		.filter(entry => VERSION.test(entry))
+		.filter(entry => entry.isDirectory && VERSION.test(entry.name))
+		.map(entry => entry.name)
 		.sort((left, right) => parseFloat(right) - parseFloat(left));
 
 	const maxDepth = probe.maxDepth ?? 2;
 
 	for (const version of ordered) {
 		const versionFolder = probe.join(probe.root, version);
-		const candidates = probe.list(versionFolder);
+		const candidates = await probe.list(versionFolder);
 		if (!candidates) continue;
 
 		for (const candidate of candidates) {
-			const folder = probe.join(versionFolder, candidate);
-			if (holdsASection(folder, probe, maxDepth)) return folder;
+			if (!candidate.isDirectory) continue;
+			const folder = probe.join(versionFolder, candidate.name);
+			if (await holdsASection(folder, probe, maxDepth)) return folder;
 		}
 	}
 

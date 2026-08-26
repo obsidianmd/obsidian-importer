@@ -1,5 +1,5 @@
 import { Notice, Platform, TFile, TFolder, normalizePath } from 'obsidian';
-import { PickedFile, fs, os, parseFilePath, path as nodePath } from '../filesystem';
+import { PickedFile, fs, fsPromises, os, parseFilePath, path as nodePath } from '../filesystem';
 import { FormatImporter, leavesTheNoteAlone, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
@@ -37,13 +37,20 @@ export class OneNoteFileImporter extends FormatImporter {
 	init(): void {
 		this.addInstructions(this.addExportSetting(i18n.importer.onenoteFile.descExport()));
 
-		const backup = windowsBackupFolder();
+		// Use the OneNote root immediately; finding its localized backup folder
+		// continues in the background and must not hold up this screen.
+		let backup = windowsBackupRoot();
+		if (backup) {
+			void windowsBackupFolder(backup).then(discovered => {
+				if (discovered) backup = discovered;
+			}).catch(error => console.warn('Could not find the OneNote backup folder', error));
+		}
 		this.addFileChooserSetting(
 			i18n.importer.onenoteFile.fileType(),
 			OneNoteFileImporter.extensions,
 			true,
 			backup ? i18n.importer.onenoteFile.descBackupFolder() : undefined,
-			backup);
+			() => backup);
 		this.defaultOutputFolder = 'OneNote';
 		this.idProperty = 'onenote-id';
 		this.idLabel = i18n.importer.onenoteFile.labelId();
@@ -359,15 +366,20 @@ export class OneNoteFileImporter extends FormatImporter {
 	}
 }
 
-function windowsBackupFolder(): string | undefined {
-	if (!Platform.isWin || !Platform.isDesktopApp || !fs || !nodePath || !os) return undefined;
+function windowsBackupRoot(): string | undefined {
+	if (!Platform.isWin || !Platform.isDesktopApp || !fs || !fsPromises || !nodePath || !os) return undefined;
+	const root = nodePath.join(os.homedir(), 'AppData', 'Local', 'Microsoft', 'OneNote');
+	return fs.existsSync(root) ? root : undefined;
+}
 
+async function windowsBackupFolder(root: string): Promise<string | undefined> {
 	return findBackupFolder({
-		root: nodePath.join(os.homedir(), 'AppData', 'Local', 'Microsoft', 'OneNote'),
+		root,
 		join: (...parts: string[]) => nodePath.join(...parts),
-		list: directory => {
+		list: async directory => {
 			try {
-				return fs.readdirSync(directory);
+				const entries = await fsPromises.readdir(directory, { withFileTypes: true });
+				return entries.map(entry => ({ name: entry.name, isDirectory: entry.isDirectory() }));
 			}
 			catch {
 				return undefined;

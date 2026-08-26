@@ -850,7 +850,13 @@ export abstract class FormatImporter {
 		})();
 	}, 1000, true);
 
-	addFileChooserSetting(name: string, extensions: string[], allowMultiple: boolean = false, description?: string, defaultPath?: string) {
+	addFileChooserSetting(
+		name: string,
+		extensions: string[],
+		allowMultiple: boolean = false,
+		description?: string,
+		defaultPath?: string | (() => string | undefined),
+	) {
 		// Headless importers still need their accepted file types.
 		this.acceptedExtensions = extensions;
 		this.acceptsMultiple = allowMultiple;
@@ -866,6 +872,7 @@ export abstract class FormatImporter {
 		const canChooseFolders = Platform.isDesktopApp
 			|| canChooseAndroidFolder
 			|| (!Platform.isAndroidApp && !!win && 'webkitdirectory' in win.HTMLInputElement.prototype);
+		const currentDefaultPath = () => typeof defaultPath === 'function' ? defaultPath() : defaultPath;
 
 		const chooseFiles = async () => {
 			if (Platform.isDesktopApp) {
@@ -875,7 +882,7 @@ export abstract class FormatImporter {
 				const filePaths = this.chooseFrom({
 					title: i18n.source.dialogPickFiles(), properties,
 					filters: [{ name, extensions }],
-				}, defaultPath);
+				}, currentDefaultPath());
 
 				if (filePaths.length > 0) {
 					void addChosen(filePaths.map((filepath: string) => new NodePickedFile(filepath)));
@@ -953,7 +960,7 @@ export abstract class FormatImporter {
 			const filePaths = this.chooseFrom({
 				title: i18n.source.dialogPickFolders(),
 				properties: ['openDirectory', 'multiSelections', 'dontAddToRecent'],
-			}, defaultPath);
+			}, currentDefaultPath());
 
 			if (filePaths.length === 0) return;
 
