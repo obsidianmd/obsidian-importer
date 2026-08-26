@@ -1,6 +1,4 @@
-![Obsidian Importer screenshot](/images/social.png)
-
-This Obsidian plugin allows you to import notes from other apps and file formats into your Obsidian vault. Notes are converted to plain text Markdown files.
+This Obsidian plugin helps you import notes from other apps and file formats into your Obsidian vault. Notes are converted to plain text Markdown files.
 
 ## Get started
 
@@ -11,20 +9,28 @@ Import guides are hosted on the [official Obsidian Help site](https://obsidian.m
 - [Import from Airtable](https://obsidian.md/help/import/airtable)
 - [Import from Apple Journal](https://obsidian.md/help/import/apple-journal)
 - [Import from Apple Notes](https://obsidian.md/help/import/apple-notes)
-- [Import from Bear](https://obsidian.md/help/import/bear)
-- [Import from CSV files](https://obsidian.md/help/import/csv)
+- [Import from Bear](https://obsidian.md/help/import/bear) (.bear2bk)
+- [Import from CSV files](https://obsidian.md/help/import/csv) (.csv)
 - [Import from Evernote](https://obsidian.md/help/import/evernote)
 - [Import from Google Keep](https://obsidian.md/help/import/google-keep)
+- [Import from HTML files](https://obsidian.md/help/import/html)
 - [Import from Microsoft OneNote](https://obsidian.md/help/import/onenote)
 - [Import from Notion](https://obsidian.md/help/import/notion)
 - [Import from Roam Research](https://obsidian.md/help/import/roam)
 - [Import from Logseq](https://obsidian.md/help/import/logseq)
-- [Import from HTML files](https://obsidian.md/help/import/html)
-- [Import from Markdown files](https://obsidian.md/help/import/markdown)
+- [Import from Markdown files](https://obsidian.md/help/import/markdown) (.md, .txt)
 - [Import from Textbundle files](https://obsidian.md/help/import/textbundle) (.textbundle, .textpack)
 - [Import from Tomboy/Gnote](https://obsidian.md/help/import/tomboy) (.note)
 
 See [Import templates](https://obsidian.md/help/import/templates) for the shared template variables and the additional values provided by each importer.
+
+## Contributing
+
+Importer is a community-led project. You can explore pull requests and see the credits below for reference. The Obsidian team is not actively working on adding new import capabilities, but we welcome pull requests for new formats and improvements.
+
+Is a format missing? You can help! See our [Contribution guidelines](/CONTRIBUTING.md).
+
+Some issues have been [tagged with #bounty](https://github.com/obsidianmd/obsidian-importer/labels/bounty).
 
 ## Developers
 
@@ -43,12 +49,12 @@ OBSIDIAN_PATH='/Documents/MyVault/.obsidian/plugins'
 
 ### Tests
 
-Each importer is tested by converting a real file and comparing the result with an output recorded beside it:
+Each importer is tested by converting a real file and comparing the result with an expected output:
 
 ```
 tests/notion/notion-testspace.zip           a fixture
 tests/notion/expected/notion-testspace/…    what converting it produces
-tests/notion/local/                         gitignored, for a file that cannot be committed
+tests/notion/local/                         gitignored, for test files that won't be committed
 ```
 
 Run one importer's tests while working on it:
@@ -63,38 +69,8 @@ To record a new fixture's output, or update one after an intended change:
 UPDATE_EXPECTED=1 npm test -- notion
 ```
 
-That writes the output and then fails on purpose. Read what it wrote — `git diff` if it already existed — before committing it. A recording nobody reads is not a test.
+Debugging an issue someone reported? Drop their export in `tests/<importer>/local/`. It is gitignored, and so is the output, so you can work against a real file without committing it.
 
-Debugging an issue someone reported? Drop their export in `tests/<importer>/local/`. It is gitignored, and so is the output recorded next to it, so you can work against a real file without committing it.
-
-### Testing against a live API
-
-Airtable and Notion's API importers have no export file to use as a fixture, so their fixtures are saved API responses. Those go stale quietly, so each has a check that asks the real API whether its responses still have the shape the fixture assumes. They skip unless a token is set in `.env`:
-
-```
-AIRTABLE_TOKEN=pat...
-NOTION_TOKEN=ntn_...
-```
-
-These only read.
-
-### Testing against Obsidian itself
-
-`npm test` runs the conversions outside Obsidian, against a small stand-in for its API in `tests/shims/`. To check that stand-in still agrees with the app:
-
-```bash
-npm run e2e
-```
-
-This imports fixtures through the running app — its `htmlToMarkdown`, its vault, its link settings — and compares what lands in the vault with what `npm test` recorded. It needs the [Obsidian CLI](https://obsidian.md/help/cli) and a build of your working copy installed in the active vault. It writes one folder and deletes it afterwards.
-
-## Contributing
-
-Importer is a community-led project. You can explore pull requests and see the credits below for reference. The Obsidian team is not actively working on adding new import capabilities, but we welcome pull requests for new formats and improvements.
-
-Is a format missing? You can help! See our [Contribution guidelines](/CONTRIBUTING.md).
-
-Some issues have been [tagged with #bounty](https://github.com/obsidianmd/obsidian-importer/labels/bounty).
 
 ## Credits
 

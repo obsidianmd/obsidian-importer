@@ -4,300 +4,185 @@ Imports notes from other apps into an Obsidian vault.
 
 ## Project structure
 
-- `src/main.ts` — Plugin entry, and the modal an import is shown in
-- `src/importers.ts` — The registry: which formats there are, how they group, what each is called
-- `src/importer-flow.ts` — The screens of an import, and `ImporterShell`, what showing them takes
-- `src/importer-setting-tab.ts` — The same flow, shown in Settings
-- `src/progress-ui.ts` — `ImportProgressUI`: the progress screen an `ImportContext` drives
-- `src/format-importer.ts` — Base class every importer extends: file pickers, output folder, attachment paths
-- `src/list-properties.ts` — Final normalization for Obsidian's built-in list properties
-- `src/formats/<name>.ts` — One importer per format; the vault-facing half
-- `src/formats/<name>/` — The conversion, extracted so it runs without a vault (see below)
-- `src/filesystem.ts` — The only place node modules are reached, and the seam tests inject through
-- `src/encoding.ts` — What encoding a file is read in; every `readText` goes through it
-- `src/util.ts` — `parseHTML`, `sanitizeFileName`, `sanitizeTag`, `serializeFrontMatter`, `getUniqueFilePath`
-- `src/outline.ts`, `src/block-refs.ts`, `src/markdown.ts` — reusable outliner
-  primitives (see below)
-- `tests/shims/` — What a test needs to run importer code outside Obsidian: `obsidian.ts` (API), `dom.ts` (linkedom), `runtime.ts` (Obsidian's prototype extensions)
-- `tests/<importer>/` — Fixtures, with recorded output in `expected/`
+- `src/main.ts` — Plugin entry point and desktop import modal
+- `src/importers.ts` — Importer registry, groups, names, icons, and help links
+- `src/importer-flow.ts` — Shared import screens and the `ImporterShell` contract
+- `src/importer-setting-tab.ts` — Settings host for the shared flow
+- `src/progress-ui.ts` — `ImportProgressUI`, the progress screen driven by an `ImportContext`
+- `src/format-importer.ts` — Base importer: steps, file pickers, templates, output folders, duplicate handling, note writes, and attachments
+- `src/note-template.ts`, `src/note-template-configurator.ts` — Knap template rendering and configuration
+- `src/list-properties.ts` — Final normalization of Obsidian's built-in list properties
+- `src/formats/<name>.ts` — Vault-facing importer code
+- `src/formats/<name>/` — Conversion code split out so it can run without a vault, when the format has such a split
+- `src/filesystem.ts` — Shared filesystem and Node-module seam injected by tests
+- `src/encoding.ts` — Encoding detection used by every `PickedFile.readText()` implementation
+- `src/util.ts` — Shared parsing, sanitizing, frontmatter, and unique-path helpers
+- `src/outline.ts`, `src/block-refs.ts`, `src/markdown.ts` — Reusable outliner primitives described below
+- `tests/shims/` — Obsidian API, DOM, runtime-prototype, vault, picker, and zip substitutes used outside the app
+- `tests/<importer>/` — Fixtures, tests, and recorded output under `expected/`
 
 ## Build and test
 
-- `npm run build` — esbuild bundle to `main.js`
-- `npm test` — every test
-- `npm test -- notion` — one importer, for iterating; takes several names
-- `npm run typecheck` / `npm run lint:check` — both must pass
-- `npm run lint:review` — the config the Obsidian community review uses, which is stricter than ours
+- `npm run build` — Typecheck and create the production `main.js` bundle
+- `npm test` — Run every test
+- `npm test -- notion` — Run one importer suite; several suite names may be supplied
+- `npm run typecheck` and `npm run lint:check` — Both must pass
+- `npm run lint:review` — Run the stricter configuration used for Obsidian community-plugin review
 
-**`eslint-disable` does not work for the community review.** A finding has to be solved rather than suppressed.
+**`eslint-disable` does not suppress findings in the community review.** Resolve the finding instead.
 
-## Where the flow is shown
+## Import flow hosts
 
-`ImporterFlow` owns every screen and knows nothing about what surrounds it. A
-shell supplies the elements it draws into and answers what a window has an
-opinion about: the title, how deep the screen is, what Done does, and how to
-come back to an import the user has left.
+`ImporterFlow` owns the import screens and is independent of its surrounding window. An `ImporterShell` supplies its content and container elements, navigation chrome, focus behavior, button-bar placement, finish behavior, and a way to bring the flow forward.
 
-Two shells implement it. `ImporterModal` is the ribbon and the command on the
-desktop; on mobile both open the setting tab instead. Every screen in
-`ImporterSettingTab` is a page opened over the tab, and Settings puts the way
-back in each page's titlebar — on a phone that is where one is expected and
-all there is room for, so the tab sets `ownsBackButton` there and the flow
-draws none of its own. Anything larger gets Back in the bar beside Help, as
-the modal has. Either reaches `back()`: one step, to the screen behind.
+`ImporterModal` hosts the ribbon and command flow on desktop. On mobile, both entry points open `ImporterSettingTab`. Settings renders each screen beyond the format list as a `SettingPage`. On phones, Settings owns the title-bar back button, so `ownsBackButton` prevents the flow from drawing a second one; larger screens and the modal put Back beside Help.
 
-Which is why a screen says how deep it is. The format list is 0, the method
-picker 1, and a step counts on from there; the tab opens and closes pages
-until it has one for each. Only the screen the flow is on draws: pages
-beneath are covered, and one deep enough to have opened several at once
-leaves those it passed empty.
+Screen depth is the number of screens beyond the format list: the list is 0, a grouped method picker is 1, and importer steps continue from there. The Settings shell opens or closes pages until its stack matches that depth. A running import has no screen behind it, so Back leaves the flow and unwinds the page stack.
 
-A running import is the exception with nothing behind it. Its back leaves the
-flow altogether, and unwinds however many pages that takes.
+Each screen passes its action row to `adoptButtonBar`; the format list passes `null`. In Settings, the shell keeps the bar outside the scrolling, animated `SettingPage` and refills it in place so it neither scrolls away nor jumps during a page transform. The shell also toggles `has-button-bar` so the page's scrollbar ends above the bar. Do not replace that class with `:has()`; community-plugin CSS may not use `:has()`.
 
-A screen's buttons are a bar over the bottom. The screen makes the row and
-hands it to `adoptButtonBar`, which decides where it goes: the end of the
-modal's content, or, in Settings, the box the pages sit in. The list is the
-one screen that ends in nothing, and adopts `null`.
+An importer with a separate configuration screen overrides `configures`, which changes the last source step from Import to Continue. The run stays on the configuration page and redraws its `ImportProgressUI` there. Construct that UI in the configuration screen's container; otherwise its initial render flashes beneath the configuration before the run redraws it.
 
-A page cannot hold it. A page is the scroller, so a bar inside one scrolls
-away with the step; and a page carries a transform while it slides, which
-makes it the containing block for that while — so a bar answering to the box
-outside would jump to the page's own bottom mid-slide and back again. The tab
-therefore keeps one bar and refills it, rather than taking it out and putting
-it back per screen, which would leave it missing for the length of a slide.
+File-export importers begin with `addExportSetting`. If finding the export needs extra help, wrap that row with `addInstructions`. Connected importers begin with the credential, account, or folder they actually require rather than a redundant service-name row. Help appears on every screen and comes from the registry's single `helpPermalink`, exposed through `ImporterHost`.
 
-The page is still told it has one: `has-button-bar` is what shortens it, so
-its scrollbar ends where the bar begins. **Obsidian's CSS may not use
-`:has()`**, which is why the shell puts the class on rather than the
-stylesheet asking what is inside.
+Settings pages require Obsidian 1.13, which is why `manifest.json` declares `minAppVersion: 1.13.0`. The published `obsidian` package is still 1.12.3, so the missing 1.13 `SettingPage` APIs are declared in `src/augment.d.ts`.
 
-A format that configures itself on a screen of its own says so with
-`configures`, which decides whether the last step ends in Continue or in
-Import. That screen is a page over the step, and the run stays on it rather
-than closing it to draw one behind. Its context is built loose: an
-`ImportProgressUI` draws itself where it is made, and the run draws it again
-when it starts — made in the screen's own container it is the progress bar
-flashing up under the configuration.
+A host calls `flow.detach()` when its UI disappears and `flow.attach()` when it returns. Detaching leaves an active import running and reports progress through a notice; attaching redraws its saved screen. `flow.leave()` returns to the format list while preserving the background run in `awayFrom`. `flow.dispose()` permanently tears down the flow and cancels its work; closing the modal uses it.
 
-A format you export from starts its source step with `addExportSetting`: what
-to ask that app for. A format you connect to starts with the thing it connects
-with — a token, an account, a folder on disk — since a row naming the service
-and saying nothing else only repeats the title above it. The way to the
-format's documentation is Help, in the bar on every screen, in both shells; a
-format whose export takes some finding says so twice, and calls
-`addInstructions` on its export row as well. The permalink comes from the
-registry, through `ImporterHost`, so a format names its documentation once.
+`ImporterSettingTab.pageClosed()` defers its answer by one microtask so Settings can finish changing the page stack. It treats a single remaining stack change as Back and ignores wholesale page or tab teardown, preserving the flow for reopening.
 
-Settings pages are why the plugin asks for Obsidian 1.13. The published
-`obsidian` types are still 1.12, so `SettingPage` is declared in
-`src/augment.d.ts` rather than imported from types that have it.
+Leaving a running import makes the format list available, but imports remain serialized. Stopping is cooperative and the current run may write until its next checkpoint, so a second import waits for `importRun`. A background run that finishes updates `awayFrom` to its finished screen instead of drawing over the format list.
 
-A shell that goes away calls `flow.detach()`, and one that comes back calls
-`flow.attach()`. Between those an import keeps running with only the notice to
-report it, and the flow redraws the screen it was on — so the settings window
-can be closed mid-import and reopened onto the same progress, pages and all.
-`flow.leave()` is the other way out: the user walked back past a running
-import, so they get the format list and `awayFrom` remembers where the notice
-returns them to. Closing the modal calls `dispose()`, which cancels.
+## Conversion boundary
 
-Settings closing a whole stack of pages looks like a back button pressed
-several times, so `pageClosed` answers a beat later, and does nothing if the
-rest of the stack — or the tab — went with it. A teardown leaves the flow
-where it stood, which is what it is reopened on.
+Keep an importer split into two layers when practical:
 
-Leaving a running import puts the list back in reach, and Import with it, so
-one import can be asked for while another runs. Stopping is cooperative — the
-run ends at its next checkpoint, and writes until it does — so a second import
-waits on `importRun` first. An import walked out of finishes where it was
-left: `awayFrom` becomes the finished screen rather than drawing over the
-list.
+- **Conversion** — HTML, JSON, SQLite, or another source representation in; Markdown and metadata out. It has no vault, network, or undeclared settings. Unit tests drive this layer.
+- **Importer** — Selects files, talks to APIs, downloads attachments, resolves vault paths, and writes. It lives in `src/formats/<name>.ts`.
 
-## The conversion seam
+Pass anything the conversion needs from the vault as a callback. `src/formats/html/convert.ts` is the model: it accepts `resolveAttachment`, and the importer supplies a callback that enforces size limits and path checks.
 
-An importer is split in two:
+Extracting a conversion must be a **faithful move**. Do not combine behavioral improvements with the extraction; a refactor and behavior change in one commit cannot be reviewed independently.
 
-- **The conversion** — HTML, JSON or SQLite in, markdown out. No vault, no network, no settings it was not handed. This is what tests drive.
-- **The importer** — picks files, downloads attachments, asks the vault for a path, writes. Stays in `src/formats/<name>.ts`.
+## Templates and final Markdown
 
-Anything the conversion needs from the vault is passed in as a callback. `src/formats/html/convert.ts` is the pattern to copy: it takes `resolveAttachment`, and the importer supplies the one that enforces its size limits and path checks.
+Every note importer has a Markdown template preview step. Shared template behavior belongs in `src/note-template.ts`, `src/note-template-configurator.ts`, and `FormatImporter`; importer-specific variables and preview samples stay with the importer. Templates use Knap, with the shared Web Clipper-style filters plus Importer's Markdown and fragment-link behavior. Keep `docs/templates.md` synchronized with variables or behavior exposed to users.
 
-Extracting a conversion is a **faithful move** — copy the code, do not improve it on the way. A behaviour change and a refactor in one commit cannot be reviewed.
+`FormatImporter` applies the selected template and managed source-ID property before writing. Every Markdown note shown in preview or written through `FormatImporter` then passes through `normalizeListProperties`, which enforces list values for `tags`, `aliases`, and `cssclasses`. A conversion harness whose output changes at that final boundary must apply the normalization too, so its recording matches the note that reaches the vault.
+
+Duplicate handling is centralized in `planNote`, `preflightNote`, and `writePlannedNote`. Reuse them rather than implementing importer-specific path matching or overwrite behavior. In update mode, a source modification time allows locally edited notes to be preserved before conversion; without one, the rendered content is compared before writing.
 
 ## Importing an outliner
 
-Roam and Logseq are the same broad shape of problem, but their source models
-are different. Reuse the primitives that have the same contract; keep parsing
-and source-specific anchor rules in the format that owns them:
+Roam and Logseq have the same broad problem but different source models. Reuse primitives only when their contracts match; keep parsing and source-specific anchor rules with the format that owns them.
 
-- `src/outline.ts` — `OutlineNode` and `deOutline` for importers that already
-  receive a block tree, currently Roam. In an outliner everything is
-  a bullet, prose and headings included, so an import that keeps the outline is
-  a vault where every note is a list. Flattening asks what each block was being
-  used *as*. `anchorLines` lives here too: an anchor goes on the end of a block
-  of one line and on a line of its own for a block of several — appended to a
-  closing fence it is read as code. Logseq instead has to parse Markdown whose
-  continuation lines, physical indentation, and property lines are significant;
-  its parser and serializer live in `src/formats/logseq/de-outline.ts`.
-- `src/block-refs.ts` — `BlockIndex` for sources whose reference mentions and
-  definitions are available as separate graph records, currently Roam. One block names another by an id, and the
-  block it names can be on any page, so no note is finished until the graph has
-  been read. Where a block is and whether anything points at it are kept apart:
-  only the second decides whether an anchor is written, and `((a passing
-  thought))` reads as a reference in these formats while being nobody's id.
-  Logseq discovers `id::` definitions while rewriting Markdown and therefore
-  keeps its UUID-to-anchor conversion beside that parser in `block-ids.ts`.
-- `src/markdown.ts` — `outsideMarkdownCode`, `outsideMarkdownFences`, and
-  `markdownFenceLines`, shared by both importers. Character-level rewrites use
-  `outsideMarkdownCode`; line-oriented rewrites use `outsideMarkdownFences` so
-  inline code never divides one logical line. These sources document their own
-  markup as examples in code, and a conversion that rewrote those too would
-  mangle the page explaining the syntax.
+- `src/outline.ts` provides `OutlineNode`, `deOutline`, and `anchorLines` for importers that already receive a block tree, currently Roam. An outliner treats prose and headings as bullets, so flattening must infer what each block was used as. A one-line block keeps its anchor at the end; a multiline block puts the anchor on its own line so it cannot become part of a closing code fence. Logseq must preserve Markdown continuation lines, physical indentation, and property lines, so its parser and serializer live in `src/formats/logseq/de-outline.ts`.
+- `src/block-refs.ts` provides `BlockIndex` for sources, currently Roam, whose reference mentions and definitions arrive as separate graph records. A referenced block may be on any page, so the complete graph must be read before notes are finalized. Track where a block is separately from whether anything references it; only the latter determines whether to emit an anchor. `((a passing thought))` is a reference-shaped string, not necessarily a block ID. Logseq discovers `id::` definitions while rewriting Markdown, so its UUID-to-anchor logic stays beside that parser in `src/formats/logseq/block-ids.ts`.
+- `src/markdown.ts` provides `outsideMarkdownCode`, `outsideMarkdownFences`, and `markdownFenceLines` for both importers. Use `outsideMarkdownCode` for character-level rewrites and `outsideMarkdownFences` for line-oriented rewrites, where inline code must not split a logical line. Do not rewrite source syntax shown inside code examples.
 
-An importer handed a source tree can build shared `OutlineNode`s directly.
-A Markdown-backed outliner must preserve syntax and physical layout that the
-shared tree does not represent, so it may require a format-specific parser.
+An importer given a source tree can build shared `OutlineNode`s directly. A Markdown-backed outliner may need a format-specific parser because the shared tree does not represent all significant syntax and physical layout.
 
 ## Fixtures and recorded output
 
-Every importer is tested by converting a real file and comparing against a recorded output committed beside it.
+Importer tests convert real fixtures and compare them with committed output:
 
-Recordings describe the note that lands in the vault. Every Markdown note shown
-in preview or written by `FormatImporter` passes through
-`normalizeListProperties`; a conversion harness whose output is changed by that
-final step must apply it too, so its recording does not stop short of the write
-boundary.
-
-```
+```text
 tests/notion/Export-xyz.zip              fixture
-tests/notion/expected/Export-xyz/…       what converting it produces
-tests/notion/local/                      gitignored, for a file that cannot be committed
+tests/notion/expected/Export-xyz/…       recorded conversion output
+tests/notion/local/                      gitignored private fixtures
 ```
 
-To record or update:
+To create or update a recording:
 
 ```bash
 UPDATE_EXPECTED=1 npm test -- notion
 ```
 
-This writes the output and **fails on purpose**. Read what it wrote — `git diff` if it already existed — then re-run without the variable. A recording nobody reads is not a check; it just goes green.
-
-Without `UPDATE_EXPECTED`, output that differs from its recording is a failure. That is the point: a conversion change shows up as a diff you have to look at.
+This writes the output and **fails intentionally**. Read the new files or `git diff`, then rerun without `UPDATE_EXPECTED`. A recording that nobody reviews is not a useful check.
 
 ### Fixing a bug
 
-1. Add a fixture that reproduces it, as small as is useful and anonymised — replace real names, emails, account ids and tokens with placeholders. Organisations and product names can stay; how they convert is part of what is being checked.
-2. **Verify the fixture fails before the fix.** Record the expected output with the fix reverted, or check that the recording shows the wrong behaviour. A fixture that passes on both old and new code proves nothing.
-3. Apply the fix, re-record, and read the diff. Every changed line should be a line you meant to change.
+1. Add the smallest useful fixture that reproduces the bug. Anonymize real names, email addresses, account IDs, and tokens; organization and product names may remain when their conversion matters.
+2. **Verify that the fixture fails before the fix.** Record the old, incorrect behavior or otherwise prove the old code fails. A fixture that passes before and after the change proves nothing.
+3. Apply the fix, rerecord, and inspect every changed line.
 
 ### API-based importers
 
-Airtable, OneNote and Notion API have no export file to use as a fixture. The fixture is a saved API response instead, in the shape the endpoint returns, with a `_comment` naming the endpoint. See `tests/airtable/example-base.json`.
+API importers use saved endpoint responses as deterministic fixtures; include a `_comment` naming the endpoint when the fixture format allows it. Airtable and Notion API also have read-only live checks because saved responses can silently become stale. OneNote uses saved responses but currently has no live check.
 
-A saved response goes stale silently, so those importers also get a live check that asks the real API whether the shape still holds. It skips unless a token is set:
+Live checks skip unless their credentials are present in the uncommitted `.env`:
 
-```
-# .env, not committed
+```dotenv
 AIRTABLE_TOKEN=pat...
-AIRTABLE_BASE_ID=app...
+AIRTABLE_BASE_ID=app...       # optional
+NOTION_TOKEN=ntn_...
+NOTION_PAGE_ID=...            # optional
 ```
 
-See `tests/airtable/live.test.ts`. Live checks read; they never write.
+See `tests/airtable/live.test.ts` and `tests/notion-api/live.test.ts`. Live checks must never write.
 
-### The end-to-end check
+### End-to-end check
 
-`npm run e2e` imports fixtures through the running app - its `htmlToMarkdown`,
-its vault, its YAML - and compares what lands in the vault with what `npm test`
-recorded. It is what catches the shim drifting from the real thing; it found
-the YAML dialect differences the shim now matches.
+`npm run e2e` imports selected fixtures through the running app, including its real `htmlToMarkdown`, vault, and YAML behavior, then compares the notes with `npm test` recordings. This detects drift between `tests/shims/` and Obsidian.
 
-It needs the Obsidian CLI, the plugin enabled in the active vault, and a build
-of the current source deployed there. It writes one folder and deletes it after.
+The check requires the Obsidian CLI, the plugin enabled in the target vault, and the current source built and deployed there. It uses `E2E_VAULT` when set; otherwise it derives the vault from `OBSIDIAN_PATH`. It writes `_e2e-check` and trashes that folder after the run.
 
-Cases are limited to fixtures whose conversion does not depend on the vault: no
-attachment downloads, no links to other imported notes. Anything else differs
-for good reasons - a vault path, a link in the user's preferred form.
+E2E cases are limited to conversions whose output does not depend on vault-specific attachment placement or link preferences. Such cases differ from recordings for legitimate reasons.
 
-## Verifying against Obsidian itself
+## Verifying behavior in Obsidian
 
-`tests/shims/obsidian.ts` reimplements `htmlToMarkdown` (turndown) and `stringifyYaml` (the `yaml` package). They agree with the app on the fixtures here, and each rule in the shim was added to close a difference that was measured rather than guessed.
+`tests/shims/obsidian.ts` reimplements `htmlToMarkdown` with Turndown and `stringifyYaml` with `yaml`. Its rules match the fixtures because differences were measured against the app rather than guessed. When a recording depends on either API and the E2E suite does not cover the case, verify it in Obsidian:
 
-When a recording depends on one of them, check it against the real thing rather than assuming:
+1. Temporarily expose the API from `onload()` in `src/main.ts`, for example `(window as any).__probe = <API>`, run `npm run build`, and reload with `obsidian plugin:reload id=obsidian-importer`.
+2. Run it with `obsidian eval code="..."`; write complex results to a file with `require('fs')` and compare them with the shim.
+3. Remove the probe and rebuild.
 
-1. Add `(window as any).__probe = <the API>;` to `onload()` in `src/main.ts`, `npm run build`, then `obsidian plugin:reload id=obsidian-importer`.
-2. `obsidian eval code="..."` runs in the app. Write the result to a file with `require('fs')` and diff it against the shim's.
-3. Revert the probe and rebuild.
-
-`vault=<name>` targets a vault other than the focused one, but only as the **first** argument: `obsidian vault=Importer eval code="…"`. After the command it is ignored, and you get the focused vault instead — check `app.vault.getName()` if a result looks like it came from somewhere else.
+To target another vault, `vault=<name>` must be the **first** CLI argument: `obsidian vault=Importer eval code="…"`. In any other position it is ignored. Check `app.vault.getName()` when the result appears to come from the wrong vault.
 
 ## Localization
 
-Every string the plugin shows comes from `src/i18n/en.ts`, reached through a
-proxy that mirrors the shape of the table:
+All user-visible plugin text comes from `src/i18n/en.ts` through a proxy that mirrors the table:
 
 ```ts
 i18n.modal.buttonDone()
 i18n.progress.statusStandardizing({ current, total })
-i18n.nouns.fileWithCount({ count })          // the _plural key when count !== 1
-i18n.importer(`${id}.name`)                  // a key only known at runtime
+i18n.nouns.fileWithCount({ count })          // uses _plural when count !== 1
+i18n.importer(`${id}.name`)                  // runtime-only key
 ```
 
-Keys are camelCase in TypeScript and kebab-case in a translation file, so
-`msgPickFile` is `[common.msg-pick-file]`. `setLanguage()` is called once in
-`onload()` with Obsidian's `getLanguage()`; left alone the lookup answers in
-English, which is what a test wants.
+Keys are camelCase in TypeScript and kebab-case in locale files, so `msgPickFile` becomes `[common.msg-pick-file]`. `setLanguage()` is called once from `onload()` with Obsidian's `getLanguage()`; without that call, tests remain in English.
 
-`locale/en.txt` and `locale/*.txt` are in the obsidian-translations block
-format, and `src/i18n/locales.ts` is the bundled result. All three are
-generated:
+`locale/*.txt` uses the obsidian-translations block format, and `src/i18n/locales.ts` is the bundled translation table. Both are generated from `src/i18n/en.ts`:
 
 ```bash
-npm run locales          # after adding or changing a string in en.ts
-npm run locales -- check # what the test suite runs
+npm run locales          # regenerate after changing en.ts
+npm run locales -- check # check only; run by the test suite
 ```
 
-Adding a string means adding it to `en.ts` and regenerating; the tests fail
-otherwise. A translation is checked too: it must carry the same placeholders as
-its English, a plural form if the English has one, and the same whitespace at
-either end — a value ending in a space is what separates it from the link or
-name drawn beside it.
+Translations must preserve the English placeholders, provide a plural form when English has one, and preserve leading and trailing whitespace. Intentional trailing space may separate a translated fragment from a neighboring link or name.
 
-A number goes through `toLocaleString` in the chosen language, so a count reads
-`10 000` in French even when the machine underneath is set to English. Two
-strings that meet on screen each need their own key: interpolating an internal
-identifier (a block kind, an enum member) leaves English inside a translated
-sentence. Close that set with a union type and a `Record` keyed by it —
-`BlockContext` in `formats/notion-api/types.ts` — so a new member cannot compile
-until it has a label.
+Numbers are formatted with `toLocaleString` in the selected language. Adjacent UI fragments need separate keys; interpolating an internal identifier such as an enum member leaves English inside a translated sentence. Represent a closed label set with a union and keyed `Record`, as `BlockContext` does in `src/formats/notion-api/types.ts`, so a new member cannot compile without a label. A label inserted into a sentence must include any language-specific article it needs, because the surrounding sentence cannot infer grammatical gender.
 
-A label dropped into a sentence carries whatever article its language needs:
-French `du paragraphe` / `de la colonne`, because the sentence around it cannot
-know the gender of the noun arriving.
+Developer-only console messages, errors thrown by scripted `runImport`, and text written into imported notes do not belong in the translation table; their output must remain stable across UI languages.
 
-What stays out of the table: console messages, the errors the scripted
-`runImport` throws, and anything written into a note — a title, a folder name,
-a property. Those have to read the same whoever ran the import.
-
-`obsidianmd/ui/sentence-case-locale-module` lints `en.ts` the way
-`obsidianmd/ui/sentence-case` lints a `setName()` call. Both read their brands
-and exceptions from one object at the top of `eslint.config.mjs`.
+`obsidianmd/ui/sentence-case-locale-module` checks `src/i18n/en.ts`, and `obsidianmd/ui/sentence-case` checks direct UI calls such as `setName()`. Both use the shared brands and exceptions at the top of `eslint.config.mjs`.
 
 ## Rules
 
-- **Never reach for a node module directly.** Everything goes through `src/filesystem.ts`, which is what lets a conversion run in a test, and one day in a browser. `obsidianmd/no-nodejs-modules` flags it — a warning here, a finding in the community review.
-- **`requestUrl`, not `fetch`,** for anything the plugin downloads: it is not bound by CORS.
-- **Await every vault write.** An unawaited `create` or `modify` races the next read of the same file.
-- **A path built from user data is untrusted.** File names go through `sanitizeFileName`; a resolved `file:` URL is checked against the directory it is allowed to read.
-- **Report, don't throw.** A single bad note should be `ctx.reportFailed(...)`, leaving the rest of the import to finish.
-- **No new string literal on screen.** Text the user reads goes in `src/i18n/en.ts`, including the reason handed to `reportSkipped`/`reportFailed`.
+- **Keep runtime Node access behind an adapter.** Application code imports Node bindings from `src/filesystem.ts`, which tests replace and browser-capable paths avoid. `src/formats/apple-notes/sqlite/index.js` is the intentional adapter exception for its SQLite fallback. `obsidianmd/no-nodejs-modules` is a warning locally and a finding in community review.
+- **Use `requestUrl` for downloads by default.** It is not restricted by CORS. Native `fetch` is acceptable only when a required browser feature is missing from `requestUrl`; the abortable OneNote request is the existing example.
+- **Await every vault write.** An unawaited `create`, `modify`, or binary equivalent can race the next read of the same file.
+- **Treat paths built from user data as untrusted.** Pass filenames through `sanitizeFileName`, sanitize multi-segment paths, and verify a resolved `file:` URL remains inside the directory it may read.
+- **Report per-item failures instead of aborting the import.** Use `ctx.reportFailed(...)` for one bad note and continue. Throw only when the import as a whole cannot proceed.
+- **Do not add user-visible string literals.** Put UI text, including reasons passed to `reportSkipped` and `reportFailed`, in `src/i18n/en.ts` and regenerate locales.
 
 ## Common pitfalls
 
-- `Element.createEl` **appends**; the global `createEl` does not. Using the wrong one on a document root attaches nodes to the page.
-- `createEl` with a `null` attribute value omits the attribute; `undefined` writes the string `"undefined"`.
-- **Don't add an `id` property to a Modal subclass.** Obsidian assigns one, and a getter with no setter swallows the write and hangs the app on open. Name it something else (`importerId`).
-- **A field initialiser runs *after* `init()`.** `FormatImporter`'s constructor calls `init()`, and JavaScript runs a subclass's field initialisers after `super()` returns — so `private x: T | null = null` throws away whatever `init()` assigned to `x`, silently. Declare without an initialiser (`private x: T | null;`) for anything `init()` sets. It has caught three importers; the Notion API grew two workarounds around it — re-finding an element with `querySelector`, and capturing buttons in closures "to avoid constructor timing issues" — before the cause was named.
-- From `eval`, close a modal with an `Escape` keydown. Clicking `.modal-close-button` does not close it, and detaching `.modal-container` wedges the app.
-- linkedom has no `HTMLAudioElement`, `HTMLVideoElement` or `HTMLBRElement`, so check `tagName` rather than `instanceOf` in conversion code. It also does not specialise every tag it *does* have a constructor for — `p.instanceOf(HTMLParagraphElement)` is false under the shim while `img.instanceOf(HTMLImageElement)` is true. A missing constructor throws; an unspecialised one just returns false, so the predicate reads as working and the recording it produces looks green.
-- `htmlToMarkdown` on a whole document drops `head`; turndown does not, which is why the shim removes it explicitly.
-- Obsidian's markdown escapes nothing coming out of HTML, and percent-encodes spaces in link targets rather than wrapping them in `<>`.
+- `Element.createEl` appends to that element; the global `createEl` does not. Using the wrong one for a document root can attach nodes to the page.
+- A `null` attribute value passed to `createEl` omits the attribute; `undefined` writes the string `"undefined"`.
+- Do not add an `id` property to a `Modal` subclass. Obsidian assigns it, and a getter without a setter swallows the assignment and can hang the app when the modal opens. Use another name such as `importerId`.
+- `FormatImporter` calls the subclass's `init()` from its constructor, before subclass field initializers run. If `init()` assigns a field, declare it without an initializer; otherwise an initializer such as `private x: T | null = null` silently overwrites the value after `super()` returns.
+- From `obsidian eval`, close a modal by dispatching an Escape keydown. Clicking `.modal-close-button` does not close it, and detaching `.modal-container` wedges the app.
+- linkedom has no `HTMLAudioElement`, `HTMLVideoElement`, or `HTMLBRElement`, and it does not specialize every element for which it exposes a constructor. For example, `p instanceof HTMLParagraphElement` is false under the shim while `img instanceof HTMLImageElement` is true. Prefer `tagName` in conversion code; a missing constructor throws, while an unspecialized element merely makes `instanceof` return false and can hide a bad recording.
+- Obsidian's `htmlToMarkdown` drops `head` when given a whole document; Turndown alone does not, so the shim removes it explicitly.
+- Obsidian's HTML-to-Markdown conversion does not escape text and percent-encodes spaces in link targets instead of enclosing targets in angle brackets.
