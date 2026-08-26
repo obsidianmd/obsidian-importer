@@ -5,9 +5,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { extensionFromBytes } from '../../src/util';
+import { extensionFromBytes, extensionFromName } from '../../src/util';
 
 const bytes = (...values: number[]) => new Uint8Array(values);
+
+test('a filename extension cannot contain whitespace', () => {
+	assert.equal(extensionFromName('image.png'), 'png');
+	assert.equal(extensionFromName('archive.tar.gz'), 'gz');
+	assert.equal(extensionFromName('Version 1.2 image'), null);
+	assert.equal(extensionFromName('attachment'), null);
+});
 
 /** An ISO base media header, which is a length, "ftyp", and a brand. */
 function isoBrand(brand: string): Uint8Array {

@@ -256,6 +256,11 @@ export function extractErrorMessage(error: unknown): string | undefined {
 	return undefined;
 }
 
+/** A usable extension from a filename, without its leading dot. */
+export function extensionFromName(name: string | undefined): string | null {
+	return name?.match(/\.([^.\s\\/]+)$/)?.[1] ?? null;
+}
+
 export function extensionFromBytes(bytes: Uint8Array): string | null {
 	const magic = (offset: number, ...signature: number[]) =>
 		signature.every((byte, i) => bytes[offset + i] === byte);

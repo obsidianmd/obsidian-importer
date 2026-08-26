@@ -7,7 +7,7 @@ import { App, DataWriteOptions, normalizePath, RequestUrlResponse, requestUrl, T
 import { ImportContext } from '../../import-context';
 import { i18n } from '../../i18n';
 import { RichTextItemResponse } from '@notionhq/client';
-import { availableFileName, sanitizeFileName } from '../../util';
+import { availableFileName, extensionFromName, sanitizeFileName } from '../../util';
 import { splitext, parseFilePath } from '../../filesystem';
 import { extensionForMime } from '../../mime';
 import { backOffBeforeRetry } from './utils';
@@ -127,7 +127,9 @@ export async function downloadAttachment(
 
 	// Extract filename early for error reporting
 	// Priority: attachment.name > URL extraction > currentPageTitle > 'attachment'
-	let filename = attachment.name || (isDataUrl ? '' : extractFilenameFromUrl(attachment.url)) || currentPageTitle || 'attachment';
+	const sourceName = attachment.name || (isDataUrl ? '' : extractFilenameFromUrl(attachment.url));
+	const fromPageTitle = !sourceName && Boolean(currentPageTitle);
+	let filename = sourceName || currentPageTitle || 'attachment';
 	filename = sanitizeFileName(filename);
 
 	try {
@@ -139,7 +141,7 @@ export async function downloadAttachment(
 			const probed = await probeAttachmentSize(attachment.url, probe);
 
 			if (probed) {
-				const probedName = withInferredExtension(filename, probed.contentType);
+				const probedName = withInferredExtension(filename, probed.contentType, fromPageTitle);
 				const existingFile = attachmentAlreadyImported(
 					vault, await resolveTargetPath(context, probedName), probedName, probed.size
 				);
@@ -172,7 +174,7 @@ export async function downloadAttachment(
 			};
 		}
 
-		filename = withInferredExtension(filename, downloaded.contentType);
+		filename = withInferredExtension(filename, downloaded.contentType, fromPageTitle);
 		let targetFilePath = await resolveTargetPath(context, filename);
 
 		if (reuseExistingAttachments) {
@@ -259,12 +261,11 @@ async function probeAttachmentSize(url: string, probe: { answered: boolean }): P
 	};
 }
 
-function withInferredExtension(filename: string, contentType: string | undefined): string {
-	const [basename, extension] = splitext(filename);
-	if (extension || !contentType) return filename;
+function withInferredExtension(filename: string, contentType: string | undefined, fromPageTitle = false): string {
+	if ((!fromPageTitle && extensionFromName(filename)) || !contentType) return filename;
 
 	const inferred = extensionForMime(contentType);
-	return inferred ? `${basename}.${inferred}` : filename;
+	return inferred ? `${filename}.${inferred}` : filename;
 }
 
 async function resolveTargetPath(context: BlockConversionContext, filename: string): Promise<string> {

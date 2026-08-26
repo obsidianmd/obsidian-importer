@@ -5,7 +5,7 @@ import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { selectedNodes } from '../tree';
 import { TreePicker, ViewableNode } from '../tree-view';
-import { describeReason, extensionFromBytes, sanitizeFileName, uint8arrayToArrayBuffer } from '../util';
+import { describeReason, extensionFromBytes, extensionFromName, sanitizeFileName, uint8arrayToArrayBuffer } from '../util';
 import { findBackupFolder } from './onenote-file/backup-folder';
 import { convertPage } from './onenote-file/convert';
 import { OneNoteErrorKind, OneNoteFormatError } from './onenote-file/errors';
@@ -346,7 +346,7 @@ export class OneNoteFileImporter extends FormatImporter {
 	private async saveAttachment(ctx: ImportContext, bytes: Uint8Array, suggested: string, notePath: string) {
 		const data = uint8arrayToArrayBuffer(bytes as Uint8Array<ArrayBuffer>);
 
-		if (!/\.[^.\\/]+$/.test(suggested)) {
+		if (!extensionFromName(suggested)) {
 			const sniffed = extensionFromBytes(bytes);
 			if (sniffed) suggested = `${suggested}.${sniffed}`;
 		}

@@ -1,4 +1,5 @@
 import { SvgStroke, strokesToSvg } from '../onenote/ink-svg';
+import { extensionFromName } from '../../util';
 import { Element, Image, Ink, ListInfo, Page, Paragraph, Table, Tag, TextRun } from './semantic/content';
 
 /** Converts half-inch ink units to CSS pixels at 96 DPI. */
@@ -205,14 +206,10 @@ interface Block {
 	callout?: string;
 }
 
-function extensionOf(fileName: string | undefined): string | undefined {
-	return fileName?.match(/\.[^.\\/]+$/)?.[0];
-}
-
 /** An attachment without an extension is one the vault cannot open. */
 function withExtension(base: string, extension: string | undefined): string {
 	if (!extension) return base;
-	if (extensionOf(base)) return base;
+	if (extensionFromName(base)) return base;
 	return base + (extension.startsWith('.') ? extension : `.${extension}`);
 }
 
@@ -357,7 +354,7 @@ class PageWriter {
 	}
 
 	private imageName(image: Image): string {
-		return withExtension(`${this.pageTitle} image`, image.extension ?? extensionOf(image.fileName));
+		return withExtension(`${this.pageTitle} image`, image.extension ?? extensionFromName(image.fileName) ?? undefined);
 	}
 
 	private async writeAsset(data: Uint8Array | undefined, name: string, label: string, embed: boolean): Promise<void> {

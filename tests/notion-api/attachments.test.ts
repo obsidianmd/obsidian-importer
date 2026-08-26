@@ -76,6 +76,18 @@ test('the extension comes from the media type when the name has none', async () 
 	assert.equal(written[0].path, 'Attachments/A page with an inline image.gif');
 });
 
+test('a dot in the fallback page title is not mistaken for an attachment extension', async () => {
+	const written: Written[] = [];
+
+	const result = await downloadAttachment(
+		{ type: 'external', url: `data:image/gif;base64,${GIF_BASE64}` },
+		context(written, { currentPageTitle: 'Version 1.2' })
+	);
+
+	assert.equal(result.filename, 'Version 1.2.gif');
+	assert.equal(written[0].path, 'Attachments/Version 1.2.gif');
+});
+
 test('a percent-encoded data URL is decoded too', async () => {
 	const written: Written[] = [];
 

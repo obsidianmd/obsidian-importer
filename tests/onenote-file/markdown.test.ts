@@ -453,3 +453,13 @@ test('an attachment is named for the note, not the page title it came from', asy
 
 	assert.equal(converted.attachments[0].name, '10-18 image.png');
 });
+
+test('a dot in the note name is not mistaken for an image extension', async () => {
+	const converted = await convertPage(page({ kind: 'image', extension: '.png', data: new Uint8Array([1]) }), {
+		noteName: 'Version 1.2',
+		saveAttachment: async (_bytes, name) => ({ path: name, name }),
+	});
+
+	assert.equal(converted.markdown, '![](Version%201.2%20image.png)');
+	assert.equal(converted.attachments[0].name, 'Version 1.2 image.png');
+});
