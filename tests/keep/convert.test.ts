@@ -12,6 +12,7 @@
  * items - so the recorded notes are flat, which is a faithful conversion
  * rather than a lost level.
  */
+import '../shims/dom';
 import '../shims/runtime';
 
 import { test } from 'node:test';
@@ -21,12 +22,17 @@ import * as nodePath from 'node:path';
 
 import { convertKeepNote, formatAnnotations, keepTemplateVariables } from '../../src/formats/keep/convert';
 import { hasValidKeepTimestamps, KeepJson } from '../../src/formats/keep/models';
+import { sanitizeTags } from '../../src/formats/keep/util';
 import { sanitizeFileName } from '../../src/util';
 import { expectedFor, expectFile, fixtures } from '../helpers';
 
 const NOTES = nodePath.join(__dirname, 'notes');
 
 const notes = fixtures(NOTES, '.json');
+
+function formatKeepText(keepJson: KeepJson): string {
+	return convertKeepNote(keepJson, 'note').content.replace(/^\n/, '');
+}
 
 test('there are fixtures to convert', () => {
 	assert.ok(notes.length > 0, 'expected at least one .json in tests/keep/notes');
@@ -142,4 +148,187 @@ test('preserves Keep line breaks when the vault uses strict Markdown line breaks
 	} as KeepJson, 'note', true);
 
 	assert.ok(content.endsWith('\nfirst  \nsecond  \n  \nthird'));
+});
+
+test('does not add strict line-break spaces inside fenced code', () => {
+	const { content } = convertKeepNote({
+		textContentHtml: '<pre><code>const a = 1;\nconst b = 2;</code></pre>',
+		createdTimestampUsec: 0,
+		userEditedTimestampUsec: 0,
+	}, 'note', true);
+
+	assert.ok(content.endsWith('\n```\nconst a = 1;\nconst b = 2;\n```'));
+});
+
+test('only normalizes hashtags that match labels exported with the note', () => {
+	const text = [
+		'#label with spaces and (#label.with.symbols), **#label.with.symbols**',
+		'https://example.com/page#fragment https://example.com/#label.with.symbols issue#658 #ordinary:',
+		'#label.with.symbols',
+	].join('\n');
+
+	assert.equal(sanitizeTags(text, ['label with spaces', 'label.with.symbols']), [
+		'#label-with-spaces and (#labelwithsymbols), **#labelwithsymbols**',
+		'https://example.com/page#fragment https://example.com/#label.with.symbols issue#658 #ordinary:',
+		'#labelwithsymbols',
+	].join('\n'));
+});
+
+test('converts Keep rich-text HTML formatting to Markdown', () => {
+	const formatted = formatKeepText({
+		textContent: 'Bold, italic, underlined, and struck.',
+		textContentHtml: [
+			'<h1>Heading</h1>',
+			'<p>',
+			'<span style="font-weight:700">Bold</span>, ',
+			'<span style="font-style:italic">italic</span>, ',
+			'<span style="text-decoration:underline">underlined</span>, and ',
+			'<span style="text-decoration:line-through">struck</span>.',
+			'</p>',
+		].join(''),
+		createdTimestampUsec: 1,
+		userEditedTimestampUsec: 1,
+	});
+
+	assert.equal(formatted, [
+		'# Heading',
+		'',
+		'**Bold**, _italic_, <u>underlined</u>, and ~~struck~~.',
+	].join('\n'));
+});
+
+test('prefers rich-text HTML while keeping plain text as a fallback', () => {
+	const timestamps = { createdTimestampUsec: 1, userEditedTimestampUsec: 1 };
+	assert.equal(formatKeepText({ ...timestamps, textContent: 'plain' }), 'plain');
+
+	const { content } = convertKeepNote({
+		...timestamps,
+		textContent: 'plain',
+		textContentHtml: '<p><strong>formatted</strong></p>',
+	}, 'note');
+	assert.ok(content.endsWith('\n**formatted**'));
+});
+
+test('does not let an empty plain-text field hide an HTML body', () => {
+	assert.equal(formatKeepText({
+		textContent: '',
+		textContentHtml: '<p>real body</p>',
+		createdTimestampUsec: 1,
+		userEditedTimestampUsec: 1,
+	}), 'real body');
+});
+
+test('falls back to plain text when formatted HTML contains no body', () => {
+	assert.equal(formatKeepText({
+		textContent: 'fallback body',
+		textContentHtml: '<p><strong></strong></p>',
+		createdTimestampUsec: 1,
+		userEditedTimestampUsec: 1,
+	}), 'fallback body');
+});
+
+test('does not duplicate semantic or inherited rich-text formatting', () => {
+	const formatted = formatKeepText({
+		textContentHtml: [
+			'<h1 style="font-weight:700">Heading</h1>',
+			'<p><b style="font-weight:bold">bold</b> ',
+			'<i style="font-style:italic">italic</i> ',
+			'<s style="text-decoration:line-through">struck</s></p>',
+			'<p><span style="font-weight:700">a<span style="font-weight:700">b</span></span></p>',
+		].join(''),
+		createdTimestampUsec: 1,
+		userEditedTimestampUsec: 1,
+	});
+
+	assert.equal(formatted, [
+		'# Heading',
+		'',
+		'**bold** _italic_ ~~struck~~',
+		'',
+		'**ab**',
+	].join('\n'));
+});
+
+test('uses rich HTML when it preserves structures absent from plain text', () => {
+	assert.equal(formatKeepText({
+		textContent: 'Quote\nExample',
+		textContentHtml: '<blockquote>Quote</blockquote><p><a href="https://example.com">Example</a></p>',
+		createdTimestampUsec: 1,
+		userEditedTimestampUsec: 1,
+	}), '> Quote\n\n[Example](https://example.com)');
+});
+
+test('keeps bare Keep autolinks as plain URLs while preserving named links', () => {
+	assert.equal(formatKeepText({
+		textContent: 'Recipe https://example.com/soup',
+		textContentHtml: '<p>Recipe <a href="https://example.com/soup">https://example.com/soup</a></p>',
+		createdTimestampUsec: 1,
+		userEditedTimestampUsec: 1,
+	}), 'Recipe https://example.com/soup');
+
+	assert.equal(formatKeepText({
+		textContent: 'Recipe',
+		textContentHtml: '<p><a href="https://example.com/soup">Recipe</a></p>',
+		createdTimestampUsec: 1,
+		userEditedTimestampUsec: 1,
+	}), '[Recipe](https://example.com/soup)');
+});
+
+test('converts rich text in Keep checklist items', () => {
+	const { content } = convertKeepNote({
+		listContent: [
+			{ textHtml: '<p><span style="font-weight:700">rich item</span></p>', isChecked: false },
+			{ text: 'plain item', isChecked: true },
+		],
+		createdTimestampUsec: 1,
+		userEditedTimestampUsec: 1,
+	}, 'note');
+
+	assert.ok(content.endsWith('\n\n- [ ] **rich item**\n- [X] plain item'));
+});
+
+test('keeps every rich-text checklist block inside its item', () => {
+	const { content } = convertKeepNote({
+		listContent: [{
+			textHtml: [
+				'<p><b>first</b></p>',
+				'<h1><span style="font-weight:700">second</span></h1>',
+				'<h2>third</h2>',
+			].join(''),
+			isChecked: false,
+		}],
+		createdTimestampUsec: 1,
+		userEditedTimestampUsec: 1,
+	}, 'note');
+
+	assert.ok(content.endsWith('\n\n- [ ] **first**<br>**second**<br>third'));
+});
+
+test('preserves literal hash-prefixed text in rich checklist items', () => {
+	const { content } = convertKeepNote({
+		listContent: [{
+			textHtml: '<p># not a heading</p>',
+			isChecked: false,
+		}],
+		createdTimestampUsec: 1,
+		userEditedTimestampUsec: 1,
+	}, 'note');
+
+	assert.ok(content.endsWith('\n\n- [ ] # not a heading'));
+});
+
+test('styled void elements do not add empty formatting markers', () => {
+	assert.equal(formatKeepText({
+		textContentHtml: '<p><img src="image.png" style="font-weight:700"></p>',
+		createdTimestampUsec: 1,
+		userEditedTimestampUsec: 1,
+	}), '![](image.png)');
+});
+
+test('preserves semantic underline from Keep rich text', () => {
+	assert.equal(formatKeepText({
+		textContentHtml: '<p><u>underlined</u></p>',
+		createdTimestampUsec: 1,
+		userEditedTimestampUsec: 1,
+	}), '<u>underlined</u>');
 });

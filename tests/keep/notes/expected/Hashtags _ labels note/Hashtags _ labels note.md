@@ -19,7 +19,7 @@ When the user types a hash symbol into the note in Google Keep, they are present
 Because labels can have any character in Keep, this process can end up with broken hashtags like below. The labels like this look fine, but used in the body
 
 Works in in Keep notes body:
-#hyphenated-label #camelCaseLabel #_92labelStartingWithNumber #LabelWith#Inside 
+#hyphenated-label #camelCaseLabel #_92labelStartingWithNumber #LabelWithInside 
 
 Doesn't work in Keep notes body:
-#LabelStartingWithSymbols #label with spaces #labelWithSymbols #label with !'@:$" Symbols and spaces
+#LabelStartingWithSymbols #label-with-spaces #labelWithSymbols #label-with--Symbols-and-spaces

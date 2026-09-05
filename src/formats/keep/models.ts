@@ -1,5 +1,6 @@
 export interface KeepListItem {
-	text: string;
+	text?: string;
+	textHtml?: string;
 	isChecked: boolean;
 }
 
@@ -39,6 +40,7 @@ export interface KeepJson {
 	//
 	title?: string;
 	textContent?: string;
+	textContentHtml?: string;
 	listContent?: KeepListItem[];
 	attachments?: KeepAttachment[];
 	//

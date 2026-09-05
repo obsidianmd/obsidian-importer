@@ -5,6 +5,7 @@ import { ATTACHMENT_EXTS } from '../constants';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { readZip, ZipEntryFile } from '../zip';
+import { sameBytes } from '../util';
 import { hasValidKeepTimestamps, KeepJson } from './keep/models';
 import { convertKeepNote, keepTemplateVariables } from './keep/convert';
 
@@ -27,7 +28,6 @@ export class KeepImporter extends FormatImporter {
 	importArchived: boolean = false;
 	importTrashed: boolean = false;
 	private attachmentPaths = new Map<string, string>();
-	private claimedAttachmentPaths: string[] = [];
 
 	init() {
 		this.addExportSetting(i18n.importer.keep.descExport())
@@ -64,6 +64,7 @@ export class KeepImporter extends FormatImporter {
 
 	async import(ctx: ImportContext): Promise<void> {
 		let { files } = this;
+		this.attachmentPaths.clear();
 
 		if (files.length === 0) {
 			new Notice(i18n.common.msgPickFile());
@@ -197,11 +198,21 @@ export class KeepImporter extends FormatImporter {
 	async importAttachment(file: PickedFile, folder: TFolder, ctx: ImportContext): Promise<void> {
 		ctx.status(i18n.common.statusImportingAttachment({ name: file.name }));
 		const notePath = `${folder.path}/Keep.md`;
-		const outputPath = await this.getAvailablePathForAttachment(file.name, this.claimedAttachmentPaths, notePath);
-		this.claimedAttachmentPaths.push(outputPath);
-		await this.vault.createBinary(outputPath, await file.read());
+		const data = await file.read();
+		const { path: outputPath, reuse } = await this.placeAttachment(file.name, notePath, async existing => {
+			if (existing.stat.size !== data.byteLength) return 'another';
+
+			return sameBytes(await this.vault.readBinary(existing), data) ? 'same' : 'another';
+		});
+
 		this.attachmentPaths.set(file.name, outputPath);
 		this.attachmentPaths.set(file.fullpath, outputPath);
+		if (reuse) {
+			ctx.reportSkipped(file.fullpath, i18n.reason.alreadyInVault());
+			return;
+		}
+
+		await this.writeAttachment(outputPath, data);
 		ctx.reportAttachmentSuccess(file.fullpath);
 	}
 
