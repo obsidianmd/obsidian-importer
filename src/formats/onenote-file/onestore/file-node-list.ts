@@ -57,6 +57,7 @@ export function readFileNodeList(
 	let current = firstFragment;
 	let listId: number | undefined;
 	let committedNodeCount = 0;
+	let countedNodes = 0;
 	let expectedSequence = 0;
 	let fragmentCount = 0;
 
@@ -111,7 +112,7 @@ export function readFileNodeList(
 		listId = currentListId;
 		fragmentCount++;
 
-		const remainingNodes = committedNodeCount - nodes.length;
+		const remainingNodes = committedNodeCount - countedNodes;
 		if (remainingNodes <= 0) break;
 
 		const fragmentNodes = readNodes(
@@ -127,17 +128,23 @@ export function readFileNodeList(
 		if (nodes.length > options.maxFileNodes - fragmentNodes.length) {
 			throw new OneNoteFormatError('ONENOTE_FILE_NODE_LIMIT', 'The file-node limit was exceeded.', current.offset);
 		}
-		for (const node of fragmentNodes) nodes.push(node);
+		for (const node of fragmentNodes) {
+			nodes.push(node);
+			// A chunk terminator closes its fragment rather than carrying content, so
+			// the transaction log does not count it. Spending a committed node on one
+			// silently drops the tail of a list that continues into a later fragment.
+			if (node.id !== FileNodeId.chunkTerminator) countedNodes++;
+		}
 
 		current = readFragmentReference(data, data.length - FRAGMENT_TRAILER_LENGTH);
 		expectedSequence++;
-		if (nodes.length === committedNodeCount) break;
+		if (countedNodes === committedNodeCount) break;
 	}
 
 	if (listId === undefined) {
 		throw new OneNoteFormatError('ONENOTE_FILE_NODE_LIST_EMPTY', 'The file-node list contains no fragments.');
 	}
-	if (nodes.length !== committedNodeCount) {
+	if (countedNodes !== committedNodeCount) {
 		throw new OneNoteFormatError('ONENOTE_FILE_NODE_COUNT', 'The file-node list ended before its committed transaction-log count was reached.', firstFragment.offset);
 	}
 
