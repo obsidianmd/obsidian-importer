@@ -20,7 +20,7 @@ import * as nodeFs from 'node:fs';
 import * as nodePath from 'node:path';
 
 import { convertKeepNote, formatAnnotations, keepTemplateVariables } from '../../src/formats/keep/convert';
-import { KeepJson } from '../../src/formats/keep/models';
+import { hasValidKeepTimestamps, KeepJson } from '../../src/formats/keep/models';
 import { sanitizeFileName } from '../../src/util';
 import { expectedFor, expectFile, fixtures } from '../helpers';
 
@@ -72,6 +72,24 @@ test('converts microseconds to the milliseconds the vault wants', () => {
 
 	assert.equal(ctime, 1690425909718);
 	assert.equal(mtime, 1690864927360);
+});
+
+test('accepts an unedited note and uses its creation time as its modification time', () => {
+	const note = {
+		createdTimestampUsec: 1380575747483000,
+		userEditedTimestampUsec: 0,
+	};
+
+	assert.equal(hasValidKeepTimestamps(note), true);
+	const { ctime, mtime } = convertKeepNote(note, 'note');
+	assert.equal(ctime, 1380575747483);
+	assert.equal(mtime, ctime);
+});
+
+test('rejects Keep data without valid timestamps', () => {
+	assert.equal(hasValidKeepTimestamps({ createdTimestampUsec: 1380575747483000 }), false);
+	assert.equal(hasValidKeepTimestamps({ createdTimestampUsec: 0, userEditedTimestampUsec: 0 }), false);
+	assert.equal(hasValidKeepTimestamps({ createdTimestampUsec: 1380575747483000, userEditedTimestampUsec: -1 }), false);
 });
 
 test('offers simple list values to the shared template metadata editor', () => {

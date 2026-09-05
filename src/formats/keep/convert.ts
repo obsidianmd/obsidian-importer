@@ -129,6 +129,8 @@ export function convertKeepNote(
 	return {
 		content: parts.join(''),
 		ctime: keepJson.createdTimestampUsec / 1000,
-		mtime: keepJson.userEditedTimestampUsec / 1000,
+		mtime: (keepJson.userEditedTimestampUsec > 0
+			? keepJson.userEditedTimestampUsec
+			: keepJson.createdTimestampUsec) / 1000,
 	};
 }

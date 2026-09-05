@@ -48,3 +48,17 @@ export interface KeepJson {
 	tasks?: KeepTask[];
 	annotations?: KeepAnnotation[];
 }
+
+function isFiniteNumber(value: unknown): value is number {
+	return typeof value === 'number' && Number.isFinite(value);
+}
+
+export function hasValidKeepTimestamps(value: unknown): value is KeepJson {
+	if (typeof value !== 'object' || value === null) return false;
+
+	const note = value as Partial<KeepJson>;
+	return isFiniteNumber(note.createdTimestampUsec)
+		&& note.createdTimestampUsec > 0
+		&& isFiniteNumber(note.userEditedTimestampUsec)
+		&& note.userEditedTimestampUsec >= 0;
+}

@@ -5,7 +5,7 @@ import { ATTACHMENT_EXTS } from '../constants';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { readZip, ZipEntryFile } from '../zip';
-import { KeepJson } from './keep/models';
+import { hasValidKeepTimestamps, KeepJson } from './keep/models';
 import { convertKeepNote, keepTemplateVariables } from './keep/convert';
 
 
@@ -83,8 +83,8 @@ export class KeepImporter extends FormatImporter {
 		const addFile = async (file: PickedFile): Promise<void> => {
 			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || file.extension !== 'json') return;
 			try {
-				const note = JSON.parse(await file.readText()) as KeepJson;
-				if (!note?.userEditedTimestampUsec || !note.createdTimestampUsec) return;
+				const note: unknown = JSON.parse(await file.readText());
+				if (!hasValidKeepTimestamps(note)) return;
 				if (note.isArchived && !this.importArchived) return;
 				if (note.isTrashed && !this.importTrashed) return;
 
@@ -176,8 +176,8 @@ export class KeepImporter extends FormatImporter {
 
 		let content = await file.readText();
 
-		const keepJson = JSON.parse(content) as KeepJson;
-		if (!keepJson || !keepJson.userEditedTimestampUsec || !keepJson.createdTimestampUsec) {
+		const keepJson: unknown = JSON.parse(content);
+		if (!hasValidKeepTimestamps(keepJson)) {
 			ctx.reportFailed(fullpath, i18n.importer.keep.reasonInvalidJson());
 			return;
 		}
