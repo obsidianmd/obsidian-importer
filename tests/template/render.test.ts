@@ -40,8 +40,8 @@ test('renders CSV values as YAML scalars', async () => {
 		},
 	), [
 		'Name: "A: value #1"',
-		'Count: 42',
-		'Complete: true',
+		'Count: "42"',
+		'Complete: "true"',
 		'Project: "Ready"',
 		'Empty: ""',
 		'Spaces: " "',

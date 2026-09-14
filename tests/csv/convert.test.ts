@@ -43,11 +43,11 @@ test('generates a Markdown template from CSV headers', () => {
 		sanitizeYAMLKey,
 	), [
 		'---',
-		'Name: {{source["Name"] | yaml}}',
-		'Project status: {{source["Project: status"] | yaml}}',
-		'Tags: {{source["Tags"] | yaml}}',
-		'ALIASES: {{source["ALIASES"] | yaml}}',
-		'cssclasses: {{source["cssclasses"] | yaml}}',
+		'{{source["Name"] | yaml_property:"Name"}}',
+		'{{source["Project: status"] | yaml_property:"Project status"}}',
+		'{{source["Tags"] | yaml_property:"Tags"}}',
+		'{{source["ALIASES"] | yaml_property:"ALIASES"}}',
+		'{{source["cssclasses"] | yaml_property:"cssclasses"}}',
 		'---',
 	].join('\n'));
 });
@@ -65,6 +65,7 @@ test('CSV defaults render Obsidian list properties as lists', async () => {
 		...source,
 		source,
 	});
+	assert.match(rendered, /Aliases:\n  - "Doe, John"\n  - "John Doe"/u);
 	const parsed = parseFrontMatterBlock(normalizeListProperties(rendered));
 	assert.deepEqual(parsed?.frontMatter, {
 		Title: 'Example',

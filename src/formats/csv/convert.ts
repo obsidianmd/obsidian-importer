@@ -29,7 +29,7 @@ export function defaultNoteTemplate(headers: string[], sanitizeKey: (key: string
 	const properties = headers
 		.map(header => ({ header, property: sanitizeKey(header).trim() }))
 		.filter(({ property }) => property.length > 0)
-		.map(({ header, property }) => `${property}: {{${sourceVariableExpression(header)} | yaml}}`);
+		.map(({ header, property }) => `{{${sourceVariableExpression(header)} | yaml_property:${JSON.stringify(property)}}}`);
 
 	return properties.length > 0
 		? ['---', ...properties, '---'].join('\n')
