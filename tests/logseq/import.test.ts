@@ -67,6 +67,21 @@ class CountingSourceFile extends BinarySourceFile {
 	}
 }
 
+/** The real vault rejects a file write when its parent folder does not exist. */
+class ParentCheckingVault extends MemoryVault {
+	override async create(
+		path: string,
+		data: string,
+		options?: Parameters<MemoryVault['create']>[2],
+	) {
+		const parent = nodePath.posix.dirname(path);
+		if (parent !== '.' && !this.getAbstractFileByPathInsensitive(parent)) {
+			throw new Error(`Parent folder does not exist: ${parent}`);
+		}
+		return await super.create(path, data, options);
+	}
+}
+
 class CancelAtCheckpoint extends ImportContext {
 	private seen = 0;
 
@@ -119,8 +134,8 @@ async function importer(
 	graph: PickedFolder,
 	output = 'Logseq',
 	dailyNotes?: { folder: string, format: string },
+	vault = new MemoryVault(),
 ) {
-	const vault = new MemoryVault();
 	const app = memoryApp(vault);
 	if (dailyNotes) {
 		Object.assign(app, {
@@ -317,6 +332,28 @@ test('keeps slash-formatted journals in their date folders', async () => {
 
 	assert.ok(vault.contents.has('Daily/2024/06/15.md'));
 	assert.ok(vault.contents.has('Daily/2024/07/15.md'));
+});
+
+test('creates destination folders before writing journals and namespaced pages', async () => {
+	const graph = new SourceFolder('Nested destinations', [
+		new SourceFolder('logseq', [
+			new SourceFile('config.edn', '{:file/name-format :triple-lowbar}'),
+		]),
+		new SourceFolder('pages', [
+			new SourceFile('level1___level2___page.md', '- Namespaced page'),
+		]),
+		new SourceFolder('journals', [
+			new SourceFile('2026_09_20.md', '- Journal'),
+		]),
+	]);
+	const { subject, vault } = await importer(graph, 'Logseq', undefined, new ParentCheckingVault());
+	const ctx = new ImportContext();
+
+	await subject.import(ctx);
+
+	assert.equal(ctx.failed.length, 0);
+	assert.ok(vault.contents.has('Logseq/level1/level2/page.md'));
+	assert.ok(vault.contents.has('Logseq/Journals/2026-09-20.md'));
 });
 
 test('reads Markdown graph locations and property lists from config.edn', async () => {

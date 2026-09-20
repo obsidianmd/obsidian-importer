@@ -466,6 +466,7 @@ export class LogseqImporter extends FormatImporter {
 					this.releasePath(note.planned.targetPath);
 				}
 				else {
+					await this.createFolders(parentTreePath(note.planned.targetPath) || '/');
 					const result = await this.writePlannedNote(ctx, note.planned, final, {
 						sourceId: note.sourceId,
 						...note.times,
