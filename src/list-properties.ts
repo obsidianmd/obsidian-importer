@@ -73,7 +73,12 @@ function listPropertyValues(value: unknown, property: ListProperty): string[] | 
 	else if (Array.isArray(value)) {
 		if (value.some(item => item !== null && typeof item === 'object')) return null;
 		values = value.filter(item => item !== null && item !== undefined).map(String);
-		if (property !== 'aliases') values = values.flatMap(item => item.split(/[\s,]+/u));
+		if (property === 'cssclasses') values = values.flatMap(item => item.split(/[\s,]+/u));
+		else if (property === 'tags') {
+			// A YAML sequence already records the tag boundaries. Make each item a
+			// valid tag without turning a multi-word tag into several different tags.
+			values = values.map(item => item.trim().replace(/\s*-\s*/gu, '-').replace(/\s+/gu, '-'));
+		}
 	}
 	else if (value === null || value === undefined) values = [];
 	else if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {

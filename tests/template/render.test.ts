@@ -91,6 +91,27 @@ test('leaves empty Obsidian list properties byte-identical', () => {
 	assert.equal(normalizeListProperties(content), content);
 });
 
+test('preserves the boundaries of tags in a YAML sequence', () => {
+	const content = [
+		'---',
+		'Tags:',
+		'  - "Genre - Crafts"',
+		'  - "Medium - Crochet"',
+		'  - "Subject - Animals"',
+		'  - "Topic - Nature"',
+		'---',
+		'Body',
+	].join('\n');
+
+	const parsed = parseFrontMatterBlock(normalizeListProperties(content));
+	assert.deepEqual(parsed?.frontMatter.Tags, [
+		'Genre-Crafts',
+		'Medium-Crochet',
+		'Subject-Animals',
+		'Topic-Nature',
+	]);
+});
+
 test('resolves exact variable names before treating dots as nested paths', async () => {
 	assert.equal(await renderNoteTemplate('{{First name}} / {{field.with.dots}}', {
 		'First name': 'Ada',
