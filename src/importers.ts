@@ -18,6 +18,7 @@ import { OneNoteFileImporter } from './formats/onenote-file';
 import { RoamJSONImporter } from './formats/roam-json';
 import { TextbundleImporter } from './formats/textbundle';
 import { TomboyImporter } from './formats/tomboy';
+import { XMindImporter } from './formats/xmind';
 import { i18n } from './i18n';
 
 export type ImporterClass = (new (app: App, host: ImporterHost) => FormatImporter) & { extensions: readonly string[] };
@@ -98,6 +99,9 @@ export const IMPORTERS: Record<string, ImporterDefinition> = {
 	},
 	'tomboy': {
 		importer: TomboyImporter,
+	},
+	'xmind': {
+		importer: XMindImporter,
 	},
 };
 
