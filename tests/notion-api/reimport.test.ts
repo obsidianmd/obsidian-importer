@@ -42,6 +42,7 @@ const EMPTY = { object: 'list', results: [], has_more: false, next_cursor: null 
 class ImportingTwice extends NotionAPIImporter {
 	/** Every path this import settled on, before it wrote anything. */
 	readonly planned: string[] = [];
+	readonly blockRequests: string[] = [];
 
 	planNote(folder: TFolder | string, title: string, sourceId?: string): PlannedNote {
 		const note = super.planNote(folder, title, sourceId);
@@ -68,7 +69,10 @@ class ImportingTwice extends NotionAPIImporter {
 			},
 			blocks: {
 				children: {
-					list: async ({ block_id }: { block_id: string }) => workspace.blocks[block_id] ?? EMPTY,
+					list: async ({ block_id }: { block_id: string }) => {
+						this.blockRequests.push(block_id);
+						return workspace.blocks[block_id] ?? EMPTY;
+					},
 				},
 				retrieve: async ({ block_id }: { block_id: string }) => {
 					for (const { results } of Object.values(workspace.blocks)) {
@@ -83,6 +87,17 @@ class ImportingTwice extends NotionAPIImporter {
 
 	importPage(ctx: ImportContext, pageId: string): Promise<void> {
 		return this.fetchAndImportPage({ ctx, pageId, parentPath: OUTPUT });
+	}
+
+	importDatabaseRow(ctx: ImportContext, pageId: string, editedAt?: string): Promise<void> {
+		const page = workspace.pages[pageId] as { last_edited_time: string };
+		return this.fetchAndImportPage({
+			ctx,
+			pageId,
+			parentPath: OUTPUT,
+			databaseTag: 'Database.base',
+			page: editedAt ? { ...page, last_edited_time: editedAt } as never : page as never,
+		});
 	}
 }
 
@@ -165,6 +180,93 @@ test('a note the second import leaves alone is not counted as imported again', a
 
 	assert.equal(ctx.notes, 0, 'nothing was written, so nothing was imported');
 	assert.equal(ctx.skipped.length, 2);
+});
+
+test('Skip uses queried database metadata to pass over an unchanged leaf without fetching blocks', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder(OUTPUT);
+
+	const first = new ImportingTwice(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
+	first.duplicateHandling = DuplicateHandling.Skip;
+	first.answerFromFixture();
+	first.indexImportedNotes();
+	await first.importDatabaseRow(new ImportContext(), CHILD_PAGE);
+	assert.ok(first.blockRequests.includes(CHILD_PAGE));
+
+	const second = new ImportingTwice(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
+	second.duplicateHandling = DuplicateHandling.Skip;
+	second.answerFromFixture();
+	second.indexImportedNotes();
+	const ctx = new ImportContext();
+	await second.importDatabaseRow(ctx, CHILD_PAGE);
+
+	assert.deepEqual(second.blockRequests, []);
+	assert.equal(ctx.skipped.length, 1);
+	assert.equal(ctx.failed.length, 0);
+});
+
+test('Update also passes over an unchanged database leaf without fetching blocks', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder(OUTPUT);
+
+	const first = new ImportingTwice(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
+	first.duplicateHandling = DuplicateHandling.Update;
+	first.answerFromFixture();
+	first.indexImportedNotes();
+	await first.importDatabaseRow(new ImportContext(), CHILD_PAGE);
+
+	const second = new ImportingTwice(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
+	second.duplicateHandling = DuplicateHandling.Update;
+	second.answerFromFixture();
+	second.indexImportedNotes();
+	const ctx = new ImportContext();
+	await second.importDatabaseRow(ctx, CHILD_PAGE);
+
+	assert.deepEqual(second.blockRequests, []);
+	assert.equal(ctx.skipped.length, 1);
+	assert.equal(ctx.failed.length, 0);
+});
+
+test('Skip and Update fetch database row blocks again when the source has changed', async () => {
+	for (const mode of [DuplicateHandling.Skip, DuplicateHandling.Update]) {
+		const vault = new MemoryVault();
+		await vault.createFolder(OUTPUT);
+
+		const first = new ImportingTwice(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
+		first.duplicateHandling = mode;
+		first.answerFromFixture();
+		first.indexImportedNotes();
+		await first.importDatabaseRow(new ImportContext(), CHILD_PAGE);
+
+		const second = new ImportingTwice(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
+		second.duplicateHandling = mode;
+		second.answerFromFixture();
+		second.indexImportedNotes();
+		await second.importDatabaseRow(new ImportContext(), CHILD_PAGE, '2024-09-01T00:00:00.000Z');
+
+		assert.ok(second.blockRequests.includes(CHILD_PAGE), `${mode} should fetch changed blocks`);
+	}
+});
+
+test('Skip still walks an existing database row that has children', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder(OUTPUT);
+
+	const first = new ImportingTwice(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
+	first.duplicateHandling = DuplicateHandling.Skip;
+	first.answerFromFixture();
+	first.indexImportedNotes();
+	await first.importDatabaseRow(new ImportContext(), ROOT_PAGE);
+	vault.remove('Notion/Roadmap/Milestones.md');
+
+	const second = new ImportingTwice(memoryApp(vault), { sourceEl: null, optionsEl: null } as never);
+	second.duplicateHandling = DuplicateHandling.Skip;
+	second.answerFromFixture();
+	second.indexImportedNotes();
+	await second.importDatabaseRow(new ImportContext(), ROOT_PAGE);
+
+	assert.ok(second.blockRequests.includes(ROOT_PAGE));
+	assert.ok(markdown(vault).includes('Notion/Roadmap/Milestones.md'));
 });
 
 test('every note it wrote carries the id the next import recognises it by', async () => {

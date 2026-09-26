@@ -124,6 +124,53 @@ test('database rows read a window ahead but import in order', async () => {
 	assert.deepEqual(requested, Array.from({ length: total }, (_, index) => row(index)));
 });
 
+test('database rows can leave block requests to the importer', async () => {
+	const pages = [{ object: 'page', id: 'row-1', properties: {} }] as never[];
+	let requests = 0;
+	const client = {
+		blocks: { children: { list: async () => {
+			requests++;
+			return { results: [], has_more: false, next_cursor: null };
+		} } },
+	} as never;
+
+	await importDatabasePages(
+		pages, client, new ImportContext(), 'Notion/Database', 'Database.base',
+		async (_pageId, _parentPath, _databaseTag, _customFileName, _page, blocks) => {
+			assert.equal(blocks, undefined);
+			assert.equal(requests, 0);
+		},
+		() => false,
+	);
+
+	assert.equal(requests, 0);
+});
+
+test('database rows still prefetch blocks for new rows beside unchanged ones', async () => {
+	const pages = Array.from({ length: 3 }, (_, index) => ({ object: 'page', id: `row-${index}`, properties: {} })) as never[];
+	const requested: string[] = [];
+	const client = {
+		blocks: { children: { list: async ({ block_id }: { block_id: string }) => {
+			requested.push(block_id);
+			return { results: [], has_more: false, next_cursor: null };
+		} } },
+	} as never;
+
+	await importDatabasePages(
+		pages, client, new ImportContext(), 'Notion/Database', 'Database.base',
+		async (pageId, _parentPath, _databaseTag, _customFileName, _page, blocks) => {
+			if (pageId === 'row-0') {
+				assert.equal(blocks, undefined);
+				assert.deepEqual(requested, ['row-1', 'row-2']);
+			}
+			else assert.deepEqual(await blocks, []);
+		},
+		page => page.id !== 'row-0',
+	);
+
+	assert.deepEqual(requested, ['row-1', 'row-2']);
+});
+
 test('the fixture has a relation that stays in the import and one that leaves it', () => {
 	const relations = Object.entries(fixture.properties).filter(([, p]) => p.type === 'relation');
 	assert.equal(relations.length, 2, 'expected two relation properties');

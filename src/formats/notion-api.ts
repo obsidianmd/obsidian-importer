@@ -1035,6 +1035,7 @@ export class NotionAPIImporter extends FormatImporter {
 					relationPlaceholders: this.relationPlaceholders,
 					onBaseFileWritten: path => this.lastBaseFilePath = path,
 					databasePropertyName: this.databasePropertyName,
+					shouldPrefetchDatabaseBlocks: (page, parentPath, databaseTag) => this.shouldPrefetchDatabaseBlocks(page, parentPath, databaseTag),
 					importPageCallback: async (pageId, parentPath, databaseTag, customFileName, page, blocks) => {
 						await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName, page, blocks });
 					},
@@ -1049,6 +1050,81 @@ export class NotionAPIImporter extends FormatImporter {
 		}
 	}
 
+
+	private pageTitles(page: PageObjectResponse, customFileName?: string): { pageTitle: string, sanitizedTitle: string } {
+		const pageTitle = extractPageTitle(page);
+		return {
+			pageTitle,
+			sanitizedTitle: customFileName ? sanitizeFileName(customFileName) : sanitizeFileName(pageTitle),
+		};
+	}
+
+	private async configuredPageTitle(
+		page: PageObjectResponse,
+		sanitizedTitle: string,
+		homeFolder: string,
+		databaseTag?: string,
+	): Promise<{ configuredTitle: string, sourceMtime: number | undefined }> {
+		const sourceMtime = page.last_edited_time ? new Date(page.last_edited_time).getTime() : undefined;
+		const configuredTitle = await this.configuredNoteTitle(
+			sanitizedTitle,
+			homeFolder,
+			'',
+			notionPreviewProperties(page, this.coverPropertyName, this.databasePropertyName, databaseTag),
+			page.id,
+			{ mtime: sourceMtime },
+		);
+		return { configuredTitle, sourceMtime };
+	}
+
+	/** A database query already supplies enough metadata to settle an unchanged leaf. */
+	private async unchangedDatabaseLeaf(
+		page: PageObjectResponse,
+		parentPath: string,
+		databaseTag: string,
+		customFileName?: string,
+	): Promise<{ file: TFile, configuredTitle: string, sanitizedTitle: string, sourceMtime: number } | null> {
+		if (this.duplicateHandling === DuplicateHandling.CreateCopy) return null;
+
+		const { sanitizedTitle } = this.pageTitles(page, customFileName);
+		const { configuredTitle, sourceMtime } = await this.configuredPageTitle(page, sanitizedTitle, parentPath, databaseTag);
+		if (sourceMtime === undefined || !Number.isFinite(sourceMtime)) return null;
+
+		const parent = parentPath === '/' ? '' : parentPath;
+		const name = `${sanitizeFileName(configuredTitle, parent).replace(/\.md$/i, '')}.md`;
+		const desiredPath = normalizePath(parent ? `${parent}/${name}` : name);
+		const file = this.previouslyImported(desiredPath, page.id);
+
+		// A page with children was imported into its own folder. Keep walking
+		// those pages, including a child the user has since deleted locally.
+		// A changed Notion timestamp can also mean a leaf has gained children.
+		if (!file || file.path !== desiredPath || file.stat.mtime !== sourceMtime
+			|| this.vault.getAbstractFileByPath(childFolderOf(file.path))) return null;
+
+		return { file, configuredTitle, sanitizedTitle, sourceMtime };
+	}
+
+	private async shouldPrefetchDatabaseBlocks(page: PageObjectResponse, parentPath: string, databaseTag: string): Promise<boolean> {
+		return !await this.unchangedDatabaseLeaf(page, parentPath, databaseTag);
+	}
+
+	private async settleUnchangedDatabaseLeaf(
+		ctx: ImportContext,
+		page: PageObjectResponse,
+		parentPath: string,
+		databaseTag: string,
+		customFileName?: string,
+	): Promise<boolean> {
+		const match = await this.unchangedDatabaseLeaf(page, parentPath, databaseTag, customFileName);
+		if (!match) return false;
+
+		ctx.status(i18n.importer.notionApi.statusImportingTitle({ title: match.sanitizedTitle }));
+		const planned = this.planNote(parentPath, match.configuredTitle, page.id);
+		this.preflightNote(ctx, planned, match.sourceMtime);
+
+		await this.adoptSkippedNote(match.file, page.id);
+		return true;
+	}
 
 	/**
 	 * Fetch and import a Notion page recursively
@@ -1071,6 +1147,16 @@ export class NotionAPIImporter extends FormatImporter {
 		let reportedName = i18n.importer.notionApi.labelPage({ id: pageId });
 
 		try {
+			if (prefetchedPage) {
+				reportedName = i18n.importer.notionApi.labelPageWithTitle({ title: extractPageTitle(prefetchedPage), id: pageId });
+			}
+			if (prefetchedPage && databaseTag && !prefetchedBlocks && await this.settleUnchangedDatabaseLeaf(
+				ctx, prefetchedPage, parentPath, databaseTag, customFileName,
+			)) {
+				this.pageFinished(ctx);
+				return;
+			}
+
 			const blocksRequest = prefetchedBlocks
 				?? fetchAllBlocks(this.notionClient!, pageId, ctx);
 			// Avoid an unhandled rejection if metadata fails first.
@@ -1083,9 +1169,7 @@ export class NotionAPIImporter extends FormatImporter {
 			);
 
 			// Extract page title
-			const pageTitle = extractPageTitle(page);
-			// Use custom file name if provided, otherwise use page title
-			const sanitizedTitle = customFileName ? sanitizeFileName(customFileName) : sanitizeFileName(pageTitle);
+			const { pageTitle, sanitizedTitle } = this.pageTitles(page, customFileName);
 			reportedName = i18n.importer.notionApi.labelPageWithTitle({ title: pageTitle, id: pageId });
 
 			// Update status with page title instead of ID
@@ -1119,20 +1203,7 @@ export class NotionAPIImporter extends FormatImporter {
 
 			// "Create a copy" is not looking for a note to write over, but one
 			// this run wrote before it was interrupted is still its own.
-			const sourceMtime = page.last_edited_time ? new Date(page.last_edited_time).getTime() : undefined;
-			const configuredTitle = await this.configuredNoteTitle(
-				sanitizedTitle,
-				homeFolder,
-				'',
-				notionPreviewProperties(
-					page,
-					this.coverPropertyName,
-					this.databasePropertyName,
-					databaseTag,
-				),
-				pageId,
-				{ mtime: sourceMtime },
-			);
+			const { configuredTitle, sourceMtime } = await this.configuredPageTitle(page, sanitizedTitle, homeFolder, databaseTag);
 			const desiredPath = normalizePath(
 				homeFolder ? `${homeFolder}/${sanitizeFileName(configuredTitle)}.md` : `${sanitizeFileName(configuredTitle)}.md`,
 			);
@@ -1225,6 +1296,7 @@ export class NotionAPIImporter extends FormatImporter {
 					relationPlaceholders: this.relationPlaceholders,
 					onBaseFileWritten: path => this.lastBaseFilePath = path,
 					databasePropertyName: this.databasePropertyName, // Add database property name for child databases
+					shouldPrefetchDatabaseBlocks: (page, parentPath, databaseTag) => this.shouldPrefetchDatabaseBlocks(page, parentPath, databaseTag),
 					blocksCache, // Pass blocks cache for recursive block search
 					// Callback to import database pages
 					importPageCallback: async (pageId, parentPath, databaseTag, customFileName, page, blocks) => {
@@ -1566,6 +1638,7 @@ export class NotionAPIImporter extends FormatImporter {
 				processedDatabases: this.processedDatabases,
 				relationPlaceholders: this.relationPlaceholders,
 				onBaseFileWritten: path => this.lastBaseFilePath = path,
+				shouldPrefetchDatabaseBlocks: (page, parentPath, databaseTag) => this.shouldPrefetchDatabaseBlocks(page, parentPath, databaseTag),
 				importPageCallback: async (pageId, parentPath, databaseTag, customFileName, page, blocks) => {
 					await this.fetchAndImportPage({ ctx, pageId, parentPath, databaseTag, customFileName, page, blocks });
 				},

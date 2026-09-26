@@ -53,26 +53,46 @@ export async function importDatabasePages(
 	parentPath: string,
 	databaseTag: string,
 	importPage: DatabaseProcessingContext['importPageCallback'],
+	shouldPrefetchBlocks?: DatabaseProcessingContext['shouldPrefetchDatabaseBlocks'],
 ): Promise<void> {
 	const blocks = new Map<number, Promise<BlockObjectResponse[]>>();
+	const decisions = new Map<number, Promise<void>>();
 
-	const prefetch = (index: number): void => {
-		if (index >= pages.length || blocks.has(index)) return;
+	const prefetch = (index: number): Promise<void> => {
+		if (index >= pages.length) return Promise.resolve();
+		const existing = decisions.get(index);
+		if (existing) return existing;
 
-		const request = fetchAllBlocks(client, pages[index].id, ctx);
-		// Prevent unhandled rejections if the import stops before consuming this request.
-		void request.catch(() => undefined);
-		blocks.set(index, request);
+		const decision = (async () => {
+			let needed = true;
+			try {
+				needed = await shouldPrefetchBlocks?.(pages[index], parentPath, databaseTag) ?? true;
+			}
+			catch {
+				// The page import will report any title or matching error itself.
+			}
+			if (!needed) return;
+
+			const request = fetchAllBlocks(client, pages[index].id, ctx);
+			// Prevent unhandled rejections if the import stops before consuming this request.
+			void request.catch(() => undefined);
+			blocks.set(index, request);
+		})();
+		decisions.set(index, decision);
+		return decision;
 	};
 
 	for (let index = 0; index < pages.length; index++) {
 		if (await ctx.shouldStop()) break;
 
-		for (let ahead = index; ahead < index + DATABASE_PAGE_PREFETCH; ahead++) prefetch(ahead);
+		const window: Promise<void>[] = [];
+		for (let ahead = index; ahead < index + DATABASE_PAGE_PREFETCH; ahead++) window.push(prefetch(ahead));
+		await Promise.all(window);
 
 		const page = pages[index];
-		const prefetchedBlocks = blocks.get(index)!;
+		const prefetchedBlocks = blocks.get(index);
 		blocks.delete(index);
+		decisions.delete(index);
 		await importPage(page.id, parentPath, databaseTag, undefined, page, prefetchedBlocks);
 	}
 }
@@ -212,6 +232,7 @@ export async function importDatabaseCore(
 		processedDatabases,
 		relationPlaceholders,
 		importPageCallback,
+		shouldPrefetchDatabaseBlocks,
 		onPagesDiscovered,
 		onBaseFileWritten,
 		databasePropertyName = 'base'
@@ -350,6 +371,7 @@ export async function importDatabaseCore(
 		databaseFolderPath,
 		baseFileTag,
 		importPageCallback,
+		shouldPrefetchDatabaseBlocks,
 	);
 
 	// Import database template pages (if any)
