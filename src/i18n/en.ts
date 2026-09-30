@@ -723,5 +723,17 @@ export const en = {
 			optionKeepTitles: 'Keep titles',
 			optionFilenameOnly: 'Filename only',
 		},
+		xmind: {
+			name: 'XMind',
+			optionText: 'XMind (.xmind)',
+			fileType: 'XMind',
+			nameSplitDepth: 'Split into separate notes',
+			descSplitDepth: 'Create a separate note for each branch at and above the selected level. Deeper content stays in the same note.',
+			optionNoSplit: 'Single note',
+			optionSplitLevel1: 'Level 1 branches',
+			optionSplitLevel2: 'Level 2 branches',
+			optionSplitLevel3: 'Level 3 branches',
+			optionSplitLevel4: 'Level 4 branches',
+		},
 	},
 };

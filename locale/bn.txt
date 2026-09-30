@@ -2493,3 +2493,43 @@ translation=শিরোনাম রাখুন
 [importer.tomboy.option-filename-only]
 original=Filename only
 translation=শুধুমাত্র ফাইলের নাম
+
+[importer.xmind.name]
+original=XMind
+translation=
+
+[importer.xmind.option-text]
+original=XMind (.xmind)
+translation=
+
+[importer.xmind.file-type]
+original=XMind
+translation=
+
+[importer.xmind.name-split-depth]
+original=Split into separate notes
+translation=
+
+[importer.xmind.desc-split-depth]
+original=Create a separate note for each branch at and above the selected level. Deeper content stays in the same note.
+translation=
+
+[importer.xmind.option-no-split]
+original=Single note
+translation=
+
+[importer.xmind.option-split-level1]
+original=Level 1 branches
+translation=
+
+[importer.xmind.option-split-level2]
+original=Level 2 branches
+translation=
+
+[importer.xmind.option-split-level3]
+original=Level 3 branches
+translation=
+
+[importer.xmind.option-split-level4]
+original=Level 4 branches
+translation=
