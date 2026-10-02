@@ -2312,11 +2312,11 @@ translation=Notion ব্লকগুলো শুধুমাত্র এক�
 
 [importer.notion.msg-unknown-property]
 original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
-translation=
+translation=বৈশিষ্ট্য "{{property}}" এর একটি অজানা ধরন ({{type}}) রয়েছে; এর মান অক্ষর হিসেবে রাখা হয়েছে।
 
 [importer.notion.msg-unparsed-date]
 original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
-translation=
+translation=বৈশিষ্ট্য "{{property}}" এ তারিখ নির্ধারণ করা যায়নি: {{value}}। এর মান অক্ষর হিসেবে রাখা হয়েছে।
 
 [importer.notion.status-looking]
 original=Looking for files to import

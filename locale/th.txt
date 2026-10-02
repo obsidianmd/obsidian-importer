@@ -2312,11 +2312,11 @@ translation=แยกบล็อก Notion ด้วยการขึ้นบ
 
 [importer.notion.msg-unknown-property]
 original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
-translation=
+translation=คุณสมบัติ "{{property}}" มีประเภทที่ไม่ทราบ ({{type}}) จึงเก็บค่าไว้เป็นข้อความ
 
 [importer.notion.msg-unparsed-date]
 original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
-translation=
+translation=ไม่สามารถระบุวันที่ในคุณสมบัติ "{{property}}" ได้: {{value}} จึงเก็บค่าไว้เป็นข้อความ
 
 [importer.notion.status-looking]
 original=Looking for files to import

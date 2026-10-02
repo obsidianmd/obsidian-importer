@@ -2312,11 +2312,11 @@ translation=Adskil Notion-blokke med kun ét linjeskift (standard er 2).
 
 [importer.notion.msg-unknown-property]
 original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
-translation=
+translation=Egenskaben "{{property}}" har en ukendt type ({{type}}); dens værdi er bevaret som tekst.
 
 [importer.notion.msg-unparsed-date]
 original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
-translation=
+translation=Kunne ikke bestemme datoen i egenskaben "{{property}}": {{value}}. Dens værdi er bevaret som tekst.
 
 [importer.notion.status-looking]
 original=Looking for files to import

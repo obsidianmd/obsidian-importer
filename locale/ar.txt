@@ -2312,11 +2312,11 @@ translation=فصل كتل Notion بسطر واحد فقط (افتراضي: 2).
 
 [importer.notion.msg-unknown-property]
 original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
-translation=
+translation=الخاصية "{{property}}" لها نوع غير معروف ({{type}})؛ تم الاحتفاظ بقيمتها كـنص.
 
 [importer.notion.msg-unparsed-date]
 original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
-translation=
+translation=تعذّر تحديد التاريخ في الخاصية "{{property}}": {{value}}. تم الاحتفاظ بقيمتها كـنص.
 
 [importer.notion.status-looking]
 original=Looking for files to import

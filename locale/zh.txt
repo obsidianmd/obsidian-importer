@@ -2312,11 +2312,11 @@ translation=Notion 块之间仅使用一个换行符分隔（默认为 2 个）�
 
 [importer.notion.msg-unknown-property]
 original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
-translation=
+translation=属性 "{{property}}" 的类型未知 ({{type}})；已将其值保留为文本。
 
 [importer.notion.msg-unparsed-date]
 original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
-translation=
+translation=无法解析属性 "{{property}}" 中的日期：{{value}}。已将其值保留为文本。
 
 [importer.notion.status-looking]
 original=Looking for files to import

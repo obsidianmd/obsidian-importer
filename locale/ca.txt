@@ -2312,11 +2312,11 @@ translation=Separa els blocs de Notion amb un sol salt de línia (per defecte é
 
 [importer.notion.msg-unknown-property]
 original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
-translation=
+translation=La propietat "{{property}}" té un tipus desconegut ({{type}}); s'ha mantingut el seu valor com a text.
 
 [importer.notion.msg-unparsed-date]
 original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
-translation=
+translation=No s'ha pogut determinar la data a la propietat "{{property}}": {{value}}. S'ha mantingut el seu valor com a text.
 
 [importer.notion.status-looking]
 original=Looking for files to import

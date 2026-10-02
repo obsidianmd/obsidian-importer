@@ -2312,11 +2312,11 @@ translation=Oddziela bloki Notion tylko jednym znakiem nowej linii (domyślne to
 
 [importer.notion.msg-unknown-property]
 original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
-translation=
+translation=Atrybut "{{property}}" ma nieznany typ ({{type}}); zachowano jego wartość jako tekst.
 
 [importer.notion.msg-unparsed-date]
 original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
-translation=
+translation=Nie udało się określić daty w atrybucie "{{property}}": {{value}}. Zachowano jego wartość jako tekst.
 
 [importer.notion.status-looking]
 original=Looking for files to import

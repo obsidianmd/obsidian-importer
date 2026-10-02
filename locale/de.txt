@@ -2312,11 +2312,11 @@ translation=Notion-Blöcke nur mit einem Zeilenumbruch trennen (Standard ist 2).
 
 [importer.notion.msg-unknown-property]
 original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
-translation=
+translation=Eigenschaft "{{property}}" hat einen unbekannten Typ ({{type}}); der Wert wurde als Text beibehalten.
 
 [importer.notion.msg-unparsed-date]
 original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
-translation=
+translation=Das Datum in Eigenschaft "{{property}}" konnte nicht ermittelt werden: {{value}}. Der Wert wurde als Text beibehalten.
 
 [importer.notion.status-looking]
 original=Looking for files to import

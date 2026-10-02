@@ -2312,11 +2312,11 @@ translation=Pisahkan blok Notion hanya dengan satu jeda baris (bawaan adalah 2).
 
 [importer.notion.msg-unknown-property]
 original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
-translation=
+translation=Properti "{{property}}" memiliki tipe yang tidak diketahui ({{type}}); nilainya dipertahankan sebagai teks.
 
 [importer.notion.msg-unparsed-date]
 original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
-translation=
+translation=Tidak dapat menentukan tanggal dalam properti "{{property}}": {{value}}. Nilainya dipertahankan sebagai teks.
 
 [importer.notion.status-looking]
 original=Looking for files to import

@@ -2312,11 +2312,11 @@ translation=Separa i blocchi di Notion con una sola interruzione di riga (il pre
 
 [importer.notion.msg-unknown-property]
 original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
-translation=
+translation=La proprietà "{{property}}" ha un tipo sconosciuto ({{type}}); il suo valore è stato mantenuto come testo.
 
 [importer.notion.msg-unparsed-date]
 original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
-translation=
+translation=Impossibile determinare la data nella proprietà "{{property}}": {{value}}. Il suo valore è stato mantenuto come testo.
 
 [importer.notion.status-looking]
 original=Looking for files to import

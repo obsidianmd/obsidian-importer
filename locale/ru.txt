@@ -2312,11 +2312,11 @@ translation=Разделять блоки Notion только одним пер�
 
 [importer.notion.msg-unknown-property]
 original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
-translation=
+translation=Свойство «{{property}}» имеет неизвестный тип ({{type}}); его значение сохранено как текст.
 
 [importer.notion.msg-unparsed-date]
 original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
-translation=
+translation=Не удалось определить дату в свойстве «{{property}}»: {{value}}. Значение сохранено как текст.
 
 [importer.notion.status-looking]
 original=Looking for files to import

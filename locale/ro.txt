@@ -2312,11 +2312,11 @@ translation=Separă blocurile Notion cu o singură întrerupere de linie (implic
 
 [importer.notion.msg-unknown-property]
 original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
-translation=
+translation=Proprietatea "{{property}}" are un tip necunoscut ({{type}}); valoarea a fost păstrată ca text.
 
 [importer.notion.msg-unparsed-date]
 original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
-translation=
+translation=Nu s-a putut determina data în proprietatea "{{property}}": {{value}}. Valoarea a fost păstrată ca text.
 
 [importer.notion.status-looking]
 original=Looking for files to import

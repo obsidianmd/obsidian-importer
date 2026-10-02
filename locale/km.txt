@@ -2312,11 +2312,11 @@ translation=បំបែកប្លុក Notion ដោយការបំបែ
 
 [importer.notion.msg-unknown-property]
 original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
-translation=
+translation=លក្ខណសម្បត្តិ "{{property}}" មានប្រភេទមិនស្គាល់ ({{type}})។ បានរក្សាតម្លៃរបស់វាជាអត្ថបទ។
 
 [importer.notion.msg-unparsed-date]
 original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
-translation=
+translation=មិនអាចកំណត់កាលបរិច្ឆេទក្នុងលក្ខណសម្បត្តិ "{{property}}" បានទេ៖ {{value}}។ បានរក្សាតម្លៃរបស់វាជាអត្ថបទ។
 
 [importer.notion.status-looking]
 original=Looking for files to import

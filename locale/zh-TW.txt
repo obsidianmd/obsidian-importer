@@ -2312,11 +2312,11 @@ translation=Notion 區塊之間僅使用一個換行分隔（預設為 2）。
 
 [importer.notion.msg-unknown-property]
 original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
-translation=
+translation=屬性「{{property}}」的類型無法辨識（{{type}}）；已將其值保留為文字。
 
 [importer.notion.msg-unparsed-date]
 original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
-translation=
+translation=無法判斷屬性「{{property}}」中的日期：{{value}}。已將其值保留為文字。
 
 [importer.notion.status-looking]
 original=Looking for files to import

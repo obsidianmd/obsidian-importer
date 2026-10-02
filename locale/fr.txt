@@ -2312,11 +2312,11 @@ translation=Séparer les blocs Notion par un seul saut de ligne (2 par défaut).
 
 [importer.notion.msg-unknown-property]
 original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
-translation=
+translation=La propriété "{{property}}" a un type inconnu ({{type}}) ; sa valeur a été conservée en tant que texte.
 
 [importer.notion.msg-unparsed-date]
 original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
-translation=
+translation=Impossible de déterminer la date dans la propriété "{{property}}" : {{value}}. Sa valeur a été conservée en tant que texte.
 
 [importer.notion.status-looking]
 original=Looking for files to import

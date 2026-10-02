@@ -2312,11 +2312,11 @@ translation=Notion 블록을 줄 바꿈 하나로만 구분해요 (기본값은 
 
 [importer.notion.msg-unknown-property]
 original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
-translation=
+translation=속성 "{{property}}"의 유형({{type}})을 알 수 없어요. 값을 텍스트로 유지했어요.
 
 [importer.notion.msg-unparsed-date]
 original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
-translation=
+translation=속성 "{{property}}"에서 날짜를 확인할 수 없어요: {{value}}. 값을 텍스트로 유지했어요.
 
 [importer.notion.status-looking]
 original=Looking for files to import

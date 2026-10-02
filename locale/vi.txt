@@ -2312,11 +2312,11 @@ translation=Phân tách các khối Notion chỉ bằng một lần ngắt dòng
 
 [importer.notion.msg-unknown-property]
 original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
-translation=
+translation=Thuộc tính "{{property}}" có kiểu Không rõ ({{type}}); đã giữ giá trị dưới dạng chữ.
 
 [importer.notion.msg-unparsed-date]
 original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
-translation=
+translation=Không thể xác định ngày trong thuộc tính "{{property}}": {{value}}. Đã giữ giá trị dưới dạng chữ.
 
 [importer.notion.status-looking]
 original=Looking for files to import

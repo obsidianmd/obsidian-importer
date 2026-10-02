@@ -2312,11 +2312,11 @@ translation=הפרד בלוקים של Notion עם מעבר שורה אחד בל
 
 [importer.notion.msg-unknown-property]
 original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
-translation=
+translation=למאפיין "{{property}}" יש סוג לא ידוע ({{type}}); הערך נשמר כטקסט.
 
 [importer.notion.msg-unparsed-date]
 original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
-translation=
+translation=לא ניתן לזהות את התאריך במאפיין "{{property}}": {{value}}. הערך נשמר כטקסט.
 
 [importer.notion.status-looking]
 original=Looking for files to import

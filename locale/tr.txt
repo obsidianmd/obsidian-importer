@@ -2312,11 +2312,11 @@ translation=Notion bloklarını yalnızca bir satır sonuyla ayırır (varsayıl
 
 [importer.notion.msg-unknown-property]
 original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
-translation=
+translation="{{property}}" özelliği bilinmeyen bir türe ({{type}}) sahip; değeri metin olarak korundu.
 
 [importer.notion.msg-unparsed-date]
 original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
-translation=
+translation="{{property}}" özelliğindeki tarih belirlenemedi: {{value}}. Değeri metin olarak korundu.
 
 [importer.notion.status-looking]
 original=Looking for files to import
