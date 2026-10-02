@@ -18,6 +18,7 @@ import { convertTags, rewriteAliasReferences, rewritePlannedPageLinks, PlannedPa
 import { DEFAULT_LOGSEQ_OPTIONS, LogseqImportOptions } from './logseq/options';
 import { namespaceToPath } from './logseq/paths';
 import { convertLocal, indexPageAliases, isBodyEmpty, LocalResult } from './logseq/pipeline';
+import { propertiesYaml } from './logseq/properties';
 
 const ISO_FORMAT = 'YYYY-MM-DD';
 
@@ -37,6 +38,7 @@ interface GraphSource {
 interface SourceNote extends GraphFile {
 	kind: 'page' | 'journal';
 	logicalName: string;
+	ownsFolder: boolean;
 	sourceNames: string[];
 	filenameFormat: LogseqFilenameFormat;
 	parent: string;
@@ -257,11 +259,27 @@ export class LogseqImporter extends FormatImporter {
 		));
 	}
 
-	private desiredNote(entry: GraphFile, graph: GraphSource, outputRoot: string): Omit<SourceNote,
-		'content' | 'local' | 'planned' | 'times' | 'assetTargets'> {
+	/** The names of pages that have pages beneath them, in lower case. */
+	private namespaces(entries: GraphFile[], graph: GraphSource): Set<string> {
+		const namespaces = new Set<string>();
+		for (const entry of entries) {
+			if (relativeToGraphDirectory(entry.path, graph.config.journalsDirectory) !== null) continue;
+			const name = namespaceToPath(entry.file.basename, graph.config.filenameFormat).toLowerCase();
+			for (let parent = parentTreePath(name); parent; parent = parentTreePath(parent)) namespaces.add(parent);
+		}
+		return namespaces;
+	}
+
+	private desiredNote(
+		entry: GraphFile,
+		graph: GraphSource,
+		outputRoot: string,
+		namespaces: Set<string>,
+	): Omit<SourceNote, 'content' | 'local' | 'planned' | 'times' | 'assetTargets'> {
 		const journalPath = relativeToGraphDirectory(entry.path, graph.config.journalsDirectory);
 		const journal = journalPath !== null;
 		let logicalName: string;
+		let ownsFolder = false;
 		let parent: string;
 		let sourceNames: string[];
 
@@ -292,7 +310,10 @@ export class LogseqImporter extends FormatImporter {
 			logicalName = namespaceToPath(entry.file.basename, graph.config.filenameFormat);
 			sourceNames = [logicalName];
 			const pageRoot = outputRoot;
-			const logicalParent = sanitizeFilePath(parentTreePath(logicalName), pageRoot);
+			// A page with pages beneath it goes inside their folder, where the file explorer keeps it beside them.
+			ownsFolder = namespaces.has(logicalName.toLowerCase());
+			const folder = ownsFolder ? logicalName : parentTreePath(logicalName);
+			const logicalParent = sanitizeFilePath(folder, pageRoot);
 			parent = normalizePath([pageRoot, logicalParent].filter(Boolean).join('/'));
 		}
 
@@ -301,6 +322,7 @@ export class LogseqImporter extends FormatImporter {
 			...entry,
 			kind: journal ? 'journal' : 'page',
 			logicalName,
+			ownsFolder,
 			sourceNames: [...new Set(sourceNames)],
 			filenameFormat: graph.config.filenameFormat,
 			parent,
@@ -317,10 +339,12 @@ export class LogseqImporter extends FormatImporter {
 		const samples: NoteTemplateSample[] = [];
 		const previewAssets = new Map<string, string | null>();
 		let remainingPreviewBytes = MAX_PREVIEW_IMAGES_BYTES;
-		for (const entry of this.noteEntries(graph)) {
+		const entries = this.noteEntries(graph);
+		const namespaces = this.namespaces(entries, graph);
+		for (const entry of entries) {
 			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
 			try {
-				const desired = this.desiredNote(entry, graph, outputRoot);
+				const desired = this.desiredNote(entry, graph, outputRoot, namespaces);
 				const local = convertLocal(await entry.file.readText(), this.options, {
 					assetTarget: () => null,
 					commaSeparatedProperties: graph.config.commaSeparatedProperties,
@@ -396,12 +420,13 @@ export class LogseqImporter extends FormatImporter {
 		}
 		const outputRoot = outputFolder.path === '/' ? '' : outputFolder.path;
 
+		const namespaces = this.namespaces(entries, graph);
 		const notes: SourceNote[] = [];
 		for (const entry of entries) {
 			if (await ctx.shouldStop()) return;
 			ctx.status(i18n.common.statusProcessing({ name: entry.path }));
 			try {
-				const desired = this.desiredNote(entry, graph, outputRoot);
+				const desired = this.desiredNote(entry, graph, outputRoot, namespaces);
 				const content = await entry.file.readText();
 				// Attachment paths depend on every note's provisional claim.
 				const local = convertLocal(content, this.options, {
@@ -509,7 +534,8 @@ export class LogseqImporter extends FormatImporter {
 		body = this.applyJournalDateFormat(body);
 		body = rewritePlannedPageLinks(body, linkPlans, note.filenameFormat);
 		body = this.applyOutlineOption(body);
-		const yaml = note.local.yaml;
+		const yaml = propertiesYaml(note.local.properties,
+			value => rewritePlannedPageLinks(value, linkPlans, note.filenameFormat));
 		if (isBodyEmpty(yaml, body)) {
 			ctx.reportSkipped(note.path, i18n.importer.logseq.reasonEmptyPage());
 			return null;
@@ -555,7 +581,8 @@ export class LogseqImporter extends FormatImporter {
 				const display = graphBasename(sourceName);
 				plans.set(sourceName.toLowerCase(), {
 					target,
-					display: display.toLowerCase() === targetBase.toLowerCase() ? undefined : display,
+					// The path of a page inside its own folder repeats its name.
+					display: !note.ownsFolder && display.toLowerCase() === targetBase.toLowerCase() ? undefined : display,
 				});
 			}
 			const key = sourceBase.toLowerCase();

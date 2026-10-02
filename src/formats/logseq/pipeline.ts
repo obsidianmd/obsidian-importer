@@ -1,5 +1,5 @@
 import { LogseqImportOptions } from './options';
-import { extractPageProperties, convertHeadingProperty, removeLeftoverBlockProperties, splitList } from './properties';
+import { extractPageProperties, convertHeadingProperty, PageProperty, removeLeftoverBlockProperties, splitList } from './properties';
 import { convertTasks } from './tasks';
 import { convertNumberedLists, convertOrgBlocks, convertHighlights, convertMediaEmbeds, convertSimpleQueries, fixCodeBlocksInLists, fixHeadingChildLists } from './blocks';
 import { convertAssetLinks, AssetRef } from './assets';
@@ -15,6 +15,7 @@ export interface LogseqConversionRuntime {
 
 export interface LocalResult {
 	yaml: string;
+	properties: PageProperty[];
 	/** Cross-file references and tags are resolved later. */
 	body: string;
 	raw: Record<string, string>;
@@ -27,7 +28,7 @@ export function convertLocal(
 	options: LogseqImportOptions,
 	runtime: LogseqConversionRuntime = {},
 ): LocalResult {
-	const { yaml, body: initialBody, raw } = extractPageProperties(content, {
+	const { yaml, properties, body: initialBody, raw } = extractPageProperties(content, {
 		dropTags: options.flashcards ? [] : ['card'],
 		commaSeparatedProperties: runtime.commaSeparatedProperties,
 	});
@@ -60,7 +61,7 @@ export function convertLocal(
 	body = removeLeftoverBlockProperties(body);
 	body = normalizeWhitespace(body);
 
-	return { yaml, body, raw, ids: idResult.ids, assets: assetResult.assets };
+	return { yaml, properties, body, raw, ids: idResult.ids, assets: assetResult.assets };
 }
 
 export function indexPageAliases(

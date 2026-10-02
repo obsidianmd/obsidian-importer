@@ -39,8 +39,14 @@ const isAlwaysDroppedByPrefix = (key: string): boolean =>
 	key.startsWith('logseq.') ||
 	key.startsWith('query-');
 
+export type PageProperty =
+	| { key: string, value: string }
+	| { key: string, items: string[] }
+	| { key: string, literal: string };
+
 export interface PageProperties {
 	yaml: string;
+	properties: PageProperty[];
 	body: string;
 	raw: Record<string, string>;
 }
@@ -131,34 +137,41 @@ function emitProperty(
 	aliases: string[],
 	dropTags: Set<string>,
 	commaSeparatedProperties: ReadonlySet<string>,
-): string[] {
-	if (value.trim() === '') return [];
+): PageProperty | null {
+	if (value.trim() === '') return null;
 
 	if (key === 'alias' || key === 'aliases') {
 		for (const item of splitList(value)) aliases.push(stripWikiBrackets(item));
-		return [];
+		return null;
 	}
 	if (key === 'tags') {
 		const items = splitList(value).flatMap(tagsFromItem).filter(t => !dropTags.has(t));
-		if (items.length === 0) return [];
-		return ['tags:', ...items.map(yamlListItem)];
+		return items.length === 0 ? null : { key, items };
 	}
-	if (isAlwaysDroppedPageProp(key)) return [];
+	if (isAlwaysDroppedPageProp(key)) return null;
 
 	if ((key === 'created' || key === 'updated') && value.includes('[[')) {
 		const iso = extractIsoDate(value);
-		if (iso !== null) return [`${key}: ${iso}`];
+		if (iso !== null) return { key, literal: iso };
 	}
 
 	const parts = splitList(value);
-	const hasWiki = value.includes('[[');
-	if ((hasWiki || commaSeparatedProperties.has(key.toLowerCase())) && parts.length > 1) {
-		return [`${key}:`, ...parts.map(yamlListItem)];
+	if ((value.includes('[[') || commaSeparatedProperties.has(key.toLowerCase())) && parts.length > 1) {
+		return { key, items: parts };
 	}
-	if (hasWiki || needsQuoting(value)) {
-		return [`${key}: ${quote(value)}`];
-	}
-	return [`${key}: ${value}`];
+	return { key, value };
+}
+
+/** Links are rewritten before quoting, since a page name may hold a character the quoting must escape. */
+export function propertiesYaml(properties: PageProperty[], rewrite: (value: string) => string = value => value): string {
+	if (properties.length === 0) return '';
+	const lines = properties.flatMap(property => {
+		if ('items' in property) return [`${property.key}:`, ...property.items.map(item => yamlListItem(rewrite(item)))];
+		if ('literal' in property) return [`${property.key}: ${property.literal}`];
+		const value = rewrite(property.value);
+		return [`${property.key}: ${value.includes('[[') || needsQuoting(value) ? quote(value) : value}`];
+	});
+	return ['---', ...lines, '---'].join('\n');
 }
 
 export interface ExtractPagePropertiesOptions {
@@ -171,7 +184,7 @@ export function extractPageProperties(content: string, opts: ExtractPageProperti
 	const commaSeparatedProperties = opts.commaSeparatedProperties ?? new Set<string>();
 	const lines = content.split('\n');
 	const raw: Record<string, string> = {};
-	const propMap = new Map<string, string[]>();
+	const propMap = new Map<string, PageProperty>();
 	const aliases: string[] = [];
 
 	let i = 0;
@@ -185,7 +198,7 @@ export function extractPageProperties(content: string, opts: ExtractPageProperti
 		const emitted = emitProperty(key, value, aliases, dropTags, commaSeparatedProperties);
 		// Map keeps a key in its first slot, so first occurrence wins the
 		// position and the last value wins the slot.
-		if (emitted.length > 0) propMap.set(key, emitted);
+		if (emitted) propMap.set(key, emitted);
 	}
 
 	if (raw.title) {
@@ -196,18 +209,11 @@ export function extractPageProperties(content: string, opts: ExtractPageProperti
 	while (i < lines.length && lines[i].trim() === '') i++;
 	const bodyLines = lines.slice(i);
 
-	const propLines = [...propMap.values()].flat();
-
-	let yaml = '';
-	const hasAny = propLines.length > 0 || aliases.length > 0;
-	if (hasAny) {
-		const aliasLines = aliases.length
-			? ['aliases:', ...aliases.map(yamlListItem)]
-			: [];
-		yaml = ['---', ...aliasLines, ...propLines, '---'].join('\n');
-	}
-
-	return { yaml, body: bodyLines.join('\n'), raw };
+	const properties: PageProperty[] = [
+		...aliases.length ? [{ key: 'aliases', items: aliases }] : [],
+		...propMap.values(),
+	];
+	return { yaml: propertiesYaml(properties), properties, body: bodyLines.join('\n'), raw };
 }
 
 

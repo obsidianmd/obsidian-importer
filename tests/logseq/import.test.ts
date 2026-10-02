@@ -169,7 +169,7 @@ test('imports a Logseq graph through the real importer and vault pipeline', asyn
 	assert.equal(ctx.attachments, 2);
 	assert.ok(vault.contents.has('Logseq/Main Page.md'));
 	assert.ok(vault.contents.has('Logseq/Reference Page.md'));
-	assert.ok(vault.contents.has('Logseq/algorithms/dynamic programming.md'));
+	assert.ok(vault.contents.has('Logseq/algorithms/dynamic programming/dynamic programming.md'));
 	assert.ok(vault.contents.has('Logseq/algorithms/dynamic programming/memoization.md'));
 	assert.ok(vault.contents.has('Logseq/Journals/2024-06-15.md'));
 	assert.ok(vault.contents.has('diagram.png'));
@@ -435,9 +435,62 @@ test('sanitizes every namespace folder and rewrites links to the planned path', 
 
 	await subject.import(new ImportContext());
 
-	assert.ok(vault.contents.has('Logseq/Ask Me.md'));
+	assert.ok(vault.contents.has('Logseq/Ask Me/Ask Me.md'));
 	assert.ok(vault.contents.has('Logseq/Ask Me/Child.md'));
 	assert.match(vault.contents.get('Logseq/Reference.md') as string, /\[\[Logseq\/Ask Me\/Child\]\]/);
+});
+
+test('writes a page inside the folder of the pages beneath it', async () => {
+	const graph = new SourceFolder('Namespaces', [
+		new SourceFolder('pages', [
+			new SourceFile('Topic.md', '- Parent'),
+			new SourceFile('Topic___Sub.md', '- Middle'),
+			new SourceFile('Topic___Sub___Leaf.md', '- Leaf of [[Topic]] and [[Topic/Sub]]'),
+			new SourceFile('Orphan___Child.md', '- No parent page'),
+			new SourceFile('Plain.md', '- [[Topic]]'),
+		]),
+	]);
+	const { subject, vault } = await importer(graph);
+
+	await subject.import(new ImportContext());
+
+	assert.deepEqual(vault.paths().filter(path => path.endsWith('.md')).sort(), [
+		'Logseq/Orphan/Child.md',
+		'Logseq/Plain.md',
+		'Logseq/Topic/Sub/Leaf.md',
+		'Logseq/Topic/Sub/Sub.md',
+		'Logseq/Topic/Topic.md',
+	]);
+	assert.equal(vault.contents.get('Logseq/Plain.md'), '---\nlogseq-source: Namespaces/pages/Plain.md\n---\n- [[Logseq/Topic/Topic|Topic]]\n');
+	assert.match(vault.contents.get('Logseq/Topic/Sub/Leaf.md') as string,
+		/Leaf of \[\[Logseq\/Topic\/Topic\|Topic\]\] and \[\[Logseq\/Topic\/Sub\/Sub\|Sub\]\]/);
+});
+
+test('rewrites page property links to the planned path', async () => {
+	const graph = new SourceFolder('Property links', [
+		new SourceFolder('pages', [
+			new SourceFile('Topic___Sub.md', '- Middle'),
+			new SourceFile('Topic___Sub___Leaf.md', '- Leaf'),
+			new SourceFile('Topic%22Name.md', '- Quoted'),
+			new SourceFile('Other.md', 'related:: [[Topic/Sub]], [[Topic___Sub___Leaf]]\nquoted:: [[Topic%22Name]]\n\n- Body'),
+		]),
+	]);
+	const { subject, vault } = await importer(graph);
+
+	await subject.import(new ImportContext());
+
+	assert.equal(vault.contents.get('Logseq/Other.md'), [
+		'---',
+		'logseq-source: Property links/pages/Other.md',
+		'related:',
+		'  - "[[Logseq/Topic/Sub/Sub|Sub]]"',
+		'  - "[[Logseq/Topic/Sub/Leaf]]"',
+		'quoted: \'[[Logseq/TopicName|Topic"Name]]\'',
+		'---',
+		'',
+		'- Body',
+		'',
+	].join('\n'));
 });
 
 test('drops flashcard syntax without rewriting code examples', async () => {

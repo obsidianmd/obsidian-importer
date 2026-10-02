@@ -20,7 +20,7 @@ authors:
 - [ ] Waiting on upstream
 - [ ] For feedback
 - [/] Halfway done
-- See the [[Logseq/algorithms/dynamic programming]] page
+- See the [[Logseq/algorithms/dynamic programming/dynamic programming|dynamic programming]] page
 - Reference to alias: [[Logseq/Main Page|MP]]
 - Block reference: [[Logseq/Reference Page#^a1b2c3|Recorded fixture context]] ^aaaaaa
 - ==Important== note with `^^code^^` inside

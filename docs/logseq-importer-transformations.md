@@ -126,6 +126,7 @@ When `useDailyNotes` is on, the target folder and filename format come from the 
 - **[F1]** Pages are written beneath the selected output folder.
 - In the `triple-lowbar` filename format, `a___b.md` becomes `a/b.md`. Percent-encoded characters and slashes are decoded safely.
 - In the legacy filename format, dots separate namespaces.
+- A page that has pages beneath it is written inside their folder: `a.md` beside `a___b.md` becomes `a/a.md`, and links to it follow, showing the page name: `[[a/a\|a]]`. A namespace with no page of its own is only a folder.
 - Page source subdirectories are not reproduced; page hierarchy comes from the encoded filename.
 - Journal paths are parsed using the configured journal format. If a path is not recognized as a date, its relative stem is retained.
 - Parent paths and filenames are sanitized separately before planning.
