@@ -1,0 +1,1 @@
+- $R e a l \text{ } W a g e s \text{ } = \text{ } P P P \text{ } \star \text{ } B i g \text{ Mac price}$.

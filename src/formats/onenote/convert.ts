@@ -97,6 +97,8 @@ export function convertMathML(pageElement: HTMLElement): void {
 
 	for (const mathElement of mathElements) {
 		try {
+			replaceNonBreakingSpaces(mathElement);
+
 			// Get the MathML as a string
 			const mathMLString = mathElement.outerHTML;
 
@@ -121,6 +123,29 @@ export function convertMathML(pageElement: HTMLElement): void {
 			// If conversion fails, keep the original MathML or replace with a placeholder
 			const fallbackText = mathElement.doc.createTextNode('[Math equation - conversion failed]');
 			mathElement.parentNode?.replaceChild(fallbackText, mathElement);
+		}
+	}
+}
+
+/**
+ * OneNote separates the words of an equation with non-breaking spaces.
+ *
+ * Obsidian serializes one as `&nbsp;`, which the XML parser behind the LaTeX
+ * conversion does not know and passes through as text. Left as a character it
+ * is dropped from an operator, so a space on its own becomes text instead.
+ */
+function replaceNonBreakingSpaces(mathElement: Element): void {
+	for (const token of Array.from(mathElement.querySelectorAll('*'))) {
+		const text = token.textContent ?? '';
+		if (token.children.length > 0 || !text.includes('\u00a0')) continue;
+
+		if (text.trim() === '') {
+			const space = mathElement.doc.createElementNS('http://www.w3.org/1998/Math/MathML', 'mtext');
+			space.textContent = ' ';
+			token.replaceWith(space);
+		}
+		else {
+			token.textContent = text.replace(/\u00a0/g, ' ');
 		}
 	}
 }
