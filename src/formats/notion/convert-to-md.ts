@@ -1,4 +1,5 @@
-import { FrontMatterCache, htmlToMarkdown, moment } from 'obsidian';
+import { FrontMatterCache, htmlToMarkdown } from 'obsidian';
+import { i18n } from '../../i18n';
 import { parseFilePath } from '../../filesystem';
 import { parseHTML, serializeFrontMatter } from '../../util';
 import { ZipEntryFile } from '../../zip';
@@ -20,13 +21,18 @@ import {
 } from './notion-utils';
 import { parseNotionNumberPropertyValue } from './property-values';
 import { preserveBareUrlLinks } from './markdown-links';
+import { exportYear, notionDateValues, NotionDateParser } from './date-values';
 
-export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFile): Promise<string> {
-	return convertHtmlToMarkdown(info, await file.readText());
+/** `key` identifies the property and kind of warning, so a caller can report a database column once. */
+export type NotionWarningHandler = (message: string, key: string) => void;
+
+export async function readToMarkdown(info: NotionResolverInfo, file: ZipEntryFile, onWarning?: NotionWarningHandler): Promise<string> {
+	return convertHtmlToMarkdown(info, await file.readText(), onWarning, exportYear(file.mtime));
 }
 
-export function convertHtmlToMarkdown(info: NotionResolverInfo, text: string): string {
+export function convertHtmlToMarkdown(info: NotionResolverInfo, text: string, onWarning: NotionWarningHandler = message => console.warn(message), year?: number): string {
 	const dom = parseHTML(text);
+	info.dateParser.observe(dom);
 	// read the files etc.
 	const body = dom.find('div[class=page-body]');
 
@@ -47,7 +53,7 @@ export function convertHtmlToMarkdown(info: NotionResolverInfo, text: string): s
 		convertHtmlLinksToURLs(rawProperties);
 
 		for (let row of Array.from(rawProperties.rows)) {
-			const property = parseProperty(row);
+			const property = parseProperty(row, info.dateParser, onWarning, year);
 			if (property) {
 				if (property.title == 'Tags') {
 					property.title = 'tags';
@@ -112,6 +118,7 @@ const typesMap = new Map<NotionProperty['type'], NotionPropertyType[]>([
 			'email',
 			'person',
 			'phone_number',
+			'place',
 			'text',
 			'url',
 			'status',
@@ -124,11 +131,8 @@ const typesMap = new Map<NotionProperty['type'], NotionPropertyType[]>([
 	],
 ]);
 
-function parseProperty(property: HTMLTableRowElement): YamlProperty | undefined {
-	const notionType = property.className.match(/property-row-(.*)/)?.[1] as NotionPropertyType;
-	if (!notionType) {
-		throw new Error('property type not found for: ' + property.className);
-	}
+function parseProperty(property: HTMLTableRowElement, datesParser: NotionDateParser, onWarning: NotionWarningHandler, year?: number): YamlProperty | undefined {
+	const notionType = Array.from(property.classList).find(name => name.startsWith('property-row-'))?.slice('property-row-'.length) as NotionPropertyType | undefined;
 
 	const title = htmlToMarkdown(property.cells[0].textContent ?? '');
 
@@ -136,13 +140,16 @@ function parseProperty(property: HTMLTableRowElement): YamlProperty | undefined 
 
 	let type: NotionProperty['type'] | undefined;
 	for (const [key, notionTypes] of typesMap.entries()) {
-		if (notionTypes.includes(notionType)) {
+		if (notionType && notionTypes.includes(notionType)) {
 			type = key;
 			break;
 		}
 	}
 
-	if (!type) throw new Error('type not found for: ' + body.textContent);
+	if (!type) {
+		type = 'text';
+		onWarning(i18n.importer.notion.msgUnknownProperty({ property: title, type: notionType ?? property.className }), `type:${title}`);
+	}
 
 	let content: YamlProperty['content'] = '';
 
@@ -156,23 +163,16 @@ function parseProperty(property: HTMLTableRowElement): YamlProperty | undefined 
 			break;
 		case 'date': {
 			fixNotionDates(body);
-			const dates = body.getElementsByTagName('time');
-			if (dates.length === 0) {
-				content = '';
+			const times = Array.from(body.getElementsByTagName('time'));
+			const values = times.length ? times.flatMap(notionDateValues) : [{ text: body.textContent?.trim() ?? '' }];
+			if (values.every(value => !value.text && !value.datetime)) return;
+			const dates = values.map(value => datesParser.parse(value, year));
+			if (dates.some(date => !date)) {
+				// Keep the entire original range if either endpoint cannot be read.
+				content = body.textContent ?? '';
+				onWarning(i18n.importer.notion.msgUnparsedDate({ property: title, value: content }), `date:${title}`);
 			}
-			else if (dates.length === 1) {
-				content = parseDate(moment(dates.item(0)?.textContent));
-			}
-			else {
-				const dateList = [];
-				for (let i = 0; i < dates.length; i++) {
-					dateList.push(
-						parseDate(moment(dates.item(i)?.textContent))
-					);
-				}
-				content = dateList.join(' - ');
-			}
-			if (content.length === 0) return;
+			else content = dates.map(date => parseDate(date!)).join(' - ');
 			break;
 		}
 		case 'list': {

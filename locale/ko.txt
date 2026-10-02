@@ -2310,6 +2310,14 @@ translation=단일 줄 바꿈
 original=Separate Notion blocks with only one line break (default is 2).
 translation=Notion 블록을 줄 바꿈 하나로만 구분해요 (기본값은 2).
 
+[importer.notion.msg-unknown-property]
+original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
+translation=
+
+[importer.notion.msg-unparsed-date]
+original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
+translation=
+
 [importer.notion.status-looking]
 original=Looking for files to import
 translation=가져올 파일을 찾는 중

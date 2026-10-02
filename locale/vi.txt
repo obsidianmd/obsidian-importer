@@ -2310,6 +2310,14 @@ translation=Ngắt dòng đơn
 original=Separate Notion blocks with only one line break (default is 2).
 translation=Phân tách các khối Notion chỉ bằng một lần ngắt dòng (mặc định là 2).
 
+[importer.notion.msg-unknown-property]
+original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
+translation=
+
+[importer.notion.msg-unparsed-date]
+original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
+translation=
+
 [importer.notion.status-looking]
 original=Looking for files to import
 translation=Đang tìm tệp để nhập

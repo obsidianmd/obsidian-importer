@@ -2310,6 +2310,14 @@ translation=شکست خط تکی
 original=Separate Notion blocks with only one line break (default is 2).
 translation=بلوک‌های Notion را فقط با یک شکست خط جدا می‌کند (پیش‌فرض ۲ است).
 
+[importer.notion.msg-unknown-property]
+original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
+translation=
+
+[importer.notion.msg-unparsed-date]
+original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
+translation=
+
 [importer.notion.status-looking]
 original=Looking for files to import
 translation=جستجوی فایل‌ها برای وارد کردن

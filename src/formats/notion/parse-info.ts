@@ -2,12 +2,14 @@ import { parseHTML, sanitizeFileName } from '../../util';
 import { ZipEntryFile } from '../../zip';
 import { NotionResolverInfo } from './notion-types';
 import { getNotionId, parseParentIds } from './notion-utils';
+import { exportYear, notionDateValue } from './date-values';
 
 export async function parseFileInfo(info: NotionResolverInfo, file: ZipEntryFile) {
 	recordFileInfo(info, {
 		filepath: file.filepath,
 		name: file.name,
 		extension: file.extension,
+		mtime: file.mtime,
 		text: file.extension === 'html' ? await file.readText() : undefined,
 	});
 }
@@ -16,6 +18,7 @@ export interface NotionExportEntry {
 	filepath: string;
 	name: string;
 	extension: string;
+	mtime?: Date;
 	text?: string;
 }
 
@@ -26,6 +29,7 @@ export function recordFileInfo(info: NotionResolverInfo, file: NotionExportEntry
 		const text = file.text ?? '';
 
 		const dom = parseHTML(text);
+		info.dateParser.observe(dom);
 		const body = dom.find('body');
 		const children = body.children;
 		let id: string | undefined;
@@ -37,8 +41,11 @@ export function recordFileInfo(info: NotionResolverInfo, file: NotionExportEntry
 			throw new Error('no id found for: ' + filepath);
 		}
 
-		const ctime = extractTimeFromDOMElement(dom, 'property-row-created_time');
-		const mtime = extractTimeFromDOMElement(dom, 'property-row-last_edited_time');
+		const ctime = dom.querySelector('tr.property-row-created_time time');
+		const mtime = dom.querySelector('tr.property-row-last_edited_time time');
+		const created = ctime ? notionDateValue(ctime) : undefined;
+		const modified = mtime ? notionDateValue(mtime) : undefined;
+		const year = exportYear(file.mtime);
 
 		// Because Notion cuts titles to be very short and chops words in half, we read the complete title from the HTML to get full words. Worth the extra processing time.
 		const parsedTitle = dom.find('title')?.textContent || 'Untitled';
@@ -54,8 +61,14 @@ export function recordFileInfo(info: NotionResolverInfo, file: NotionExportEntry
 		info.idsToFileInfo[id] = {
 			path: filepath,
 			parentIds: parseParentIds(filepath),
-			ctime,
-			mtime,
+			// Resolve after indexing, when numeric order evidence from later pages
+			// is available. Capture only the values, not the page DOM.
+			get ctime() {
+				return created ? info.dateParser.timestamp(created, year) : null;
+			},
+			get mtime() {
+				return modified ? info.dateParser.timestamp(modified, year) : null;
+			},
 			title,
 			fullLinkPathNeeded: false,
 		};
@@ -96,35 +109,4 @@ function stripTo200(title: string) {
 	let strippedTitle = titleList.join(' ');
 	if (!hasCompleteTitle) strippedTitle += '...';
 	return strippedTitle;
-}
-
-// Function to parse the date-time string
-function parseDateTime(dateTimeStr: string): Date | null {
-	// If the string starts with "@", skip the first character
-	const cleanedStr = dateTimeStr.startsWith('@') ? dateTimeStr.slice(1).trim() : dateTimeStr.trim();
-
-	// Use the built-in Date constructor
-	const dateObj = new Date(cleanedStr);
-
-	// Check if the resulting date object is valid
-	if (isNaN(dateObj.getTime())) {
-		return null;
-	}
-
-	return dateObj;
-}
-
-function extractTimeFromDOMElement(dom: HTMLElement, trClassName: string): Date | null {
-	// Select the <tr> element with the specified class from the provided DOM
-	const trElement = dom.querySelector(`tr.${trClassName}`);
-
-	if (trElement) {
-		// If the <tr> element exists, select the <time> element within it
-		const timeElement = trElement.querySelector('time');
-
-		// Return the inner text of the <time> element or null if not found
-		return timeElement && timeElement.textContent ? parseDateTime(timeElement.textContent) : null;
-	}
-
-	return null;
 }

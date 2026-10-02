@@ -670,6 +670,8 @@ export const en = {
 			descSubfolders: 'Places the parent database pages in the same folder as the nested content.',
 			nameSingleLineBreaks: 'Single line breaks',
 			descSingleLineBreaks: 'Separate Notion blocks with only one line break (default is 2).',
+			msgUnknownProperty: 'Property "{{property}}" has an unknown type ({{type}}); kept its value as text.',
+			msgUnparsedDate: 'Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.',
 			statusLooking: 'Looking for files to import',
 			statusResolving: 'Resolving links and de-duplicating files',
 			statusStarting: 'Starting import',

@@ -1,4 +1,5 @@
 import { parseFilePath } from '../../filesystem';
+import { NotionDateParser } from './date-values';
 
 export type NotionPropertyType =
 	| 'text'
@@ -13,6 +14,7 @@ export type NotionPropertyType =
 	| 'url'
 	| 'email'
 	| 'phone_number'
+	| 'place'
 	| 'formula'
 	| 'relation'
 	| 'rollup'
@@ -79,10 +81,12 @@ export class NotionResolverInfo {
 	pathsToAttachmentInfo: Record<string, NotionAttachmentInfo> = {};
 	attachmentPath: string;
 	singleLineBreaks: boolean;
+	dateParser: NotionDateParser;
 
 	constructor(attachmentPath: string, singleLineBreaks: boolean) {
 		this.attachmentPath = attachmentPath;
 		this.singleLineBreaks = singleLineBreaks;
+		this.dateParser = new NotionDateParser();
 	}
 
 	getPathForFile(fileInfo: NotionFileInfo | NotionAttachmentInfo) {

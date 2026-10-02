@@ -2310,6 +2310,14 @@ translation=Sauts de ligne simples
 original=Separate Notion blocks with only one line break (default is 2).
 translation=Séparer les blocs Notion par un seul saut de ligne (2 par défaut).
 
+[importer.notion.msg-unknown-property]
+original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
+translation=
+
+[importer.notion.msg-unparsed-date]
+original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
+translation=
+
 [importer.notion.status-looking]
 original=Looking for files to import
 translation=Recherche des fichiers à importer

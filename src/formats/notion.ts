@@ -213,6 +213,7 @@ export class NotionImporter extends FormatImporter {
 		}
 
 		let current = 0;
+		const warned = new Set<string>();
 		ctx.status(i18n.importer.notion.statusStarting());
 		await processZips(ctx, files, async (file) => {
 			if (!this.includesEntry(file, selection)) return;
@@ -232,7 +233,13 @@ export class NotionImporter extends FormatImporter {
 
 					ctx.status(i18n.common.statusImportingNote({ name: fileInfo.title }));
 
-					const markdownBody = await readToMarkdown(info, file);
+					const markdownBody = await readToMarkdown(info, file, (message, key) => {
+						// A database column that warns does so on every row; report it once.
+						const column = `${file.parent}\n${key}`;
+						if (warned.has(column)) return;
+						warned.add(column);
+						ctx.reportMessage(`${file.fullpath}: ${message}`);
+					});
 					let writeOptions: DataWriteOptions = {};
 
 					if (fileInfo.ctime) {

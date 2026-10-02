@@ -2310,6 +2310,14 @@ translation=Jeda baris tunggal
 original=Separate Notion blocks with only one line break (default is 2).
 translation=Pisahkan blok Notion hanya dengan satu jeda baris (bawaan adalah 2).
 
+[importer.notion.msg-unknown-property]
+original=Property "{{property}}" has an unknown type ({{type}}); kept its value as text.
+translation=
+
+[importer.notion.msg-unparsed-date]
+original=Could not determine the date in property "{{property}}": {{value}}. Kept its value as text.
+translation=
+
 [importer.notion.status-looking]
 original=Looking for files to import
 translation=Mencari file untuk diimpor
