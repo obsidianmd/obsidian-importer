@@ -451,7 +451,7 @@ export class LogseqImporter extends FormatImporter {
 			const aliases = { ...note.local.raw };
 			if (aliases.title?.toLowerCase() === note.logicalName.toLowerCase()) delete aliases.title;
 			indexPageAliases(aliases, target, aliasMap, ambiguousAliases, knownPages);
-			for (const id of note.local.ids) blockIndex.set(id.uuid, { page: target, shortId: id.shortId });
+			for (const id of note.local.ids) blockIndex.set(id.uuid, { page: target, shortId: id.shortId, text: id.text });
 		}
 		for (const alias of ambiguousAliases) aliasMap.delete(alias);
 

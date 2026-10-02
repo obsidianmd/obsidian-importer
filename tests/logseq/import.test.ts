@@ -165,7 +165,7 @@ test('imports a Logseq graph through the real importer and vault pipeline', asyn
 
 	await subject.import(ctx);
 
-	assert.equal(ctx.notes, 8);
+	assert.equal(ctx.notes, 9);
 	assert.equal(ctx.attachments, 2);
 	assert.ok(vault.contents.has('Logseq/Main Page.md'));
 	assert.ok(vault.contents.has('Logseq/Reference Page.md'));
@@ -178,7 +178,7 @@ test('imports a Logseq graph through the real importer and vault pipeline', asyn
 	const main = vault.contents.get('Logseq/Main Page.md');
 	assert.ok(typeof main === 'string');
 	assert.match(main, /logseq-source: Fixture graph\/pages\/Main Page\.md/);
-	assert.match(main, /\[\[Logseq\/Reference Page#\^a1b2c3\]\]/);
+	assert.match(main, /\[\[Logseq\/Reference Page#\^a1b2c3\|Recorded fixture context\]\]/);
 	assert.match(main, /!\[\[diagram\.png\|600x400\]\]/);
 
 	const journal = vault.contents.get('Logseq/Journals/2024-06-15.md');

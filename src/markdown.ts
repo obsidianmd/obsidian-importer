@@ -123,6 +123,17 @@ function codeSegments(text: string): MarkdownCodeSegment[] {
 	return segments;
 }
 
+/** Marks each character that belongs to inline or fenced code, for rewrites whose matches may span a code span. */
+export function markdownCodeMask(text: string): Uint8Array {
+	const mask = new Uint8Array(text.length);
+	let offset = 0;
+	for (const segment of codeSegments(text)) {
+		if (segment.code) mask.fill(1, offset, offset + segment.text.length);
+		offset += segment.text.length;
+	}
+	return mask;
+}
+
 /** Rewrites Markdown prose without changing inline or fenced code. */
 export function outsideMarkdownCode(text: string, rewrite: (segment: string) => string): string {
 	return codeSegments(text)

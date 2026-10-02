@@ -139,13 +139,16 @@ When `useDailyNotes` is on, the target folder and filename format come from the 
 | `[display]([[Page]])` | `[[Page\|display]]` |
 | `[[Alias]]` | `[[Canonical\|Alias]]` when the alias resolves unambiguously |
 | `id:: <uuid>` | A `^shortid` block anchor |
-| `((uuid))` | `[[Page#^shortid]]` when resolved |
+| `((uuid))` | `[[Page#^shortid\|block text]]` when resolved |
+| `[label](((uuid)))` | `[[Page#^shortid\|label]]` when resolved |
 | `{{embed ((uuid))}}` | `![[Page#^shortid]]` when resolved |
 | `{{embed [[Page]]}}` | `![[Page]]` |
 
 **[G1] Aliases.** The importer builds an alias index from `alias::`, `aliases::`, and `title::`. Both alias properties contribute equally. Aliases claimed by multiple pages, or names already owned by real pages, are excluded from rewriting. Alias values are still included in frontmatter. Rewriting skips code and avoids redundant self-alias links.
 
 **[G1] Block IDs.** UUIDs are shortened to stable six-character anchors. Collisions within one note receive `-1`, `-2`, and so on. The same mapping is used for references. Anchors are placed after closing code fences, directly below headings, and after retained block-property lines. If the same UUID is defined more than once, the later definition supplies the graph-wide target.
+
+**[G1] Block reference text.** A reference shows the first line of the block it points to, reduced to plain text and shortened to about 100 characters. The text is copied at import and does not follow later edits. A block with no prose, such as a code block, is linked without display text. A labelled reference keeps its label.
 
 **[G1] Code examples.** Character-level rewrites skip inline and fenced code. Line-oriented conversions skip fenced code. Backtick and tilde fences, including list-prefixed fences, are supported.
 

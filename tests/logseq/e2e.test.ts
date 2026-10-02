@@ -53,7 +53,7 @@ function loadFixtureGraph(opts: LogseqImportOptions = DEFAULT_LOGSEQ_OPTIONS): C
 		}
 
 		for (const id of local.ids) {
-			blockIndex.set(id.uuid, { page: outputPath, shortId: id.shortId });
+			blockIndex.set(id.uuid, { page: outputPath, shortId: id.shortId, text: id.text });
 		}
 
 		const canonical = outputPath;

@@ -2,7 +2,7 @@
 logseq-source: Fixture graph/pages/algorithms___dynamic programming___memoization.md
 ---
 - Memoization stores results of expensive function calls
-- Back to [[Logseq/algorithms/dynamic programming#^d00000]]
+- Back to [[Logseq/algorithms/dynamic programming#^d00000|Related to Main Page]]
 - Example in code:
   - ```javascript
     function fib(n, memo = {}) {

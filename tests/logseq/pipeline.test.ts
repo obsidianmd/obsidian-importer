@@ -18,7 +18,7 @@ test('task with a block id attaches the anchor after task conversion', () => {
 	const input = ['- TODO important', '  id:: abcdef12-0000-0000-0000-000000000000'].join('\n');
 	const { body, ids } = convertLocal(input, opts);
 	assert.equal(body, '- [ ] important ^abcdef');
-	assert.deepEqual(ids, [{ uuid: 'abcdef12-0000-0000-0000-000000000000', shortId: 'abcdef' }]);
+	assert.deepEqual(ids, [{ uuid: 'abcdef12-0000-0000-0000-000000000000', shortId: 'abcdef', text: 'important' }]);
 });
 
 test('numbered list and leftover property cleanup run together', () => {
