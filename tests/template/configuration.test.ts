@@ -11,6 +11,8 @@ import { NoteTemplateConfigurator, propertyIcon } from '../../src/note-template-
 import type { ManagedTemplateProperty } from '../../src/note-template-configurator';
 import { DEFAULT_DATA, HostPlugin, ImporterData } from '../../src/plugin-data';
 import { Setting } from 'obsidian';
+import { PreviewImageStore } from '../../src/preview-image';
+import { resolveObjectURL } from 'node:buffer';
 
 class LoadingPreviewImporter extends FormatImporter {
 	configurationShown = false;
@@ -42,6 +44,95 @@ class LoadingPreviewImporter extends FormatImporter {
 		}]);
 	}
 }
+
+class ImagePreviewImporter extends FormatImporter {
+	private setup!: NoteTemplateSetup;
+	finish!: (configured: boolean) => void;
+	reads = 0;
+	read: () => Promise<ArrayBuffer> = async () => new ArrayBuffer(3);
+
+	init(): void {}
+	async import(): Promise<void> {}
+
+	protected override async templatePreviewSamples(_ctx: ImportContext, images: PreviewImageStore): Promise<NoteTemplateSample[]> {
+		const url = await images.get('photo', 'image/png', () => {
+			this.reads++;
+			return this.read();
+		});
+		return [{ title: 'Photo', path: 'Import/Photo.md', content: `![](${url})` }];
+	}
+
+	protected override showNoteTemplateConfiguration(
+		_container: HTMLElement,
+		_buttonsEl: HTMLElement,
+		setup: NoteTemplateSetup,
+	): Promise<boolean> {
+		this.setup = setup;
+		return new Promise(resolve => {
+			this.finish = resolve;
+			void setup.cancel?.then(() => resolve(false));
+		});
+	}
+
+	async preview(reload = false): Promise<string> {
+		if (reload) this.templateSettingsChanged();
+		const result = await this.setup.preview!('{{content}}', '{{title}}');
+		return (Array.isArray(result) ? result[0] : result).content;
+	}
+}
+
+function imagePreviewImporter(): ImagePreviewImporter {
+	return new ImagePreviewImporter(memoryApp(new MemoryVault()), {
+		sourceEl: null, outputEl: null, optionsEl: null, plugin: null,
+		importerId: 'test', abortController: new AbortController(),
+	} as never);
+}
+
+test('preview settings reuse images until the configuration screen finishes', async () => {
+	const subject = imagePreviewImporter();
+	const ctx = new ImportContext();
+	const configured = subject.showTemplateConfiguration(ctx, createDiv(), createDiv());
+	const url = (await subject.preview()).match(/blob:[^)]+/)![0];
+	assert.ok(resolveObjectURL(url));
+	assert.ok((await subject.preview(true)).includes(url));
+	assert.equal(subject.reads, 1);
+	assert.ok(resolveObjectURL(url), 'settings changes must not revoke the displayed image');
+	subject.finish(true);
+	assert.equal(await configured, true);
+	assert.equal(resolveObjectURL(url), undefined);
+	assert.equal(ctx.isCancelled(), false, 'finishing the preview must not cancel the real import');
+});
+
+test('cancelling configuration releases the displayed preview images', async () => {
+	const subject = imagePreviewImporter();
+	const ctx = new ImportContext();
+	const configured = subject.showTemplateConfiguration(ctx, createDiv(), createDiv());
+	const url = (await subject.preview()).match(/blob:[^)]+/)![0];
+	ctx.cancel();
+	assert.equal(await configured, false);
+	assert.equal(resolveObjectURL(url), undefined);
+});
+
+test('closing configuration while an image loads does not leave a Blob URL behind', async (t) => {
+	const subject = imagePreviewImporter();
+	const ctx = new ImportContext();
+	let started!: () => void;
+	const reading = new Promise<void>(resolve => started = resolve);
+	let finishRead!: (data: ArrayBuffer) => void;
+	subject.read = () => {
+		started();
+		return new Promise(resolve => finishRead = resolve);
+	};
+	const create = t.mock.method(URL, 'createObjectURL');
+	const configured = subject.showTemplateConfiguration(ctx, createDiv(), createDiv());
+	const preview = subject.preview();
+	await reading;
+	ctx.cancel();
+	assert.equal(await configured, false);
+	finishRead(new ArrayBuffer(3));
+	assert.ok(!(await preview).includes('blob:'));
+	assert.equal(create.mock.callCount(), 0);
+});
 
 class NoteSettingsImporter extends FormatImporter {
 	init(): void {

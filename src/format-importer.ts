@@ -11,6 +11,7 @@ import { i18n } from './i18n';
 import { NoteTemplateVariables, renderNoteTemplate, renderNoteTemplateResult } from './note-template';
 import { NoteTemplateConfigurator, NoteTemplatePreview } from './note-template-configurator';
 import type { ManagedTemplateProperty } from './note-template-configurator';
+import { PreviewImageStore } from './preview-image';
 import { TemplateField } from './template';
 import { availableFileName, getUniqueFilePath, parseFrontMatterBlock, sanitizeFileName, sanitizeFilePath, serializeFrontMatter } from './util';
 
@@ -129,11 +130,11 @@ class TemplatePreviewContext extends ImportContext {
 	}
 
 	override async shouldStop(): Promise<boolean> {
-		return await this.source.shouldStop();
+		return this.cancelled || await this.source.shouldStop();
 	}
 
 	override isCancelled(): boolean {
-		return this.source.isCancelled();
+		return this.cancelled || this.source.isCancelled();
 	}
 }
 
@@ -359,10 +360,21 @@ export abstract class FormatImporter {
 
 		const fields: TemplateField[] = [];
 		const previewContext = new TemplatePreviewContext(ctx);
+		const images = new PreviewImageStore();
+		let cancelPreview!: () => void;
+		const cancel = new Promise<void>(resolve => {
+			cancelPreview = () => {
+				previewContext.cancel();
+				images.dispose();
+				resolve();
+			};
+		});
+		ctx.signal.addEventListener('abort', cancelPreview, { once: true });
+		if (ctx.signal.aborted) cancelPreview();
 		const loadSamples = (): Promise<NoteTemplateSample[]> =>
 			this.templatePreviewSamples === FormatImporter.prototype.templatePreviewSamples
 				? Promise.resolve([])
-				: Promise.resolve().then(() => this.templatePreviewSamples(previewContext)).catch(error => {
+				: Promise.resolve().then(() => this.templatePreviewSamples(previewContext, images)).catch(error => {
 					console.error(`Could not load ${this.host.importerId} template previews`, error);
 					return [];
 				});
@@ -374,11 +386,15 @@ export abstract class FormatImporter {
 		this.templateSamplesChanged = samplesChanged;
 		try {
 			return await this.showNoteTemplateConfiguration(container, buttonsEl, {
+				cancel,
 				preview: async (template, titleTemplate) =>
 					await this.previewLoadedSamples(template, titleTemplate, samples, fields),
 			});
 		}
 		finally {
+			ctx.signal.removeEventListener('abort', cancelPreview);
+			previewContext.cancel();
+			images.dispose();
 			if (this.templateSamplesChanged === samplesChanged) this.templateSamplesChanged = null;
 		}
 	}
@@ -407,7 +423,7 @@ export abstract class FormatImporter {
 	}
 
 	/** Sample the current selection without writing. */
-	protected async templatePreviewSamples(_ctx: ImportContext): Promise<NoteTemplateSample[]> {
+	protected async templatePreviewSamples(_ctx: ImportContext, _images: PreviewImageStore): Promise<NoteTemplateSample[]> {
 		return [];
 	}
 

@@ -13,7 +13,7 @@ export interface ConvertAssetOptions {
 // Accepts balanced parentheses in paths and one nested bracket pair in labels.
 const assetLinkRegex = /(!?)\[([^[\]]*(?:\[[^\]]*\][^[\]]*)*)\]\(([^()]*(?:\([^()]*\)[^()]*)*)\)(\{:[^}]*\})?/g;
 function isUrl(path: string): boolean {
-	return /^(https?:|data:)/i.test(path.trim());
+	return /^(https?:|data:|blob:)/i.test(path.trim());
 }
 
 function basename(path: string): string {

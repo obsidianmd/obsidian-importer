@@ -6,6 +6,12 @@ export interface ImportLogEntry {
 }
 
 export class ImportContext {
+	private readonly abortController = new AbortController();
+
+	get signal(): AbortSignal {
+		return this.abortController.signal;
+	}
+
 	notes = 0;
 	attachments = 0;
 	skipped: string[] = [];
@@ -71,6 +77,7 @@ export class ImportContext {
 
 	cancel() {
 		this.cancelled = true;
+		this.abortController.abort();
 		// Wake a paused import so it can observe cancellation.
 		this.resume();
 	}

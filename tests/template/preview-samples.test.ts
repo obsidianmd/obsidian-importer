@@ -7,7 +7,8 @@ import * as nodeFs from 'node:fs';
 import * as nodeOs from 'node:os';
 import * as nodePath from 'node:path';
 import * as nodeZlib from 'node:zlib';
-import { test } from 'node:test';
+import { afterEach, test } from 'node:test';
+import { resolveObjectURL } from 'node:buffer';
 
 import { Platform } from 'obsidian';
 
@@ -20,9 +21,15 @@ import { OneNoteFileImporter } from '../../src/formats/onenote-file';
 import { RoamJSONImporter } from '../../src/formats/roam-json';
 import { TextbundleImporter } from '../../src/formats/textbundle';
 import { ImportContext } from '../../src/import-context';
-import { MAX_PREVIEW_IMAGE_BYTES } from '../../src/preview-image';
+import { PreviewImageStore } from '../../src/preview-image';
 import { parseFrontMatterBlock } from '../../src/util';
 import { memoryApp, MemoryVault } from '../shims/vault';
+import { zipOf } from '../shims/zip';
+
+const imageStores: PreviewImageStore[] = [];
+afterEach(() => {
+	for (const images of imageStores.splice(0)) images.dispose();
+});
 
 provideNodeModules({
 	nodeCrypto,
@@ -38,7 +45,7 @@ interface Previewable {
 	ready: Promise<void>;
 	outputLocation: string;
 	files: NodePickedFile[];
-	templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]>;
+	templatePreviewSamples(ctx: ImportContext, images: PreviewImageStore): Promise<NoteTemplateSample[]>;
 }
 
 async function previews(
@@ -60,7 +67,9 @@ async function previews(
 	subject.outputLocation = 'Import';
 	subject.files = [new NodePickedFile(fixture)];
 	configure?.(subject);
-	return { samples: await subject.templatePreviewSamples(new ImportContext()), vault, subject };
+	const images = new PreviewImageStore();
+	imageStores.push(images);
+	return { samples: await subject.templatePreviewSamples(new ImportContext(), images), vault, subject };
 }
 
 function fixture(...parts: string[]): string {
@@ -122,13 +131,12 @@ if (nodeFs.existsSync(localBearApplicationData)) {
 
 	test('Bear Application Data keeps preview image URLs mobile-safe', async () => {
 		const { samples } = await previews(Bear2bkImporter, 'bear', localBearApplicationData);
-		const dataUrls = samples.flatMap(sample =>
-			sample.content.match(/data:image\/[^;\s]+;base64,[A-Za-z0-9+/=]+/g) ?? []
+		const urls = samples.flatMap(sample =>
+			sample.content.match(/blob:[^\s)]+/g) ?? []
 		);
-		const maximumEncodedLength = Math.ceil(MAX_PREVIEW_IMAGE_BYTES * 4 / 3) + 100;
 
-		assert.ok(dataUrls.length > 0, 'expected image previews or placeholders');
-		assert.ok(dataUrls.every(url => url.length <= maximumEncodedLength));
+		assert.ok(urls.length > 0, 'expected image previews');
+		assert.ok(urls.every(url => resolveObjectURL(url)?.type.startsWith('image/')));
 	});
 
 	test('Bear shares the preview limit across backup formats', async () => {
@@ -166,7 +174,7 @@ test('Bear previews inline images from the selected backup', async () => {
 		'bear',
 		fixture('bear', 'backup.bear2bk'),
 	);
-	const withImage = samples.find(sample => sample.content.includes('data:image/jpeg;base64,'));
+	const withImage = samples.find(sample => sample.content.includes('blob:'));
 
 	assert.ok(withImage, 'expected an image from the Bear backup in the preview');
 	assert.doesNotMatch(withImage.content, /\.textbundle\/assets\//);
@@ -182,7 +190,7 @@ test('Bear keeps supported attachment images in mobile previews', async () => {
 			'bear',
 			fixture('bear', 'backup.bear2bk'),
 		);
-		const withImage = samples.find(sample => sample.content.includes('data:image/jpeg;base64,'));
+		const withImage = samples.find(sample => sample.content.includes('blob:'));
 
 		assert.ok(withImage, 'expected an image in the mobile preview');
 		assert.match(withImage.content, /(?<!\\)!\[/);
@@ -219,7 +227,7 @@ if (nodeFs.existsSync(localBearApplicationData)) {
 			assert.ok(samples.some(sample => sample.content.includes('\\$')),
 				'expected the local fixture to exercise mobile TeX escaping');
 			assert.ok(samples.every(sample => !/(?<!\\)\$/.test(sample.content)));
-			assert.ok(samples.some(sample => sample.content.includes('data:image/png;base64,')),
+			assert.ok(samples.some(sample => sample.content.includes('blob:')),
 				'expected a local attachment image in the mobile preview');
 		}
 		finally {
@@ -247,6 +255,38 @@ test('Bear tag properties appear in the rendered preview', async () => {
 
 	assert.deepEqual(parsed?.frontMatter.tags, tagged.generatedProperties?.tags);
 	assert.ok(!(parsed?.body ?? '').includes('#tag'));
+});
+
+test('Bear renders an image-heavy preview without exceeding template limits', async () => {
+	const { subject, vault } = await previews(Bear2bkImporter, 'bear', fixture('bear', 'backup.bear2bk'));
+	const bytes = new Uint8Array(1_900_000);
+	bytes.set([137, 80, 78, 71]);
+	subject.files = [await zipOf({
+		'iceland 2.textbundle/text.md': '# iceland\n\n![](assets/photo.png)\n![](assets/photo.png)',
+		'iceland 2.textbundle/assets/photo.png': bytes,
+	}, 'Large-image.bear2bk')];
+	const images = new PreviewImageStore();
+	imageStores.push(images);
+	const previewable = subject as unknown as Previewable & {
+		renderTemplatePreview(template: string, sample: NoteTemplateSample): Promise<{
+			content: string;
+			valid: boolean;
+			diagnostics: string[];
+		}>;
+	};
+	const [sample] = await previewable.templatePreviewSamples(new ImportContext(), images);
+	const preview = await previewable.renderTemplatePreview('{{content}}', sample);
+	assert.equal(preview.valid, true);
+	assert.deepEqual(preview.diagnostics, []);
+	assert.equal(sample.title, 'iceland 2');
+	assert.ok(preview.content.length < 1_000);
+	const urls = preview.content.match(/blob:[^\s)]+/g) ?? [];
+	assert.equal(urls.length, 2);
+	assert.equal(urls[0], urls[1]);
+	const blob = resolveObjectURL(urls[0]);
+	assert.equal(blob?.type, 'image/png');
+	assert.deepEqual(new Uint8Array(await blob!.arrayBuffer()), bytes);
+	assert.deepEqual(vault.paths(), []);
 });
 
 test('Notion export previews reflect the line-break setting', async () => {

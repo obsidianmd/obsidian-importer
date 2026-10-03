@@ -85,6 +85,13 @@ test('keeps Markdown image syntax for preview data URLs', () => {
 	assert.equal(content, '![diagram](data:image/png;base64,cG5n){:height 400, :width 600}');
 });
 
+test('keeps Markdown image syntax for preview Blob URLs', () => {
+	const { content } = convertAssetLinks('![diagram](../assets/diagram.png){:height 400, :width 600}', {
+		target: () => 'blob:preview-image',
+	});
+	assert.equal(content, '![diagram](blob:preview-image){:height 400, :width 600}');
+});
+
 test('does not touch links whose path does not contain assets/', () => {
 	const input = '![x](../images/photo.png) ![y](local.png)';
 	const { content, assets } = convertAssetLinks(input);

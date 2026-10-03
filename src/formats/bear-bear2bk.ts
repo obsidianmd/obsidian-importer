@@ -4,7 +4,7 @@ import { FormatImporter, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../f
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import type { ManagedTemplateProperty } from '../note-template-configurator';
-import { MAX_PREVIEW_IMAGE_BYTES, MAX_PREVIEW_IMAGES_BYTES, PREVIEW_IMAGE_PLACEHOLDER, previewImageDataUrl, previewImageMime } from '../preview-image';
+import { PREVIEW_IMAGE_PLACEHOLDER, PreviewImageStore, previewImageMime } from '../preview-image';
 import { sanitizeFileName } from '../util';
 import { readZip, ZipEntryFile } from '../zip';
 import { prepareBearApplicationMarkdown, readBearApplicationDatabase } from './bear/application-data';
@@ -75,7 +75,7 @@ export class Bear2bkImporter extends FormatImporter {
 			: [];
 	}
 
-	protected override async templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]> {
+	protected override async templatePreviewSamples(ctx: ImportContext, images: PreviewImageStore): Promise<NoteTemplateSample[]> {
 		const samples: NoteTemplateSample[] = [];
 		for (const file of this.files) {
 			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
@@ -83,12 +83,12 @@ export class Bear2bkImporter extends FormatImporter {
 				const database = this.applicationDatabase(entries);
 				if (database) {
 					const remaining = TEMPLATE_PREVIEW_LIMIT - samples.length;
-					samples.push(...await this.applicationPreviewSamples(ctx, database, entries, remaining));
+					samples.push(...await this.applicationPreviewSamples(ctx, database, entries, remaining, images));
 					return;
 				}
 
 				const metadata = await this.collectMetadata(ctx, entries);
-				const resolvePreviewAsset = this.previewAssetResolver(entries);
+				const resolvePreviewAsset = this.previewAssetResolver(entries, images);
 				for (const entry of entries) {
 					if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
 					if (entry.extension !== 'md' && entry.extension !== 'markdown') continue;
@@ -164,11 +164,12 @@ export class Bear2bkImporter extends FormatImporter {
 		database: ZipEntryFile,
 		entries: ZipEntryFile[],
 		limit: number,
+		images: PreviewImageStore,
 	): Promise<NoteTemplateSample[]> {
 		const samples: NoteTemplateSample[] = [];
 		const notes = await readBearApplicationDatabase(await database.read());
 		const attachmentEntries = this.applicationAttachmentEntries(entries);
-		const previewEntry = this.previewAssetResolver(entries);
+		const previewEntry = this.previewAssetResolver(entries, images);
 
 		for (const note of notes) {
 			if (samples.length >= limit || await ctx.shouldStop()) break;
@@ -212,28 +213,18 @@ export class Bear2bkImporter extends FormatImporter {
 		return samples;
 	}
 
-	private previewAssetResolver(entries: ZipEntryFile[]): (assetPath: string) => Promise<string> {
+	private previewAssetResolver(entries: ZipEntryFile[], images: PreviewImageStore): (assetPath: string) => Promise<string> {
 		const assets = new Map(entries.map(entry => [normalizePath(entry.filepath), entry]));
-		const resolved = new Map<string, Promise<string>>();
-		let remainingBytes = MAX_PREVIEW_IMAGES_BYTES;
 
 		return async assetPath => {
 			const normalizedPath = normalizePath(assetPath);
-			const existing = resolved.get(normalizedPath);
-			if (existing) return await existing;
-
 			const entry = assets.get(normalizedPath);
 			const mime = entry ? previewImageMime(entry.extension) : undefined;
-			if (!entry || !mime || entry.size > MAX_PREVIEW_IMAGE_BYTES || entry.size > remainingBytes) {
+			if (!entry || !mime) {
 				return PREVIEW_IMAGE_PLACEHOLDER;
 			}
 
-			remainingBytes -= entry.size;
-			const loading = entry.read()
-				.then(data => previewImageDataUrl(mime, data))
-				.catch(() => PREVIEW_IMAGE_PLACEHOLDER);
-			resolved.set(normalizedPath, loading);
-			return await loading;
+			return await images.get(entry.fullpath, mime, () => entry.read(), entry.size);
 		};
 	}
 

@@ -8,6 +8,8 @@ import * as nodePath from 'node:path';
 
 import { LogseqImporter } from '../../src/formats/logseq';
 import { ImportContext } from '../../src/import-context';
+import { PreviewImageStore } from '../../src/preview-image';
+import { resolveObjectURL } from 'node:buffer';
 import { NodePickedFolder, PickedFile, PickedFolder, provideNodeModules } from '../../src/filesystem';
 import { SourceFile, SourceFolder } from '../shims/picked';
 import { MemoryVault, memoryApp } from '../shims/vault';
@@ -540,14 +542,16 @@ test('flattens page and journal outlines with one option', async () => {
 	assert.match(vault.contents.get('Logseq/Journals/2024-06-15.md') as string, /\n# Journal heading\n/);
 });
 
-test('flattening outlines updates template preview samples', async () => {
+test('flattening outlines updates template preview samples', async (t) => {
 	const graph = new SourceFolder('Preview outlines', [
 		new SourceFolder('pages', [new SourceFile('Page.md', '- # Page heading')]),
 	]);
 	const { subject } = await importer(graph);
+	const images = new PreviewImageStore();
+	t.after(() => images.dispose());
 	const previewSamples = async () => await (subject as unknown as {
-		templatePreviewSamples(ctx: ImportContext): Promise<Array<{ content: string }>>;
-	}).templatePreviewSamples(new ImportContext());
+		templatePreviewSamples(ctx: ImportContext, images: PreviewImageStore): Promise<Array<{ content: string }>>;
+	}).templatePreviewSamples(new ImportContext(), images);
 
 	assert.equal((await previewSamples())[0].content, '- # Page heading');
 
@@ -555,7 +559,7 @@ test('flattening outlines updates template preview samples', async () => {
 	assert.equal((await previewSamples())[0].content, '# Page heading');
 });
 
-test('template preview inlines images from the selected graph', async () => {
+test('template preview uses image URLs from the selected graph', async (t) => {
 	const graph = new SourceFolder('Preview assets', [
 		new SourceFolder('pages', [
 			new SourceFile('Page.md', '- ![diagram](../assets/diagram.png)'),
@@ -563,11 +567,15 @@ test('template preview inlines images from the selected graph', async () => {
 		new SourceFolder('assets', [new SourceFile('diagram.png', 'png')]),
 	]);
 	const { subject } = await importer(graph);
+	const images = new PreviewImageStore();
+	t.after(() => images.dispose());
 	const samples = await (subject as unknown as {
-		templatePreviewSamples(ctx: ImportContext): Promise<Array<{ content: string }>>;
-	}).templatePreviewSamples(new ImportContext());
+		templatePreviewSamples(ctx: ImportContext, images: PreviewImageStore): Promise<Array<{ content: string }>>;
+	}).templatePreviewSamples(new ImportContext(), images);
 
-	assert.match(samples[0].content, /!\[diagram\]\(data:image\/png;base64,cG5n\)/);
+	assert.match(samples[0].content, /!\[diagram\]\(blob:[^)]+\)/);
+	const url = samples[0].content.match(/blob:[^)]+/)![0];
+	assert.equal(await resolveObjectURL(url)!.text(), 'png');
 });
 
 test('imports only notes in selected graph folders', async () => {

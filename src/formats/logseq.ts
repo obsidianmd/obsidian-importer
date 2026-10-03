@@ -7,7 +7,7 @@ import { i18n } from '../i18n';
 import { normalizeTreePath, parentTreePath } from '../imported-path-index';
 import { outsideMarkdownCode } from '../markdown';
 import { PickedFolderLoad, PickedFolderNode, PickedFolderPicker, PickedFolderSelection, pickedFolderFileCount, pickedFolderNodes } from '../picked-folder-tree';
-import { MAX_PREVIEW_IMAGE_BYTES, MAX_PREVIEW_IMAGES_BYTES, PREVIEW_IMAGE_PLACEHOLDER, previewImageDataUrl, previewImageMime } from '../preview-image';
+import { PreviewImageStore, previewImageMime } from '../preview-image';
 import { sameBytes, sanitizeFileName, sanitizeFilePath } from '../util';
 import { convertAssetLinks } from './logseq/assets';
 import { BlockRefTarget, resolveBlockRefs } from './logseq/block-ids';
@@ -331,14 +331,13 @@ export class LogseqImporter extends FormatImporter {
 		};
 	}
 
-	protected override async templatePreviewSamples(ctx: ImportContext): Promise<NoteTemplateSample[]> {
+	protected override async templatePreviewSamples(ctx: ImportContext, images: PreviewImageStore): Promise<NoteTemplateSample[]> {
 		const graph = await this.readGraph(ctx);
 		if (!graph) return [];
 
 		const outputRoot = this.outputLocation.trim();
 		const samples: NoteTemplateSample[] = [];
 		const previewAssets = new Map<string, string | null>();
-		let remainingPreviewBytes = MAX_PREVIEW_IMAGES_BYTES;
 		const entries = this.noteEntries(graph);
 		const namespaces = this.namespaces(entries, graph);
 		for (const entry of entries) {
@@ -364,19 +363,7 @@ export class LogseqImporter extends FormatImporter {
 							previewAssets.set(sourceKey, null);
 						}
 						else {
-							try {
-								const data = await source.file.read();
-								if (data.byteLength > MAX_PREVIEW_IMAGE_BYTES || data.byteLength > remainingPreviewBytes) {
-									previewAssets.set(sourceKey, PREVIEW_IMAGE_PLACEHOLDER);
-								}
-								else {
-									remainingPreviewBytes -= data.byteLength;
-									previewAssets.set(sourceKey, previewImageDataUrl(mime, data));
-								}
-							}
-							catch {
-								previewAssets.set(sourceKey, PREVIEW_IMAGE_PLACEHOLDER);
-							}
+							previewAssets.set(sourceKey, await images.get(sourceKey, mime, () => source.file.read()));
 						}
 					}
 					targets.set(reference.sourcePath, previewAssets.get(sourceKey) ?? null);
