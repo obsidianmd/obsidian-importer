@@ -16,6 +16,7 @@ import { NotionAPIImporter } from './formats/notion-api';
 import { OneNoteImporter } from './formats/onenote';
 import { OneNoteFileImporter } from './formats/onenote-file';
 import { RoamJSONImporter } from './formats/roam-json';
+import { SupernotesImporter } from './formats/supernotes';
 import { TextbundleImporter } from './formats/textbundle';
 import { TomboyImporter } from './formats/tomboy';
 import { i18n } from './i18n';
@@ -91,6 +92,9 @@ export const IMPORTERS: Record<string, ImporterDefinition> = {
 	'roam-json': {
 		importer: RoamJSONImporter,
 		helpPermalink: 'import/roam',
+	},
+	'supernotes': {
+		importer: SupernotesImporter,
 	},
 	'textbundle': {
 		importer: TextbundleImporter,

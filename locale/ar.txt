@@ -2414,6 +2414,62 @@ translation=العنوان فارغ
 original=Unexpected file extension
 translation=امتداد الملف غير متوقع
 
+[importer.supernotes.name]
+original=Supernotes
+translation=
+
+[importer.supernotes.option-text]
+original=Supernotes (.json)
+translation=
+
+[importer.supernotes.file-type]
+original=Supernotes (.json)
+translation=
+
+[importer.supernotes.label-id]
+original=Supernotes card ID
+translation=
+
+[importer.supernotes.desc-export]
+original=In Supernotes, open Home, then "Import, export, print", then "Export current card", and choose "Raw JSON file".
+translation=
+
+[importer.supernotes.desc-files]
+original=Pick the JSON file from your Supernotes export.
+translation=
+
+[importer.supernotes.name-merge]
+original=Cards to merge
+translation=
+
+[importer.supernotes.desc-merge]
+original=Supernotes cards are small and nested. Tick a card to write everything beneath it into that card's note as nested sections. Cards left unticked become notes of their own, in folders that mirror the hierarchy.
+translation=
+
+[importer.supernotes.msg-pick-file-first]
+original=Choose a Supernotes export first.
+translation=
+
+[importer.supernotes.msg-loading-cards]
+original=Reading cards…
+translation=
+
+[importer.supernotes.msg-no-parents]
+original=No card in this export has child cards.
+translation=
+
+[importer.supernotes.reason-invalid-json]
+original=Not a Supernotes export
+translation=
+
+[importer.supernotes.reason-cards-dropped]
+original={{count}} card could not be read
+translation=
+
+[importer.supernotes.reason-cards-dropped_plural]
+original={{count}} cards could not be read
+translation=
+
 [importer.textbundle.name]
 original=Textbundle files
 translation=ملفات Textbundle
