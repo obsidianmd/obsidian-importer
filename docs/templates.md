@@ -47,6 +47,7 @@ For example, a source property named `content` is available as `{{source.content
 | Apple Notes | `isPinned`, indicating whether the note was pinned. |
 | CSV | Every CSV column, addressed by its column header or generated column name. |
 | Google Keep | `isArchived`, `isPinned`, `isTrashed`, `color`, `labels`, `sharees`, and `annotations`. The source title remains available as `source.title`; labels are exposed as an array of names. |
+| Supernotes | `name`, `color`, `icon`, `dailyDate`, `tags`, and `parents`, the names of the card's parent cards. |
 | HTML | `author`, `contentHtml`, `description`, `domain`, `favicon`, `fullHtml`, `image`, `language`, `published`, `site`, `url`, and `words`, plus extractor-specific values returned by Defuddle. |
 
 ## Examples
