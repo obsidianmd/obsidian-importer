@@ -1,0 +1,244 @@
+{
+  "aaaaaaaa-0000-4000-8000-000000000001": {
+    "data": {
+      "id": "aaaaaaaa-0000-4000-8000-000000000001",
+      "name": "Projects",
+      "markup": "Everything in flight.\n\n- [ ] Review [Alpha](^aaaaaaaa-0000-4000-8000-000000000002)\n- [x] Archive [](^aaaaaaaa-0000-4000-8000-000000000003)",
+      "tags": [],
+      "color": null,
+      "icon": "folder",
+      "daily_date": null,
+      "created_when": "2026-01-02T03:04:05.123456",
+      "modified_when": "2026-01-03T03:04:05.123456",
+      "link_cache": {
+        "aaaaaaaa-0000-4000-8000-000000000002": "Alpha",
+        "aaaaaaaa-0000-4000-8000-000000000003": "Beta"
+      }
+    },
+    "parents": {}
+  },
+  "aaaaaaaa-0000-4000-8000-000000000002": {
+    "data": {
+      "id": "aaaaaaaa-0000-4000-8000-000000000002",
+      "name": "Alpha",
+      "markup": "## Plan\n\nSee [Beta](^aaaaaaaa-0000-4000-8000-000000000003) and [](^aaaaaaaa-0000-4000-8000-000000000004).\n\nAn old card: [notes](^aaaaaaaa-0000-4000-8000-00000000ffff). A forgotten one: [gone](^aaaaaaaa-0000-4000-8000-00000000eeee).\n\n```md\n# Not a heading\nNot a link: [Beta](^aaaaaaaa-0000-4000-8000-000000000003)\n```\n\nInline `[Beta](^aaaaaaaa-0000-4000-8000-000000000003)` stays too.",
+      "tags": ["Project A"],
+      "color": "blue",
+      "icon": null,
+      "daily_date": null,
+      "created_when": "2026-01-02T03:04:06.1234",
+      "modified_when": "2026-01-04T03:04:06.1234",
+      "link_cache": {
+        "aaaaaaaa-0000-4000-8000-00000000ffff": "Old card: name/with slash"
+      }
+    },
+    "parents": {
+      "aaaaaaaa-0000-4000-8000-000000000001": {
+        "created_when": "2026-01-02T03:04:06.000000",
+        "archived": null
+      }
+    }
+  },
+  "aaaaaaaa-0000-4000-8000-000000000003": {
+    "data": {
+      "id": "aaaaaaaa-0000-4000-8000-000000000003",
+      "name": "Beta",
+      "markup": "![Shot](https://supernotes-resources.s3.amazonaws.com/image-uploads/0f0f0f0f-1111-4222-8333-444444444444--Screen%2520shot%25201.png)\n\n![Cover](https://example.com/cover.jpg)\n\n[spec](https://supernotes-resources.s3.amazonaws.com/file-uploads/0f0f0f0f-1111-4222-8333-555555555555--spec.pdf)\n\n![screenshot_0](https://supernotes-resources.s3.amazonaws.com/image-uploads/0f0f0f0f-1111-4222-8333-666666666666--screenshot_0)\n\nBack to [Projects](^aaaaaaaa-0000-4000-8000-000000000001).",
+      "tags": ["archive", "to do"],
+      "color": "green",
+      "icon": "star",
+      "daily_date": "2026-01-05",
+      "created_when": "2026-01-02T03:04:07.123Z",
+      "modified_when": "2026-01-02T03:04:07.123Z",
+      "link_cache": null
+    },
+    "parents": {
+      "aaaaaaaa-0000-4000-8000-000000000001": {
+        "created_when": "2026-01-02T03:04:07.000000",
+        "archived": false
+      }
+    }
+  },
+  "aaaaaaaa-0000-4000-8000-000000000004": {
+    "data": {
+      "id": "aaaaaaaa-0000-4000-8000-000000000004",
+      "name": "Alpha notes",
+      "markup": "# Status\n\nOn track.\n\n### Risks\n\n- none",
+      "tags": [],
+      "color": null,
+      "icon": null,
+      "daily_date": null,
+      "created_when": "2026-01-02T03:04:08.123456",
+      "modified_when": "2026-01-06T03:04:08.123456",
+      "link_cache": null
+    },
+    "parents": {
+      "aaaaaaaa-0000-4000-8000-000000000002": {
+        "created_when": "2026-01-02T03:04:08.000000",
+        "archived": null
+      }
+    }
+  },
+  "aaaaaaaa-0000-4000-8000-000000000005": {
+    "data": {
+      "id": "aaaaaaaa-0000-4000-8000-000000000005",
+      "name": "Deep detail",
+      "markup": "##### Already deep\n\nText.",
+      "tags": [],
+      "color": null,
+      "icon": null,
+      "daily_date": null,
+      "created_when": "2026-01-02T03:04:09.123456",
+      "modified_when": "2026-01-02T03:04:09.123456",
+      "link_cache": null
+    },
+    "parents": {
+      "aaaaaaaa-0000-4000-8000-000000000004": {
+        "created_when": "2026-01-02T03:04:09.000000",
+        "archived": null
+      }
+    }
+  },
+  "aaaaaaaa-0000-4000-8000-000000000006": {
+    "data": {
+      "id": "aaaaaaaa-0000-4000-8000-000000000006",
+      "name": "Reading",
+      "markup": "Books.",
+      "tags": [],
+      "color": null,
+      "icon": null,
+      "daily_date": null,
+      "created_when": "2026-01-02T03:04:10.123456",
+      "modified_when": "2026-01-02T03:04:10.123456",
+      "link_cache": null
+    },
+    "parents": {}
+  },
+  "aaaaaaaa-0000-4000-8000-000000000007": {
+    "data": {
+      "id": "aaaaaaaa-0000-4000-8000-000000000007",
+      "name": "Book one",
+      "markup": "First copy.",
+      "tags": ["Sample tag"],
+      "color": null,
+      "icon": null,
+      "daily_date": null,
+      "created_when": "2026-01-02T03:04:11.123456",
+      "modified_when": "2026-01-02T03:04:11.123456",
+      "link_cache": null
+    },
+    "parents": {
+      "aaaaaaaa-0000-4000-8000-000000000006": {
+        "created_when": "2026-01-02T03:04:11.000000",
+        "archived": null
+      }
+    }
+  },
+  "aaaaaaaa-0000-4000-8000-000000000008": {
+    "data": {
+      "id": "aaaaaaaa-0000-4000-8000-000000000008",
+      "name": "book one",
+      "markup": "Second copy, same name but for case. Links to [the first](^aaaaaaaa-0000-4000-8000-000000000007).",
+      "tags": [],
+      "color": null,
+      "icon": null,
+      "daily_date": null,
+      "created_when": "2026-01-02T03:04:12.123456",
+      "modified_when": "2026-01-02T03:04:12.123456",
+      "link_cache": null
+    },
+    "parents": {
+      "aaaaaaaa-0000-4000-8000-000000000006": {
+        "created_when": "2026-01-02T03:04:12.000000",
+        "archived": null
+      }
+    }
+  },
+  "aaaaaaaa-0000-4000-8000-000000000009": {
+    "data": {
+      "id": "aaaaaaaa-0000-4000-8000-000000000009",
+      "name": "Shared",
+      "markup": "Filed in two places.",
+      "tags": [],
+      "color": null,
+      "icon": null,
+      "daily_date": null,
+      "created_when": "2026-01-02T03:04:13.123456",
+      "modified_when": "2026-01-02T03:04:13.123456",
+      "link_cache": null
+    },
+    "parents": {
+      "aaaaaaaa-0000-4000-8000-000000000006": {
+        "created_when": "2026-01-02T03:04:13.000000",
+        "archived": true
+      },
+      "aaaaaaaa-0000-4000-8000-000000000001": {
+        "created_when": "2026-01-02T03:04:14.000000",
+        "archived": null
+      }
+    }
+  },
+  "aaaaaaaa-0000-4000-8000-000000000010": {
+    "data": {
+      "id": "aaaaaaaa-0000-4000-8000-000000000010",
+      "name": "Loop A",
+      "markup": "Parent is Loop B.",
+      "tags": [],
+      "color": null,
+      "icon": null,
+      "daily_date": null,
+      "created_when": "2026-01-02T03:04:15.123456",
+      "modified_when": "2026-01-02T03:04:15.123456",
+      "link_cache": null
+    },
+    "parents": {
+      "aaaaaaaa-0000-4000-8000-000000000011": {
+        "created_when": "2026-01-02T03:04:15.000000",
+        "archived": null
+      }
+    }
+  },
+  "aaaaaaaa-0000-4000-8000-000000000011": {
+    "data": {
+      "id": "aaaaaaaa-0000-4000-8000-000000000011",
+      "name": "Loop B",
+      "markup": "Parent is Loop A.",
+      "tags": [],
+      "color": null,
+      "icon": null,
+      "daily_date": null,
+      "created_when": "2026-01-02T03:04:16.123456",
+      "modified_when": "2026-01-02T03:04:16.123456",
+      "link_cache": null
+    },
+    "parents": {
+      "aaaaaaaa-0000-4000-8000-000000000010": {
+        "created_when": "2026-01-02T03:04:16.000000",
+        "archived": null
+      }
+    }
+  },
+  "aaaaaaaa-0000-4000-8000-000000000012": {
+    "data": {
+      "id": "aaaaaaaa-0000-4000-8000-000000000012",
+      "name": "Status: 1/2/26",
+      "markup": "- First item\n- Second item",
+      "tags": [],
+      "color": null,
+      "icon": null,
+      "daily_date": null,
+      "created_when": "2026-01-02T03:04:17.123456",
+      "modified_when": "2026-01-02T03:04:17.123456",
+      "link_cache": null
+    },
+    "parents": {
+      "aaaaaaaa-0000-4000-8000-00000000dddd": {
+        "created_when": "2026-01-02T03:04:17.000000",
+        "archived": null
+      }
+    }
+  },
+  "not-a-card": {
+    "membership": {}
+  }
+}

@@ -19,6 +19,7 @@ Import guides are hosted on the [official Obsidian Help site](https://obsidian.m
 - [Import from Roam Research](https://obsidian.md/help/import/roam)
 - [Import from Logseq](https://obsidian.md/help/import/logseq)
 - [Import from Markdown files](https://obsidian.md/help/import/markdown) (.md, .txt)
+- Import from Supernotes (.json)
 - [Import from Textbundle files](https://obsidian.md/help/import/textbundle) (.textbundle, .textpack)
 - [Import from Tomboy/Gnote](https://obsidian.md/help/import/tomboy) (.note)
 
@@ -87,3 +88,4 @@ This plugin relies on important contributions:
 - [@p3rid0t](https://github.com/p3rid0t) for Microsoft OneNote import
 - [@mirnovov](https://github.com/mirnovov) for Apple Notes import
 - [@wzs](https://github.com/wzs) for Apple Journal import
+- [@SideMatter](https://github.com/SideMatter) for Supernotes import
