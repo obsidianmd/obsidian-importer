@@ -7,6 +7,7 @@ import { createHash } from 'node:crypto';
 const FIXTURES = nodePath.join(__dirname, 'fixtures');
 
 const HASHES: Record<string, string> = {
+	'lzx-padding-repro.onepkg': '6966a327ec47d3f8e53101cb94ee5ae997cca3572327d0aca167e1805a7b9ab6',
 	'testOneNote.one': 'b614dc94b890b53db7cb2d3053382cb398c59385533c256e2509850cc3247270',
 	'testOneNote2016.one': 'fcfc3c2e65482dc6f70f6a613b058e908f67db2ebb16a343bc2367e02bbb471c',
 	'testOneNoteEmbeddedWordDoc.one': 'cf38e39cb5ced46f377c832e5ff0fa5e789945930f77c294ba5e866429a2a028',

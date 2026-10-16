@@ -54,6 +54,8 @@ class BitReader {
 	}
 
 	alignToWord(): void {
+		// Uncompressed blocks require 1–16 padding bits, even when already aligned.
+		if (this.bitsRemaining === 0) this.loadWord();
 		this.bitsRemaining = 0;
 	}
 

@@ -14,6 +14,14 @@ function fixture(name: string): Uint8Array {
 
 const LIMITS = { maxExpandedBytes: 1024 * 1024, maxEntryBytes: 1024 * 1024, maxEntries: 10 };
 
+test('an uncompressed block whose header ends on a word boundary skips a whole padding word', () => {
+	const entries = readCabinet(fixture('lzx-padding-repro.onepkg'), LIMITS);
+
+	assert.equal(entries.length, 1);
+	assert.equal(entries[0].name, 'repro.one');
+	assert.equal(new TextDecoder().decode(entries[0].data), 'ABABABPADDING!');
+});
+
 function e8OraclePayload(): Uint8Array {
 	const pattern = new TextEncoder().encode('OfficeIMO-LZX-E8-independent-oracle-');
 	const payload = new Uint8Array(4096);

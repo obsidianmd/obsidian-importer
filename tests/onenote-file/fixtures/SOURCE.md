@@ -1,8 +1,8 @@
 # OneNote fixture provenance
 
-None of these files were authored here. Every one is copied unchanged from a
-project that publishes it as test data, at a pinned commit, under a licence that
-allows redistribution. The licence texts sit beside them.
+The section and makecab fixtures are copied unchanged from projects that
+publish them as test data under licences that allow redistribution.
+The licence texts sit beside them.
 
 A fixture is only an anchor if it is the same bytes the upstream assertions were
 written against, so the SHA-256 of each is recorded below and checked by
@@ -53,10 +53,23 @@ proves agreement with Microsoft's compressor rather than with a recording.
   contents were authored by OfficeIMO's writer, so it anchors the container and
   not the semantics.
 
+## Synthetic LZX padding regression
+
+`lzx-padding-repro.onepkg` is the 152-byte synthetic Cabinet attached to
+[issue 679](https://github.com/obsidianmd/obsidian-importer/issues/679).
+It contains no notebook data: `repro.one` expands to `ABABABPADDING!`.
+Six verbatim literals precede an uncompressed block whose header ends exactly
+on a 16-bit boundary, requiring a full padding word before the repeated offsets.
+This is the 1–16-bit padding rule in
+[MS-PATCH §2.3.2.1](https://learn.microsoft.com/en-us/openspecs/exchange_server_protocols/ms-patch/755e7336-aa48-4a41-bcb5-65530323e879).
+The issue attachment includes its generator. Expansion was independently checked
+with macOS's libarchive-based `tar -xOf`.
+
 ## Hashes
 
 | File | Size | SHA-256 |
 |---|---:|---|
+| `lzx-padding-repro.onepkg` | 152 | `6966a327ec47d3f8e53101cb94ee5ae997cca3572327d0aca167e1805a7b9ab6` |
 | `testOneNote.one` | 30,288 | `b614dc94b890b53db7cb2d3053382cb398c59385533c256e2509850cc3247270` |
 | `testOneNote2016.one` | 14,744 | `fcfc3c2e65482dc6f70f6a613b058e908f67db2ebb16a343bc2367e02bbb471c` |
 | `testOneNoteEmbeddedWordDoc.one` | 33,096 | `cf38e39cb5ced46f377c832e5ff0fa5e789945930f77c294ba5e866429a2a028` |
