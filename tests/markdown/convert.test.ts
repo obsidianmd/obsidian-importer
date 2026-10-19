@@ -33,3 +33,11 @@ for (const note of notes) {
 		expectFile(markdown, expectedFor(note, name, 'tags-as-properties.md'), note.name);
 	});
 }
+
+test('masks a fenced code block with CRLF line endings', () => {
+	const content = ['#outside', '', '```c', '#include <stdio.h>', '', '#define SIZE 8', '```', ''].join('\r\n');
+	const { markdown, tags } = convertMarkdownNote(content, { tagsAsProperties: true });
+
+	assert.deepEqual(tags, ['outside']);
+	assert.ok(markdown.endsWith(content.slice('#outside\r\n\r\n'.length)), 'the code block must be left as written');
+});
