@@ -28,6 +28,8 @@ export function convertLocal(
 	options: LogseqImportOptions,
 	runtime: LogseqConversionRuntime = {},
 ): LocalResult {
+	// The parser assumes LF, and the note is rewritten anyway.
+	content = content.replace(/\r\n/g, '\n');
 	const { yaml, properties, body: initialBody, raw } = extractPageProperties(content, {
 		dropTags: options.flashcards ? [] : ['card'],
 		commaSeparatedProperties: runtime.commaSeparatedProperties,

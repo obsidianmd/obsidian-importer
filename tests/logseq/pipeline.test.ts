@@ -1,5 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import * as nodeFs from 'node:fs';
+import * as nodePath from 'node:path';
 
 import { convertLocal } from '../../src/formats/logseq/pipeline';
 import { DEFAULT_LOGSEQ_OPTIONS } from '../../src/formats/logseq/options';
@@ -111,4 +113,15 @@ test('does not remove a query example inside code', () => {
 	const input = ['```markdown', '{{query (property :status doing)}}', '```'].join('\n');
 	const converted = convertLocal(input, options);
 	assert.equal(converted.body, input);
+});
+
+test('a page saved with CRLF converts as it does with LF', () => {
+	const fixtures = nodePath.join(__dirname, 'fixtures');
+	const pages = nodeFs.readdirSync(fixtures, { recursive: true, encoding: 'utf8' }).filter(path => path.endsWith('.md'));
+	assert.ok(pages.length > 0);
+
+	for (const page of pages) {
+		const lf = nodeFs.readFileSync(nodePath.join(fixtures, page), 'utf8');
+		assert.deepEqual(convertLocal(lf.replace(/\n/g, '\r\n'), opts), convertLocal(lf, opts), page);
+	}
 });
