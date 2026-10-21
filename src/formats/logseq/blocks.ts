@@ -286,8 +286,8 @@ export function convertMediaEmbeds(content: string): string {
 
 export function fixCodeBlocksInLists(content: string): string {
 	const lines = content.split('\n');
-	const openRe = /^([ \t]*)(?:([-*+])([ \t]+))?([`~]{3,})/;
-	const closeRe = new RegExp(`^[ \\t]*([\x60~]{3,})((?:[ \\t]+${BLOCK_ANCHOR_PATTERN})?)[ \\t]*$`);
+	const openRe = /^([ \t]*)(?:([-*+])([ \t]+))?(`{3,}(?!.*`)|~{3,})/;
+	const closeRe = new RegExp(`^[ \\t]*(\x60{3,}|~{3,})((?:[ \\t]+${BLOCK_ANCHOR_PATTERN})?)[ \\t]*$`);
 	let fence: { marker: string, length: number } | null = null;
 	let fenceIndent = '';
 

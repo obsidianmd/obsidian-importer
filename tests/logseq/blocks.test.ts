@@ -257,6 +257,11 @@ test('fixCodeBlocksInLists: does not alter code content lines', () => {
 	assert.equal(fixCodeBlocksInLists(input), expected);
 });
 
+test('fixCodeBlocksInLists: a code span is not a fence', () => {
+	const input = ['- ```a```', '- next', '```', 'code', '```'].join('\n');
+	assert.equal(fixCodeBlocksInLists(input), input);
+});
+
 
 test('convertMediaEmbeds: converts {{video URL}}', () => {
 	assert.equal(convertMediaEmbeds('- {{video https://example.com/v.mp4}}'), '- ![](https://example.com/v.mp4)');
