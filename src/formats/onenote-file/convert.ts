@@ -10,9 +10,7 @@ export interface ResolvedAttachment {
 	name: string;
 }
 
-export type SkipReason =
-	| 'no-data'
-	| 'not-representable';
+export type SkipReason = 'no-data';
 
 export interface OneNoteConversionOptions {
 	/** Writes one asset and answers with the link target, or null to leave it out. */
@@ -206,6 +204,11 @@ interface Block {
 	callout?: string;
 }
 
+function containsTable(elements: Element[]): boolean {
+	return elements.some(element => element.kind === 'table'
+		|| ((element.kind === 'outline' || element.kind === 'paragraph') && containsTable(element.children)));
+}
+
 /** An attachment without an extension is one the vault cannot open. */
 function withExtension(base: string, extension: string | undefined): string {
 	if (!extension) return base;
@@ -305,6 +308,14 @@ class PageWriter {
 	private async writeTable(table: Table): Promise<void> {
 		if (table.rows.length === 0) return;
 
+		// Markdown tables cannot nest, and a table that holds one is layout.
+		if (table.rows.some(row => row.cells.some(cell => containsTable(cell.children)))) {
+			for (const row of table.rows) {
+				for (const cell of row.cells) await this.writeElements(cell.children);
+			}
+			return;
+		}
+
 		const columns = Math.max(...table.rows.map(row => row.cells.length));
 
 		const rendered: string[][] = [];
@@ -401,9 +412,6 @@ class PageWriter {
 				}
 				case 'ink':
 					this.collectInk(child);
-					break;
-				case 'table':
-					this.options.onSkipped?.(this.pageTitle, 'not-representable');
 					break;
 			}
 		}

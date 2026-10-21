@@ -1794,10 +1794,6 @@ translation=tệp lớn hơn mức mà trình nhập này sẵn sàng Mở rộn
 original=the attachment held no data
 translation=tệp đính kèm không chứa dữ liệu
 
-[importer.onenote-file.reason-not-representable]
-original=a table inside a table cell has no Markdown equivalent
-translation=bảng bên trong ô bảng không có tương đương trong Markdown
-
 [importer.notion-api.name]
 original=Notion (API)
 translation=Notion (API)

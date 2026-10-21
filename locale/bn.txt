@@ -1794,10 +1794,6 @@ translation=ফাইলটি এই ইম্পোর্টার যতট�
 original=the attachment held no data
 translation=আটাচমেন্টে কোনো ডেটা নেই
 
-[importer.onenote-file.reason-not-representable]
-original=a table inside a table cell has no Markdown equivalent
-translation=একটি টেবিল সেলের ভিতরে থাকা টেবিলের কোনো Markdown সমতুল্য নেই
-
 [importer.notion-api.name]
 original=Notion (API)
 translation=Notion (API)

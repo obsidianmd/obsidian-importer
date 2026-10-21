@@ -1794,10 +1794,6 @@ translation=soubor je větší, než je tento importér ochoten rozbalit
 original=the attachment held no data
 translation=příloha neobsahovala žádná data
 
-[importer.onenote-file.reason-not-representable]
-original=a table inside a table cell has no Markdown equivalent
-translation=tabulka uvnitř buňky tabulky nemá ekvivalent v Markdown
-
 [importer.notion-api.name]
 original=Notion (API)
 translation=Notion (API)

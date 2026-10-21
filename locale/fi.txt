@@ -1794,10 +1794,6 @@ translation=tiedosto on suurempi kuin mitä tämä tuontityökalu suostuu purkam
 original=the attachment held no data
 translation=liite ei sisältänyt tietoja
 
-[importer.onenote-file.reason-not-representable]
-original=a table inside a table cell has no Markdown equivalent
-translation=taulukko taulukon solun sisällä ei ole esitettävissä Markdown-muodossa
-
 [importer.notion-api.name]
 original=Notion (API)
 translation=Notion (API)

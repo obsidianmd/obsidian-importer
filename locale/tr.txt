@@ -1794,10 +1794,6 @@ translation=dosya, bu içe aktarıcının açmaya hazır olduğundan daha büyü
 original=the attachment held no data
 translation=ek herhangi bir veri içermiyordu
 
-[importer.onenote-file.reason-not-representable]
-original=a table inside a table cell has no Markdown equivalent
-translation=tablo hücresinin içindeki bir tablonun Markdown karşılığı yoktur
-
 [importer.notion-api.name]
 original=Notion (API)
 translation=Notion (API)

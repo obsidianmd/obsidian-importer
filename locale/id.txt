@@ -1794,10 +1794,6 @@ translation=file lebih besar dari yang bersedia dibuka oleh importir ini
 original=the attachment held no data
 translation=lampiran tidak berisi data
 
-[importer.onenote-file.reason-not-representable]
-original=a table inside a table cell has no Markdown equivalent
-translation=tabel di dalam sel tabel tidak memiliki padanan Markdown
-
 [importer.notion-api.name]
 original=Notion (API)
 translation=Notion (API)

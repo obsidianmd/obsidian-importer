@@ -1794,10 +1794,6 @@ translation=el fitxer és més gran del que aquest importador pot ampliar
 original=the attachment held no data
 translation=l'adjunt no contenia cap dada
 
-[importer.onenote-file.reason-not-representable]
-original=a table inside a table cell has no Markdown equivalent
-translation=una taula dins d'una cel·la de taula no té equivalent en Markdown
-
 [importer.notion-api.name]
 original=Notion (API)
 translation=Notion (API)

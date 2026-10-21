@@ -1794,10 +1794,6 @@ translation=파일이 이 가져오기 도구가 펴기를 허용하는 크기�
 original=the attachment held no data
 translation=첨부 파일에 데이터가 없어요
 
-[importer.onenote-file.reason-not-representable]
-original=a table inside a table cell has no Markdown equivalent
-translation=표 셀 안의 표는 마크다운으로 표현할 수 없어요
-
 [importer.notion-api.name]
 original=Notion (API)
 translation=Notion (API)

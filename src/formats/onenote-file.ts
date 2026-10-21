@@ -321,9 +321,7 @@ export class OneNoteFileImporter extends FormatImporter {
 				noteName: title,
 				isCancelled: () => ctx.isCancelled(),
 				resolveInternalLink: pageTitle => sanitizeFileName(pageTitle),
-				onSkipped: (name, reason) => ctx.reportSkipped(name, reason === 'no-data'
-					? i18n.importer.onenoteFile.reasonNoAttachmentData()
-					: i18n.importer.onenoteFile.reasonNotRepresentable()),
+				onSkipped: name => ctx.reportSkipped(name, i18n.importer.onenoteFile.reasonNoAttachmentData()),
 				saveAttachment: (bytes, suggested) => this.saveAttachment(ctx, bytes, suggested, notePath),
 			});
 

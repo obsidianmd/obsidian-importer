@@ -372,18 +372,63 @@ test('a table cell keeps the picture in it', async () => {
 	assert.deepEqual(saved, ['Test image.png']);
 });
 
-test('a table markdown cannot nest is reported rather than dropped', async () => {
-	const skipped: [string, string][] = [];
+test('a table that holds a table is unwrapped so the inner table stays a table', async () => {
+	const skipped: string[] = [];
 
-	await convertPage(page({
+	const converted = await convertPage(page({
 		kind: 'table',
-		rows: [{ cells: [{ children: [{ kind: 'table', rows: [{ cells: [{ children: [para('inner')] }] }] }] }] }],
+		rows: [{ cells: [{ children: [{
+			kind: 'table',
+			rows: [
+				{ cells: [{ children: [para('When')] }, { children: [para('Tuesday')] }] },
+				{ cells: [{ children: [para('PIN')] }, { children: [para('1234')] }] },
+			],
+		}] }] }],
 	}), {
 		saveAttachment: async () => null,
-		onSkipped: (name, reason) => skipped.push([name, reason]),
+		onSkipped: name => skipped.push(name),
 	});
 
-	assert.deepEqual(skipped, [['Test', 'not-representable']]);
+	assert.equal(converted.markdown, ['| When | Tuesday |', '| --- | --- |', '| PIN | 1234 |'].join('\n'));
+	assert.deepEqual(skipped, []);
+});
+
+test('an unwrapped table keeps its cells in reading order as separate blocks', async () => {
+	const markdown = await render({
+		kind: 'table',
+		rows: [
+			{ cells: [
+				{ children: [para('Join with Google Meet'), para('Dial-in', { list: { level: 0, ordered: false } })] },
+				{ children: [{ kind: 'outline', children: [para('aside')] }] },
+			] },
+			{ cells: [{ children: [para('before'), { kind: 'table', rows: [{ cells: [{ children: [para('inner')] }] }] }] }] },
+		],
+	});
+
+	assert.equal(markdown, [
+		'Join with Google Meet',
+		'',
+		'- Dial-in',
+		'',
+		'aside',
+		'',
+		'before',
+		'',
+		'| inner |',
+		'| --- |',
+	].join('\n'));
+});
+
+test('a table under a paragraph in a cell still unwraps the outer table', async () => {
+	const markdown = await render({
+		kind: 'table',
+		rows: [{ cells: [
+			{ children: [para('outer', { children: [{ kind: 'table', rows: [{ cells: [{ children: [para('deep')] }] }] }] })] },
+			{ children: [para('beside')] },
+		] }],
+	});
+
+	assert.equal(markdown, ['outer', '', '| deep |', '| --- |', '', 'beside'].join('\n'));
 });
 
 test('text that looks like markdown is not read as markdown', async () => {
