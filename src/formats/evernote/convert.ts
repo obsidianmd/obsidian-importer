@@ -82,7 +82,7 @@ export async function convertEnexFiles(options: EvernoteOptions, output: Evernot
 
 		const firstDraft = run.drafts.length;
 		await parseStream(run, enex, ctx);
-		await commitResources(run, firstDraft);
+		await commitResources(run, firstDraft, ctx);
 	}
 
 	// Resolve links after every notebook has been planned.
@@ -92,5 +92,5 @@ export async function convertEnexFiles(options: EvernoteOptions, output: Evernot
 	}
 
 	// Keep notes converted before cancellation.
-	await commitNotes(run);
+	await commitNotes(run, ctx);
 }
