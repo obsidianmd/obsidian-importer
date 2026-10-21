@@ -261,6 +261,14 @@ test('only a delimiter on a line of its own closes a fence', async () => {
 	assert.deepEqual(moved.tags, ['real']);
 });
 
+test('a backtick run with a backtick after it is a code span, not a fence', async () => {
+	const source = '```a``` #real\n#later';
+	const { content, tags } = await convertBearNote(source, noteOptions);
+
+	assert.equal(content, source);
+	assert.deepEqual(tags, ['real', 'later']);
+});
+
 test('four spaces in is code of another kind, not a fence', async () => {
 	const source = '    ```\n#real';
 	const moved = await convertBearNote(source, { ...noteOptions, tagPlacement: 'property' });

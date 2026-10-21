@@ -78,3 +78,10 @@ test('keeps CRLF line endings and fenced code', () => {
 		'',
 	].join('\r\n'));
 });
+
+test('a backtick run with a backtick after it is a code span, not a fence', () => {
+	const { markdown, tags } = convertMarkdownNote('```a``` #after\n#later\n', { tagsAsProperties: true });
+
+	assert.deepEqual(tags, ['after', 'later']);
+	assert.equal(markdown, '---\ntags:\n  - after\n  - later\n---\n```a```\n');
+});

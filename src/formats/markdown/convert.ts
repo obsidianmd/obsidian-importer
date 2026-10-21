@@ -7,7 +7,8 @@ const TAG_EDGE = `[^${ILLEGAL_TAG_CHARS}\\s/-]`;
 /** Tags require a word boundary, excluding link fragments. */
 const TAG = new RegExp(`(?<!\\S)#(${TAG_EDGE}${TAG_BODY}*${TAG_EDGE}|${TAG_EDGE})(?!${TAG_BODY})`, 'gu');
 
-const FENCE = /^ {0,3}(`{3,}|~{3,})(.*)$/;
+/** A backtick fence's info string cannot contain a backtick, so ```a``` is a code span. */
+const FENCE = /^ {0,3}(`{3,}(?!.*`)|~{3,})(.*)$/;
 const INDENTED_CODE = /^(?: {4}|\t)/;
 const BLANK = /^\s*$/;
 const SPACE = /[ \t]/;

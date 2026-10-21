@@ -16,7 +16,8 @@ const ASSET_LINK = /\[[^\]]*\]\((assets\/[^)]+)\)/gm;
 
 const IMAGE_SIZE = /!\[([^\]]*)\]\(([^()\s]*)\)<!--\s*(\{[^}]*\})\s*-->/g;
 
-const FENCE = /^ {0,3}(`{3,}|~{3,})/;
+/** A backtick fence's info string cannot contain a backtick, so ```a``` is a code span. */
+const FENCE = /^ {0,3}(`{3,}(?!.*`)|~{3,})/;
 
 const FENCE_CLOSE = /^ {0,3}(`{3,}|~{3,})[ \t]*\r?$/;
 
