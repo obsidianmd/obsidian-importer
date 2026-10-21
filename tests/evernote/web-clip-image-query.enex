@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE en-export SYSTEM "http://xml.evernote.com/pub/evernote-export4.dtd">
+<en-export export-date="20240129T194517Z" application="Evernote" version="10.73.3">
+  <note>
+    <title>Clipped article</title>
+    <created>20240129T194123Z</created>
+    <updated>20240129T194145Z</updated>
+    <note-attributes>
+    </note-attributes>
+    <content>
+      <![CDATA[<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd"><en-note><div>Logo:</div><en-media hash="5fae300a506d0728745732c6a6bc4e81" type="image/png" /></en-note>      ]]>
+    </content>
+    <resource>
+      <data encoding="base64">
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8//8/AwAFAAEKLrTnAAAAAElFTkSuQmCC
+      </data>
+      <mime>image/png</mime>
+      <width>120</width>
+      <height>80</height>
+      <resource-attributes>
+        <file-name>/23e4a5a4.png?width=120&amp;height=80&amp;fit=crop&amp;trim=2,2,2,2</file-name>
+      </resource-attributes>
+    </resource>
+  </note>
+</en-export>

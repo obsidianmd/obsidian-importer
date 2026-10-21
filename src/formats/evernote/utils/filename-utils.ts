@@ -9,43 +9,25 @@ export const normalizeTitle = (title: string) => {
 	return sanitizeFileName(title);
 };
 
+const PLAIN_EXTENSION = /^[a-z0-9]+$/i;
+
 export const getResourceFileName = (resource: EvernoteResource): string => {
-	const UNKNOWNFILENAME = 'unknown_filename';
+	const fallback = (resource.mime && extensionForMime(resource.mime)) || 'dat';
+	const fileName = resource['resource-attributes']?.['file-name'];
+	if (!fileName) return `unknown_filename.${fallback}`;
 
-	const extension = getExtension(resource);
-	let fileName = UNKNOWNFILENAME;
+	const [basename, ext] = splitPlainExtension(fileName)
+		// Web Clipper names can keep the image URL's query, as in photo.png?width=120.
+		?? splitPlainExtension(fileName.replace(/^(.*\.[a-z0-9]+)[?#].*$/i, '$1'))
+		?? [parseFilePath(fileName).name, fallback];
 
-	if (resource['resource-attributes'] && resource['resource-attributes']['file-name']) {
-		fileName = parseFilePath(resource['resource-attributes']['file-name']).basename;
-	}
-	fileName = fileName.replace(/[/\\?%*:|"<>[\]+]/g, '-');
-
-	return `${fileName}.${extension}`;
+	return `${basename.replace(/[/\\?%*:|"<>[\]+]/g, '-')}.${ext}`;
 };
 
+const splitPlainExtension = (fileName: string): [string, string] | null => {
+	const name = parseFilePath(fileName).name;
+	const dot = name.lastIndexOf('.');
+	const extension = name.slice(dot + 1);
 
-export const getExtensionFromResourceFileName = (resource: EvernoteResource): string | undefined => {
-	if (!(resource['resource-attributes'] &&
-		resource['resource-attributes']['file-name'])) {
-		return '';
-	}
-	const splitFileName = resource['resource-attributes']['file-name'].split('.');
-
-	return splitFileName.length > 1 ? splitFileName[splitFileName.length - 1] : undefined;
-
-};
-
-export const getExtensionFromMime = (resource: EvernoteResource): string => {
-	const mimeType = resource.mime;
-	if (!mimeType) {
-		return '';
-	}
-
-	return extensionForMime(mimeType) || '';
-};
-
-export const getExtension = (resource: EvernoteResource): string => {
-	const UNKNOWNEXTENSION = 'dat';
-
-	return getExtensionFromResourceFileName(resource) || getExtensionFromMime(resource) || UNKNOWNEXTENSION;
+	return dot > 0 && PLAIN_EXTENSION.test(extension) ? [name.slice(0, dot), extension] : null;
 };
