@@ -195,7 +195,9 @@ export function convertMarkdownNote(content: string, options: MarkdownConversion
 	const parsed = parseFrontMatterBlock(content);
 	const body = parsed ? parsed.body : content;
 
-	const lines = body.split('\n');
+	const parts = body.split(/(\r?\n)/);
+	const lines = parts.filter((_, i) => i % 2 === 0);
+	const breaks = parts.filter((_, i) => i % 2 === 1);
 	const masked = maskCode(lines);
 
 	const found: string[] = [];
@@ -215,24 +217,29 @@ export function convertMarkdownNote(content: string, options: MarkdownConversion
 	const tags = mergeTags(tagList(frontMatter.tags), found);
 	frontMatter.tags = tags;
 
+	const remaining = dropEmptied(kept, emptied);
+	const eol = /\r?\n/.exec(content)?.[0] ?? '\n';
+
 	return {
-		markdown: serializeFrontMatter(frontMatter) + dropEmptied(kept, emptied).join('\n'),
+		markdown: serializeFrontMatter(frontMatter).replace(/\n/g, eol)
+			+ remaining.map((i, j) => kept[i] + (j < remaining.length - 1 ? breaks[i] : '')).join(''),
 		tags,
 	};
 }
 
-/** Drop tag-only lines without creating duplicate blank lines. */
-function dropEmptied(lines: string[], emptied: boolean[]): string[] {
-	const kept: string[] = [];
+/** Drop tag-only lines without creating duplicate blank lines. Returns the indexes of the lines kept. */
+function dropEmptied(lines: string[], emptied: boolean[]): number[] {
+	const kept: number[] = [];
 
 	for (let i = 0; i < lines.length; i++) {
 		if (!emptied[i]) {
-			kept.push(lines[i]);
+			kept.push(i);
 			continue;
 		}
 
+		const before = kept.length > 0 ? lines[kept[kept.length - 1]] : '';
 		const after = lines[i + 1];
-		const between = BLANK.test(kept[kept.length - 1] ?? '') && after !== undefined && BLANK.test(after);
+		const between = BLANK.test(before) && after !== undefined && BLANK.test(after);
 		if (between) i++;
 	}
 

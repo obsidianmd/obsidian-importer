@@ -33,3 +33,48 @@ for (const note of notes) {
 		expectFile(markdown, expectedFor(note, name, 'tags-as-properties.md'), note.name);
 	});
 }
+
+test('keeps CRLF line endings and fenced code', () => {
+	const content = [
+		'#outside',
+		'',
+		'Hello #inline world',
+		'',
+		'```c',
+		'#include <stdio.h>',
+		'',
+		'#define SIZE 8',
+		'```',
+		'',
+		'~~~',
+		'#pragma once',
+		'',
+		'#undef SIZE',
+		'~~~',
+		'',
+	].join('\r\n');
+	const { markdown, tags } = convertMarkdownNote(content, { tagsAsProperties: true });
+
+	assert.deepEqual(tags, ['outside', 'inline']);
+	assert.equal(markdown, [
+		'---',
+		'tags:',
+		'  - outside',
+		'  - inline',
+		'---',
+		'Hello world',
+		'',
+		'```c',
+		'#include <stdio.h>',
+		'',
+		'#define SIZE 8',
+		'```',
+		'',
+		'~~~',
+		'#pragma once',
+		'',
+		'#undef SIZE',
+		'~~~',
+		'',
+	].join('\r\n'));
+});
