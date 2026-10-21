@@ -269,6 +269,15 @@ test('a backtick run with a backtick after it is a code span, not a fence', asyn
 	assert.deepEqual(tags, ['real', 'later']);
 });
 
+test('a code span that runs over a fenced block comes back whole', async () => {
+	for (const source of ['`a\n~~~\n#fake\n~~~\nend` #real', '```a `\n~~~\n#fake\n~~~\nend``` #real']) {
+		const { content, tags } = await convertBearNote(source, noteOptions);
+
+		assert.equal(content, source);
+		assert.deepEqual(tags, ['real']);
+	}
+});
+
 test('four spaces in is code of another kind, not a fence', async () => {
 	const source = '    ```\n#real';
 	const moved = await convertBearNote(source, { ...noteOptions, tagPlacement: 'property' });

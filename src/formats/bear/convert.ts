@@ -79,8 +79,9 @@ function maskCode(content: string, code: string[]): string {
 	return outsideFences.replace(CODE_SPAN, hide);
 }
 
+/** A code span can run over fenced lines that were masked first. */
 function unmaskCode(content: string, code: string[]): string {
-	return content.replace(MASKED, (_match, index: string) => code[Number(index)]);
+	return content.replace(MASKED, (_match, index: string) => unmaskCode(code[Number(index)], code));
 }
 
 /** Apply a Markdown rewrite without changing fenced or inline code examples. */
