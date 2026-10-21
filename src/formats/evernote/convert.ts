@@ -3,13 +3,12 @@ import { EvernoteNote } from './models/EvernoteNote';
 import { PickedFile } from '../../filesystem';
 import { ImportContext } from '../../import-context';
 import { i18n } from '../../i18n';
-import { mapEvernoteTask } from './models/EvernoteTask';
+import { EvernoteTask, mapEvernoteTask } from './models/EvernoteTask';
 import { EvernoteOptions } from './options';
 import { EvernoteOutput } from './output';
 import { EvernoteRun } from './run';
 import { processNode } from './process-node';
 import { commitNotes, commitResources } from './utils/commit';
-import { convertTasktoMd } from './process-tasks';
 
 import { parseEnex } from './parse-enex';
 import * as utils from './utils';
@@ -18,21 +17,15 @@ import { isWebClip } from './utils/note-utils';
 
 const WANTED = new Set(['note', 'task']);
 
-const TASK_PLACEHOLDER = '<ENEX-EN-V10-TASK>';
-
-interface TaskGroups {
-	[key: string]: Map<string, string>;
-}
-
 export const parseStream = async (run: EvernoteRun, enexSource: PickedFile, ctx: ImportContext): Promise<void> => {
 	const runtimeProps = run.properties;
 
 	ctx.status(i18n.common.statusProcessing({ name: enexSource.name }));
-	const tasks: TaskGroups = {}; // key: taskId value: generated md text
 	const notebookName = runtimeProps.getCurrentNotebookName();
-	const firstDraft = run.drafts.length;
+	// A note's tasks close before the note does.
+	let tasks: EvernoteTask[] = [];
 
-	const importNote = async (note: EvernoteNote): Promise<void> => {
+	const importNote = async (note: EvernoteNote, noteTasks: EvernoteTask[]): Promise<void> => {
 		if (run.options.skipWebClips && isWebClip(note)) {
 			ctx.reportSkipped(note.title ?? enexSource.name);
 			return;
@@ -41,7 +34,7 @@ export const parseStream = async (run: EvernoteRun, enexSource: PickedFile, ctx:
 		ctx.status(i18n.common.statusImportingNote({ name: String(note.title) }));
 
 		try {
-			await processNode(run, note, notebookName + '/' + note.title);
+			await processNode(run, note, noteTasks, notebookName + '/' + note.title);
 		}
 		catch (e) {
 			ctx.reportFailed(note.title || enexSource.name, e);
@@ -54,35 +47,20 @@ export const parseStream = async (run: EvernoteRun, enexSource: PickedFile, ctx:
 			isCancelled: () => ctx.isCancelled(),
 			checkpoint: () => ctx.shouldStop(),
 			onElement: async (name, element) => {
-				if (typeof element === 'string') return;
-
-				if (name === 'note') {
-					await importNote(element);
+				if (name === 'task') {
+					if (typeof element !== 'string') tasks.push(mapEvernoteTask(element));
 					return;
 				}
 
-				const task = mapEvernoteTask(element);
-				tasks[task.taskgroupnotelevelid] ??= new Map();
-				tasks[task.taskgroupnotelevelid].set(task.sortweight, convertTasktoMd(run, task));
+				const noteTasks = tasks;
+				tasks = [];
+				if (typeof element !== 'string') await importNote(element, noteTasks);
 			},
 		});
 	}
 	catch (e) {
 		ctx.reportFailed(runtimeProps.getCurrentNotebookFullpath(), e);
 		throw e;
-	}
-
-	const groups = Object.entries(tasks).map(([id, group]) => ({
-		placeholder: `<ENEX-EN-V10-TASK>${id}</ENEX-EN-V10-TASK>`,
-		text: [...new Map([...group].sort()).values()].join('\n'),
-	}));
-
-	for (const draft of run.drafts.slice(firstDraft)) {
-		if (!draft.markdown.includes(TASK_PLACEHOLDER)) continue;
-
-		for (const { placeholder, text } of groups) {
-			draft.markdown = draft.markdown.replace(placeholder, text);
-		}
 	}
 };
 

@@ -12,6 +12,8 @@ import { EvernoteNote, joinNoteContent } from './evernote/models/EvernoteNote';
 import { EvernoteRun } from './evernote/run';
 import { convertHtml2Md } from './evernote/convert-html-to-md';
 import { noteTimes } from './evernote/utils/note-times';
+import { EvernoteTask, mapEvernoteTask } from './evernote/models/EvernoteTask';
+import { placeTasks } from './evernote/process-tasks';
 
 
 interface EnexPlan {
@@ -110,19 +112,26 @@ export class EvernoteEnexImporter extends FormatImporter {
 
 		for (const file of this.files) {
 			if (samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop()) break;
+			let tasks: EvernoteTask[] = [];
 			await parseEnex(file, {
-				wanted: new Set(['note']),
+				wanted: new Set(['note', 'task']),
 				isCancelled: () => samples.length >= TEMPLATE_PREVIEW_LIMIT || ctx.isCancelled(),
 				checkpoint: async () => samples.length >= TEMPLATE_PREVIEW_LIMIT || await ctx.shouldStop(),
 				onElement: (name, element) => {
-					if (name !== 'note' || typeof element === 'string' || samples.length >= TEMPLATE_PREVIEW_LIMIT) return;
+					if (name === 'task') {
+						if (typeof element !== 'string') tasks.push(mapEvernoteTask(element));
+						return;
+					}
+					const noteTasks = tasks;
+					tasks = [];
+					if (typeof element === 'string' || samples.length >= TEMPLATE_PREVIEW_LIMIT) return;
 					try {
 						const note = element as EvernoteNote;
 						const title = note.title?.trim() || 'Untitled';
 						// Mark unresolved resources while previewing the rest of the note.
 						const htmlContent = joinNoteContent(note.content)
 							.replace(/<en-media\b[^>]*\/?\s*>/gi, '<p>(attachment)</p>');
-						const content = convertHtml2Md(run, { title, content: htmlContent, htmlContent }).content;
+						const content = placeTasks(run, convertHtml2Md(run, { title, content: htmlContent, htmlContent }).content, noteTasks);
 						samples.push({
 							title,
 							path: normalizePath(`${this.outputLocation}/${file.basename}/${title}.md`),

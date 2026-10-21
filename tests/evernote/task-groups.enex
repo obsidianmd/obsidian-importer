@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE en-export SYSTEM "http://xml.evernote.com/pub/evernote-export4.dtd">
+<en-export export-date="20261020T075422Z" application="Evernote" version="11.38.5">
+  <note>
+    <title>Task without its group</title>
+    <created>20260824T065823Z</created>
+    <updated>20261002T092020Z</updated>
+    <content>
+      <![CDATA[<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd"><en-note><h1 style="--en-nodeId:d4021b86-9888-4262-97eb-ca3f9a4dc408;">ToDO</h1><div><br/></div><hr/><h1 style="--en-nodeId:d0010c3b-7c9b-4008-b15e-2c426076e4c3;">Waiting for</h1><ul style="--en-todo:true;"><li style="--en-checked:true;"><div>New version</div></li></ul><hr/><h1 style="--en-nodeId:6fff2f6f-06ef-452c-ab20-eafe5f080cdc;">Targets</h1><ul style="--en-todo:true;"><li style="--en-checked:false;"><div>Publish paper</div></li></ul><hr/><h1 style="--en-nodeId:6635d2d4-1833-428f-86b1-20aa4170f40d;">Timeline</h1><div><b>Deadline:</b></div><hr/><h1 style="--en-nodeId:6e230c26-f9a3-49cf-bbd3-fc45bea8dc25;">Resources</h1><div><br/></div></en-note>      ]]>
+    </content>
+    <task>
+      <title>Check paper</title>
+      <created>20260922T073124Z</created>
+      <updated>20260922T081703Z</updated>
+      <taskStatus>open</taskStatus>
+      <taskFlag>false</taskFlag>
+      <sortWeight>M</sortWeight>
+      <noteLevelID>2a9ffdf6-a007-4ed6-bf51-d6514727c43f</noteLevelID>
+      <taskGroupNoteLevelID>50a495d1-6426-4025-8735-7f9fa2a2f61a</taskGroupNoteLevelID>
+      <dueDate>20261002T215959Z</dueDate>
+      <dueDateUIOption>date_only</dueDateUIOption>
+      <timeZone>Europe/Amsterdam</timeZone>
+      <repeatAfterCompletion>false</repeatAfterCompletion>
+      <statusUpdated>20260922T073124Z</statusUpdated>
+    </task>
+  </note>
+  <note>
+    <title>Tasks with the same weight</title>
+    <created>20260824T065823Z</created>
+    <updated>20261002T092020Z</updated>
+    <content>
+      <![CDATA[<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd"><en-note><div>Before</div><div style="--en-task-group:true; --en-id:7b1c2d3e-4f50-4617-8a9b-0c1d2e3f4a5b;--en-content-hash:0;-webkit-user-modify:read-only;border-radius:3px"><div>Tasks</div></div><div>After</div></en-note>      ]]>
+    </content>
+    <task>
+      <title>First of two</title>
+      <created>20260922T073124Z</created>
+      <updated>20260922T081703Z</updated>
+      <taskStatus>open</taskStatus>
+      <taskFlag>false</taskFlag>
+      <sortWeight>M</sortWeight>
+      <noteLevelID>1a000000-0000-4000-8000-000000000001</noteLevelID>
+      <taskGroupNoteLevelID>7b1c2d3e-4f50-4617-8a9b-0c1d2e3f4a5b</taskGroupNoteLevelID>
+      <timeZone>Europe/Amsterdam</timeZone>
+      <repeatAfterCompletion>false</repeatAfterCompletion>
+      <statusUpdated>20260922T073124Z</statusUpdated>
+    </task>
+    <task>
+      <title>Second of two</title>
+      <created>20260922T073124Z</created>
+      <updated>20260922T081703Z</updated>
+      <taskStatus>open</taskStatus>
+      <taskFlag>false</taskFlag>
+      <sortWeight>M</sortWeight>
+      <noteLevelID>1a000000-0000-4000-8000-000000000002</noteLevelID>
+      <taskGroupNoteLevelID>7b1c2d3e-4f50-4617-8a9b-0c1d2e3f4a5b</taskGroupNoteLevelID>
+      <timeZone>Europe/Amsterdam</timeZone>
+      <repeatAfterCompletion>false</repeatAfterCompletion>
+      <statusUpdated>20260922T073124Z</statusUpdated>
+    </task>
+    <task>
+      <title>Sorted first</title>
+      <created>20260922T073124Z</created>
+      <updated>20260922T081703Z</updated>
+      <taskStatus>open</taskStatus>
+      <taskFlag>false</taskFlag>
+      <sortWeight>G</sortWeight>
+      <noteLevelID>1a000000-0000-4000-8000-000000000003</noteLevelID>
+      <taskGroupNoteLevelID>7b1c2d3e-4f50-4617-8a9b-0c1d2e3f4a5b</taskGroupNoteLevelID>
+      <timeZone>Europe/Amsterdam</timeZone>
+      <repeatAfterCompletion>false</repeatAfterCompletion>
+      <statusUpdated>20260922T073124Z</statusUpdated>
+    </task>
+  </note>
+  <note>
+    <title>Group without tasks</title>
+    <created>20260824T065823Z</created>
+    <updated>20261002T092020Z</updated>
+    <content>
+      <![CDATA[<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd"><en-note><div>Before</div><div style="--en-task-group:true; --en-id:9c8d7e6f-5a4b-4c3d-8e2f-1a0b9c8d7e6f;--en-content-hash:0;-webkit-user-modify:read-only;border-radius:3px"><div>Tasks</div></div><div>After</div></en-note>      ]]>
+    </content>
+  </note>
+</en-export>

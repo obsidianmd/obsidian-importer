@@ -1,7 +1,9 @@
 import { EvernoteNote, joinNoteContent } from './models/EvernoteNote';
+import { EvernoteTask } from './models/EvernoteTask';
 import { convertHtml2Md } from './convert-html-to-md';
 import { NoteData } from './models/NoteData';
 import { extractDataUrlResources, processResources } from './process-resources';
+import { placeTasks } from './process-tasks';
 import { EvernoteRun } from './run';
 import { getMetadata, isComplex, logTags } from './utils';
 import { normalizeTitle } from './utils/filename-utils';
@@ -9,7 +11,7 @@ import { noteTimes } from './utils/note-times';
 
 import { renderNote } from './utils/render-note';
 
-export const processNode = async (run: EvernoteRun, note: EvernoteNote, reportAs: string): Promise<boolean> => {
+export const processNode = async (run: EvernoteRun, note: EvernoteNote, tasks: EvernoteTask[], reportAs: string): Promise<boolean> => {
 
 	const title = note.title ?? '';
 	run.properties.setCurrentNoteName(title);
@@ -38,6 +40,7 @@ export const processNode = async (run: EvernoteRun, note: EvernoteNote, reportAs
 		noteData.htmlContent = extractDataUrlResources(run, note, noteData.htmlContent);
 
 		noteData = { ...noteData, ...convertHtml2Md(run, noteData) };
+		noteData.content = placeTasks(run, noteData.content, tasks);
 		noteData = { ...noteData, ...getMetadata(run, note) };
 		noteData.tags = logTags(run, note);
 
