@@ -13,9 +13,9 @@ interface MarkdownCodeSegment {
 export const BLOCK_ANCHOR_PATTERN = '\\^[A-Za-z0-9_-]+';
 
 const FENCE_CLOSE_LINE = new RegExp(
-	'^[ \\t]*(?:[-*+]\\s+)?([`~]{3,})(?:[ \\t]+' + BLOCK_ANCHOR_PATTERN + ')?[ \\t]*\\r?$');
+	'^[ \\t]*(?:[-*+]\\s+)?(`{3,}|~{3,})(?:[ \\t]+' + BLOCK_ANCHOR_PATTERN + ')?[ \\t]*\\r?$');
 const FENCE_CLOSE_SEGMENT = new RegExp(
-	'^[ \\t]*(?:[-*+]\\s+)?([`~]{3,})(?:[ \\t]+' + BLOCK_ANCHOR_PATTERN + ')?[ \\t]*\\r?(?:\\n|$)');
+	'^[ \\t]*(?:[-*+]\\s+)?(`{3,}|~{3,})(?:[ \\t]+' + BLOCK_ANCHOR_PATTERN + ')?[ \\t]*\\r?(?:\\n|$)');
 
 /** Marks lines that belong to a fenced code block, including both delimiters. */
 export function markdownFenceLines(text: string): boolean[] {
