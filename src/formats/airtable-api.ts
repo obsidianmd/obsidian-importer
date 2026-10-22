@@ -21,7 +21,7 @@ import {
 } from '../template';
 
 // Import helper modules
-import Airtable from 'airtable';
+import type Airtable from 'airtable';
 import { fetchBases, fetchTableSchema, selectRecords } from './airtable-api/api-helpers';
 import { downloadAttachmentList, formatAttachmentsForBody, formatAttachmentsForYAML } from './airtable-api/attachment-helpers';
 import { buildBaseFile, mergedBaseViews, sanitizePropertyName, sanitizeViewName } from './airtable-api/base-file';
@@ -518,7 +518,7 @@ export class AirtableAPIImporter extends FormatImporter {
 				if (!primaryFieldName) continue;
 
 				const records = await selectRecords(
-					this.getAirtableBase(group.baseId),
+					await this.getAirtableBase(group.baseId),
 					table.tableId || table.tableName,
 					{ maxRecords: TEMPLATE_PREVIEW_LIMIT - samples.length },
 				);
@@ -600,7 +600,7 @@ export class AirtableAPIImporter extends FormatImporter {
 		for (const view of views.filter(view => ['grid', 'gallery', 'list'].includes(view.type.toLowerCase()))) {
 			if (await ctx.shouldStop()) break;
 			try {
-				const members = await selectRecords(this.getAirtableBase(baseId), tableIdOrName, {
+				const members = await selectRecords(await this.getAirtableBase(baseId), tableIdOrName, {
 					view: view.id,
 					fields: [],
 					filterByFormula,
@@ -934,7 +934,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			}));
 
 			try {
-				const records = await selectRecords(this.getAirtableBase(baseId), tableId, {
+				const records = await selectRecords(await this.getAirtableBase(baseId), tableId, {
 					fields: [primaryFieldName],
 				});
 
@@ -1130,7 +1130,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			position: this.basePosition,
 		}));
 
-		const allRecords = await selectRecords(this.getAirtableBase(baseId), tableName, {
+		const allRecords = await selectRecords(await this.getAirtableBase(baseId), tableName, {
 			// Callback to update progress during fetch
 			onProgress: (fetched: number) => {
 				ctx.status(i18n.importer.airtableApi.statusFetchedRecords({
@@ -1329,9 +1329,10 @@ export class AirtableAPIImporter extends FormatImporter {
 	/**
 	 * Get a cached Airtable SDK handle for a base
 	 */
-	private getAirtableBase(baseId: string): any {
+	private async getAirtableBase(baseId: string): Promise<any> {
 		if (!this.airtableClient) {
-			this.airtableClient = new Airtable({ apiKey: this.airtableToken });
+			const { default: AirtableSDK } = await import('airtable');
+			this.airtableClient ??= new AirtableSDK({ apiKey: this.airtableToken });
 		}
 
 		let base = this.airtableBases.get(baseId);
@@ -1354,7 +1355,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	): Promise<string[]> {
 		try {
 			// Request no fields, only IDs (minimal data transfer)
-			const records = await selectRecords(this.getAirtableBase(baseId), tableName, {
+			const records = await selectRecords(await this.getAirtableBase(baseId), tableName, {
 				view: view.id,
 				fields: [],
 			});

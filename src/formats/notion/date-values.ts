@@ -17,7 +17,7 @@ interface MonthName {
 // Use Intl rather than Moment's registered locales: the web importer and
 // Obsidian do not necessarily load the same ones.
 const DATE_LANGUAGES = ['en-US', 'en-GB', 'fr', 'de', 'es', 'pt-BR', 'it', 'nl', 'da', 'sv', 'nb', 'fi', 'pl', 'ru', 'tr'];
-const monthNames = new Map<string, MonthName>();
+let monthNames: Map<string, MonthName> | undefined;
 
 // A zoned date ends in "(PDT)" or "(GMT+2)"; the wall-clock time is what gets imported.
 const TIME_ZONE_SUFFIX = /\s*\((?:(?:GMT|UTC)(?:([+-])(\d{1,2})(?::(\d{2}))?)?|[A-Z]{2,5})\)$/;
@@ -49,25 +49,33 @@ function localeOrder(locale: string): NotionDateOrder | undefined {
 	}
 }
 
-for (const locale of DATE_LANGUAGES) {
-	const order = localeOrder(locale);
-	if (!order) continue;
-	for (const month of ['long', 'short'] as const) {
-		for (const day of [undefined, 'numeric'] as const) {
-			const formatter = new Intl.DateTimeFormat(locale, { month, day });
-			for (let index = 0; index < 12; index++) {
-				const name = formatter.formatToParts(new Date(2026, index, 15)).find(part => part.type === 'month')?.value;
-				if (!name) continue;
-				const key = monthKey(name);
-				const entry = monthNames.get(key) ?? { month: index + 1, orders: new Set<NotionDateOrder>() };
-				entry.orders.add(order);
-				monthNames.set(key, entry);
+// Built on first use: it formats every month in every language.
+function monthNameTable(): Map<string, MonthName> {
+	if (monthNames) return monthNames;
+
+	const names = new Map<string, MonthName>();
+	for (const locale of DATE_LANGUAGES) {
+		const order = localeOrder(locale);
+		if (!order) continue;
+		for (const month of ['long', 'short'] as const) {
+			for (const day of [undefined, 'numeric'] as const) {
+				const formatter = new Intl.DateTimeFormat(locale, { month, day });
+				for (let index = 0; index < 12; index++) {
+					const name = formatter.formatToParts(new Date(2026, index, 15)).find(part => part.type === 'month')?.value;
+					if (!name) continue;
+					const key = monthKey(name);
+					const entry = names.get(key) ?? { month: index + 1, orders: new Set<NotionDateOrder>() };
+					entry.orders.add(order);
+					names.set(key, entry);
+				}
 			}
 		}
 	}
+	// Notion also uses the four-letter English abbreviation.
+	names.set('sept', { month: 9, orders: new Set(['day-first', 'month-first']) });
+	monthNames = names;
+	return names;
 }
-// Notion also uses the four-letter English abbreviation.
-monthNames.set('sept', { month: 9, orders: new Set(['day-first', 'month-first']) });
 
 function namedDate(text: string): { day: number, month: MonthName, year?: number } | undefined {
 	// Spanish and Portuguese write "11 de septiembre de 2026".
@@ -76,7 +84,7 @@ function namedDate(text: string): { day: number, month: MonthName, year?: number
 	const monthFirst = /^(.+?) (\d{1,2})(?: (\d{4}))?$/.exec(text);
 	for (const [match, dayIndex, monthIndex] of [[dayFirst, 1, 2], [monthFirst, 2, 1]] as const) {
 		if (!match) continue;
-		const month = monthNames.get(monthKey(match[monthIndex]));
+		const month = monthNameTable().get(monthKey(match[monthIndex]));
 		if (month) return { day: Number(match[dayIndex]), month, year: match[3] ? Number(match[3]) : undefined };
 	}
 	return undefined;

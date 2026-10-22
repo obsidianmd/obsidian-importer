@@ -1,4 +1,3 @@
-import initSqlJs from 'sql.js';
 import type { Database, SqlJsConfig, SqlJsStatic } from 'sql.js';
 
 export type SQLiteValue = number | string | Uint8Array | null;
@@ -43,11 +42,11 @@ export class SQLiteDatabase {
 
 /** Owns a retryable sql.js initialization and opens databases with it. */
 export class SQLiteFactory {
-	private sqlPromise: ReturnType<typeof initSqlJs> | undefined;
+	private sqlPromise: Promise<SqlJsStatic> | undefined;
 
 	constructor(private readonly initialize: SQLiteInitializer = initSqlJs) {}
 
-	private sql(): ReturnType<typeof initSqlJs> {
+	private sql(): Promise<SqlJsStatic> {
 		if (this.sqlPromise) return this.sqlPromise;
 
 		const loading = this.initialize().catch(error => {
@@ -63,6 +62,11 @@ export class SQLiteFactory {
 		const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
 		return new SQLiteDatabase(new SQL.Database(bytes));
 	}
+}
+
+async function initSqlJs(config?: SqlJsConfig): Promise<SqlJsStatic> {
+	const { default: init } = await import('sql.js');
+	return await init(config);
 }
 
 const sqlite = new SQLiteFactory();
