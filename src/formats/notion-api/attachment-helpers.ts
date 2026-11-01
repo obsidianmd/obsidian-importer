@@ -262,9 +262,14 @@ async function probeAttachmentSize(url: string, probe: { answered: boolean }): P
 }
 
 function withInferredExtension(filename: string, contentType: string | undefined, fromPageTitle = false): string {
-	if ((!fromPageTitle && extensionFromName(filename)) || !contentType) return filename;
+	if (!contentType) return filename;
 
+	const existing = !fromPageTitle && extensionFromName(filename);
 	const inferred = extensionForMime(contentType);
+	// Preserve source names; append an image suffix only for generic download names.
+	const generic = existing && /^(bin|ashx|php)$/i.test(existing);
+	const image = /^(png|jpg|jpeg|gif|webp|bmp|tiff|avif|heic|ico)$/.test(inferred);
+	if (existing && !(generic && image)) return filename;
 	return inferred ? `${filename}.${inferred}` : filename;
 }
 
