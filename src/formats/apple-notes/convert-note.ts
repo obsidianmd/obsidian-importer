@@ -65,6 +65,7 @@ export class NoteConverter extends ANConverter {
 	listIndent = 0;
 	multiRun = ANMultiRun.None;
 	alignment: ANAlignment | undefined;
+	inBlockquote = false;
 
 	static protobufType = 'ciofecaforensics.Document';
 
@@ -139,6 +140,9 @@ export class NoteConverter extends ANConverter {
 			attr.fragment = fragment;
 			attr.atLineStart = j == 0 ? true : fragments[j - 1]?.fragment.contains('\n');
 
+			const lineStart = converted.length;
+			const endsQuote = attr.atLineStart && /\S/.test(fragment) && this.endsBlockquote(attr, converted);
+
 			converted += this.formatMultiRun(attr);
 
 			if (attr.fragment.contains(SOFT_RETURN)) {
@@ -160,6 +164,11 @@ export class NoteConverter extends ANConverter {
 			}
 			else {
 				converted += await this.formatAttr(attr);
+			}
+
+			// Code, aligned text and block attachments open with a blank line already
+			if (endsQuote && converted[lineStart] !== '\n') {
+				converted = converted.slice(0, lineStart) + '\n' + converted.slice(lineStart);
 			}
 		}
 
@@ -213,6 +222,19 @@ export class NoteConverter extends ANConverter {
 		}
 
 		return fragments;
+	}
+
+	/**
+	 * Whether this line follows a block quote without a blank line between.
+	 * Markdown carries a quote on to the next line of text, so
+	 * `> Quoted\nNot quoted` renders both lines as the quote.
+	 */
+	endsBlockquote(attr: ANAttributeRun, converted: string): boolean {
+		const quoted = !!attr.paragraphStyle?.blockquote;
+		const ends = this.inBlockquote && !quoted && !converted.endsWith('\n\n');
+		this.inBlockquote = quoted;
+
+		return ends;
 	}
 
 	expandSoftReturns(attr: ANAttributeRun, converted: string): string {
