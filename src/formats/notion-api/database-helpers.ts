@@ -7,6 +7,7 @@ import {
 	Client,
 	BlockObjectResponse,
 	DatabaseObjectResponse,
+	DataSourceViewObjectResponse,
 	GetDataSourceResponse,
 	PageObjectResponse,
 	PartialPageObjectResponse
@@ -36,6 +37,7 @@ import {
 	BasePropertyMapping
 } from './types';
 import { extractPlaceholderIds, createPlaceholder, PlaceholderType } from './utils';
+import { kanbanViews } from './views';
 import type { FormulaImportStrategy } from '../../base';
 
 /**
@@ -254,7 +256,9 @@ export async function importDatabaseCore(
 		onPagesDiscovered,
 		onBaseFileWritten,
 		databasePropertyName = 'base',
-		databaseLookups
+		databaseLookups,
+		kanban = false,
+		coverPropertyName = 'cover',
 	} = context;
 
 	const knownDatabase = processedDatabases.get(databaseId);
@@ -371,13 +375,18 @@ export async function importDatabaseCore(
 
 	// Create .base file before importing pages
 	// This allows pages to reference the .base file in their frontmatter
+	const ownerId = isDataSourceId ? dataSourceOwnerId(dataSource) : databaseId;
+	const views = kanban && ownerId ? await retrieveDatabaseViews(client, ownerId, dataSourceId, ctx) : [];
+
 	const baseFilePath = await createBaseFile({
 		vault,
 		databaseName: sanitizedTitle,
 		databaseFolderPath,
 		dataSourceProperties,
 		formulaStrategy,
-		databasePropertyName
+		databasePropertyName,
+		views,
+		coverPropertyName,
 	});
 	onBaseFileWritten?.(baseFilePath);
 
@@ -440,6 +449,44 @@ export async function importDatabaseCore(
 }
 
 /**
+ * The database's own views of one of its data sources, or none if Notion
+ * won't list them. Listing by data source instead would also return linked
+ * views of it on other pages.
+ */
+async function retrieveDatabaseViews(
+	client: Client,
+	databaseId: string,
+	dataSourceId: string,
+	ctx: ImportContext
+): Promise<DataSourceViewObjectResponse[]> {
+	const views: DataSourceViewObjectResponse[] = [];
+	const sourceId = dataSourceId.replace(/-/g, '');
+
+	try {
+		let cursor: string | undefined;
+		do {
+			const response = await makeNotionRequest(
+				() => client.views.list({ database_id: databaseId, start_cursor: cursor }),
+				ctx
+			);
+			for (const { id } of response.results) {
+				const view = await makeNotionRequest(() => client.views.retrieve({ view_id: id }), ctx);
+				if ('name' in view && (!view.data_source_id || view.data_source_id.replace(/-/g, '') === sourceId)) {
+					views.push(view);
+				}
+			}
+			cursor = response.has_more ? response.next_cursor ?? undefined : undefined;
+		} while (cursor);
+	}
+	catch (error) {
+		console.warn(`Failed to fetch views for database ${databaseId}:`, error);
+		return [];
+	}
+
+	return views;
+}
+
+/**
  * Create a .base file for the database
  */
 export async function createBaseFile(params: CreateBaseFileParams): Promise<string> {
@@ -449,7 +496,9 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 		databaseFolderPath,
 		dataSourceProperties,
 		formulaStrategy = 'hybrid',
-		databasePropertyName = 'base'
+		databasePropertyName = 'base',
+		views,
+		coverPropertyName,
 	} = params;
 
 	// Generate .base file content
@@ -457,7 +506,9 @@ export async function createBaseFile(params: CreateBaseFileParams): Promise<stri
 		databaseName,
 		dataSourceProperties,
 		formulaStrategy,
-		databasePropertyName
+		databasePropertyName,
+		views,
+		coverPropertyName,
 	});
 
 	// Create or update .base file in the database folder (same level as database pages)
@@ -497,10 +548,12 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams): string 
 		dataSourceProperties,
 		formulaStrategy = 'hybrid',
 		databasePropertyName = 'base',
+		views = [],
+		coverPropertyName = 'cover',
 	} = params;
 
 	// Map Notion properties to Obsidian properties
-	const { formulas, regularProperties, titlePropertyName } = mapDatabaseProperties(dataSourceProperties, formulaStrategy);
+	const { formulas, regularProperties, titlePropertyName, keyById } = mapDatabaseProperties(dataSourceProperties, formulaStrategy);
 	
 	// Build the order array for views
 	// Always use 'file.name' as the first column (it will display with custom displayName if set)
@@ -560,7 +613,7 @@ function generateBaseFileContent(params: GenerateBaseFileContentParams): string 
 		type: 'table',
 		name: 'Table View',
 		order: orderColumns
-	}];
+	}, ...kanbanViews(views, dataSourceProperties, keyById, coverPropertyName)];
 
 	// Convert to YAML with title comment
 	return `# ${databaseName}\n\n${stringifyYaml(baseConfig)}`;
@@ -579,6 +632,8 @@ function mapDatabaseProperties(
 	formulas: Array<{ key: string, config: BasePropertyMapping }>;
 	regularProperties: Array<{ key: string, config: BasePropertyMapping }>;
 	titlePropertyName: string | null;
+	/** Each property's column in the base, by Notion property ID. */
+	keyById: Map<string, string>;
 } {
 	// Using 'any' for mappings because we're building a dynamic mapping of property configurations
 	// which have different structures depending on the property type.
@@ -694,7 +749,14 @@ function mapDatabaseProperties(
 		}
 	}
 
-	return { formulas, regularProperties, titlePropertyName };
+	const keyById = new Map<string, string>();
+	for (const [key, prop] of Object.entries(dataSourceProperties)) {
+		if (prop.type === 'title') keyById.set(prop.id, 'file.name');
+		else if (mappings[`formula.${sanitizePropertyKey(key)}`]) keyById.set(prop.id, `formula.${sanitizePropertyKey(key)}`);
+		else if (mappings[sanitizePropertyKey(key)]) keyById.set(prop.id, sanitizePropertyKey(key));
+	}
+
+	return { formulas, regularProperties, titlePropertyName, keyById };
 }
 
 /**

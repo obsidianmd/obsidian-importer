@@ -1,0 +1,157 @@
+{
+	"_comment": "Hand-written to the shape of Notion's API responses, Notion-Version 2025-09-03. properties is GET /v1/data_sources/{id}, rows is POST /v1/data_sources/{id}/query, and views is GET /v1/views/{id} for each view GET /v1/views?database_id={id} lists, in that order. The view shapes follow a board observed in a real workspace on 2026-11-11, including a formula board whose sort sits under the formula's result type. IDs, names and values are invented. The last board belongs to another data source of the same database.",
+	"databaseId": "22222222-2222-2222-2222-222222222222",
+	"dataSourceId": "33333333-3333-3333-3333-333333333333",
+	"title": "Tasks",
+	"properties": {
+		"Name": { "id": "title", "name": "Name", "type": "title", "title": {} },
+		"Status": {
+			"id": "stat",
+			"name": "Status",
+			"type": "status",
+			"status": {
+				"options": [
+					{ "id": "s1", "name": "Not started", "color": "default" },
+					{ "id": "s2", "name": "In progress", "color": "blue" },
+					{ "id": "s3", "name": "Done", "color": "green" }
+				],
+				"groups": [
+					{ "id": "g1", "name": "To-do", "color": "gray", "option_ids": ["s1"] },
+					{ "id": "g2", "name": "In progress", "color": "blue", "option_ids": ["s2"] },
+					{ "id": "g3", "name": "Complete", "color": "green", "option_ids": ["s3"] }
+				]
+			}
+		},
+		"Priority": {
+			"id": "prio",
+			"name": "Priority",
+			"type": "select",
+			"select": {
+				"options": [
+					{ "id": "p1", "name": "High", "color": "red" },
+					{ "id": "p2", "name": "Medium", "color": "yellow" },
+					{ "id": "p3", "name": "Low", "color": "gray" }
+				]
+			}
+		},
+		"Tags": {
+			"id": "tags",
+			"name": "Tags",
+			"type": "multi_select",
+			"multi_select": { "options": [{ "id": "t1", "name": "Home", "color": "blue" }, { "id": "t2", "name": "Work", "color": "red" }] }
+		},
+		"Done": { "id": "done", "name": "Done", "type": "checkbox", "checkbox": {} },
+		"State": {
+			"id": "frml",
+			"name": "State",
+			"type": "formula",
+			"formula": { "expression": "if(prop(\"Done\"), \"Closed\", \"Open\")" }
+		},
+		"Owner": { "id": "ownr", "name": "Owner", "type": "people", "people": {} },
+		"Poster": { "id": "post", "name": "Poster", "type": "files", "files": {} }
+	},
+	"rows": [
+		{
+			"object": "page",
+			"id": "row-a",
+			"properties": {
+				"Name": { "id": "title", "type": "title", "title": [{ "type": "text", "plain_text": "Paint the fence", "text": { "content": "Paint the fence" } }] },
+				"Status": { "id": "stat", "type": "status", "status": { "id": "s2", "name": "In progress", "color": "blue" } },
+				"Priority": { "id": "prio", "type": "select", "select": { "id": "p1", "name": "High", "color": "red" } }
+			}
+		},
+		{
+			"object": "page",
+			"id": "row-b",
+			"properties": {
+				"Name": { "id": "title", "type": "title", "title": [{ "type": "text", "plain_text": "File taxes", "text": { "content": "File taxes" } }] },
+				"Status": { "id": "stat", "type": "status", "status": { "id": "s3", "name": "Done", "color": "green" } },
+				"Priority": { "id": "prio", "type": "select", "select": null }
+			}
+		},
+		{
+			"object": "page",
+			"id": "row-c",
+			"properties": {
+				"Name": { "id": "title", "type": "title", "title": [{ "type": "text", "plain_text": "Book flights", "text": { "content": "Book flights" } }] },
+				"Status": { "id": "stat", "type": "status", "status": { "id": "s2", "name": "In progress", "color": "blue" } },
+				"Priority": { "id": "prio", "type": "select", "select": { "id": "p3", "name": "Low", "color": "gray" } }
+			}
+		}
+	],
+	"views": [
+		{
+			"object": "view",
+			"id": "view-table",
+			"name": "All tasks",
+			"type": "table",
+			"data_source_id": "33333333-3333-3333-3333-333333333333",
+			"configuration": { "type": "table" }
+		},
+		{
+			"object": "view",
+			"id": "view-status",
+			"name": "Board",
+			"type": "board",
+			"data_source_id": "33333333-3333-3333-3333-333333333333",
+			"configuration": {
+				"type": "board",
+				"group_by": { "type": "status", "property_id": "stat", "property_name": "Status", "group_by": "group", "sort": { "type": "manual" }, "hide_empty_groups": true },
+				"properties": [
+					{ "property_id": "title", "property_name": "Name", "visible": true },
+					{ "property_id": "prio", "property_name": "Priority", "visible": true },
+					{ "property_id": "tags", "property_name": "Tags", "visible": false },
+					{ "property_id": "ownr", "property_name": "Owner", "visible": true }
+				],
+				"cover": { "type": "page_cover" }
+			}
+		},
+		{
+			"object": "view",
+			"id": "view-priority",
+			"name": "By priority",
+			"type": "board",
+			"data_source_id": "33333333333333333333333333333333",
+			"configuration": {
+				"type": "board",
+				"group_by": { "type": "select", "property_id": "prio", "property_name": "Priority", "sort": { "type": "manual" }, "hide_empty_groups": false },
+				"properties": [{ "property_id": "stat", "property_name": "Status", "visible": true }],
+				"cover": { "type": "property", "property_id": "post" },
+				"cover_aspect": "contain"
+			}
+		},
+		{
+			"object": "view",
+			"id": "view-state",
+			"name": "By state",
+			"type": "board",
+			"data_source_id": "33333333-3333-3333-3333-333333333333",
+			"configuration": {
+				"type": "board",
+				"group_by": { "type": "formula", "property_id": "frml", "property_name": "State", "group_by": { "type": "text", "group_by": "exact", "sort": { "type": "descending" } }, "hide_empty_groups": true }
+			}
+		},
+		{
+			"object": "view",
+			"id": "view-tags",
+			"name": "By tag",
+			"type": "board",
+			"data_source_id": "33333333-3333-3333-3333-333333333333",
+			"configuration": {
+				"type": "board",
+				"group_by": { "type": "multi_select", "property_id": "tags", "property_name": "Tags", "sort": { "type": "manual" } }
+			}
+		},
+		{
+			"object": "view",
+			"id": "view-other-source",
+			"name": "Other source",
+			"type": "board",
+			"data_source_id": "44444444-4444-4444-4444-444444444444",
+			"configuration": {
+				"type": "board",
+				"group_by": { "type": "status", "property_id": "stat", "sort": { "type": "manual" } }
+			}
+		}
+	]
+}

@@ -3,7 +3,7 @@
  * Imports tables and records from Airtable using the API
  */
 
-import { Notice, normalizePath, TFile, setIcon, stringifyYaml, parseYaml, Setting } from 'obsidian';
+import { Notice, normalizePath, TFile, setIcon, stringifyYaml, parseYaml, requireApiVersion, Setting } from 'obsidian';
 import { FormatImporter, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
@@ -24,7 +24,7 @@ import {
 import type Airtable from 'airtable';
 import { fetchBases, fetchTableSchema, selectRecords } from './airtable-api/api-helpers';
 import { downloadAttachmentList, formatAttachmentsForBody, formatAttachmentsForYAML } from './airtable-api/attachment-helpers';
-import { buildBaseFile, mergedBaseViews, sanitizePropertyName, sanitizeViewName } from './airtable-api/base-file';
+import { buildBaseFile, importsView, mergedBaseViews, sanitizePropertyName, sanitizeViewName } from './airtable-api/base-file';
 import { mapAirtableTypeToObsidian } from './airtable-api/field-converter';
 import { computeTableFormulas } from './airtable-api/table-formulas';
 import {
@@ -107,6 +107,7 @@ export class AirtableAPIImporter extends FormatImporter {
 	}
 
 	formulaStrategy: FormulaImportStrategy = 'hybrid';
+	private readonly kanban = requireApiVersion('1.14.0');
 	downloadAttachments: boolean = true;
 	viewPropertyName: string = 'Views';
 	private picker: TreePicker<AirtableTreeNode>;
@@ -597,7 +598,7 @@ export class AirtableAPIImporter extends FormatImporter {
 			? comparisons[0]
 			: `OR(${comparisons.join(',')})`;
 
-		for (const view of views.filter(view => ['grid', 'gallery', 'list'].includes(view.type.toLowerCase()))) {
+		for (const view of views.filter(view => importsView(view, this.kanban))) {
 			if (await ctx.shouldStop()) break;
 			try {
 				const members = await selectRecords(await this.getAirtableBase(baseId), tableIdOrName, {
@@ -1103,10 +1104,7 @@ export class AirtableAPIImporter extends FormatImporter {
 
 		if (await ctx.shouldStop()) return;
 
-		// Filter to supported views only
-		const supportedViews = views.filter(view =>
-			['grid', 'gallery', 'list'].includes(view.type.toLowerCase())
-		);
+		const supportedViews = views.filter(view => importsView(view, this.kanban));
 
 		// Find the primary field by ID (don't assume fields[0] is primary)
 		const primaryField = fields.find(f => f.id === primaryFieldId);

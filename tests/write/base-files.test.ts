@@ -73,6 +73,16 @@ test('a view the import brings replaces the one of that name', () => {
 	assert.deepEqual(merged, [{ type: 'cards', name: 'All books' }]);
 });
 
+test('a group the user chose for an imported view survives the next import', () => {
+	const groupBy = { property: 'note.Stage', direction: 'ASC' };
+	const merged = mergedBaseViews(
+		{ views: [{ type: 'kanban', name: 'Shelf', groupBy, groupOrder: ['Reading', null] }] },
+		[{ type: 'kanban', name: 'Shelf', order: ['file.name'] } as never],
+	);
+
+	assert.deepEqual(merged, [{ type: 'kanban', name: 'Shelf', order: ['file.name'], groupBy, groupOrder: ['Reading', null] }]);
+});
+
 test('a view the user added is kept beside the imported ones', () => {
 	const merged = mergedBaseViews(
 		{ views: [{ type: 'table', name: 'My shortlist' }] },

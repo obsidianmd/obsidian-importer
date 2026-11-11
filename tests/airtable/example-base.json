@@ -48,6 +48,7 @@
 				"views": [
 					{ "id": "viwBooksGrid000001", "name": "All books", "type": "grid", "visibleFieldIds": ["fldBookTitle000001", "fldBookStatus00001", "fldBookRating00001", "fldBookAuthors0001", "fldBookSlug0000001"] },
 					{ "id": "viwBooksGallery001", "name": "Covers", "type": "gallery" },
+					{ "id": "viwBooksKanban0001", "name": "Shelf", "type": "kanban" },
 					{ "id": "viwBooksReading001", "name": "Reading [now]", "type": "grid", "visibleFieldIds": ["fldBookTitle000001", "fldBookProgress001"] }
 				]
 			},
@@ -176,6 +177,7 @@
 	"viewRecordIds": {
 		"viwBooksGrid000001": ["recBook00000000001", "recBook00000000002", "recBook00000000003"],
 		"viwBooksGallery001": ["recBook00000000001", "recBook00000000003"],
+		"viwBooksKanban0001": ["recBook00000000001", "recBook00000000002", "recBook00000000003"],
 		"viwBooksReading001": ["recBook00000000001"],
 		"viwAuthorsGrid0001": ["recAuthor000000001", "recAuthor000000002"]
 	}

@@ -160,6 +160,7 @@ function clientFor(graph: ReturnType<typeof graphFor>, ctx: ImportContext) {
 			assert.deepEqual(args, { data_source_id: ids.source });
 			return { templates: [], has_more: false, next_cursor: null };
 		},
+		'views.list': () => ({ results: [], has_more: false, next_cursor: null }),
 		'blocks.children.list': args => {
 			assert.deepEqual(Object.keys(args).sort(), ['block_id', 'page_size', 'start_cursor']);
 			assert.equal(args.page_size, 100);

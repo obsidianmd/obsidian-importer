@@ -9,6 +9,7 @@ import {
 	BlockObjectResponse,
 	DatabaseObjectResponse,
 	DataSourceObjectResponse,
+	DataSourceViewObjectResponse,
 	GetDataSourceResponse,
 	PageObjectResponse,
 	Heading1BlockObjectResponse
@@ -43,6 +44,9 @@ export interface DatabaseProcessingContext {
 	app: App;
 	outputRootPath: string;
 	formulaStrategy: FormulaImportStrategy;
+	/** Adds a kanban view to the base for each Notion board. */
+	kanban?: boolean;
+	coverPropertyName?: string;
 	/** Imported databases, under their database ID and their data-source ID. */
 	processedDatabases: Map<string, DatabaseInfo>;
 	databaseLookups: DatabaseLookups;
@@ -187,6 +191,9 @@ export interface CreateBaseFileParams {
 	dataSourceProperties: NotionProperties;
 	formulaStrategy?: FormulaImportStrategy;
 	databasePropertyName?: string; // Property name for linking pages to database
+	/** Notion views, whose boards become kanban views. */
+	views?: DataSourceViewObjectResponse[];
+	coverPropertyName?: string;
 }
 
 /**
@@ -197,6 +204,9 @@ export interface GenerateBaseFileContentParams {
 	dataSourceProperties: NotionProperties;
 	formulaStrategy?: FormulaImportStrategy;
 	databasePropertyName?: string; // Property name for linking pages to database
+	/** Notion views, whose boards become kanban views. */
+	views?: DataSourceViewObjectResponse[];
+	coverPropertyName?: string;
 }
 
 /**

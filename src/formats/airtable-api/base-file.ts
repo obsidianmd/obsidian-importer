@@ -7,12 +7,19 @@ const BASE_VIEW_TYPE_FOR_AIRTABLE_VIEW: Record<string, string> = {
 	grid: 'table',
 	gallery: 'cards',
 	list: 'list',
-	kanban: 'cards',
+	// Airtable doesn't say which field a kanban stacks by, so Obsidian asks for one.
+	kanban: 'kanban',
 	calendar: 'cards',
 	timeline: 'table',
 	gantt: 'table',
 	form: 'table',
 };
+
+/** Whether an import brings this view over. Kanban views need Obsidian 1.14. */
+export function importsView(view: AirtableViewInfo, kanban: boolean): boolean {
+	const type = view.type.toLowerCase();
+	return type === 'grid' || type === 'gallery' || type === 'list' || (kanban && type === 'kanban');
+}
 
 export function sanitizePropertyName(name: string): string {
 	// Property names are embedded in quoted note["..."] expressions.
@@ -136,15 +143,24 @@ export function buildBaseFile(options: BuildBaseFileOptions): BuiltBaseFile {
  *
  * An import replaces what it generated, except the views: the user may have
  * added their own beside the imported ones, and those are theirs to keep. A
- * view the import brings replaces the one of that name.
+ * view the import brings replaces the one of that name, except for its
+ * grouping: Airtable doesn't report one, so the import never sets it, and a
+ * group the user chose would otherwise be reset by every import.
  */
 export function mergedBaseViews(existing: unknown, importedViews: BasesConfigFileView[]): BasesConfigFileView[] {
 	const byName = new Map<string, BasesConfigFileView>();
 
 	for (const view of viewsIn(existing)) byName.set(view.name, view);
-	for (const view of importedViews) byName.set(view.name, view);
+	for (const view of importedViews) byName.set(view.name, withGrouping(view, byName.get(view.name)));
 
 	return [...byName.values()];
+}
+
+function withGrouping(imported: BasesConfigFileView, previous: BasesConfigFileView | undefined): BasesConfigFileView {
+	if (imported.groupBy || !previous?.groupBy) return imported;
+
+	const { groupOrder } = previous as { groupOrder?: unknown };
+	return { ...imported, groupBy: previous.groupBy, ...(groupOrder !== undefined ? { groupOrder } : {}) };
 }
 
 /**

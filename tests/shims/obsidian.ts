@@ -167,6 +167,10 @@ export class SearchComponent {
 	}
 }
 
+export function requireApiVersion(_version: string): boolean {
+	return true;
+}
+
 export function setIcon(el: HTMLElement, icon: string): void {
 	el.dataset.icon = icon;
 }

@@ -1,4 +1,4 @@
-import { FrontMatterCache, Notice, normalizePath, requestUrl, TFile, TFolder, DataWriteOptions } from 'obsidian';
+import { FrontMatterCache, Notice, normalizePath, requestUrl, requireApiVersion, TFile, TFolder, DataWriteOptions } from 'obsidian';
 import { DuplicateHandling, FormatImporter, leavesTheNoteAlone, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
@@ -343,6 +343,8 @@ export class NotionAPIImporter extends FormatImporter {
 	private templatePreviewPages?: Map<string, NotionTemplatePreviewPage>;
 	coverPropertyName: string = 'cover'; // Custom property name for page cover
 	databasePropertyName: string = 'base'; // Property name for linking pages to their database
+	/** Kanban views arrived in Obsidian 1.14; an older app can't open one. */
+	private readonly kanban = requireApiVersion('1.14.0');
 	/**
 	 * Every mode but "Create a copy": the point of making a copy is to leave
 	 * what is there alone and write your own, attachments as much as notes.
@@ -1034,6 +1036,8 @@ export class NotionAPIImporter extends FormatImporter {
 					app: this.app,
 					outputRootPath: this.outputRootPath,
 					formulaStrategy: this.formulaStrategy,
+					kanban: this.kanban,
+					coverPropertyName: this.coverPropertyName,
 					processedDatabases: this.processedDatabases,
 					databaseLookups: this.databaseLookups,
 					relationPlaceholders: this.relationPlaceholders,
@@ -1296,6 +1300,8 @@ export class NotionAPIImporter extends FormatImporter {
 					app: this.app,
 					outputRootPath: this.outputRootPath,
 					formulaStrategy: this.formulaStrategy,
+					kanban: this.kanban,
+					coverPropertyName: this.coverPropertyName,
 					processedDatabases: this.processedDatabases,
 					databaseLookups: this.databaseLookups,
 					relationPlaceholders: this.relationPlaceholders,
@@ -1640,6 +1646,8 @@ export class NotionAPIImporter extends FormatImporter {
 				app: this.app,
 				outputRootPath: this.outputRootPath,
 				formulaStrategy: this.formulaStrategy,
+				kanban: this.kanban,
+				coverPropertyName: this.coverPropertyName,
 				processedDatabases: this.processedDatabases,
 				databaseLookups: this.databaseLookups,
 				relationPlaceholders: this.relationPlaceholders,

@@ -1,0 +1,78 @@
+# Tasks
+
+filters:
+  and:
+    - note["base"] == link("Tasks.base")
+formulas:
+  State: if(note["Done"], "Closed", "Open")
+properties:
+  file.name:
+    displayName: Name
+  Status:
+    displayName: Status
+  Priority:
+    displayName: Priority
+  Tags:
+    displayName: Tags
+  Done:
+    displayName: Done
+  Owner:
+    displayName: Owner
+  Poster:
+    displayName: Poster
+views:
+  - type: table
+    name: Table View
+    order:
+      - file.name
+      - Status
+      - Priority
+      - Tags
+      - Done
+      - Owner
+      - Poster
+      - formula.State
+  - type: kanban
+    name: Board
+    groupBy:
+      property: note.Status
+      direction: ASC
+    groupOrder:
+      - 
+      - Not started
+      - In progress
+      - Done
+    order:
+      - file.name
+      - Priority
+      - Owner
+    image: note.cover
+  - type: kanban
+    name: By priority
+    groupBy:
+      property: note.Priority
+      direction: ASC
+    groupOrder:
+      - 
+      - High
+      - Medium
+      - Low
+    order:
+      - file.name
+      - Status
+    image: note.Poster
+    imageFit: contain
+  - type: kanban
+    name: By state
+    groupBy:
+      property: formula.State
+      direction: DESC
+    order:
+      - file.name
+  - type: kanban
+    name: By tag
+    groupBy:
+      property: note.Tags
+      direction: ASC
+    order:
+      - file.name

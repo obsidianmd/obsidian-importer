@@ -28,7 +28,7 @@ import * as nodePath from 'node:path';
 
 import { stringifyYaml } from 'obsidian';
 
-import { buildBaseFile } from '../../src/formats/airtable-api/base-file';
+import { buildBaseFile, importsView } from '../../src/formats/airtable-api/base-file';
 import { formatAttachmentsForYAML } from '../../src/formats/airtable-api/attachment-helpers';
 import {
 	buildRecordNote,
@@ -86,6 +86,13 @@ test('the view property wins case-insensitively over an Airtable field property'
 		viewPropertyName: 'Views',
 		propertyNameForField: fieldName => propertyNames.get(fieldName) ?? fieldName,
 	}), []);
+});
+
+test('a kanban view is imported only by an app with kanban views', () => {
+	const board = { id: 'viwBoard', name: 'Board', type: 'kanban' };
+	assert.equal(importsView(board, true), true);
+	assert.equal(importsView(board, false), false);
+	assert.equal(importsView({ id: 'viwCalendar', name: 'Calendar', type: 'calendar' }, true), false);
 });
 
 /**
@@ -238,8 +245,9 @@ async function convertBase(base: BaseFixture, tables: AirtableTableInfo[], produ
 		const tableRecords = base.records[table.id]?.records ?? [];
 		const emptyRecordIds = new Set(tableRecords.filter(isEmptyRecord).map(record => record.id));
 		const noteCount = tableRecords.length - emptyRecordIds.size;
+		const views = table.views.filter(view => importsView(view, true));
 		const viewsShowingEveryRecord = new Set(
-			table.views
+			views
 				.filter(view => (base.viewRecordIds[view.id] ?? [])
 					.filter(recordId => !emptyRecordIds.has(recordId)).length === noteCount)
 				.map(view => view.id)
@@ -248,7 +256,7 @@ async function convertBase(base: BaseFixture, tables: AirtableTableInfo[], produ
 		const built = buildBaseFile({
 			tableFolderPath: tableFolder,
 			tableName: table.name,
-			views: table.views,
+			views,
 			fields: table.fields,
 			primaryFieldId: table.primaryFieldId,
 			formulas,
@@ -261,7 +269,7 @@ async function convertBase(base: BaseFixture, tables: AirtableTableInfo[], produ
 
 		// Which views each record belongs to, as its note names them
 		const viewsForRecord = new Map<string, string[]>();
-		for (const view of table.views) {
+		for (const view of views) {
 			const token = built.membershipTokens.get(view.id);
 			if (!token) continue;
 

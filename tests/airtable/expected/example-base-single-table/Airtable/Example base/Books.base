@@ -122,6 +122,44 @@ views:
       - Open
       - AI summary
       - Mystery
+  - type: kanban
+    name: Shelf
+    order:
+      - file.name
+      - Notes
+      - Summary
+      - Contact
+      - Website
+      - Phone
+      - Pages
+      - Progress
+      - Reading time
+      - Row
+      - Price
+      - Rating
+      - Status
+      - Tags
+      - Owner
+      - Readers
+      - Published
+      - Updated at
+      - Created at
+      - Modified at
+      - Read
+      - Authors
+      - Cover
+      - formula.Slug
+      - formula.Value
+      - formula.Author count
+      - Author names
+      - Author output
+      - Author rating
+      - Created by
+      - Modified by
+      - ISBN
+      - Open
+      - AI summary
+      - Mystery
   - type: table
     name: Reading _now_
     filters: note["Views"].contains("Reading _now_")
