@@ -50,7 +50,8 @@ function string(value: SQLiteValue): string {
 
 function coreDataTime(value: SQLiteValue): number | undefined {
 	if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
-	return (value + CORE_DATA_EPOCH) * 1000;
+	// Obsidian rejects a file time with a fraction of a millisecond.
+	return Math.floor((value + CORE_DATA_EPOCH) * 1000);
 }
 
 /** Bear's adapter for the Core Data database in an iPhone/iPad export. */

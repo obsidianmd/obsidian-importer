@@ -51,7 +51,7 @@ async function databaseFixture(): Promise<ArrayBuffer> {
 		`);
 		database.run(`
 			INSERT INTO ZSFNOTE VALUES
-				(1, 0, 1, 0, 0, 1, 2, 3, NULL, 'A note', '# A note\n![](photo%201.png)\n![](FILE-3/orphan.png)', 'NOTE-1'),
+				(1, 0, 1, 0, 0, 1.0004, 2.9996, 3, NULL, 'A note', '# A note\n![](photo%201.png)\n![](FILE-3/orphan.png)', 'NOTE-1'),
 				(2, 0, 0, 1, 1, 4, 5, NULL, 6, 'Secret', NULL, 'NOTE-2'),
 				(3, 1, 0, 0, 0, 7, 8, NULL, NULL, 'Deleted', 'gone', 'NOTE-3');
 			INSERT INTO ZSFNOTEFILE VALUES
@@ -78,7 +78,7 @@ test('reads notes, metadata, and live attachments from Application Data', async 
 		title: 'A note',
 		text: '# A note\n![](photo%201.png)\n![](FILE-3/orphan.png)',
 		ctime: 978307201000,
-		mtime: 978307202000,
+		mtime: 978307202999,
 		archivedtime: 978307203000,
 		trashedtime: undefined,
 		encrypted: false,

@@ -80,6 +80,16 @@ test('converts microseconds to the milliseconds the vault wants', () => {
 	assert.equal(mtime, 1690864927360);
 });
 
+test('drops the microseconds a whole millisecond leaves over', () => {
+	const { ctime, mtime } = convertKeepNote({
+		createdTimestampUsec: 1690425909718123,
+		userEditedTimestampUsec: 1690864927360999,
+	} as KeepJson, 'note');
+
+	assert.equal(ctime, 1690425909718);
+	assert.equal(mtime, 1690864927360);
+});
+
 test('accepts an unedited note and uses its creation time as its modification time', () => {
 	const note = {
 		createdTimestampUsec: 1380575747483000,

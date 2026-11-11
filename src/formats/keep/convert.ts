@@ -267,9 +267,10 @@ export function convertKeepNote(
 
 	return {
 		content: parts.join(''),
-		ctime: keepJson.createdTimestampUsec / 1000,
-		mtime: (keepJson.userEditedTimestampUsec > 0
+		// Obsidian rejects a file time with a fraction of a millisecond.
+		ctime: Math.floor(keepJson.createdTimestampUsec / 1000),
+		mtime: Math.floor((keepJson.userEditedTimestampUsec > 0
 			? keepJson.userEditedTimestampUsec
-			: keepJson.createdTimestampUsec) / 1000,
+			: keepJson.createdTimestampUsec) / 1000),
 	};
 }
