@@ -47,7 +47,8 @@ function columnsForView(
 	columnKeyByFieldId: Map<string, string>
 ): string[] {
 	if (!view.visibleFieldIds) {
-		return allColumns;
+		// A copy, or YAML writes the second view's columns as an alias of the first's.
+		return [...allColumns];
 	}
 
 	const columns = view.visibleFieldIds
