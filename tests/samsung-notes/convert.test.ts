@@ -15,7 +15,7 @@ import { convertSamsungNote } from '../../src/formats/samsung-notes/convert';
 import { drawingToSvg } from '../../src/formats/samsung-notes/drawing';
 import { mediaDisplayName, parseSamsungNote, SamsungNote, UnreadableNoteError } from '../../src/formats/samsung-notes/parse';
 import { expectedFor, expectFile, fixtures } from '../helpers';
-import { noteWithBrokenBody, readFiles } from './sdocx';
+import { buildNote, noteWithBrokenBody, readFiles } from './sdocx';
 
 const notes = fixtures(__dirname, '.sdocx');
 
@@ -124,4 +124,59 @@ test('a note without images leaves an unresolved one out', async () => {
 	const note = await readNote(nodePath.join(__dirname, '03-image-placement.sdocx'));
 	const content = convertSamsungNote(note, { embedImage: () => null, embedDrawing: () => null });
 	assert.equal(content, '\n');
+});
+
+/** The Markdown for a built note, embedding every image as photo.png. */
+function markdownOf(...args: Parameters<typeof buildNote>): string {
+	const note = parseSamsungNote({ note: buildNote(...args), pages: new Map() });
+	return convertSamsungNote(note, { embedImage: () => '![[photo.png]]', embedDrawing: () => null });
+}
+
+function withObjects(markdown: (note: SamsungNote) => void, ...args: Parameters<typeof buildNote>): void {
+	markdown(parseSamsungNote({ note: buildNote(...args), pages: new Map() }));
+}
+
+test('keeps a byte order mark so span offsets still line up', () => {
+	assert.equal(markdownOf('\uFEFFAB', [{ type: 5, start: 1, end: 2, value: 1 }]), '\uFEFF**A**B\n');
+});
+
+test('writes overlapping italic and bold inside a word so both still render', () => {
+	assert.equal(markdownOf('foobarbaz', [
+		{ type: 6, start: 0, end: 6, value: 1 },
+		{ type: 5, start: 3, end: 9, value: 1 },
+	]), '*foo**bar***<b>baz</b>\n');
+});
+
+test('escapes Markdown syntax in typed text', () => {
+	assert.equal(markdownOf('Summary\n---\n2026. Goals\n[[draft]] and <token>\n# not a heading'),
+		'Summary\n\\---\n2026\\. Goals\n\\[\\[draft\\]\\] and \\<token>\n\\# not a heading\n');
+});
+
+test('escapes a bracket inside link text', () => {
+	const url = 'https://example.com';
+	const note = parseSamsungNote({ note: buildNote('Step 1] Overview'), pages: new Map() });
+	note.body!.spans.push({ type: 9, start: 0, end: 16, value: 0, url });
+	assert.equal(convertSamsungNote(note, { embedImage: () => null, embedDrawing: () => null }), `[Step 1\\] Overview](${url})\n`);
+});
+
+test('keeps the bullet on a list item that holds only an image', () => {
+	withObjects(note => {
+		note.body!.objects.push({ kind: 'image', offset: 0, bindId: 1 });
+		assert.equal(convertSamsungNote(note, { embedImage: () => '![[photo.png]]', embedDrawing: () => null }), '- ![[photo.png]]\n');
+	}, '\uFFFC', [], [{ type: 5, start: 0, end: 1, first: 1 }]);
+});
+
+test('keeps a code block that shares its line with text', () => {
+	withObjects(note => {
+		note.body!.objects.push({ kind: 'code', offset: 5, language: 'js', code: 'run()' });
+		assert.equal(convertSamsungNote(note, { embedImage: () => null, embedDrawing: () => null }), 'See:\n\n```js\nrun()\n```\n');
+	}, 'See: \uFFFC');
+});
+
+test('keeps a backslash before a pipe inside a table cell', () => {
+	withObjects(note => {
+		const cell = (text: string) => ({ text, spans: [], paragraphs: [], objects: [] });
+		note.body!.objects.push({ kind: 'table', offset: 0, rows: [[cell('a\\|b'), cell('c')]] });
+		assert.equal(convertSamsungNote(note, { embedImage: () => null, embedDrawing: () => null }), '| a\\\\\\|b | c |\n| --- | --- |\n');
+	}, '\uFFFC');
 });

@@ -1,3 +1,4 @@
+import { escapeInline, escapeLineStart, fenceFor } from '../../markdown';
 import { OBJECT_CHARACTER, ParagraphType, SamsungNote, SamsungObject, SamsungParagraphFormat, SamsungText, SpanType } from './parse';
 
 export interface SamsungConvertOptions {
@@ -42,11 +43,16 @@ function renderText(source: SamsungText, options: SamsungConvertOptions): Line[]
 		const end = start + line.length;
 		const format = paragraphFormat(source.paragraphs, index);
 
-		if (line.includes(OBJECT_CHARACTER) && line.replace(new RegExp(OBJECT_CHARACTER, 'g'), '').trim() === '') {
-			for (let at = start; at < end; at++) {
-				const object = objects.get(at);
-				if (object) lines.push(...renderObject(object, options));
-			}
+		const onLine: SamsungObject[] = [];
+		for (let at = start; at < end; at++) {
+			const object = objects.get(at);
+			if (object) onLine.push(object);
+		}
+		const blocks = onLine.filter(object => object.kind !== 'image');
+		const onlyObjects = line.includes(OBJECT_CHARACTER) && line.replace(new RegExp(OBJECT_CHARACTER, 'g'), '').trim() === '';
+
+		if (onlyObjects && (blocks.length > 0 || format.bullet === undefined)) {
+			for (const object of onLine) lines.push(...renderObject(object, options));
 		}
 		else if (line.trim() === '') {
 			lines.push({ kind: 'blank', text: '' });
@@ -54,7 +60,8 @@ function renderText(source: SamsungText, options: SamsungConvertOptions): Line[]
 		else {
 			const heading = format.style !== undefined && HEADING_STYLES.includes(format.style);
 			const text = styles.render(start, end, objects, options, heading).trimEnd();
-			lines.push(prefixLine(text, format, heading));
+			if (text !== '') lines.push(prefixLine(onlyObjects ? text : escapeLineStart(text), format, heading));
+			for (const object of blocks) lines.push(...renderObject(object, options));
 		}
 
 		start = end + 1;
@@ -110,8 +117,7 @@ function renderObject(object: SamsungObject, options: SamsungConvertOptions): Li
 			return embed ? [{ kind: 'text', text: embed }] : [];
 		}
 		case 'code': {
-			const longest = Math.max(2, ...(object.code.match(/`+/g) ?? []).map(run => run.length));
-			const fence = '`'.repeat(longest + 1);
+			const fence = fenceFor(object.code.split('\n'));
 			const language = object.language.toLowerCase().replace(/\s+/g, '-');
 			return [{ kind: 'block', text: `${fence}${language}\n${object.code.replace(/\n+$/, '')}\n${fence}` }];
 		}
@@ -132,7 +138,8 @@ function renderTable(rows: SamsungText[][], options: SamsungConvertOptions): str
 			lines.push(styles.render(start, start + line.length, objects, options, false));
 			start += line.length + 1;
 		}
-		return lines.join('<br>').replace(/^(<br>)+|(<br>)+$/g, '').replace(/\|/g, '\\|').trim();
+		// A backslash before a pipe must be escaped too, or it would escape the pipe's own escape.
+		return lines.join('<br>').replace(/^(<br>)+|(<br>)+$/g, '').replace(/(\\*)\|/g, (_, slashes: string) => `${slashes}${slashes}\\|`).trim();
 	};
 
 	const [header, ...body] = rows.map(row => `| ${row.map(cell).join(' | ')} |`);
@@ -180,6 +187,27 @@ const CLOSE: Record<Exclude<Marker, 'link'>, string> = {
 	underline: '</u>',
 };
 
+/**
+ * Markdown can't close one emphasis and open another inside a word: the
+ * delimiters run together (`*foo**bar*****baz**`). A marker opened right after
+ * a close mid-word is written as HTML instead.
+ */
+const HTML_OPEN: Record<Exclude<Marker, 'link'>, string> = {
+	highlight: '<mark>',
+	strikethrough: '<s>',
+	bold: '<b>',
+	italic: '<i>',
+	underline: '<u>',
+};
+
+const HTML_CLOSE: Record<Exclude<Marker, 'link'>, string> = {
+	highlight: '</mark>',
+	strikethrough: '</s>',
+	bold: '</b>',
+	italic: '</i>',
+	underline: '</u>',
+};
+
 const SPAN_MARKERS: Partial<Record<number, Marker>> = {
 	[SpanType.Bold]: 'bold',
 	[SpanType.Italic]: 'italic',
@@ -219,15 +247,15 @@ class Styles {
 	render(start: number, end: number, objects: Map<number, SamsungObject>, options: SamsungConvertOptions, heading: boolean): string {
 		const text = this.source.text;
 		const boldBit = 1 << MARKER_ORDER.indexOf('bold');
-		const open: { marker: Marker, url?: string }[] = [];
+		const open: { marker: Marker, url?: string, html?: boolean }[] = [];
 		let out = '';
 
 		const close = (count: number) => {
 			const trailing = /\s*$/.exec(out)?.[0] ?? '';
 			out = out.slice(0, out.length - trailing.length);
 			while (open.length > count) {
-				const { marker, url } = open.pop()!;
-				out += marker === 'link' ? `](${linkTarget(url!)})` : CLOSE[marker];
+				const { marker, url, html } = open.pop()!;
+				out += marker === 'link' ? `](${linkTarget(url!)})` : (html ? HTML_CLOSE : CLOSE)[marker];
 			}
 			out += trailing;
 		};
@@ -244,19 +272,25 @@ class Styles {
 				const object = objects.get(at);
 				run = object?.kind === 'image' ? renderObject(object, options).map(line => line.text).join('') : '';
 			}
+			else {
+				run = escapeInline(run);
+			}
 
 			if (run.trim() !== '') {
 				const wanted = MARKER_ORDER.filter((marker, bit) => marker === 'link' ? url !== undefined : (flags & (1 << bit)) !== 0);
 				const keep = open.findIndex(({ marker, url: openUrl }) => !wanted.includes(marker) || (marker === 'link' && openUrl !== url));
+				const before = out.length;
 				if (keep >= 0) close(keep);
+				const midWord = out.length > before && /\S$/.test(text.slice(start, at)) && /^\S/.test(run);
 
 				const leading = /^\s*/.exec(run)?.[0] ?? '';
 				out += leading;
 				run = run.slice(leading.length);
 				for (const marker of wanted) {
 					if (open.some(entry => entry.marker === marker)) continue;
-					open.push({ marker, url: marker === 'link' ? url : undefined });
-					out += marker === 'link' ? '[' : OPEN[marker];
+					const html = midWord && marker !== 'link';
+					open.push({ marker, url: marker === 'link' ? url : undefined, html });
+					out += marker === 'link' ? '[' : (html ? HTML_OPEN : OPEN)[marker];
 				}
 			}
 

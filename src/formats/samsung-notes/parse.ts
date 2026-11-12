@@ -143,7 +143,8 @@ export interface SamsungArchive {
 	pages: Map<string, ArrayBuffer>;
 }
 
-const UTF16 = new TextDecoder('utf-16le');
+// Offsets count UTF-16 units from the first, so a leading U+FEFF must stay in the text.
+const UTF16 = new TextDecoder('utf-16le', { ignoreBOM: true });
 
 class Reader {
 	private readonly view: DataView;

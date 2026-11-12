@@ -22,12 +22,12 @@ Date: 2026-08-25
 Time: 14:30:45
 Integer: 1,234,567
 Decimal: 98.765
-Currency: $`42.50 / EUR 39.95 / GBP 33.20
+Currency: $\`42.50 / EUR 39.95 / GBP 33.20
 Percentage: 87.5%
 
 Punctuation and symbols
 
-ASCII: ! " # $ % & ' ( ) * + , - . / : ; &lt; = &gt; ? @ [ ] ^ _ { | } ~
+ASCII: ! " # $ % & ' ( ) * + , - . / : ; &lt; = &gt; ? @ \[ \] ^ _ { | } ~
 Typography: en-dash – em-dash — ellipsis … curly quotes “hello” and ‘world’
 Math: + - × ÷ = ≠ ≤ ≥ ± ∞ √ π
 Legal: © 2026 Example Company® — Compatibility Test™
