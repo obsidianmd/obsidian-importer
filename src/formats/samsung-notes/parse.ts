@@ -4,7 +4,7 @@
  * Offsets follow the MIT-licensed format notes in Dietrich
  * (github.com/Downhillghost/Dietrich, sdocx_specification/) and bxff
  * (github.com/bxff/samsung-notes-format), and were checked against the
- * CC BY 4.0 SDOCX compatibility corpus. Shapes, lines, text boxes, and PDF
+ * CC BY 4.0 SDOCX compatibility corpus. Text boxes, images, and PDF
  * backgrounds on a page aren't decoded; pages that hold them are only counted.
  */
 
@@ -45,8 +45,25 @@ const PAGE_HAS_PDF = 0x100;
 const LAYER_HIDDEN = 0x1;
 const PageObjectType = {
 	Stroke: 1,
+	Shape: 7,
+	Line: 8,
 	GroupedStroke: 15,
 } as const;
+const ShapeRecord = {
+	ShapeBase: 6,
+	Shape: 7,
+	Line: 8,
+} as const;
+/** In a shape record: its own-data offset, two sized masks, a shape type, a rectangle, and 4 more bytes come before the path. */
+const SHAPE_PATH_AT = 57;
+const PathCommand = {
+	Move: 1,
+	Line: 2,
+	Quadratic: 3,
+	Close: 6,
+} as const;
+const CURVE_SEGMENTS = 12;
+const SHAPE_COLOR = 0xFF000000;
 const STROKE_RECORD = 1;
 const STROKE_COMPACT = 0x1;
 const STROKE_HAS_ANGLES = 0x4;
@@ -99,7 +116,7 @@ export interface SamsungNote {
 	media: Map<number, string>;
 	/** The pen strokes on each page that has any, in page order. */
 	drawings: SamsungStroke[][];
-	/** Pages with shapes, lines, text boxes, or PDF backgrounds, which aren't imported. */
+	/** Pages with text boxes, placed images, PDF backgrounds, or anything unread, which aren't imported. */
 	unsupportedPages: number;
 }
 
@@ -109,6 +126,8 @@ export interface SamsungStroke {
 	/** ARGB. */
 	color: number;
 	size: number;
+	/** A pen stroke's width follows pressure; a shape's line doesn't. */
+	kind: 'pen' | 'shape';
 }
 
 export interface SamsungArchive {
@@ -483,6 +502,11 @@ function parsePage(data: ArrayBuffer): { strokes: SamsungStroke[], unsupported: 
 			if (!stroke) unsupported = true;
 			else if (layer) layer.push(stroke);
 		}
+		else if (type === PageObjectType.Shape || type === PageObjectType.Line) {
+			const lines = parseShapeObject(payload, type);
+			if (!lines) unsupported = true;
+			else if (layer) layer.push(...lines);
+		}
 		else {
 			unsupported = true;
 		}
@@ -554,7 +578,96 @@ function parseStroke(reader: Reader): SamsungStroke | null {
 	if (style & StrokeStyle.AdvancedSetting) reader.u32();
 	const color = style & StrokeStyle.Color ? reader.u32() : DEFAULT_STROKE_COLOR;
 	const size = style & StrokeStyle.Size ? reader.f32() : DEFAULT_STROKE_SIZE;
-	return { points, color, size };
+	return { points, color, size, kind: 'pen' };
+}
+
+/**
+ * A shape or line as one stroke per subpath. The shape-base record holds the
+ * line width; the shape record holds the path and an empty text, since any
+ * shape can hold text. A shape with text, or a path command that isn't known,
+ * makes the shape unsupported. No color has been found in the record; Samsung
+ * Notes draws the corpus's shapes in black.
+ */
+function parseShapeObject(payload: Reader, type: number): SamsungStroke[] | null {
+	let width: number | null = null;
+	let path: { x: number, y: number }[][] | null = null;
+
+	let at = 0;
+	try {
+		while (at + 6 <= payload.length) {
+			const size = payload.u32At(at);
+			if (size < 6 || at + size > payload.length) return null;
+			const record = new Reader(payload.bytes.subarray(at, at + size));
+			const recordType = payload.u16At(at + 4);
+			const own = record.u32At(6);
+
+			if (recordType === ShapeRecord.ShapeBase) {
+				record.pos = own + 4;
+				width = record.f32();
+			}
+			else if (recordType === ShapeRecord.Shape && type === PageObjectType.Shape) {
+				if (record.bytes[10] !== 1 || record.bytes[12] !== 4 || record.u32At(SHAPE_PATH_AT - 4) !== 0) return null;
+				if (record.u32At(own + 4) !== 0) return null;
+				record.pos = SHAPE_PATH_AT + 4;
+				path = readPath(record);
+				if (path && record.pos !== SHAPE_PATH_AT + 4 + record.u32At(SHAPE_PATH_AT)) return null;
+			}
+			else if (recordType === ShapeRecord.Line && type === PageObjectType.Line) {
+				record.pos = own;
+				path = readPath(record);
+				if (record.pos !== record.length) return null;
+			}
+			at += size;
+		}
+	}
+	catch (error) {
+		if (error instanceof RangeError) return null;
+		throw error;
+	}
+
+	if (!path || width === null || !(width > 0)) return null;
+	return path.map(points => ({ points, color: SHAPE_COLOR, size: width, kind: 'shape' }));
+}
+
+/** A count, then commands, each a byte followed by its points as pairs of 64-bit floats. Curves are flattened. */
+function readPath(reader: Reader): { x: number, y: number }[][] | null {
+	const subpaths: { x: number, y: number }[][] = [];
+	let current: { x: number, y: number }[] = [];
+	const point = () => ({ x: reader.f64(), y: reader.f64() });
+
+	const count = reader.u32();
+	for (let i = 0; i < count; i++) {
+		const command = reader.u8();
+		if (command === PathCommand.Move) {
+			if (current.length > 0) subpaths.push(current);
+			current = [point()];
+		}
+		else if (command === PathCommand.Line && current.length > 0) {
+			current.push(point());
+		}
+		else if (command === PathCommand.Quadratic && current.length > 0) {
+			const from = current[current.length - 1];
+			const control = point();
+			const to = point();
+			for (let step = 1; step <= CURVE_SEGMENTS; step++) {
+				const t = step / CURVE_SEGMENTS;
+				current.push({
+					x: (1 - t) ** 2 * from.x + 2 * (1 - t) * t * control.x + t ** 2 * to.x,
+					y: (1 - t) ** 2 * from.y + 2 * (1 - t) * t * control.y + t ** 2 * to.y,
+				});
+			}
+		}
+		else if (command === PathCommand.Close && current.length > 0) {
+			current.push(current[0]);
+		}
+		else {
+			return null;
+		}
+	}
+	if (current.length > 0) subpaths.push(current);
+
+	const points = subpaths.flat();
+	return subpaths.length > 0 && points.every(p => Number.isFinite(p.x) && Number.isFinite(p.y)) ? subpaths : null;
 }
 
 /** A start point, then one step per point: a sign bit and a magnitude in 1/32 units. */

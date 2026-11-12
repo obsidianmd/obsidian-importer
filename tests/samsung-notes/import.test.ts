@@ -50,7 +50,7 @@ test('imports an image once and embeds it wherever the note places it', async ()
 	assert.equal(file.stat.ctime, 1789415847807);
 });
 
-test('names a note after its title, embeds its drawings, and reports pages it cannot convert', async () => {
+test('names a note after its title and embeds its drawings', async () => {
 	const { vault, ctx } = await importFiles([
 		fixture('01-basic-formatting.sdocx'),
 		fixture('02-shapes-and-dot-calibration.sdocx'),
@@ -66,9 +66,7 @@ test('names a note after its title, embeds its drawings, and reports pages it ca
 	]);
 	assert.equal(vault.contents.get('Samsung Notes/04-marker4-highlighter.md'), 'Text\n\n![[04-marker4-highlighter - Ink.svg]]\n');
 	assert.equal(ctx.attachments, 2);
-	assert.deepEqual(ctx.log.filter(entry => entry.outcome === 'message').map(entry => entry.name), [
-		'02-shapes-and-dot-calibration: shapes, text boxes, and PDFs on a page are not imported yet.',
-	]);
+	assert.deepEqual(ctx.log.filter(entry => entry.outcome === 'message'), []);
 });
 
 test('reuses a drawing that is already in the vault', async () => {

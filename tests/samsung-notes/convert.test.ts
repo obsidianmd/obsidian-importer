@@ -21,7 +21,7 @@ import { expectedFor, expectFile, fixtures } from '../helpers';
 
 const notes = fixtures(__dirname, '.sdocx');
 
-async function readNote(path: string): Promise<SamsungNote> {
+async function readFiles(path: string): Promise<Map<string, ArrayBuffer>> {
 	const zip = new ZipReader(new BlobReader(new Blob([nodeFs.readFileSync(path)])));
 	const files = new Map<string, ArrayBuffer>();
 	for (const entry of await zip.getEntries()) {
@@ -30,7 +30,11 @@ async function readNote(path: string): Promise<SamsungNote> {
 		files.set(entry.filename, bytes.slice().buffer);
 	}
 	await zip.close();
+	return files;
+}
 
+async function readNote(path: string): Promise<SamsungNote> {
+	const files = await readFiles(path);
 	return parseSamsungNote({
 		note: files.get('note.note')!,
 		mediaInfo: files.get('media/mediaInfo.dat'),
@@ -93,12 +97,25 @@ test('reads the strokes on a page and counts none of it as unsupported', async (
 		['ff030303', '80ffcb30', '802febd2', '803396ff']);
 });
 
-test('counts a page with shapes as unsupported but keeps its strokes', async () => {
+test('reads drawn shapes and a line beside the pen strokes', async () => {
 	const note = await readNote(nodePath.join(__dirname, '02-shapes-and-dot-calibration.sdocx'));
 
-	assert.equal(note.unsupportedPages, 1);
+	assert.equal(note.unsupportedPages, 0);
 	assert.equal(note.drawings.length, 1);
-	assert.equal(note.drawings[0].length, 77);
+	const shapes = note.drawings[0].filter(stroke => stroke.kind === 'shape');
+	assert.equal(note.drawings[0].length - shapes.length, 77);
+	assert.deepEqual(shapes.map(shape => shape.points.length), [5, 98, 4, 6, 7, 2]);
+});
+
+test('counts a page with a PDF behind it as unsupported', async () => {
+	const files = await readFiles(nodePath.join(__dirname, '01-basic-formatting.sdocx'));
+	const page = new DataView(new ArrayBuffer(22));
+	page.setUint32(0, 18, true);
+	page.setUint32(14, 0x100, true);
+	const note = parseSamsungNote({ note: files.get('note.note')!, pages: new Map([['page', page.buffer]]) });
+
+	assert.equal(note.unsupportedPages, 1);
+	assert.deepEqual(note.drawings, []);
 });
 
 test('a note without images leaves an unresolved one out', async () => {

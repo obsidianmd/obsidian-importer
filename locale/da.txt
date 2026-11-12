@@ -2427,7 +2427,7 @@ original=In Samsung Notes, select the notes you want and save them as Samsung No
 translation=
 
 [importer.samsung-notes.msg-unsupported-pages]
-original={{name}}: shapes, text boxes, and PDFs on a page are not imported yet.
+original={{name}}: text boxes, images, and PDFs placed on a page are not imported yet.
 translation=
 
 [importer.samsung-notes.reason-not-samsung-note]
