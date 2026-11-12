@@ -41,6 +41,7 @@ const FORMAT_WITH_OBJECT_SPANS = 2035;
 const SHAPE_HAS_TEXT = 0x1;
 const SHAPE_HAS_FILL = 0x20;
 const FILL_IMAGE = 2;
+const PAGE_HAS_DRAWING = 0x1;
 const PAGE_HAS_PDF = 0x100;
 const LAYER_HIDDEN = 0x1;
 const PageObjectType = {
@@ -129,6 +130,9 @@ export interface SamsungStroke {
 	/** A pen stroke's width follows pressure; a shape's line doesn't. */
 	kind: 'pen' | 'shape';
 }
+
+/** A note whose typed text is in a form the parser doesn't know. */
+export class UnreadableNoteError extends Error {}
 
 export interface SamsungArchive {
 	note: ArrayBuffer;
@@ -253,6 +257,8 @@ export function parseSamsungNote(archive: SamsungArchive): SamsungNote {
 
 	const titleObject = reader.slice(reader.u32());
 	const bodyObject = reader.slice(reader.u32());
+	const body = textObjectAt(bodyObject, 0, formatVersion)?.text ?? null;
+	if (!body && bodyObject.length > 0) throw new UnreadableNoteError('Samsung Notes body object could not be read');
 
 	const drawings: SamsungStroke[][] = [];
 	let unsupportedPages = 0;
@@ -264,7 +270,7 @@ export function parseSamsungNote(archive: SamsungArchive): SamsungNote {
 
 	return {
 		title: textObjectAt(titleObject, 0, formatVersion)?.text.text.trim() ?? '',
-		body: textObjectAt(bodyObject, 0, formatVersion)?.text ?? null,
+		body,
 		ctime: toMilliseconds(created),
 		mtime: toMilliseconds(modified),
 		media: archive.mediaInfo ? parseMediaInfo(archive.mediaInfo) : new Map<number, string>(),
@@ -481,14 +487,17 @@ function orderedPages(archive: SamsungArchive): ArrayBuffer[] {
 }
 
 /**
- * A page's visible pen strokes, stacked by layer number. Anything else on the
- * page, or a stroke that can't be read, makes the page unsupported.
+ * A page's visible strokes and shapes, stacked by layer number. Anything else
+ * on the page, a record that can't be read, or a page marked as drawn on with
+ * nothing read, makes the page unsupported.
  */
 function parsePage(data: ArrayBuffer): { strokes: SamsungStroke[], unsupported: boolean } {
 	const reader = new Reader(new Uint8Array(data));
-	if (reader.length < 18) return { strokes: [], unsupported: false };
+	if (reader.length < 18) return { strokes: [], unsupported: reader.length > 0 };
 
-	let unsupported = (reader.u32At(14) & PAGE_HAS_PDF) !== 0;
+	const mask = reader.u32At(14);
+	let unsupported = (mask & PAGE_HAS_PDF) !== 0;
+	let decoded = false;
 	const layers: { number: number, strokes: SamsungStroke[] }[] = [];
 
 	const readObject = (layer: SamsungStroke[] | null): void => {
@@ -500,12 +509,14 @@ function parsePage(data: ArrayBuffer): { strokes: SamsungStroke[], unsupported: 
 		if (type === PageObjectType.Stroke || type === PageObjectType.GroupedStroke) {
 			const stroke = parseStrokeObject(payload);
 			if (!stroke) unsupported = true;
-			else if (layer) layer.push(stroke);
+			else decoded = true;
+			if (stroke && layer) layer.push(stroke);
 		}
 		else if (type === PageObjectType.Shape || type === PageObjectType.Line) {
 			const lines = parseShapeObject(payload, type);
 			if (!lines) unsupported = true;
-			else if (layer) layer.push(...lines);
+			else decoded = true;
+			if (lines && layer) layer.push(...lines);
 		}
 		else {
 			unsupported = true;
@@ -536,6 +547,8 @@ function parsePage(data: ArrayBuffer): { strokes: SamsungStroke[], unsupported: 
 		if (!(error instanceof RangeError)) throw error;
 		unsupported = true;
 	}
+
+	if ((mask & PAGE_HAS_DRAWING) && !decoded) unsupported = true;
 
 	layers.sort((a, b) => a.number - b.number);
 	return { strokes: layers.flatMap(layer => layer.strokes), unsupported };

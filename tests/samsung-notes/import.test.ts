@@ -11,6 +11,7 @@ import { SamsungNotesImporter } from '../../src/formats/samsung-notes';
 import { ImportContext } from '../../src/import-context';
 import { indexedApp, MemoryVault } from '../shims/vault';
 import { SourceZip, zipOf } from '../shims/zip';
+import { noteWithBrokenBody } from './sdocx';
 
 provideNodeModules({ path: nodePath });
 
@@ -93,4 +94,14 @@ test('imports the .sdocx files inside a zip into its folders and skips anything 
 		'Samsung Notes/Work/Projects/03-image-placement.md',
 	]);
 	assert.deepEqual(ctx.skipped, ['Samsung Notes.zip/Notes/Not a note.sdocx']);
+});
+
+test('reports a note whose text it cannot read and writes nothing for it', async () => {
+	const sdocx = await (await zipOf({ 'note.note': await noteWithBrokenBody() })).read();
+	const { vault, ctx } = await importFiles([new SourceZip('Broken.sdocx', new Blob([sdocx]), 'sdocx')]);
+
+	assert.deepEqual(vault.paths(), []);
+	assert.deepEqual(ctx.log.map(entry => [entry.outcome, entry.name, entry.reason]), [
+		['failed', 'Broken.sdocx', 'its text is stored in a way Importer can\'t read yet'],
+	]);
 });

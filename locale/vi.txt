@@ -2434,6 +2434,10 @@ translation=
 original=it is not a Samsung Notes file
 translation=
 
+[importer.samsung-notes.reason-unreadable-note]
+original=its text is stored in a way Importer can't read yet
+translation=
+
 [importer.samsung-notes.reason-missing-image]
 original=the image is missing from {{name}}
 translation=

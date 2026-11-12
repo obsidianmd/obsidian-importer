@@ -8,7 +8,7 @@ import { sameBytes, sanitizeFileName, sanitizeFilePath } from '../util';
 import { hiddenZipPath, readZip, ZipEntryFile } from '../zip';
 import { convertSamsungNote } from './samsung-notes/convert';
 import { drawingToSvg } from './samsung-notes/drawing';
-import { imageBindIds, mediaDisplayName, parseSamsungNote, SamsungNote, SamsungStroke } from './samsung-notes/parse';
+import { imageBindIds, mediaDisplayName, parseSamsungNote, SamsungNote, SamsungStroke, UnreadableNoteError } from './samsung-notes/parse';
 
 interface OpenedNote {
 	note: SamsungNote;
@@ -87,7 +87,7 @@ export class SamsungNotesImporter extends FormatImporter {
 				await this.importNote(ctx, subfolder ? await this.createFolders(`${folder.path}/${subfolder}`) : folder, file);
 			}
 			catch (error) {
-				ctx.reportFailed(file.fullpath, error);
+				ctx.reportFailed(file.fullpath, error instanceof UnreadableNoteError ? i18n.importer.samsungNotes.reasonUnreadableNote() : error);
 			}
 			return true;
 		});

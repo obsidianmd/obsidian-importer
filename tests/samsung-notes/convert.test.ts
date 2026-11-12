@@ -9,29 +9,15 @@ import '../shims/runtime';
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import * as nodeFs from 'node:fs';
 import * as nodePath from 'node:path';
-
-import { BlobReader, Uint8ArrayWriter, ZipReader } from '@zip.js/zip.js';
 
 import { convertSamsungNote } from '../../src/formats/samsung-notes/convert';
 import { drawingToSvg } from '../../src/formats/samsung-notes/drawing';
-import { mediaDisplayName, parseSamsungNote, SamsungNote } from '../../src/formats/samsung-notes/parse';
+import { mediaDisplayName, parseSamsungNote, SamsungNote, UnreadableNoteError } from '../../src/formats/samsung-notes/parse';
 import { expectedFor, expectFile, fixtures } from '../helpers';
+import { noteWithBrokenBody, readFiles } from './sdocx';
 
 const notes = fixtures(__dirname, '.sdocx');
-
-async function readFiles(path: string): Promise<Map<string, ArrayBuffer>> {
-	const zip = new ZipReader(new BlobReader(new Blob([nodeFs.readFileSync(path)])));
-	const files = new Map<string, ArrayBuffer>();
-	for (const entry of await zip.getEntries()) {
-		if (entry.directory || !entry.getData) continue;
-		const bytes = await entry.getData(new Uint8ArrayWriter());
-		files.set(entry.filename, bytes.slice().buffer);
-	}
-	await zip.close();
-	return files;
-}
 
 async function readNote(path: string): Promise<SamsungNote> {
 	const files = await readFiles(path);
@@ -116,6 +102,22 @@ test('counts a page with a PDF behind it as unsupported', async () => {
 
 	assert.equal(note.unsupportedPages, 1);
 	assert.deepEqual(note.drawings, []);
+});
+
+test('refuses a note whose body it cannot read', async () => {
+	const note = await noteWithBrokenBody();
+	assert.throws(() => parseSamsungNote({ note, pages: new Map() }), UnreadableNoteError);
+});
+
+test('counts a page that has drawings but no layers it can read as unsupported', async () => {
+	const files = await readFiles(nodePath.join(__dirname, '01-basic-formatting.sdocx'));
+	const empty = new DataView(new ArrayBuffer(22));
+	empty.setUint32(0, 18, true);
+	empty.setUint32(14, 0x1, true);
+	const truncated = (await readFiles(nodePath.join(__dirname, '04-marker4-highlighter.sdocx'))).get('e2c01be0-b6cf-11f1-91c8-b3fbd8ca0b23.page')!.slice(0, 17);
+
+	const note = parseSamsungNote({ note: files.get('note.note')!, pages: new Map([['empty', empty.buffer], ['truncated', truncated]]) });
+	assert.equal(note.unsupportedPages, 2);
 });
 
 test('a note without images leaves an unresolved one out', async () => {
