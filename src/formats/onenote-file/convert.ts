@@ -1,4 +1,5 @@
 import { SvgStroke, strokesToSvg } from '../onenote/ink-svg';
+import { escapeInline, escapeLineStart } from '../../markdown';
 import { extensionFromName } from '../../util';
 import { Element, Image, Ink, ListInfo, Page, Paragraph, Table, Tag, TextRun } from './semantic/content';
 
@@ -54,15 +55,6 @@ function toLatex(text: string): string {
 		SUBSCRIPTS, SUBSCRIPT_PLAIN, '_');
 
 	return scripted.normalize('NFKC').replace(INVISIBLE_MATH, '').trim();
-}
-
-/** Escapes plain text that Markdown would reinterpret structurally. */
-function escapeInline(text: string): string {
-	return text.replace(/[[\]`<]/g, '\\$&');
-}
-
-function escapeLineStart(line: string): string {
-	return line.replace(/^(\s*)(#{1,6}(?=\s|$)|>|\||[-*+](?=\s)|\d+[.)](?=\s)|`{3,}|~{3,}|-{3,}$|={3,}$)/, '$1\\$2');
 }
 
 /** Extracts `Page title` from `onenote:...#Page%20title&section-id=...`. */

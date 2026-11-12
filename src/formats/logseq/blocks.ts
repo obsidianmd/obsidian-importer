@@ -1,4 +1,4 @@
-import { BLOCK_ANCHOR_PATTERN, outsideMarkdownCode, outsideMarkdownFences } from '../../markdown';
+import { BLOCK_ANCHOR_PATTERN, fenceFor, outsideMarkdownCode, outsideMarkdownFences } from '../../markdown';
 
 const HIGHLIGHT_RE = /\^\^(.+?)\^\^/g;
 
@@ -76,14 +76,6 @@ function fenceLanguage(type: string, argument: string): string {
 	if (type === 'QUERY') return 'query';
 	const first = argument.trim().split(/\s+/)[0] ?? '';
 	return /^[\w+#.-]+$/.test(first) ? first.toLowerCase() : '';
-}
-
-function fenceFor(body: string[]): string {
-	let longest = 0;
-	for (const line of body) {
-		for (const run of line.match(/`+/g) ?? []) longest = Math.max(longest, run.length);
-	}
-	return '`'.repeat(Math.max(3, longest + 1));
 }
 
 function appendOrgBlock(out: string[], rendered: string[], separated: boolean, followedByContent: boolean): void {
