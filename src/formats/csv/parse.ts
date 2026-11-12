@@ -9,7 +9,7 @@ export interface ParsedCSV {
 }
 
 /** Separators Excel and other spreadsheet apps write. The first wins a tie. */
-export const DELIMITERS = [',', ';', '\t', '|'] as const;
+const DELIMITERS = [',', ';', '\t', '|'] as const;
 export type Delimiter = typeof DELIMITERS[number];
 
 /**
@@ -17,7 +17,7 @@ export type Delimiter = typeof DELIMITERS[number];
  * columns as the header, or a comma when none gives two columns. Counting
  * characters instead would let commas in an unquoted header outvote ';'.
  */
-export function detectDelimiter(lines: string[]): Delimiter {
+function detectDelimiter(lines: string[]): Delimiter {
 	// An export is consistent from its first records, so the rest is not read.
 	const sample = lines.slice(0, 100);
 	let best: Delimiter = ',';
