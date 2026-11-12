@@ -23,9 +23,7 @@ export class RoamJSONImporter extends FormatImporter {
 	userDNPFormat: string;
 
 
-	// Assigned in init(), which FormatImporter calls before field initializers
-	// run: with initializers, the toggles were drawn from unset values (all
-	// off) and the defaults then took effect behind them.
+	// Set in init(), which runs before field initializers.
 	deOutline!: boolean;
 	embedBlockReferences!: boolean;
 	dropUnresolvedReferences!: boolean;
