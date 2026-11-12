@@ -167,7 +167,10 @@ export function escapeInline(text: string): string {
 }
 
 export function escapeLineStart(line: string): string {
-	return line.replace(/^(\s*)(#{1,6}(?=\s|$)|>|\||[-*+](?=\s)|\d+[.)](?=\s)|`{3,}|~{3,}|-{3,}$|={3,}$)/, '$1\\$2');
+	// A backslash before a digit is shown as is, so a numbered line escapes its period instead.
+	return line
+		.replace(/^(\s*\d+)([.)])(?=\s)/, '$1\\$2')
+		.replace(/^(\s*)(#{1,6}(?=\s|$)|>|\||[-*+](?=\s)|`{3,}|~{3,}|-{3,}$|={3,}$)/, '$1\\$2');
 }
 
 /** A code fence longer than any run of backticks in the code it encloses. */
