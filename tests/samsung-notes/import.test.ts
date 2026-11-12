@@ -8,6 +8,7 @@ import * as nodePath from 'node:path';
 
 import { provideNodeModules } from '../../src/filesystem';
 import { SamsungNotesImporter } from '../../src/formats/samsung-notes';
+import { DuplicateHandling } from '../../src/format-importer';
 import { ImportContext } from '../../src/import-context';
 import { indexedApp, MemoryVault } from '../shims/vault';
 import { SourceZip, zipOf } from '../shims/zip';
@@ -19,7 +20,7 @@ function fixture(name: string): SourceZip {
 	return new SourceZip(name, new Blob([nodeFs.readFileSync(nodePath.join(__dirname, name))]), 'sdocx');
 }
 
-async function importFiles(files: SourceZip[], vault = new MemoryVault()): Promise<{ vault: MemoryVault, ctx: ImportContext }> {
+async function importFiles(files: SourceZip[], vault = new MemoryVault(), configure?: (subject: SamsungNotesImporter) => void): Promise<{ vault: MemoryVault, ctx: ImportContext }> {
 	const subject = new SamsungNotesImporter(indexedApp(vault) as never, {
 		sourceEl: null,
 		outputEl: null,
@@ -31,6 +32,7 @@ async function importFiles(files: SourceZip[], vault = new MemoryVault()): Promi
 	await subject.ready;
 	subject.files = files;
 	subject.outputLocation = 'Samsung Notes';
+	configure?.(subject);
 	subject.indexImportedNotes();
 
 	const ctx = new ImportContext();
@@ -103,5 +105,29 @@ test('reports a note whose text it cannot read and writes nothing for it', async
 	assert.deepEqual(vault.paths(), []);
 	assert.deepEqual(ctx.log.map(entry => [entry.outcome, entry.name, entry.reason]), [
 		['failed', 'Broken.sdocx', 'its text is stored in a way Importer can\'t read yet'],
+	]);
+});
+
+test('writes no drawing for a note it skips', async () => {
+	const vault = new MemoryVault();
+	await importFiles([fixture('04-marker4-highlighter.sdocx')], vault);
+	vault.remove('04-marker4-highlighter - Ink.svg');
+
+	const { ctx } = await importFiles([fixture('04-marker4-highlighter.sdocx')], vault, subject => {
+		subject.duplicateHandling = DuplicateHandling.Skip;
+	});
+
+	assert.deepEqual(vault.paths(), ['Samsung Notes/04-marker4-highlighter.md']);
+	assert.equal(ctx.attachments, 0);
+});
+
+test('names a drawing after the note title the template gives', async () => {
+	const { vault } = await importFiles([fixture('04-marker4-highlighter.sdocx')], new MemoryVault(), subject => {
+		subject.noteTitleTemplate = 'Sketch {{title}}';
+	});
+
+	assert.deepEqual(vault.paths().sort(), [
+		'Samsung Notes/Sketch 04-marker4-highlighter.md',
+		'Sketch 04-marker4-highlighter - Ink.svg',
 	]);
 });

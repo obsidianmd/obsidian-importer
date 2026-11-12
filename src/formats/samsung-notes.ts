@@ -1,6 +1,6 @@
 import { normalizePath, Notice, TFolder } from 'obsidian';
-import { PickedFile } from '../filesystem';
-import { FormatImporter, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
+import { parseFilePath, PickedFile } from '../filesystem';
+import { FormatImporter, leavesTheNoteAlone, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { PREVIEW_IMAGE_PLACEHOLDER, PreviewImageStore, previewImageMime } from '../preview-image';
@@ -160,7 +160,13 @@ export class SamsungNotesImporter extends FormatImporter {
 	private async importNote(ctx: ImportContext, folder: TFolder, file: PickedFile): Promise<void> {
 		const found = await this.openNote(file, async opened => {
 			const { note, title } = opened;
-			const notePath = normalizePath(`${folder.path}/${title}.md`);
+			const times = { ctime: note.ctime, mtime: note.mtime };
+			// Plan before writing attachments, so a note left alone gets none and its drawings share its final name.
+			const planned = await this.planTemplatedNote(folder, title, '', times);
+			const disposition = this.preflightNote(ctx, planned, note.mtime);
+			if (leavesTheNoteAlone(disposition)) return;
+			const notePath = planned.targetPath;
+			const noteName = parseFilePath(notePath).basename;
 
 			const images = new Map<number, string>();
 			for (const bindId of imageBindIds(note.body)) {
@@ -182,29 +188,27 @@ export class SamsungNotesImporter extends FormatImporter {
 			const drawings: (string | null)[] = [];
 			for (const strokes of note.drawings) {
 				if (await ctx.shouldStop()) return;
-				drawings.push(await this.importDrawing(ctx, title, strokes, notePath));
+				drawings.push(await this.importDrawing(ctx, noteName, strokes, notePath));
 			}
 
 			const content = convertSamsungNote(note, {
 				embedImage: bindId => images.has(bindId) ? `![[${images.get(bindId)}]]` : null,
 				embedDrawing: index => drawings[index] ? `![[${drawings[index]}]]` : null,
 			});
-			const { written } = await this.writeNote(ctx, folder, title, content, {
-				ctime: note.ctime,
-				mtime: note.mtime,
-			});
-			if (written) ctx.reportNoteSuccess(file.fullpath);
-			if (note.unsupportedPages > 0) ctx.reportMessage(i18n.importer.samsungNotes.msgUnsupportedPages({ name: title }));
+			const { written } = await this.writePlannedNote(ctx, planned, content, { ...times, disposition });
+			if (!written) return;
+			ctx.reportNoteSuccess(file.fullpath);
+			if (note.unsupportedPages > 0) ctx.reportMessage(i18n.importer.samsungNotes.msgUnsupportedPages({ name: noteName }));
 		});
 
 		if (!found) ctx.reportSkipped(file.fullpath, i18n.importer.samsungNotes.reasonNotSamsungNote());
 	}
 
-	private async importDrawing(ctx: ImportContext, title: string, strokes: SamsungStroke[], notePath: string): Promise<string | null> {
+	private async importDrawing(ctx: ImportContext, noteName: string, strokes: SamsungStroke[], notePath: string): Promise<string | null> {
 		const svg = drawingToSvg(strokes);
 		if (svg === null) return null;
 
-		const name = `${title} - Ink.svg`;
+		const name = `${noteName} - Ink.svg`;
 		try {
 			const { path, reuse } = await this.placeAttachment(name, notePath,
 				async existing => await this.vault.read(existing) === svg ? 'same' : 'another');
