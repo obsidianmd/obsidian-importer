@@ -65,7 +65,6 @@ export class NoteConverter extends ANConverter {
 	listIndent = 0;
 	multiRun = ANMultiRun.None;
 	alignment: ANAlignment | undefined;
-	inBlockquote = false;
 
 	static protobufType = 'ciofecaforensics.Document';
 
@@ -119,6 +118,7 @@ export class NoteConverter extends ANConverter {
 			&& !URL_LINE.test(firstLine(this.note.noteText));
 		let converted = '';
 		let titleStarted = false;
+		let inBlockquote = false;
 
 		for (let j = 0; j < fragments.length; j++) {
 			let { attr, fragment } = fragments[j];
@@ -141,7 +141,13 @@ export class NoteConverter extends ANConverter {
 			attr.atLineStart = j == 0 ? true : fragments[j - 1]?.fragment.contains('\n');
 
 			const lineStart = converted.length;
-			const endsQuote = attr.atLineStart && /\S/.test(fragment) && this.endsBlockquote(attr, converted);
+			let endsQuote = false;
+			if (attr.atLineStart && /\S/.test(fragment)) {
+				const quoted = !!attr.paragraphStyle?.blockquote;
+				// Markdown carries a quote on to the next line of text unless a blank line ends it.
+				endsQuote = inBlockquote && !quoted && !converted.endsWith('\n\n');
+				inBlockquote = quoted;
+			}
 
 			converted += this.formatMultiRun(attr);
 
@@ -222,19 +228,6 @@ export class NoteConverter extends ANConverter {
 		}
 
 		return fragments;
-	}
-
-	/**
-	 * Whether this line follows a block quote without a blank line between.
-	 * Markdown carries a quote on to the next line of text, so
-	 * `> Quoted\nNot quoted` renders both lines as the quote.
-	 */
-	endsBlockquote(attr: ANAttributeRun, converted: string): boolean {
-		const quoted = !!attr.paragraphStyle?.blockquote;
-		const ends = this.inBlockquote && !quoted && !converted.endsWith('\n\n');
-		this.inBlockquote = quoted;
-
-		return ends;
 	}
 
 	expandSoftReturns(attr: ANAttributeRun, converted: string): string {
