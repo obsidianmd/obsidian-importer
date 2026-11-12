@@ -1,0 +1,247 @@
+import { normalizePath, Notice, TFolder } from 'obsidian';
+import { parseFilePath, PickedFile } from '../filesystem';
+import { FormatImporter, leavesTheNoteAlone, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../format-importer';
+import { ImportContext } from '../import-context';
+import { i18n } from '../i18n';
+import { PREVIEW_IMAGE_PLACEHOLDER, PreviewImageStore, previewImageMime } from '../preview-image';
+import { sameBytes, sanitizeFileName, sanitizeFilePath } from '../util';
+import { hiddenZipPath, readZip, ZipEntryFile } from '../zip';
+import { convertSamsungNote } from './samsung-notes/convert';
+import { drawingToSvg } from './samsung-notes/drawing';
+import { imageBindIds, mediaDisplayName, parseSamsungNote, SamsungNote, SamsungStroke, UnreadableNoteError } from './samsung-notes/parse';
+
+interface OpenedNote {
+	note: SamsungNote;
+	title: string;
+	/** Archive entries by path relative to the note's root. */
+	files: Map<string, ZipEntryFile>;
+}
+
+export class SamsungNotesImporter extends FormatImporter {
+	static extensions = ['sdocx', 'zip'];
+
+	interruption = 'pause' as const;
+
+	init() {
+		this.addExportSetting(i18n.importer.samsungNotes.descExport());
+		this.addFileChooserSetting(i18n.importer.samsungNotes.fileType(), SamsungNotesImporter.extensions, true);
+		this.defaultOutputFolder = 'Samsung Notes';
+	}
+
+	protected override async templatePreviewSamples(ctx: ImportContext, images: PreviewImageStore): Promise<NoteTemplateSample[]> {
+		const samples: NoteTemplateSample[] = [];
+		await this.eachNoteFile(ctx, async (file, subfolder) => {
+			if (samples.length >= TEMPLATE_PREVIEW_LIMIT) return false;
+			try {
+				await this.openNote(file, async opened => {
+					const previews = new Map<number, string>();
+					for (const bindId of imageBindIds(opened.note.body)) {
+						const entry = this.mediaEntry(opened, bindId);
+						const mime = entry ? previewImageMime(entry.extension) : undefined;
+						previews.set(bindId, entry && mime
+							? await images.get(entry.fullpath, mime, () => entry.read(), entry.size)
+							: PREVIEW_IMAGE_PLACEHOLDER);
+					}
+
+					const drawings: (string | null)[] = [];
+					for (const [index, strokes] of opened.note.drawings.entries()) {
+						const svg = drawingToSvg(strokes);
+						const data = svg === null ? null : new TextEncoder().encode(svg);
+						drawings.push(data && await images.get(`${file.fullpath}#drawing-${index}`, 'image/svg+xml', async () => data.slice().buffer, data.byteLength));
+					}
+
+					samples.push({
+						title: opened.title,
+						path: normalizePath(`${this.outputLocation}/${subfolder}/${opened.title}.md`),
+						content: convertSamsungNote(opened.note, {
+							embedImage: bindId => `![](${previews.get(bindId) ?? PREVIEW_IMAGE_PLACEHOLDER})`,
+							embedDrawing: index => drawings[index] ? `![](${drawings[index]})` : null,
+						}),
+						times: { ctime: opened.note.ctime, mtime: opened.note.mtime },
+					});
+				});
+			}
+			catch (error) {
+				console.warn(`Could not preview Samsung Notes file ${file.fullpath}`, error);
+			}
+			return true;
+		});
+		return samples;
+	}
+
+	async import(ctx: ImportContext): Promise<void> {
+		if (this.files.length === 0) {
+			new Notice(i18n.common.msgPickFile());
+			return;
+		}
+
+		const folder = await this.getOutputFolder();
+		if (!folder) {
+			new Notice(i18n.common.msgPickOutput());
+			return;
+		}
+
+		await this.eachNoteFile(ctx, async (file, subfolder) => {
+			try {
+				ctx.status(i18n.common.statusImportingNote({ name: file.basename }));
+				await this.importNote(ctx, subfolder ? await this.createFolders(`${folder.path}/${subfolder}`) : folder, file);
+			}
+			catch (error) {
+				ctx.reportFailed(file.fullpath, error instanceof UnreadableNoteError ? i18n.importer.samsungNotes.reasonUnreadableNote() : error);
+			}
+			return true;
+		});
+	}
+
+	/**
+	 * Visit each picked .sdocx file, and each one inside a picked .zip, until the visitor returns false.
+	 * A note in a zip gets its folder within the zip, since an export doesn't record its Samsung Notes folder.
+	 */
+	private async eachNoteFile(ctx: ImportContext, visit: (file: PickedFile, subfolder: string) => Promise<boolean>): Promise<void> {
+		for (const file of this.files) {
+			if (await ctx.shouldStop()) return;
+
+			if (file.extension === 'sdocx') {
+				if (!await visit(file, '')) return;
+				continue;
+			}
+
+			let keepGoing = true;
+			try {
+				await readZip(file, async (_zip, entries) => {
+					for (const entry of entries) {
+						if (!keepGoing || await ctx.shouldStop()) return;
+						if (entry.extension === 'sdocx' && !hiddenZipPath(entry.filepath)) keepGoing = await visit(entry, sanitizeFilePath(entry.parent));
+					}
+				});
+			}
+			catch (error) {
+				ctx.reportFailed(file.fullpath, error);
+			}
+			if (!keepGoing) return;
+		}
+	}
+
+	private async openNote(file: PickedFile, use: (opened: OpenedNote) => Promise<void>): Promise<boolean> {
+		let found = false;
+		await readZip(file, async (_zip, entries) => {
+			const noteEntry = entries.find(entry => entry.name === 'note.note');
+			if (!noteEntry) return;
+			found = true;
+
+			const root = noteEntry.parent ? `${noteEntry.parent}/` : '';
+			const files = new Map<string, ZipEntryFile>();
+			for (const entry of entries) {
+				if (entry.filepath.startsWith(root) && !hiddenZipPath(entry.filepath)) files.set(entry.filepath.slice(root.length), entry);
+			}
+
+			const pages = new Map<string, ArrayBuffer>();
+			for (const [path, entry] of files) {
+				if (!path.includes('/') && entry.extension === 'page') pages.set(entry.basename, await entry.read());
+			}
+			const note = parseSamsungNote({
+				note: await noteEntry.read(),
+				mediaInfo: await files.get('media/mediaInfo.dat')?.read(),
+				pageOrder: await files.get('pageIdInfo.dat')?.read(),
+				pages,
+			});
+
+			const title = sanitizeFileName(note.title || file.basename);
+			await use({ note, title, files });
+		});
+		return found;
+	}
+
+	private mediaEntry(opened: OpenedNote, bindId: number): ZipEntryFile | undefined {
+		const filename = opened.note.media.get(bindId);
+		return filename === undefined ? undefined : opened.files.get(`media/${filename}`);
+	}
+
+	private async importNote(ctx: ImportContext, folder: TFolder, file: PickedFile): Promise<void> {
+		const found = await this.openNote(file, async opened => {
+			const { note, title } = opened;
+			const times = { ctime: note.ctime, mtime: note.mtime };
+			// Plan before writing attachments, so a note left alone gets none and its drawings share its final name.
+			const planned = await this.planTemplatedNote(folder, title, '', times);
+			const disposition = this.preflightNote(ctx, planned, note.mtime);
+			if (leavesTheNoteAlone(disposition)) return;
+			const notePath = planned.targetPath;
+			const noteName = parseFilePath(notePath).basename;
+
+			const images = new Map<number, string>();
+			for (const bindId of imageBindIds(note.body)) {
+				if (await ctx.shouldStop()) return;
+				const entry = this.mediaEntry(opened, bindId);
+				if (!entry) {
+					ctx.reportSkipped(note.media.get(bindId) ?? String(bindId), i18n.importer.samsungNotes.reasonMissingImage({ name: title }));
+					continue;
+				}
+
+				try {
+					images.set(bindId, await this.importImage(ctx, entry, notePath));
+				}
+				catch (error) {
+					ctx.reportFailed(entry.fullpath, error);
+				}
+			}
+
+			const drawings: (string | null)[] = [];
+			for (const strokes of note.drawings) {
+				if (await ctx.shouldStop()) return;
+				drawings.push(await this.importDrawing(ctx, noteName, strokes, notePath));
+			}
+
+			const content = convertSamsungNote(note, {
+				embedImage: bindId => images.has(bindId) ? `![[${images.get(bindId)}]]` : null,
+				embedDrawing: index => drawings[index] ? `![[${drawings[index]}]]` : null,
+			});
+			const { written } = await this.writePlannedNote(ctx, planned, content, { ...times, disposition });
+			if (!written) return;
+			ctx.reportNoteSuccess(file.fullpath);
+			if (note.unsupportedPages > 0) ctx.reportMessage(i18n.importer.samsungNotes.msgUnsupportedPages({ name: noteName }));
+		});
+
+		if (!found) ctx.reportSkipped(file.fullpath, i18n.importer.samsungNotes.reasonNotSamsungNote());
+	}
+
+	private async importDrawing(ctx: ImportContext, noteName: string, strokes: SamsungStroke[], notePath: string): Promise<string | null> {
+		const name = `${noteName} - Ink.svg`;
+		try {
+			const svg = drawingToSvg(strokes);
+			if (svg === null) return null;
+
+			const { path, reuse } = await this.placeAttachment(name, notePath,
+				async existing => await this.vault.read(existing) === svg ? 'same' : 'another');
+			if (reuse) {
+				ctx.reportSkipped(name, i18n.reason.alreadyInVault());
+				return path;
+			}
+
+			await this.writeAttachment(path, svg);
+			ctx.reportAttachmentSuccess(name);
+			return path;
+		}
+		catch (error) {
+			ctx.reportFailed(name, error);
+			return null;
+		}
+	}
+
+	private async importImage(ctx: ImportContext, entry: ZipEntryFile, notePath: string): Promise<string> {
+		ctx.status(i18n.common.statusImportingAttachment({ name: entry.name }));
+		const data = await entry.read();
+		const { path, reuse } = await this.placeAttachment(mediaDisplayName(entry.name), notePath, async existing => {
+			if (existing.stat.size !== data.byteLength) return 'another';
+			return sameBytes(await this.vault.readBinary(existing), data) ? 'same' : 'another';
+		});
+
+		if (reuse) {
+			ctx.reportSkipped(entry.fullpath, i18n.reason.alreadyInVault());
+			return path;
+		}
+
+		await this.writeAttachment(path, data);
+		ctx.reportAttachmentSuccess(entry.fullpath);
+		return path;
+	}
+}

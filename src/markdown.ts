@@ -160,3 +160,24 @@ export function nextNonBlankLine(lines: string[], from: number): string | undefi
 	}
 	return undefined;
 }
+
+/** Escapes plain text that Markdown would reinterpret structurally. */
+export function escapeInline(text: string): string {
+	return text.replace(/[[\]`<]/g, '\\$&');
+}
+
+export function escapeLineStart(line: string): string {
+	// A backslash before a digit is shown as is, so a numbered line escapes its period instead.
+	return line
+		.replace(/^(\s*\d+)([.)])(?=\s)/, '$1\\$2')
+		.replace(/^(\s*)(#{1,6}(?=\s|$)|>|\||[-*+](?=\s)|`{3,}|~{3,}|-{3,}$|={3,}$)/, '$1\\$2');
+}
+
+/** A code fence longer than any run of backticks in the code it encloses. */
+export function fenceFor(body: string[]): string {
+	let longest = 0;
+	for (const line of body) {
+		for (const run of line.match(/`+/g) ?? []) longest = Math.max(longest, run.length);
+	}
+	return '`'.repeat(Math.max(3, longest + 1));
+}

@@ -4,11 +4,10 @@ import { PickedFile } from '../../src/filesystem';
 
 export class SourceZip implements PickedFile {
 	readonly type = 'file' as const;
-	readonly extension = 'zip';
 	readonly basename: string;
 
-	constructor(readonly name: string, private readonly blob: Blob) {
-		this.basename = name.replace(/\.zip$/, '');
+	constructor(readonly name: string, private readonly blob: Blob, readonly extension = 'zip') {
+		this.basename = name.replace(new RegExp(`\\.${extension}$`), '');
 	}
 
 	get fullpath(): string {

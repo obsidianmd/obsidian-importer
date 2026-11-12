@@ -435,7 +435,7 @@ test('text that looks like markdown is not read as markdown', async () => {
 	assert.equal(await render(para('# ordinary text')), '\\# ordinary text');
 	assert.equal(await render(para('- not a list')), '\\- not a list');
 	assert.equal(await render(para('> not a quote')), '\\> not a quote');
-	assert.equal(await render(para('1. not numbered')), '\\1. not numbered');
+	assert.equal(await render(para('1. not numbered')), '1\\. not numbered');
 	assert.equal(await render(para('see [1](x)')), 'see \\[1\\](x)');
 	assert.equal(await render(para('use `code`')), 'use \\`code\\`');
 	assert.equal(await render(para('a <b> tag')), 'a \\<b> tag');

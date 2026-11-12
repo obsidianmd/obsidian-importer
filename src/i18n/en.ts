@@ -698,6 +698,16 @@ export const en = {
 			reasonEmptyTitle: 'Title is empty',
 			reasonUnexpectedExtension: 'Unexpected file extension',
 		},
+		samsungNotes: {
+			name: 'Samsung Notes',
+			optionText: 'Samsung Notes (.sdocx)',
+			fileType: 'Samsung Notes files',
+			descExport: 'In Samsung Notes, select the notes you want and save them as Samsung Notes files (.sdocx). Then move the files to this device.',
+			msgUnsupportedPages: '{{name}}: text boxes, images, and PDFs placed on a page are not imported yet.',
+			reasonNotSamsungNote: 'it is not a Samsung Notes file',
+			reasonUnreadableNote: 'its text is stored in a way Importer can\'t read yet',
+			reasonMissingImage: 'the image is missing from {{name}}',
+		},
 		textbundle: {
 			name: 'Textbundle files',
 			optionText: 'Textbundle (.textbundle, .textpack)',
