@@ -118,6 +118,7 @@ export class NoteConverter extends ANConverter {
 			&& !URL_LINE.test(firstLine(this.note.noteText));
 		let converted = '';
 		let titleStarted = false;
+		let inBlockquote = false;
 
 		for (let j = 0; j < fragments.length; j++) {
 			let { attr, fragment } = fragments[j];
@@ -138,6 +139,15 @@ export class NoteConverter extends ANConverter {
 
 			attr.fragment = fragment;
 			attr.atLineStart = j == 0 ? true : fragments[j - 1]?.fragment.contains('\n');
+
+			const lineStart = converted.length;
+			let endsQuote = false;
+			if (attr.atLineStart && /\S/.test(fragment)) {
+				const quoted = !!attr.paragraphStyle?.blockquote;
+				// Markdown carries a quote on to the next line of text unless a blank line ends it.
+				endsQuote = inBlockquote && !quoted && !converted.endsWith('\n\n');
+				inBlockquote = quoted;
+			}
 
 			converted += this.formatMultiRun(attr);
 
@@ -160,6 +170,11 @@ export class NoteConverter extends ANConverter {
 			}
 			else {
 				converted += await this.formatAttr(attr);
+			}
+
+			// Code, aligned text and block attachments open with a blank line already
+			if (endsQuote && converted[lineStart] !== '\n') {
+				converted = converted.slice(0, lineStart) + '\n' + converted.slice(lineStart);
 			}
 		}
 

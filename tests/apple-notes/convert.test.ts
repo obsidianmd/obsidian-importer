@@ -584,6 +584,69 @@ test('a table cell keeps its line breaks and pipes', async () => {
 	}
 });
 
+test('a block quote ends before the line after it', async () => {
+	const dir = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'importer-apple-notes-'));
+	const store = buildStore(nodePath.join(dir, 'NoteStore.sqlite'), { notes: [] });
+	const ctx = context(store.database, { omitFirstLine: false });
+
+	const convert = (runs: NoteSpec['runs']) =>
+		ctx.decodeData(encodeNote({ title: 'Quote', runs }).toString('hex'), NoteConverter).format(false, 'Quote.md');
+
+	try {
+		// Markdown carries a quote on to the next line of text unless a blank
+		// line ends it, so "Back to normal." would render inside the quote
+		assert.equal(
+			await convert([
+				{ text: 'A quoted line.\n', blockquote: true },
+				{ text: 'Back to normal.' },
+			]),
+			'> A quoted line.\n\nBack to normal.'
+		);
+
+		// Lines quoted together stay one quote
+		assert.equal(
+			await convert([
+				{ text: 'First quoted line.\n', blockquote: true },
+				{ text: 'Second quoted line.\n', blockquote: true },
+				{ text: 'Back to normal.' },
+			]),
+			'> First quoted line.\n> Second quoted line.\n\nBack to normal.'
+		);
+
+		// A blank line the note already has is not doubled
+		assert.equal(
+			await convert([
+				{ text: 'A quoted line.\n', blockquote: true },
+				{ text: '\nBack to normal.' },
+			]),
+			'> A quoted line.\n\nBack to normal.'
+		);
+
+		// A list after a quote is a list of its own, not part of the quote
+		assert.equal(
+			await convert([
+				{ text: 'A quoted line.\n', blockquote: true },
+				{ text: 'An item', style: ANStyleType.DottedList },
+			]),
+			'> A quoted line.\n\n- An item'
+		);
+
+		// A code block opens with a blank line of its own, which is enough
+		assert.equal(
+			await convert([
+				{ text: 'A quoted line.\n', blockquote: true },
+				{ text: 'const x = 1;\n', style: ANStyleType.Monospaced },
+				{ text: 'After the code.' },
+			]),
+			'> A quoted line.\n\n```\nconst x = 1;\n```\nAfter the code.'
+		);
+	}
+	finally {
+		store.close();
+		nodeFs.rmSync(dir, { recursive: true, force: true });
+	}
+});
+
 /**
  * A real database, if one has been dropped into local/. Nothing from it is
  * committed: local/ is gitignored, and so is the output recorded beside it.
