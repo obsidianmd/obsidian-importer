@@ -1,10 +1,11 @@
 /**
- * Reads the parts of a Samsung Notes .sdocx archive that hold typed content.
+ * Reads the typed content and pen strokes of a Samsung Notes .sdocx archive.
  *
  * Offsets follow the MIT-licensed format notes in Dietrich
- * (github.com/Downhillghost/Dietrich, sdocx_specification/) and were checked
- * against the CC BY 4.0 SDOCX compatibility corpus. Handwriting lives in the
- * .page files and isn't decoded here; pages that hold it are only counted.
+ * (github.com/Downhillghost/Dietrich, sdocx_specification/) and bxff
+ * (github.com/bxff/samsung-notes-format), and were checked against the
+ * CC BY 4.0 SDOCX compatibility corpus. Shapes, lines, text boxes, and PDF
+ * backgrounds on a page aren't decoded; pages that hold them are only counted.
  */
 
 export const OBJECT_CHARACTER = '\uFFFC';
@@ -40,8 +41,22 @@ const FORMAT_WITH_OBJECT_SPANS = 2035;
 const SHAPE_HAS_TEXT = 0x1;
 const SHAPE_HAS_FILL = 0x20;
 const FILL_IMAGE = 2;
-const PAGE_HAS_DRAWING = 0x1;
 const PAGE_HAS_PDF = 0x100;
+const LAYER_HIDDEN = 0x1;
+const PageObjectType = {
+	Stroke: 1,
+	GroupedStroke: 15,
+} as const;
+const STROKE_RECORD = 1;
+const STROKE_COMPACT = 0x1;
+const STROKE_HAS_ANGLES = 0x4;
+const StrokeStyle = {
+	AdvancedSetting: 0x2,
+	Color: 0x4,
+	Size: 0x8,
+} as const;
+const DEFAULT_STROKE_COLOR = 0xFF000000;
+const DEFAULT_STROKE_SIZE = 2;
 
 export interface SamsungSpan {
 	type: number;
@@ -82,14 +97,27 @@ export interface SamsungNote {
 	mtime?: number;
 	/** Media bind ID to the file name under media/. */
 	media: Map<number, string>;
-	/** Pages whose handwriting, drawings, or PDF backgrounds aren't imported. */
+	/** The pen strokes on each page that has any, in page order. */
+	drawings: SamsungStroke[][];
+	/** Pages with shapes, lines, text boxes, or PDF backgrounds, which aren't imported. */
 	unsupportedPages: number;
+}
+
+export interface SamsungStroke {
+	/** Page coordinates. */
+	points: { x: number, y: number }[];
+	/** ARGB. */
+	color: number;
+	size: number;
 }
 
 export interface SamsungArchive {
 	note: ArrayBuffer;
 	mediaInfo?: ArrayBuffer;
-	pages: ArrayBuffer[];
+	/** pageIdInfo.dat, which orders the pages. */
+	pageOrder?: ArrayBuffer;
+	/** Each .page file by its name without the extension. */
+	pages: Map<string, ArrayBuffer>;
 }
 
 const UTF16 = new TextDecoder('utf-16le');
@@ -132,6 +160,27 @@ class Reader {
 		this.need(4);
 		const value = this.view.getInt32(this.pos, true);
 		this.pos += 4;
+		return value;
+	}
+
+	f32(): number {
+		this.need(4);
+		const value = this.view.getFloat32(this.pos, true);
+		this.pos += 4;
+		return value;
+	}
+
+	f64(): number {
+		this.need(8);
+		const value = this.view.getFloat64(this.pos, true);
+		this.pos += 8;
+		return value;
+	}
+
+	/** A little-endian unsigned integer of up to four bytes. */
+	uint(bytes: number): number {
+		let value = 0;
+		for (let i = 0; i < bytes; i++) value += this.u8() * 2 ** (8 * i);
 		return value;
 	}
 
@@ -186,13 +235,22 @@ export function parseSamsungNote(archive: SamsungArchive): SamsungNote {
 	const titleObject = reader.slice(reader.u32());
 	const bodyObject = reader.slice(reader.u32());
 
+	const drawings: SamsungStroke[][] = [];
+	let unsupportedPages = 0;
+	for (const data of orderedPages(archive)) {
+		const page = parsePage(data);
+		if (page.strokes.length > 0) drawings.push(page.strokes);
+		if (page.unsupported) unsupportedPages++;
+	}
+
 	return {
 		title: textObjectAt(titleObject, 0, formatVersion)?.text.text.trim() ?? '',
 		body: textObjectAt(bodyObject, 0, formatVersion)?.text ?? null,
 		ctime: toMilliseconds(created),
 		mtime: toMilliseconds(modified),
 		media: archive.mediaInfo ? parseMediaInfo(archive.mediaInfo) : new Map<number, string>(),
-		unsupportedPages: archive.pages.filter(pageHasUnsupportedContent).length,
+		drawings,
+		unsupportedPages,
 	};
 }
 
@@ -382,10 +440,158 @@ function parseMediaInfo(data: ArrayBuffer): Map<number, string> {
 	return media;
 }
 
-function pageHasUnsupportedContent(page: ArrayBuffer): boolean {
-	if (page.byteLength < 18) return false;
-	const mask = new DataView(page).getUint32(14, true);
-	return (mask & (PAGE_HAS_DRAWING | PAGE_HAS_PDF)) !== 0;
+/** Pages in the order pageIdInfo.dat lists them, then any it leaves out, by name. */
+function orderedPages(archive: SamsungArchive): ArrayBuffer[] {
+	const order: string[] = [];
+	if (archive.pageOrder) {
+		const reader = new Reader(new Uint8Array(archive.pageOrder), 32);
+		try {
+			const count = reader.u16();
+			for (let i = 0; i < count; i++) {
+				order.push(reader.shortString());
+				reader.pos += 32;
+			}
+		}
+		catch (error) {
+			if (!(error instanceof RangeError)) throw error;
+		}
+	}
+
+	const names = [...new Set([...order, ...[...archive.pages.keys()].sort()])];
+	return names.flatMap(name => archive.pages.get(name) ?? []);
+}
+
+/**
+ * A page's visible pen strokes, stacked by layer number. Anything else on the
+ * page, or a stroke that can't be read, makes the page unsupported.
+ */
+function parsePage(data: ArrayBuffer): { strokes: SamsungStroke[], unsupported: boolean } {
+	const reader = new Reader(new Uint8Array(data));
+	if (reader.length < 18) return { strokes: [], unsupported: false };
+
+	let unsupported = (reader.u32At(14) & PAGE_HAS_PDF) !== 0;
+	const layers: { number: number, strokes: SamsungStroke[] }[] = [];
+
+	const readObject = (layer: SamsungStroke[] | null): void => {
+		const type = reader.u8();
+		const children = reader.u16();
+		const payload = reader.slice(reader.u32() - 32);
+		reader.pos += 32;
+
+		if (type === PageObjectType.Stroke || type === PageObjectType.GroupedStroke) {
+			const stroke = parseStrokeObject(payload);
+			if (!stroke) unsupported = true;
+			else if (layer) layer.push(stroke);
+		}
+		else {
+			unsupported = true;
+		}
+
+		for (let i = 0; i < children; i++) readObject(layer);
+	};
+
+	try {
+		reader.pos = reader.u32At(0);
+		const layerCount = reader.u16();
+		reader.u16();
+		for (let i = 0; i < layerCount; i++) {
+			const start = reader.pos;
+			const headerSize = reader.u32();
+			const hidden = (reader.bytes[start + 9] & LAYER_HIDDEN) !== 0;
+			const number = reader.u32At(start + 12);
+			reader.pos = start + headerSize;
+
+			const strokes: SamsungStroke[] = [];
+			const objectCount = reader.u32();
+			for (let j = 0; j < objectCount; j++) readObject(hidden ? null : strokes);
+			reader.pos += 32;
+			layers.push({ number, strokes });
+		}
+	}
+	catch (error) {
+		if (!(error instanceof RangeError)) throw error;
+		unsupported = true;
+	}
+
+	layers.sort((a, b) => a.number - b.number);
+	return { strokes: layers.flatMap(layer => layer.strokes), unsupported };
+}
+
+/** A stroke object holds a chain of records; the stroke's own record has its points and style. */
+function parseStrokeObject(payload: Reader): SamsungStroke | null {
+	let at = 0;
+	while (at + 6 <= payload.length) {
+		const size = payload.u32At(at);
+		if (size < 6 || at + size > payload.length) return null;
+		if (payload.u16At(at + 4) === STROKE_RECORD) {
+			try {
+				return parseStroke(new Reader(payload.bytes.subarray(at, at + size)));
+			}
+			catch (error) {
+				if (error instanceof RangeError) return null;
+				throw error;
+			}
+		}
+		at += size;
+	}
+	return null;
+}
+
+function parseStroke(reader: Reader): SamsungStroke | null {
+	reader.pos = 6;
+	const styleAt = reader.u32();
+	const geometry = reader.uint(reader.u8());
+	const style = reader.uint(reader.u8());
+	const count = reader.u16();
+	if (count === 0 || styleAt > reader.length) return null;
+
+	const points = geometry & STROKE_COMPACT
+		? compactPoints(reader, count)
+		: rawPoints(reader, count, styleAt - reader.pos, (geometry & STROKE_HAS_ANGLES) !== 0);
+	if (!points || points.some(point => !Number.isFinite(point.x) || !Number.isFinite(point.y))) return null;
+
+	reader.pos = styleAt;
+	if (style & StrokeStyle.AdvancedSetting) reader.u32();
+	const color = style & StrokeStyle.Color ? reader.u32() : DEFAULT_STROKE_COLOR;
+	const size = style & StrokeStyle.Size ? reader.f32() : DEFAULT_STROKE_SIZE;
+	return { points, color, size };
+}
+
+/** A start point, then one step per point: a sign bit and a magnitude in 1/32 units. */
+function compactPoints(reader: Reader, count: number): { x: number, y: number }[] {
+	let x = reader.f64();
+	let y = reader.f64();
+	const points = [{ x, y }];
+	for (let i = 1; i < count; i++) {
+		x += unpackStep(reader.u16());
+		y += unpackStep(reader.u16());
+		points.push({ x, y });
+	}
+	return points;
+}
+
+function unpackStep(word: number): number {
+	const magnitude = (word & 0x7FFF) / 32;
+	return word & 0x8000 ? -magnitude : magnitude;
+}
+
+/**
+ * Full coordinates, as 32- or 64-bit floats. Only the size of the stroke's
+ * point data tells them apart: per point it also holds a pressure and a time,
+ * two angles when flagged, and a 2-byte tail follows.
+ */
+function rawPoints(reader: Reader, count: number, available: number, angles: boolean): { x: number, y: number }[] | null {
+	const rest = count * (8 + (angles ? 8 : 0)) + 2;
+	const coordinate = available === count * 8 + rest ? 4 : available === count * 16 + rest ? 8 : 0;
+	if (coordinate === 0) return null;
+
+	const points: { x: number, y: number }[] = [];
+	for (let i = 0; i < count; i++) {
+		points.push(coordinate === 4
+			? { x: reader.f32(), y: reader.f32() }
+			: { x: reader.f64(), y: reader.f64() });
+	}
+	return points;
 }
 
 /** Every image bind ID a text uses, including those inside table cells. */

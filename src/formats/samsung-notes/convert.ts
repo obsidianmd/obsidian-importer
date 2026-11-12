@@ -3,6 +3,8 @@ import { OBJECT_CHARACTER, ParagraphType, SamsungNote, SamsungObject, SamsungPar
 export interface SamsungConvertOptions {
 	/** The Markdown that embeds a media bind ID's image, or null to leave it out. */
 	embedImage: (bindId: number) => string | null;
+	/** The Markdown that embeds a drawing by its index in `note.drawings`, or null to leave it out. */
+	embedDrawing: (index: number) => string | null;
 }
 
 /** Paragraph style values Samsung Notes stores for its three heading sizes; body text is 3. */
@@ -19,9 +21,15 @@ interface Line {
 	text: string;
 }
 
+/** The note's typed text, then the drawing on each page that has one. */
 export function convertSamsungNote(note: SamsungNote, options: SamsungConvertOptions): string {
-	if (!note.body) return '';
-	return joinLines(renderText(note.body, options)).replace(/^\n+/, '').replace(/\s+$/, '') + '\n';
+	const lines = note.body ? renderText(note.body, options) : [];
+	note.drawings.forEach((_, index) => {
+		const embed = options.embedDrawing(index);
+		if (embed) lines.push({ kind: 'block', text: embed });
+	});
+	if (!note.body && lines.length === 0) return '';
+	return joinLines(lines).replace(/^\n+/, '').replace(/\s+$/, '') + '\n';
 }
 
 function renderText(source: SamsungText, options: SamsungConvertOptions): Line[] {

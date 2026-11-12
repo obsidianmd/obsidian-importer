@@ -15,6 +15,7 @@ import * as nodePath from 'node:path';
 import { BlobReader, Uint8ArrayWriter, ZipReader } from '@zip.js/zip.js';
 
 import { convertSamsungNote } from '../../src/formats/samsung-notes/convert';
+import { drawingToSvg } from '../../src/formats/samsung-notes/drawing';
 import { mediaDisplayName, parseSamsungNote, SamsungNote } from '../../src/formats/samsung-notes/parse';
 import { expectedFor, expectFile, fixtures } from '../helpers';
 
@@ -33,17 +34,28 @@ async function readNote(path: string): Promise<SamsungNote> {
 	return parseSamsungNote({
 		note: files.get('note.note')!,
 		mediaInfo: files.get('media/mediaInfo.dat'),
-		pages: [...files].filter(([name]) => name.endsWith('.page')).map(([, bytes]) => bytes),
+		pageOrder: files.get('pageIdInfo.dat'),
+		pages: new Map([...files]
+			.filter(([name]) => name.endsWith('.page'))
+			.map(([name, bytes]) => [name.slice(0, -'.page'.length), bytes])),
 	});
 }
 
-function convert(note: SamsungNote): string {
-	return convertSamsungNote(note, {
+/** Named as the importer names them when the note's title is `name`. */
+function drawingName(name: string, index: number): string {
+	return `${name} - Ink${index > 0 ? ` ${index}` : ''}.svg`;
+}
+
+function convert(note: SamsungNote, name: string): { content: string, drawings: (string | null)[] } {
+	const drawings = note.drawings.map(drawingToSvg);
+	const content = convertSamsungNote(note, {
 		embedImage: bindId => {
-			const name = note.media.get(bindId);
-			return name === undefined ? null : `![[${mediaDisplayName(name)}]]`;
+			const file = note.media.get(bindId);
+			return file === undefined ? null : `![[${mediaDisplayName(file)}]]`;
 		},
+		embedDrawing: index => drawings[index] ? `![[${drawingName(name, index)}]]` : null,
 	});
+	return { content, drawings };
 }
 
 test('there are fixtures to convert', () => {
@@ -54,7 +66,11 @@ for (const fixture of notes) {
 	test(`converts ${fixture.name}`, async () => {
 		const note = await readNote(fixture.path);
 		const name = nodePath.basename(fixture.name, '.sdocx');
-		expectFile(convert(note), expectedFor(fixture, `${name}.md`), fixture.name);
+		const { content, drawings } = convert(note, name);
+		expectFile(content, expectedFor(fixture, `${name}.md`), fixture.name);
+		drawings.forEach((svg, index) => {
+			if (svg) expectFile(svg, expectedFor(fixture, drawingName(name, index)), fixture.name);
+		});
 	});
 }
 
@@ -67,13 +83,26 @@ test('reads the title and the times in milliseconds', async () => {
 	assert.equal(note.unsupportedPages, 0);
 });
 
-test('counts pages with handwriting', async () => {
+test('reads the strokes on a page and counts none of it as unsupported', async () => {
 	const note = await readNote(nodePath.join(__dirname, '04-marker4-highlighter.sdocx'));
+
+	assert.equal(note.unsupportedPages, 0);
+	assert.equal(note.drawings.length, 1);
+	assert.equal(note.drawings[0].length, 41);
+	assert.deepEqual(note.drawings[0].map(stroke => stroke.color.toString(16)).filter((color, i, all) => all.indexOf(color) === i),
+		['ff030303', '80ffcb30', '802febd2', '803396ff']);
+});
+
+test('counts a page with shapes as unsupported but keeps its strokes', async () => {
+	const note = await readNote(nodePath.join(__dirname, '02-shapes-and-dot-calibration.sdocx'));
+
 	assert.equal(note.unsupportedPages, 1);
+	assert.equal(note.drawings.length, 1);
+	assert.equal(note.drawings[0].length, 77);
 });
 
 test('a note without images leaves an unresolved one out', async () => {
 	const note = await readNote(nodePath.join(__dirname, '03-image-placement.sdocx'));
-	const content = convertSamsungNote(note, { embedImage: () => null });
+	const content = convertSamsungNote(note, { embedImage: () => null, embedDrawing: () => null });
 	assert.equal(content, '\n');
 });

@@ -50,16 +50,34 @@ test('imports an image once and embeds it wherever the note places it', async ()
 	assert.equal(file.stat.ctime, 1789415847807);
 });
 
-test('names a note after its title and reports pages it cannot convert', async () => {
+test('names a note after its title, embeds its drawings, and reports pages it cannot convert', async () => {
 	const { vault, ctx } = await importFiles([
 		fixture('01-basic-formatting.sdocx'),
+		fixture('02-shapes-and-dot-calibration.sdocx'),
 		fixture('04-marker4-highlighter.sdocx'),
 	]);
 
-	assert.deepEqual(vault.paths(), ['Samsung Notes/01-basic-test.md', 'Samsung Notes/04-marker4-highlighter.md']);
-	assert.deepEqual(ctx.log.map(entry => [entry.outcome, entry.name]), [
-		['message', '04-marker4-highlighter: handwriting, drawings, and PDF pages are not imported yet.'],
+	assert.deepEqual(vault.paths().sort(), [
+		'02-shapes-and-dot-calibration - Ink.svg',
+		'04-marker4-highlighter - Ink.svg',
+		'Samsung Notes/01-basic-test.md',
+		'Samsung Notes/02-shapes-and-dot-calibration.md',
+		'Samsung Notes/04-marker4-highlighter.md',
 	]);
+	assert.equal(vault.contents.get('Samsung Notes/04-marker4-highlighter.md'), 'Text\n\n![[04-marker4-highlighter - Ink.svg]]\n');
+	assert.equal(ctx.attachments, 2);
+	assert.deepEqual(ctx.log.filter(entry => entry.outcome === 'message').map(entry => entry.name), [
+		'02-shapes-and-dot-calibration: shapes, text boxes, and PDFs on a page are not imported yet.',
+	]);
+});
+
+test('reuses a drawing that is already in the vault', async () => {
+	const vault = new MemoryVault();
+	await importFiles([fixture('04-marker4-highlighter.sdocx')], vault);
+	const { ctx } = await importFiles([fixture('04-marker4-highlighter.sdocx')], vault);
+
+	assert.equal(vault.paths().filter(path => path.endsWith('.svg')).length, 1);
+	assert.equal(ctx.attachments, 0);
 });
 
 test('imports the .sdocx files inside a zip into its folders and skips anything that is not a note', async () => {

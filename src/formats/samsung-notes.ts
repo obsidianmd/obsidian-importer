@@ -7,7 +7,8 @@ import { PREVIEW_IMAGE_PLACEHOLDER, PreviewImageStore, previewImageMime } from '
 import { sameBytes, sanitizeFileName, sanitizeFilePath } from '../util';
 import { hiddenZipPath, readZip, ZipEntryFile } from '../zip';
 import { convertSamsungNote } from './samsung-notes/convert';
-import { imageBindIds, mediaDisplayName, parseSamsungNote, SamsungNote } from './samsung-notes/parse';
+import { drawingToSvg } from './samsung-notes/drawing';
+import { imageBindIds, mediaDisplayName, parseSamsungNote, SamsungNote, SamsungStroke } from './samsung-notes/parse';
 
 interface OpenedNote {
 	note: SamsungNote;
@@ -42,10 +43,20 @@ export class SamsungNotesImporter extends FormatImporter {
 							: PREVIEW_IMAGE_PLACEHOLDER);
 					}
 
+					const drawings: (string | null)[] = [];
+					for (const [index, strokes] of opened.note.drawings.entries()) {
+						const svg = drawingToSvg(strokes);
+						const data = svg === null ? null : new TextEncoder().encode(svg);
+						drawings.push(data && await images.get(`${file.fullpath}#drawing-${index}`, 'image/svg+xml', async () => data.slice().buffer, data.byteLength));
+					}
+
 					samples.push({
 						title: opened.title,
 						path: normalizePath(`${this.outputLocation}/${subfolder}/${opened.title}.md`),
-						content: convertSamsungNote(opened.note, { embedImage: bindId => `![](${previews.get(bindId) ?? PREVIEW_IMAGE_PLACEHOLDER})` }),
+						content: convertSamsungNote(opened.note, {
+							embedImage: bindId => `![](${previews.get(bindId) ?? PREVIEW_IMAGE_PLACEHOLDER})`,
+							embedDrawing: index => drawings[index] ? `![](${drawings[index]})` : null,
+						}),
 						times: { ctime: opened.note.ctime, mtime: opened.note.mtime },
 					});
 				});
@@ -124,11 +135,15 @@ export class SamsungNotesImporter extends FormatImporter {
 				if (entry.filepath.startsWith(root)) files.set(entry.filepath.slice(root.length), entry);
 			}
 
-			const pages = [...files].filter(([path]) => !path.includes('/') && path.endsWith('.page'));
+			const pages = new Map<string, ArrayBuffer>();
+			for (const [path, entry] of files) {
+				if (!path.includes('/') && entry.extension === 'page') pages.set(entry.basename, await entry.read());
+			}
 			const note = parseSamsungNote({
 				note: await noteEntry.read(),
 				mediaInfo: await files.get('media/mediaInfo.dat')?.read(),
-				pages: await Promise.all(pages.map(([, entry]) => entry.read())),
+				pageOrder: await files.get('pageIdInfo.dat')?.read(),
+				pages,
 			});
 
 			const title = sanitizeFileName(note.title || file.basename);
@@ -164,8 +179,15 @@ export class SamsungNotesImporter extends FormatImporter {
 				}
 			}
 
+			const drawings: (string | null)[] = [];
+			for (const strokes of note.drawings) {
+				if (await ctx.shouldStop()) return;
+				drawings.push(await this.importDrawing(ctx, title, strokes, notePath));
+			}
+
 			const content = convertSamsungNote(note, {
 				embedImage: bindId => images.has(bindId) ? `![[${images.get(bindId)}]]` : null,
+				embedDrawing: index => drawings[index] ? `![[${drawings[index]}]]` : null,
 			});
 			const { written } = await this.writeNote(ctx, folder, title, content, {
 				ctime: note.ctime,
@@ -176,6 +198,29 @@ export class SamsungNotesImporter extends FormatImporter {
 		});
 
 		if (!found) ctx.reportSkipped(file.fullpath, i18n.importer.samsungNotes.reasonNotSamsungNote());
+	}
+
+	private async importDrawing(ctx: ImportContext, title: string, strokes: SamsungStroke[], notePath: string): Promise<string | null> {
+		const svg = drawingToSvg(strokes);
+		if (svg === null) return null;
+
+		const name = `${title} - Ink.svg`;
+		try {
+			const { path, reuse } = await this.placeAttachment(name, notePath,
+				async existing => await this.vault.read(existing) === svg ? 'same' : 'another');
+			if (reuse) {
+				ctx.reportSkipped(name, i18n.reason.alreadyInVault());
+				return path;
+			}
+
+			await this.writeAttachment(path, svg);
+			ctx.reportAttachmentSuccess(name);
+			return path;
+		}
+		catch (error) {
+			ctx.reportFailed(name, error);
+			return null;
+		}
 	}
 
 	private async importImage(ctx: ImportContext, entry: ZipEntryFile, notePath: string): Promise<string> {
