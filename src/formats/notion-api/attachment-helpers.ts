@@ -261,11 +261,21 @@ async function probeAttachmentSize(url: string, probe: { answered: boolean }): P
 	};
 }
 
-function withInferredExtension(filename: string, contentType: string | undefined, fromPageTitle = false): string {
-	if ((!fromPageTitle && extensionFromName(filename)) || !contentType) return filename;
+// These name the script or a generic download, not what the file is.
+const GENERIC_EXTENSION = /^(bin|ashx|aspx?|php|jsp|cgi)$/i;
 
+function withInferredExtension(filename: string, contentType: string | undefined, fromPageTitle = false): string {
+	if (!contentType) return filename;
 	const inferred = extensionForMime(contentType);
-	return inferred ? `${filename}.${inferred}` : filename;
+	if (!inferred) return filename;
+
+	const existing = !fromPageTitle && extensionFromName(filename);
+	if (!existing) return `${filename}.${inferred}`;
+
+	if (GENERIC_EXTENSION.test(existing) && contentType.trim().toLowerCase().startsWith('image/')) {
+		return `${filename.slice(0, -existing.length)}${inferred}`;
+	}
+	return filename;
 }
 
 async function resolveTargetPath(context: BlockConversionContext, filename: string): Promise<string> {

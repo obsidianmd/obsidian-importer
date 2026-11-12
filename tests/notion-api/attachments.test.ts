@@ -389,3 +389,63 @@ test('a file Notion was hosting failing to download is a failure', async () => {
 	assert.deepEqual(failures, ['Attachment: photo.txt']);
 	assert.equal(result.isLocal, false);
 });
+
+for (const [name, expected] of [['photo.bin', 'photo.gif'], ['preview.ashx', 'preview.gif'], ['download.php', 'download.gif'], ['image.aspx', 'image.gif']]) {
+	test(`a generic download suffix is replaced by the image extension: ${name}`, async () => {
+		const written: Written[] = [];
+		const result = await downloadAttachment(
+			{ type: 'external', url: `data:image/gif;base64,${GIF_BASE64}`, name }, context(written)
+		);
+		assert.equal(result.filename, expected);
+		assert.equal(written[0].path, `Attachments/${expected}`);
+		assert.deepEqual(bytesOf(written[0].data), GIF);
+	});
+}
+
+test('a meaningful extension is preserved despite a different response media type', async () => {
+	const written: Written[] = [];
+	const result = await downloadAttachment(
+		{ type: 'external', url: `data:image/gif;base64,${GIF_BASE64}`, name: 'original.png' }, context(written)
+	);
+	assert.equal(result.filename, 'original.png');
+});
+
+test('a generic suffix without an image media type is preserved', async () => {
+	const written: Written[] = [];
+	const result = await downloadAttachment(
+		{ type: 'external', url: 'data:application/octet-stream;base64,AAAA', name: 'archive.bin' }, context(written)
+	);
+	assert.equal(result.filename, 'archive.bin');
+});
+
+test('a corrected attachment name is reused on a repeated import', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+	const attachment: NotionAttachment = {type: 'external', url: `data:image/gif;base64,${GIF_BASE64}`, name: 'photo.bin'};
+	const first = await downloadAttachment(attachment, contextOverVault(vault, true));
+	const second = await downloadAttachment(attachment, contextOverVault(vault, true));
+	assert.equal(first.filename, 'photo.gif');
+	assert.equal(second.path, first.path);
+	assert.deepEqual(vault.paths(), ['Attachments/photo.gif']);
+});
+
+test('HTTP image suffix correction is consistent between download and range-based reuse', async () => {
+	const vault = new MemoryVault();
+	await vault.createFolder('Attachments');
+	const asked: string[] = [];
+	answerRequests(request => {
+		const range = request.headers?.Range === 'bytes=0-0';
+		asked.push(range ? 'range' : 'full');
+		const headers: Record<string, string> = {'content-type': 'image/gif'};
+		if (range) headers['content-range'] = `bytes 0-0/${GIF.length}`;
+		return {status: range ? 206 : 200, headers, arrayBuffer: new Uint8Array(range ? GIF.slice(0, 1) : GIF).buffer};
+	});
+	const attachment: NotionAttachment = {type:'file', url:'https://example.com/download.php', name:'download.php'};
+	const ctx = contextOverVault(vault, true);
+	const first = await downloadAttachment(attachment, ctx);
+	const second = await downloadAttachment(attachment, ctx);
+	assert.equal(first.filename, 'download.gif');
+	assert.equal(second.path, first.path);
+	assert.deepEqual(asked, ['range', 'full', 'range']);
+	assert.deepEqual(vault.paths(), ['Attachments/download.gif']);
+});
