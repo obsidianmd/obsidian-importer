@@ -95,6 +95,7 @@ export const IMPORTERS: Record<string, ImporterDefinition> = {
 	},
 	'samsung-notes': {
 		importer: SamsungNotesImporter,
+		helpPermalink: 'import/samsung-notes',
 	},
 	'textbundle': {
 		importer: TextbundleImporter,

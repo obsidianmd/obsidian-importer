@@ -17,6 +17,7 @@ Import guides are hosted on the [official Obsidian Help site](https://obsidian.m
 - [Import from Microsoft OneNote](https://obsidian.md/help/import/onenote)
 - [Import from Notion](https://obsidian.md/help/import/notion)
 - [Import from Roam Research](https://obsidian.md/help/import/roam)
+- [Import from Samsung Notes](https://obsidian.md/help/import/samsung-notes) (.sdocx)
 - [Import from Logseq](https://obsidian.md/help/import/logseq)
 - [Import from Markdown files](https://obsidian.md/help/import/markdown) (.md, .txt)
 - [Import from Textbundle files](https://obsidian.md/help/import/textbundle) (.textbundle, .textpack)
