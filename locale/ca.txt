@@ -2412,35 +2412,35 @@ translation=Extensió de fitxer inesperada
 
 [importer.samsung-notes.name]
 original=Samsung Notes
-translation=
+translation=Samsung Notes
 
 [importer.samsung-notes.option-text]
 original=Samsung Notes (.sdocx)
-translation=
+translation=Samsung Notes (.sdocx)
 
 [importer.samsung-notes.file-type]
 original=Samsung Notes files
-translation=
+translation=Fitxers de Samsung Notes
 
 [importer.samsung-notes.desc-export]
 original=In Samsung Notes, select the notes you want and save them as Samsung Notes files (.sdocx). Then move the files to this device.
-translation=
+translation=A Samsung Notes, seleccioneu les notes que voleu i deseu-les com a fitxers de Samsung Notes (.sdocx). Després moveu els fitxers a aquest dispositiu.
 
 [importer.samsung-notes.msg-unsupported-pages]
 original={{name}}: text boxes, images, and PDFs placed on a page are not imported yet.
-translation=
+translation={{name}}: els quadres de text, les imatges i els PDF col·locats en una pàgina encara no s'importen.
 
 [importer.samsung-notes.reason-not-samsung-note]
 original=it is not a Samsung Notes file
-translation=
+translation=no és un fitxer de Samsung Notes
 
 [importer.samsung-notes.reason-unreadable-note]
 original=its text is stored in a way Importer can't read yet
-translation=
+translation=el seu text està emmagatzemat d'una manera que l'Importer encara no pot llegir
 
 [importer.samsung-notes.reason-missing-image]
 original=the image is missing from {{name}}
-translation=
+translation=la imatge no es troba a {{name}}
 
 [importer.textbundle.name]
 original=Textbundle files

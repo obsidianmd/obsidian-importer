@@ -2412,35 +2412,35 @@ translation=پسوند فایل غیرمنتظره
 
 [importer.samsung-notes.name]
 original=Samsung Notes
-translation=
+translation=Samsung Notes
 
 [importer.samsung-notes.option-text]
 original=Samsung Notes (.sdocx)
-translation=
+translation=Samsung Notes (.sdocx)
 
 [importer.samsung-notes.file-type]
 original=Samsung Notes files
-translation=
+translation=فایل‌های Samsung Notes
 
 [importer.samsung-notes.desc-export]
 original=In Samsung Notes, select the notes you want and save them as Samsung Notes files (.sdocx). Then move the files to this device.
-translation=
+translation=در Samsung Notes، یادداشت‌های مورد نظر خود را انتخاب کرده و آن‌ها را به عنوان فایل‌های Samsung Notes (.sdocx) ذخیره کنید. سپس فایل‌ها را به این دستگاه منتقل کنید.
 
 [importer.samsung-notes.msg-unsupported-pages]
 original={{name}}: text boxes, images, and PDFs placed on a page are not imported yet.
-translation=
+translation={{name}}: کادرهای متن، تصاویر و PDF‌های قرار داده‌شده در یک صفحه هنوز وارد نمی‌شوند.
 
 [importer.samsung-notes.reason-not-samsung-note]
 original=it is not a Samsung Notes file
-translation=
+translation=این یک فایل Samsung Notes نیست
 
 [importer.samsung-notes.reason-unreadable-note]
 original=its text is stored in a way Importer can't read yet
-translation=
+translation=متن آن به شکلی ذخیره شده که Importer هنوز قادر به خواندن آن نیست
 
 [importer.samsung-notes.reason-missing-image]
 original=the image is missing from {{name}}
-translation=
+translation=تصویر در {{name}} موجود نیست
 
 [importer.textbundle.name]
 original=Textbundle files

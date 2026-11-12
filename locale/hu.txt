@@ -2412,35 +2412,35 @@ translation=Váratlan kiterjesztés
 
 [importer.samsung-notes.name]
 original=Samsung Notes
-translation=
+translation=Samsung Notes
 
 [importer.samsung-notes.option-text]
 original=Samsung Notes (.sdocx)
-translation=
+translation=Samsung Notes (.sdocx)
 
 [importer.samsung-notes.file-type]
 original=Samsung Notes files
-translation=
+translation=Samsung Notes fájlok
 
 [importer.samsung-notes.desc-export]
 original=In Samsung Notes, select the notes you want and save them as Samsung Notes files (.sdocx). Then move the files to this device.
-translation=
+translation=A Samsung Notes alkalmazásban jelöld ki az exportálni kívánt jegyzeteket, és mentsd őket Samsung Notes fájlokként (.sdocx). Ezután helyezd át a fájlokat erre az eszközre.
 
 [importer.samsung-notes.msg-unsupported-pages]
 original={{name}}: text boxes, images, and PDFs placed on a page are not imported yet.
-translation=
+translation={{name}}: az oldalra helyezett szövegdobozok, képek és PDF-ek importálása még nem támogatott.
 
 [importer.samsung-notes.reason-not-samsung-note]
 original=it is not a Samsung Notes file
-translation=
+translation=nem Samsung Notes fájl
 
 [importer.samsung-notes.reason-unreadable-note]
 original=its text is stored in a way Importer can't read yet
-translation=
+translation=a szövege olyan formátumban van tárolva, amelyet az Importer még nem tud olvasni
 
 [importer.samsung-notes.reason-missing-image]
 original=the image is missing from {{name}}
-translation=
+translation=a kép hiányzik innen: {{name}}
 
 [importer.textbundle.name]
 original=Textbundle files

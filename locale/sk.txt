@@ -2412,35 +2412,35 @@ translation=Neočakávaná prípona súboru
 
 [importer.samsung-notes.name]
 original=Samsung Notes
-translation=
+translation=Samsung Notes
 
 [importer.samsung-notes.option-text]
 original=Samsung Notes (.sdocx)
-translation=
+translation=Samsung Notes (.sdocx)
 
 [importer.samsung-notes.file-type]
 original=Samsung Notes files
-translation=
+translation=Súbory Samsung Notes
 
 [importer.samsung-notes.desc-export]
 original=In Samsung Notes, select the notes you want and save them as Samsung Notes files (.sdocx). Then move the files to this device.
-translation=
+translation=V Samsung Notes vyberte poznámky, ktoré chcete, a uložte ich ako súbory Samsung Notes (.sdocx). Potom presuňte súbory do tohto zariadenia.
 
 [importer.samsung-notes.msg-unsupported-pages]
 original={{name}}: text boxes, images, and PDFs placed on a page are not imported yet.
-translation=
+translation={{name}}: textové polia, obrázky a PDF umiestnené na stránke sa zatiaľ neimportujú.
 
 [importer.samsung-notes.reason-not-samsung-note]
 original=it is not a Samsung Notes file
-translation=
+translation=nie je to súbor Samsung Notes
 
 [importer.samsung-notes.reason-unreadable-note]
 original=its text is stored in a way Importer can't read yet
-translation=
+translation=jeho text je uložený spôsobom, ktorý Importer zatiaľ nedokáže prečítať
 
 [importer.samsung-notes.reason-missing-image]
 original=the image is missing from {{name}}
-translation=
+translation=obrázok chýba v {{name}}
 
 [importer.textbundle.name]
 original=Textbundle files
