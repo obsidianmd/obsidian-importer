@@ -5,7 +5,7 @@
  * and the vault's preferences are applied here instead, so the same note does
  * not import differently depending on where it came from.
  */
-import { App, CachedMetadata, DataWriteOptions, parseLinktext, TFile, Vault } from 'obsidian';
+import { App, CachedMetadata, DataWriteOptions, parseLinktext, ReferenceCache, TFile, Vault } from 'obsidian';
 import { stringToUtf8 } from './util';
 
 export interface MarkdownOutput {
@@ -112,7 +112,7 @@ async function standardizeLinks(
 
 		let text = preserveStyle
 			? repairedLink(app, reference.original, target, sourcePath, subpath)
-			: app.fileManager.generateMarkdownLink(target, sourcePath, subpath, reference.displayText);
+			: app.fileManager.generateMarkdownLink(target, sourcePath, subpath, writtenDisplayText(reference));
 		if (embed && !text.startsWith('!')) text = '!' + text;
 		if (inTable(reference.position.start.offset)) text = escapePipes(text);
 		changes.push({ from: reference.position.start.offset, to: reference.position.end.offset, text });
@@ -124,6 +124,13 @@ async function standardizeLinks(
 	}
 
 	return content;
+}
+
+/** Obsidian reports a wikilink's path as its display text when it has no alias, which must not become one. */
+function writtenDisplayText(reference: ReferenceCache): string | undefined {
+	const { original, displayText } = reference;
+	if (original === undefined || !/^!?\[\[/.test(original)) return displayText;
+	return original.includes('|') ? displayText : undefined;
 }
 
 /** Replace a mapped target without changing link syntax. */

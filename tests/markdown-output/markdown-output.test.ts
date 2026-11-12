@@ -305,6 +305,38 @@ test('writes resolved links with Obsidian link settings after targets exist', as
 		'See [label](Folder/Target.md#Heading) and ![](assets/image.png).');
 });
 
+test('a wikilink without an alias does not gain its old path as one', async () => {
+	// The display texts Obsidian reports for these links.
+	const references = [
+		{ original: '![[Attachments/photo.png]]', link: 'Attachments/photo.png', displayText: 'Attachments/photo.png', embed: true },
+		{ original: '[[Folder/Target#Heading]]', link: 'Folder/Target#Heading', displayText: 'Folder/Target > Heading', embed: false },
+		{ original: '[[Folder/Target|label]]', link: 'Folder/Target', displayText: 'label', embed: false },
+		{ original: '[text](Folder/Target.md)', link: 'Folder/Target.md', displayText: 'text', embed: false },
+	];
+	const markdown = references.map(reference => reference.original).join(' ');
+	const cached = references.map(({ original, link, displayText }) => {
+		const start = markdown.indexOf(original);
+		return { original, link, displayText, position: { start: { offset: start }, end: { offset: start + original.length } } };
+	});
+	const app = {
+		vault: { getConfig: () => false },
+		metadataCache: {
+			computeMetadataAsync: async () => ({
+				links: cached.filter((_, i) => !references[i].embed),
+				embeds: cached.filter((_, i) => references[i].embed),
+			}),
+			getFirstLinkpathDest: (path: string) => ({ path, basename: path.split('/').pop() }),
+		},
+		fileManager: {
+			generateMarkdownLink: (file: { basename: string }, _source: string, subpath = '', alias?: string) =>
+				`[[${file.basename.replace(/\.md$/, '')}${subpath}${alias ? `|${alias}` : ''}]]`,
+		},
+	} as never;
+
+	assert.equal(await standardizedMarkdown(app, 'Note.md', markdown),
+		'![[photo.png]] [[Target#Heading]] [[Target|label]] [[Target|text]]');
+});
+
 test('repairs mapped links without baking in the import folder or encoding angled spaces', async () => {
 	const wiki = '[[Journal?/A day: one|day]]';
 	const markdownLink = '[d](<Journal?/A day: one.md>)';
