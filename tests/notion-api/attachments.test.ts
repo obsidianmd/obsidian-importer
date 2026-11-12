@@ -390,14 +390,14 @@ test('a file Notion was hosting failing to download is a failure', async () => {
 	assert.equal(result.isLocal, false);
 });
 
-for (const name of ['photo.bin', 'preview.ashx', 'download.php']) {
-	test(`a generic download suffix keeps its name and gains the image extension: ${name}`, async () => {
+for (const [name, expected] of [['photo.bin', 'photo.gif'], ['preview.ashx', 'preview.gif'], ['download.php', 'download.gif'], ['image.aspx', 'image.gif']]) {
+	test(`a generic download suffix is replaced by the image extension: ${name}`, async () => {
 		const written: Written[] = [];
 		const result = await downloadAttachment(
 			{ type: 'external', url: `data:image/gif;base64,${GIF_BASE64}`, name }, context(written)
 		);
-		assert.equal(result.filename, `${name}.gif`);
-		assert.equal(written[0].path, `Attachments/${name}.gif`);
+		assert.equal(result.filename, expected);
+		assert.equal(written[0].path, `Attachments/${expected}`);
 		assert.deepEqual(bytesOf(written[0].data), GIF);
 	});
 }
@@ -424,9 +424,9 @@ test('a corrected attachment name is reused on a repeated import', async () => {
 	const attachment: NotionAttachment = {type: 'external', url: `data:image/gif;base64,${GIF_BASE64}`, name: 'photo.bin'};
 	const first = await downloadAttachment(attachment, contextOverVault(vault, true));
 	const second = await downloadAttachment(attachment, contextOverVault(vault, true));
-	assert.equal(first.filename, 'photo.bin.gif');
+	assert.equal(first.filename, 'photo.gif');
 	assert.equal(second.path, first.path);
-	assert.deepEqual(vault.paths(), ['Attachments/photo.bin.gif']);
+	assert.deepEqual(vault.paths(), ['Attachments/photo.gif']);
 });
 
 test('HTTP image suffix correction is consistent between download and range-based reuse', async () => {
@@ -444,8 +444,8 @@ test('HTTP image suffix correction is consistent between download and range-base
 	const ctx = contextOverVault(vault, true);
 	const first = await downloadAttachment(attachment, ctx);
 	const second = await downloadAttachment(attachment, ctx);
-	assert.equal(first.filename, 'download.php.gif');
+	assert.equal(first.filename, 'download.gif');
 	assert.equal(second.path, first.path);
 	assert.deepEqual(asked, ['range', 'full', 'range']);
-	assert.deepEqual(vault.paths(), ['Attachments/download.php.gif']);
+	assert.deepEqual(vault.paths(), ['Attachments/download.gif']);
 });

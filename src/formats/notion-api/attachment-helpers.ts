@@ -261,16 +261,21 @@ async function probeAttachmentSize(url: string, probe: { answered: boolean }): P
 	};
 }
 
+// These name the script or a generic download, not what the file is.
+const GENERIC_EXTENSION = /^(bin|ashx|aspx?|php|jsp|cgi)$/i;
+
 function withInferredExtension(filename: string, contentType: string | undefined, fromPageTitle = false): string {
 	if (!contentType) return filename;
+	const inferred = extensionForMime(contentType);
+	if (!inferred) return filename;
 
 	const existing = !fromPageTitle && extensionFromName(filename);
-	const inferred = extensionForMime(contentType);
-	// Preserve source names; append an image suffix only for generic download names.
-	const generic = existing && /^(bin|ashx|php)$/i.test(existing);
-	const image = /^(png|jpg|jpeg|gif|webp|bmp|tiff|avif|heic|ico)$/.test(inferred);
-	if (existing && !(generic && image)) return filename;
-	return inferred ? `${filename}.${inferred}` : filename;
+	if (!existing) return `${filename}.${inferred}`;
+
+	if (GENERIC_EXTENSION.test(existing) && contentType.trim().toLowerCase().startsWith('image/')) {
+		return `${filename.slice(0, -existing.length)}${inferred}`;
+	}
+	return filename;
 }
 
 async function resolveTargetPath(context: BlockConversionContext, filename: string): Promise<string> {
