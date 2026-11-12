@@ -2410,6 +2410,34 @@ translation=Tittelen er tom
 original=Unexpected file extension
 translation=Uventet extension
 
+[importer.samsung-notes.name]
+original=Samsung Notes
+translation=
+
+[importer.samsung-notes.option-text]
+original=Samsung Notes (.sdocx)
+translation=
+
+[importer.samsung-notes.file-type]
+original=Samsung Notes files
+translation=
+
+[importer.samsung-notes.desc-export]
+original=In Samsung Notes, select the notes you want and save them as Samsung Notes files (.sdocx). Then move the files to this device.
+translation=
+
+[importer.samsung-notes.msg-unsupported-pages]
+original={{name}}: handwriting, drawings, and PDF pages are not imported yet.
+translation=
+
+[importer.samsung-notes.reason-not-samsung-note]
+original=it is not a Samsung Notes file
+translation=
+
+[importer.samsung-notes.reason-missing-image]
+original=the image is missing from {{name}}
+translation=
+
 [importer.textbundle.name]
 original=Textbundle files
 translation=Textbundle-filer

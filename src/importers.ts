@@ -16,6 +16,7 @@ import { NotionAPIImporter } from './formats/notion-api';
 import { OneNoteImporter } from './formats/onenote';
 import { OneNoteFileImporter } from './formats/onenote-file';
 import { RoamJSONImporter } from './formats/roam-json';
+import { SamsungNotesImporter } from './formats/samsung-notes';
 import { TextbundleImporter } from './formats/textbundle';
 import { TomboyImporter } from './formats/tomboy';
 import { i18n } from './i18n';
@@ -92,6 +93,9 @@ export const IMPORTERS: Record<string, ImporterDefinition> = {
 		importer: RoamJSONImporter,
 		helpPermalink: 'import/roam',
 	},
+	'samsung-notes': {
+		importer: SamsungNotesImporter,
+	},
 	'textbundle': {
 		importer: TextbundleImporter,
 		helpPermalink: 'import/textbundle',
@@ -111,6 +115,7 @@ export const FALLBACK_ICONS: Record<string, IconName> = {
 	'files': 'copy',
 	'html': 'code-2',
 	'markdown': 'file-text',
+	'samsung-notes': 'pencil',
 	'textbundle': 'package',
 	'tomboy': 'sticky-note',
 };
