@@ -132,7 +132,7 @@ export class SamsungNotesImporter extends FormatImporter {
 			const root = noteEntry.parent ? `${noteEntry.parent}/` : '';
 			const files = new Map<string, ZipEntryFile>();
 			for (const entry of entries) {
-				if (entry.filepath.startsWith(root)) files.set(entry.filepath.slice(root.length), entry);
+				if (entry.filepath.startsWith(root) && !hiddenZipPath(entry.filepath)) files.set(entry.filepath.slice(root.length), entry);
 			}
 
 			const pages = new Map<string, ArrayBuffer>();
@@ -205,11 +205,11 @@ export class SamsungNotesImporter extends FormatImporter {
 	}
 
 	private async importDrawing(ctx: ImportContext, noteName: string, strokes: SamsungStroke[], notePath: string): Promise<string | null> {
-		const svg = drawingToSvg(strokes);
-		if (svg === null) return null;
-
 		const name = `${noteName} - Ink.svg`;
 		try {
+			const svg = drawingToSvg(strokes);
+			if (svg === null) return null;
+
 			const { path, reuse } = await this.placeAttachment(name, notePath,
 				async existing => await this.vault.read(existing) === svg ? 'same' : 'another');
 			if (reuse) {

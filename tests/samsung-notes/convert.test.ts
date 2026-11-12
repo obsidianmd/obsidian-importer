@@ -180,3 +180,22 @@ test('keeps a backslash before a pipe inside a table cell', () => {
 		assert.equal(convertSamsungNote(note, { embedImage: () => null, embedDrawing: () => null }), '| a\\\\\\|b | c |\n| --- | --- |\n');
 	}, '\uFFFC');
 });
+
+test('caps a list item\'s indent', () => {
+	const markdown = markdownOf('deep', [], [{ type: 5, start: 0, end: 1, first: 1 }, { type: 2, start: 0, end: 1, first: 1000 }]);
+	assert.equal(markdown, `${'\t'.repeat(10)}- deep\n`);
+});
+
+test('counts a page with an unreadable pen size as unsupported and keeps its other strokes', async () => {
+	const files = await readFiles(nodePath.join(__dirname, '04-marker4-highlighter.sdocx'));
+	const page = new Uint8Array(files.get('e2c01be0-b6cf-11f1-91c8-b3fbd8ca0b23.page')!.slice(0));
+	const size = new Uint8Array(new Float32Array([9.116800308227539]).buffer);
+	const at = page.findIndex((_, i) => size.every((byte, j) => page[i + j] === byte));
+	new DataView(page.buffer).setFloat32(at, NaN, true);
+
+	const note = parseSamsungNote({ note: files.get('note.note')!, pages: new Map([['page', page.buffer]]) });
+	assert.equal(note.unsupportedPages, 1);
+	assert.equal(note.drawings[0].length, 40);
+	assert.ok(!drawingToSvg(note.drawings[0])!.includes('NaN'));
+});
+

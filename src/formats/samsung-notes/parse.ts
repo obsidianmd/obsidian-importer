@@ -38,6 +38,12 @@ const RecordType = {
 } as const;
 
 const FORMAT_WITH_OBJECT_SPANS = 2035;
+/**
+ * Tables and code blocks inside a table cell are read; anything nested deeper
+ * isn't. Finding nested text means trying every offset, so each level of
+ * nesting multiplies the work, and a damaged file could otherwise hang.
+ */
+const MAX_NESTING = 2;
 const SHAPE_HAS_TEXT = 0x1;
 const SHAPE_HAS_FILL = 0x20;
 const FILL_IMAGE = 2;
@@ -284,7 +290,7 @@ export function parseSamsungNote(archive: SamsungArchive): SamsungNote {
  * A serialized text object: a base record, a shape-base record, and a shape
  * record whose own data begins with a sized TextCommon block.
  */
-function textObjectAt(reader: Reader, at: number, formatVersion: number): { text: SamsungText, end: number } | null {
+function textObjectAt(reader: Reader, at: number, formatVersion: number, depth = 0): { text: SamsungText, end: number } | null {
 	const shape = shapeRecordAt(reader, at);
 	if (!shape || (shape.mask & SHAPE_HAS_TEXT) === 0) return null;
 
@@ -294,7 +300,7 @@ function textObjectAt(reader: Reader, at: number, formatVersion: number): { text
 
 	const block = new Reader(reader.bytes.subarray(sizeAt + 4, sizeAt + 4 + size));
 	try {
-		const text = parseTextCommon(block, formatVersion);
+		const text = parseTextCommon(block, formatVersion, depth);
 		if (block.pos !== block.length) return null;
 		return { text, end: sizeAt + 4 + size };
 	}
@@ -321,7 +327,7 @@ function shapeRecordAt(reader: Reader, at: number): { at: number, ownOffset: num
 	return { at: shapeAt, ownOffset, mask };
 }
 
-function parseTextCommon(reader: Reader, formatVersion: number): SamsungText {
+function parseTextCommon(reader: Reader, formatVersion: number, depth: number): SamsungText {
 	const text = reader.utf16(reader.u32());
 
 	const spans: SamsungSpan[] = [];
@@ -363,7 +369,7 @@ function parseTextCommon(reader: Reader, formatVersion: number): SamsungText {
 				const type = record.u32();
 				const blob = record.slice(size);
 				const offset = record.u32();
-				objects.push(parseObject(blob, type, offset, formatVersion));
+				objects.push(parseObject(blob, type, offset, formatVersion, depth));
 			}
 		}
 	}
@@ -388,22 +394,22 @@ function parseSpanValue(record: Reader, type: number, start: number, end: number
 	return span;
 }
 
-function parseObject(blob: Reader, type: number, offset: number, formatVersion: number): SamsungObject {
+function parseObject(blob: Reader, type: number, offset: number, formatVersion: number, depth: number): SamsungObject {
 	if (type === ObjectType.Image) {
 		const bindId = imageBindId(blob);
 		if (bindId !== null) return { kind: 'image', offset, bindId };
 	}
-	else if (type === ObjectType.Table) {
+	else if (type === ObjectType.Table && depth < MAX_NESTING) {
 		const columns = tableColumnCount(blob);
-		const cells = nestedTextObjects(blob, formatVersion);
+		const cells = nestedTextObjects(blob, formatVersion, depth + 1);
 		if (columns > 0 && cells.length > 0 && cells.length % columns === 0) {
 			const rows: SamsungText[][] = [];
 			for (let i = 0; i < cells.length; i += columns) rows.push(cells.slice(i, i + columns));
 			return { kind: 'table', offset, rows };
 		}
 	}
-	else if (type === ObjectType.CodeBlock) {
-		const [label, code] = nestedTextObjects(blob, formatVersion);
+	else if (type === ObjectType.CodeBlock && depth < MAX_NESTING) {
+		const [label, code] = nestedTextObjects(blob, formatVersion, depth + 1);
 		if (label && code) return { kind: 'code', offset, language: label.text.trim(), code: code.text };
 	}
 	return { kind: 'other', offset, type };
@@ -427,16 +433,17 @@ function tableColumnCount(blob: Reader): number {
 
 	const tableAt = shape.at + blob.u32At(shape.at);
 	if (blob.u16At(tableAt + 4) !== ObjectType.Table) return 0;
-	return blob.u32At(tableAt + blob.u32At(tableAt + 6));
+	const own = blob.u32At(tableAt + 6);
+	return own < 0 ? 0 : Math.max(0, blob.u32At(tableAt + own));
 }
 
 /** Text objects nested in a table or code block, in the order they're stored. */
-function nestedTextObjects(blob: Reader, formatVersion: number): SamsungText[] {
+function nestedTextObjects(blob: Reader, formatVersion: number, depth: number): SamsungText[] {
 	const found: SamsungText[] = [];
 	const container = shapeRecordAt(blob, 0);
 	let at = container ? container.at + blob.u32At(container.at) : 0;
 	while (at < blob.length - 6) {
-		const child = textObjectAt(blob, at, formatVersion);
+		const child = textObjectAt(blob, at, formatVersion, depth);
 		if (child) {
 			found.push(child.text);
 			at = child.end;
@@ -592,6 +599,7 @@ function parseStroke(reader: Reader): SamsungStroke | null {
 	if (style & StrokeStyle.AdvancedSetting) reader.u32();
 	const color = style & StrokeStyle.Color ? reader.u32() : DEFAULT_STROKE_COLOR;
 	const size = style & StrokeStyle.Size ? reader.f32() : DEFAULT_STROKE_SIZE;
+	if (!(size > 0 && Number.isFinite(size))) return null;
 	return { points, color, size, kind: 'pen' };
 }
 
@@ -614,6 +622,7 @@ function parseShapeObject(payload: Reader, type: number): SamsungStroke[] | null
 			const record = new Reader(payload.bytes.subarray(at, at + size));
 			const recordType = payload.u16At(at + 4);
 			const own = record.u32At(6);
+			if (own < 0) return null;
 
 			if (recordType === ShapeRecord.ShapeBase) {
 				record.pos = own + 4;
@@ -639,7 +648,7 @@ function parseShapeObject(payload: Reader, type: number): SamsungStroke[] | null
 		throw error;
 	}
 
-	if (!path || width === null || !(width > 0)) return null;
+	if (!path || width === null || !(width > 0 && Number.isFinite(width))) return null;
 	return path.map(points => ({ points, color: SHAPE_COLOR, size: width, kind: 'shape' }));
 }
 

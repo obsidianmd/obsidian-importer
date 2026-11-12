@@ -14,6 +14,8 @@ const HEADING_STYLES = [0, 1, 2];
 /** Bullet types that number their items: digits, circled digits, letters, and roman numerals. */
 const NUMBERED_BULLETS = [4, 5, 6, 7];
 const CHECKBOX_BULLET = 2;
+/** Deeper than any list Samsung Notes makes; a damaged file could otherwise ask for millions of tabs. */
+const MAX_INDENT = 10;
 
 type LineKind = 'text' | 'list' | 'block' | 'blank';
 
@@ -104,7 +106,7 @@ function prefixLine(text: string, format: ParagraphFormat, heading: boolean): Li
 
 	if (format.bullet === undefined) return { kind: 'text', text };
 
-	const indent = '\t'.repeat(format.indent);
+	const indent = '\t'.repeat(Math.min(format.indent, MAX_INDENT));
 	if (format.bullet === CHECKBOX_BULLET) return { kind: 'list', text: `${indent}- [ ] ${text}` };
 	if (NUMBERED_BULLETS.includes(format.bullet)) return { kind: 'list', text: `${indent}${format.number}. ${text}` };
 	return { kind: 'list', text: `${indent}- ${text}` };

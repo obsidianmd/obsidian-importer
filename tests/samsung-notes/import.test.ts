@@ -12,7 +12,7 @@ import { DuplicateHandling } from '../../src/format-importer';
 import { ImportContext } from '../../src/import-context';
 import { indexedApp, MemoryVault } from '../shims/vault';
 import { SourceZip, zipOf } from '../shims/zip';
-import { noteWithBrokenBody } from './sdocx';
+import { noteWithBrokenBody, readFiles } from './sdocx';
 
 provideNodeModules({ path: nodePath });
 
@@ -131,3 +131,16 @@ test('names a drawing after the note title the template gives', async () => {
 		'Sketch 04-marker4-highlighter - Ink.svg',
 	]);
 });
+
+test('ignores macOS metadata inside an .sdocx', async () => {
+	const files = await readFiles(nodePath.join(__dirname, '01-basic-formatting.sdocx'));
+	const sdocx = await (await zipOf({
+		'note.note': files.get('note.note')!,
+		'._e2c01be0.page': new Uint8Array(82).fill(7),
+	})).read();
+	const { ctx } = await importFiles([new SourceZip('Repacked.sdocx', new Blob([sdocx]), 'sdocx')]);
+
+	assert.equal(ctx.notes, 1);
+	assert.deepEqual(ctx.log.filter(entry => entry.outcome === 'message'), []);
+});
+
