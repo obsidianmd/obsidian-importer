@@ -31,7 +31,9 @@ export function strokesToSvg(strokes: SvgStroke[]): string | null {
 	}
 
 	let padding = PADDING;
-	for (const stroke of drawable) padding = Math.max(padding, stroke.width / 2);
+	for (const stroke of drawable) {
+		if (Number.isFinite(stroke.width)) padding = Math.max(padding, stroke.width / 2);
+	}
 	const width = maxX - minX + padding * 2;
 	const height = maxY - minY + padding * 2;
 	const paths: string[] = [];
