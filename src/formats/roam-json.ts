@@ -23,12 +23,13 @@ export class RoamJSONImporter extends FormatImporter {
 	userDNPFormat: string;
 
 
-	deOutline: boolean = roamDefaults.deOutline;
-	embedBlockReferences: boolean = roamDefaults.embedBlockReferences;
-	dropUnresolvedReferences: boolean = roamDefaults.dropUnresolvedReferences;
-	keepAttributesInOutline: boolean = roamDefaults.keepAttributesInOutline;
-	dropQueries: boolean = roamDefaults.dropQueries;
-	tagsAsLinks: boolean = roamDefaults.tagsAsLinks;
+	// Set in init(), which runs before field initializers.
+	deOutline!: boolean;
+	embedBlockReferences!: boolean;
+	dropUnresolvedReferences!: boolean;
+	keepAttributesInOutline!: boolean;
+	dropQueries!: boolean;
+	tagsAsLinks!: boolean;
 
 	get convertAttributesToProperties(): boolean {
 		return !this.keepAttributesInOutline;
@@ -39,6 +40,15 @@ export class RoamJSONImporter extends FormatImporter {
 	}
 
 	init() {
+		({
+			deOutline: this.deOutline,
+			embedBlockReferences: this.embedBlockReferences,
+			dropUnresolvedReferences: this.dropUnresolvedReferences,
+			keepAttributesInOutline: this.keepAttributesInOutline,
+			dropQueries: this.dropQueries,
+			tagsAsLinks: this.tagsAsLinks,
+		} = roamDefaults);
+
 		this.addInstructions(this.addExportSetting(i18n.importer.roamJson.descExport()));
 
 		this.addFileChooserSetting(i18n.importer.roamJson.fileType(), RoamJSONImporter.extensions, false,

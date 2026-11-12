@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { RoamJSONImporter } from '../../src/formats/roam-json';
+import { roamDefaults } from '../../src/formats/roam/convert';
 import { ImportContext } from '../../src/import-context';
 import { parseYaml } from 'obsidian';
 import { PickedFile } from '../../src/filesystem';
@@ -178,4 +179,29 @@ test('an attachment already in the vault is used again, not downloaded twice', a
 	finally {
 		answerRequests(answered);
 	}
+});
+
+test('the options are set before init() draws their toggles', async () => {
+	// What init() reads is what each toggle shows.
+	class Probe extends RoamJSONImporter {
+		declare seenInInit: Record<keyof typeof roamDefaults, boolean>;
+
+		init() {
+			super.init();
+			this.seenInInit = {
+				deOutline: this.deOutline,
+				embedBlockReferences: this.embedBlockReferences,
+				dropUnresolvedReferences: this.dropUnresolvedReferences,
+				keepAttributesInOutline: this.keepAttributesInOutline,
+				dropQueries: this.dropQueries,
+				tagsAsLinks: this.tagsAsLinks,
+			};
+		}
+	}
+
+	const subject = new Probe(memoryApp(new MemoryVault()), { sourceEl: null, optionsEl: null } as never);
+	await subject.ready;
+
+	assert.deepEqual(subject.seenInInit, { ...roamDefaults });
+	assert.equal(subject.deOutline, roamDefaults.deOutline);
 });
