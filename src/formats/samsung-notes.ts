@@ -4,8 +4,8 @@ import { FormatImporter, NoteTemplateSample, TEMPLATE_PREVIEW_LIMIT } from '../f
 import { ImportContext } from '../import-context';
 import { i18n } from '../i18n';
 import { PREVIEW_IMAGE_PLACEHOLDER, PreviewImageStore, previewImageMime } from '../preview-image';
-import { sameBytes, sanitizeFileName } from '../util';
-import { readZip, ZipEntryFile } from '../zip';
+import { sameBytes, sanitizeFileName, sanitizeFilePath } from '../util';
+import { hiddenZipPath, readZip, ZipEntryFile } from '../zip';
 import { convertSamsungNote } from './samsung-notes/convert';
 import { imageBindIds, mediaDisplayName, parseSamsungNote, SamsungNote } from './samsung-notes/parse';
 
@@ -29,7 +29,7 @@ export class SamsungNotesImporter extends FormatImporter {
 
 	protected override async templatePreviewSamples(ctx: ImportContext, images: PreviewImageStore): Promise<NoteTemplateSample[]> {
 		const samples: NoteTemplateSample[] = [];
-		await this.eachNoteFile(ctx, async file => {
+		await this.eachNoteFile(ctx, async (file, subfolder) => {
 			if (samples.length >= TEMPLATE_PREVIEW_LIMIT) return false;
 			try {
 				await this.openNote(file, async opened => {
@@ -44,7 +44,7 @@ export class SamsungNotesImporter extends FormatImporter {
 
 					samples.push({
 						title: opened.title,
-						path: normalizePath(`${this.outputLocation}/${opened.title}.md`),
+						path: normalizePath(`${this.outputLocation}/${subfolder}/${opened.title}.md`),
 						content: convertSamsungNote(opened.note, { embedImage: bindId => `![](${previews.get(bindId) ?? PREVIEW_IMAGE_PLACEHOLDER})` }),
 						times: { ctime: opened.note.ctime, mtime: opened.note.mtime },
 					});
@@ -70,10 +70,10 @@ export class SamsungNotesImporter extends FormatImporter {
 			return;
 		}
 
-		await this.eachNoteFile(ctx, async file => {
+		await this.eachNoteFile(ctx, async (file, subfolder) => {
 			try {
 				ctx.status(i18n.common.statusImportingNote({ name: file.basename }));
-				await this.importNote(ctx, folder, file);
+				await this.importNote(ctx, subfolder ? await this.createFolders(`${folder.path}/${subfolder}`) : folder, file);
 			}
 			catch (error) {
 				ctx.reportFailed(file.fullpath, error);
@@ -82,13 +82,16 @@ export class SamsungNotesImporter extends FormatImporter {
 		});
 	}
 
-	/** Visit each picked .sdocx file, and each one inside a picked .zip, until the visitor returns false. */
-	private async eachNoteFile(ctx: ImportContext, visit: (file: PickedFile) => Promise<boolean>): Promise<void> {
+	/**
+	 * Visit each picked .sdocx file, and each one inside a picked .zip, until the visitor returns false.
+	 * A note in a zip gets its folder within the zip, since an export doesn't record its Samsung Notes folder.
+	 */
+	private async eachNoteFile(ctx: ImportContext, visit: (file: PickedFile, subfolder: string) => Promise<boolean>): Promise<void> {
 		for (const file of this.files) {
 			if (await ctx.shouldStop()) return;
 
 			if (file.extension === 'sdocx') {
-				if (!await visit(file)) return;
+				if (!await visit(file, '')) return;
 				continue;
 			}
 
@@ -97,7 +100,7 @@ export class SamsungNotesImporter extends FormatImporter {
 				await readZip(file, async (_zip, entries) => {
 					for (const entry of entries) {
 						if (!keepGoing || await ctx.shouldStop()) return;
-						if (entry.extension === 'sdocx') keepGoing = await visit(entry);
+						if (entry.extension === 'sdocx' && !hiddenZipPath(entry.filepath)) keepGoing = await visit(entry, sanitizeFilePath(entry.parent));
 					}
 				});
 			}

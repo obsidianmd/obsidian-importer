@@ -62,14 +62,19 @@ test('names a note after its title and reports pages it cannot convert', async (
 	]);
 });
 
-test('imports the .sdocx files inside a zip and skips anything that is not a note', async () => {
+test('imports the .sdocx files inside a zip into its folders and skips anything that is not a note', async () => {
 	const bytes = (name: string) => new Uint8Array(nodeFs.readFileSync(nodePath.join(__dirname, name)));
 	const { vault, ctx } = await importFiles([await zipOf({
-		'Notes/01-basic-formatting.sdocx': bytes('01-basic-formatting.sdocx'),
+		'01-basic-formatting.sdocx': bytes('01-basic-formatting.sdocx'),
+		'Work/Projects/03-image-placement.sdocx': bytes('03-image-placement.sdocx'),
+		'__MACOSX/Work/._03-image-placement.sdocx': 'resource fork',
 		'Notes/Not a note.sdocx': (await (await zipOf({ 'readme.txt': 'hello' })).read()),
 		'Notes/readme.txt': 'not a note',
 	}, 'Samsung Notes.zip')]);
 
-	assert.deepEqual(vault.paths(), ['Samsung Notes/01-basic-test.md']);
+	assert.deepEqual(vault.paths().filter(path => path.endsWith('.md')).sort(), [
+		'Samsung Notes/01-basic-test.md',
+		'Samsung Notes/Work/Projects/03-image-placement.md',
+	]);
 	assert.deepEqual(ctx.skipped, ['Samsung Notes.zip/Notes/Not a note.sdocx']);
 });
