@@ -253,6 +253,7 @@ export abstract class FormatImporter {
 
 	/** Preserve picked folders instead of flattening them to accepted files. */
 	protected keepsFolders: boolean = false;
+	/** Requires the picker to preserve folders via keepsFolders. */
 	protected requiresSingleSourceFolder: boolean = false;
 
 	/** Cached value for getOutputFolder. Do not use directly. */
