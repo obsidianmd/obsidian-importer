@@ -253,6 +253,8 @@ export abstract class FormatImporter {
 
 	/** Preserve picked folders instead of flattening them to accepted files. */
 	protected keepsFolders: boolean = false;
+	/** Requires the picker to preserve folders via keepsFolders. */
+	protected requiresSingleSourceFolder: boolean = false;
 
 	/** Cached value for getOutputFolder. Do not use directly. */
 	private outputFolder: TFolder | null = null;
@@ -914,7 +916,7 @@ export abstract class FormatImporter {
 		const chooseFromWeb = (folder: boolean) => {
 			const inputEl = contentEl.doc.body.createEl('input', { cls: 'importer-file-input' });
 			inputEl.type = 'file';
-			inputEl.multiple = allowMultiple;
+			inputEl.multiple = allowMultiple && !this.requiresSingleSourceFolder;
 
 			if (folder) inputEl.webkitdirectory = true;
 			else inputEl.accept = extensions.map(e => '.' + e.toLowerCase()).join(',');
@@ -973,9 +975,10 @@ export abstract class FormatImporter {
 				return;
 			}
 
+			const properties = ['openDirectory', 'dontAddToRecent'];
+			if (!this.requiresSingleSourceFolder) properties.push('multiSelections');
 			const filePaths = this.chooseFrom({
-				title: i18n.source.dialogPickFolders(),
-				properties: ['openDirectory', 'multiSelections', 'dontAddToRecent'],
+				title: i18n.source.dialogPickFolders(), properties,
 			}, currentDefaultPath());
 
 			if (filePaths.length === 0) return;
@@ -986,7 +989,9 @@ export abstract class FormatImporter {
 		const addFolders = async (folders: (PickedFile | PickedFolder)[]) => {
 			drawState(i18n.source.msgReadingFolders());
 
-			await addChosen(this.keepsFolders ? folders : await this.filesInside(folders));
+			const chosen = this.keepsFolders ? folders : await this.filesInside(folders);
+			if (this.requiresSingleSourceFolder) await setChosenAndUpdate(chosen);
+			else await addChosen(chosen);
 		};
 
 		const setChosenAndUpdate = async (chosen: (PickedFile | PickedFolder)[]) => {
@@ -1004,14 +1009,16 @@ export abstract class FormatImporter {
 		};
 
 		const drawPickers = () => {
-			const files = new Setting(listEl)
-				.setClass('mod-add-item')
-				.setName(allowMultiple ? i18n.source.buttonChooseFiles() : i18n.source.buttonChooseFile());
+			if (!this.requiresSingleSourceFolder) {
+				const files = new Setting(listEl)
+					.setClass('mod-add-item')
+					.setName(allowMultiple ? i18n.source.buttonChooseFiles() : i18n.source.buttonChooseFile());
 
-			files.setIcon('lucide-plus');
-			files.setAction(() => void chooseFiles());
+				files.setIcon('lucide-plus');
+				files.setAction(() => void chooseFiles());
+			}
 
-			if (!allowMultiple || !canChooseFolders) return;
+			if ((!allowMultiple && !this.requiresSingleSourceFolder) || !canChooseFolders) return;
 
 			const folders = new Setting(listEl)
 				.setClass('mod-add-item')
@@ -1106,6 +1113,7 @@ export abstract class FormatImporter {
 	}
 
 	takeDropped(dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): void {
+		if (this.requiresSingleSourceFolder && !this.wouldTake(dropped, files)) return;
 		if (!this.keepsFolders) {
 			this.takeFiles(files);
 			return;
@@ -1118,7 +1126,8 @@ export abstract class FormatImporter {
 		this.takeChosen(kept, accepted);
 	}
 
-	wouldTake(_dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): number {
+	wouldTake(dropped: (PickedFile | PickedFolder)[], files: PickedFile[]): number {
+		if (this.requiresSingleSourceFolder && (dropped.length !== 1 || dropped[0].type !== 'folder')) return 0;
 		return this.acceptableFiles(files).length;
 	}
 
@@ -1128,6 +1137,7 @@ export abstract class FormatImporter {
 	}
 
 	takeFiles(files: PickedFile[]): number {
+		if (this.requiresSingleSourceFolder) return 0;
 		const accepted = this.acceptableFiles(files);
 		if (accepted.length === 0) return 0;
 
@@ -1144,8 +1154,8 @@ export abstract class FormatImporter {
 	}
 
 	private takeChosen(chosen: (PickedFile | PickedFolder)[], files: PickedFile[]): void {
-		this.files = this.joining(this.files, files);
-		this.chosen = this.joining(this.chosen, chosen);
+		this.files = this.requiresSingleSourceFolder ? files : this.joining(this.files, files);
+		this.chosen = this.requiresSingleSourceFolder ? chosen : this.joining(this.chosen, chosen);
 
 		if (this.showPickedFiles) this.showPickedFiles();
 		else this.sourceChanged();

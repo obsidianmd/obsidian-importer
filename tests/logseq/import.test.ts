@@ -161,6 +161,23 @@ async function importer(
 	return { subject, vault };
 }
 
+test('requires one graph folder when dropping Logseq sources', async () => {
+	const graph = fixtureGraph();
+	const { subject } = await importer(graph);
+	const note = new SourceFile('Page.md', '- Note');
+
+	assert.equal(subject.wouldTake([note], [note]), 0);
+	subject.takeDropped([note], [note]);
+	assert.deepEqual(subject.chosen, [graph]);
+
+	const pages = new SourceFolder('pages', [note]);
+	const replacement = new SourceFolder('Replacement graph', [pages]);
+	assert.equal(subject.wouldTake([replacement], [note]), 1);
+	subject.takeDropped([replacement], [note]);
+	assert.deepEqual(subject.chosen, [replacement]);
+	assert.equal(subject.sourceReady, true);
+});
+
 test('imports a Logseq graph through the real importer and vault pipeline', async () => {
 	const { subject, vault } = await importer(fixtureGraph());
 	const ctx = new ImportContext();

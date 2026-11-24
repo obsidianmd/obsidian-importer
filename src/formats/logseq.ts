@@ -104,6 +104,7 @@ export class LogseqImporter extends FormatImporter {
 
 	init(): void {
 		this.keepsFolders = true;
+		this.requiresSingleSourceFolder = true;
 		this.defaultOutputFolder = 'Logseq';
 		this.idProperty = 'logseq-source';
 		this.idLabel = i18n.importer.logseq.labelId();

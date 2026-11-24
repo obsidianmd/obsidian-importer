@@ -63,6 +63,16 @@ export class Setting {
 		return this;
 	}
 
+	setIcon(icon: string): this {
+		setIcon(this.settingEl, icon);
+		return this;
+	}
+
+	setAction(action: () => void): this {
+		this.settingEl.addEventListener('click', action);
+		return this;
+	}
+
 	addProgressBar(cb: (component: ProgressBarComponent) => unknown): this {
 		cb(new ProgressBarComponent(this.controlEl));
 		return this;
